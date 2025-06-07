@@ -6,31 +6,67 @@ import UserAvatar from "@/components/userAvater";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import SearchBar from "@/components/search-bar";
+import Categories from "@/components/categories";
 
+/**
+ * Main header component with responsive design
+ * Features:
+ * - Sticky positioning with backdrop blur
+ * - Mobile-first responsive layout
+ * - Integrated category navigation
+ * - Search functionality
+ * - User actions (cart, profile)
+ */
 export async function HomeHeader() {
   return (
-    <header className="sticky top-0 z-20 w-full border-b bg-background">
-      <div className="mx-auto flex h-16 container items-center justify-between space-x-4 px-2.5 sm:space-x-0">
-        <div className="space-y-4">
-          <Link
-            href="/"
-            className={`text-3xl font-semibold ${playpenSans.className}`}
-          >
-            {siteConfig.name}
-          </Link>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Main Header Row */}
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <Link
+              href="/"
+              className={`text-2xl sm:text-3xl font-semibold hover:opacity-80 transition-opacity ${playpenSans.className}`}
+            >
+              {siteConfig.name}
+            </Link>
+          </div>
+
+          {/* Desktop Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <Suspense
+              fallback={
+                <div className="w-full h-10 bg-muted animate-pulse rounded-md" />
+              }
+            >
+              <SearchBar />
+            </Suspense>
+          </div>
+
+          {/* User Actions */}
+          <div className="flex items-center gap-2">
+            <CartCount />
+            <UserAvatar />
+          </div>
         </div>
 
-        <Suspense fallback={`search bar`}>
-          <div className="hidden items-center md:inline-flex">
+        {/* Mobile Search Bar */}
+        <div className="md:hidden mt-4">
+          <Suspense
+            fallback={
+              <div className="w-full h-10 bg-muted animate-pulse rounded-md" />
+            }
+          >
             <SearchBar />
-          </div>
-        </Suspense>
+          </Suspense>
+        </div>
+      </div>
 
-        <div className="flex items-center space-x-1">
-          <div className="hidden md:inline-flex">{/* <Categories /> */}</div>
-          <CartCount />
-
-          <UserAvatar />
+      {/* Category Navigation */}
+      <div className="border-t bg-background/50">
+        <div className="container mx-auto px-4 py-3">
+          <Categories />
         </div>
       </div>
     </header>

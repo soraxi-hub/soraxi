@@ -10,7 +10,6 @@ export const siteConfig = {
     { name: "Terms & Conditions", href: "/terms-conditions" },
     { name: "Shipping & Return Policy", href: "/shipping-return-policy" },
     { name: "Privacy Policy", href: "/privacy-policy" },
-    // { name: "Pricing", href: "/pricing" },
   ],
   paymentmethods: [
     { name: "Visa", img: "/svg/visa-svgrepo-com.svg" },

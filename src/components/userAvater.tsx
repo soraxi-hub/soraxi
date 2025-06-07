@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User2Icon } from "lucide-react";
 import {
@@ -13,16 +13,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-// import { getCookie } from "cookies-next";
 import axios from "axios";
+import { useSession } from "next-auth/react";
 
-interface UserAvatarProps {
-  name?: string;
-}
-
-function UserAvatar({ name }: UserAvatarProps) {
+function UserAvatar() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [userName, setUserName] = useState<string | undefined>(name);
+
+  useEffect(() => {
+    if (status === "unauthenticated" || session?.user === null) {
+      // If the user is not authenticated, redirect to the sign-in page
+      router.push(`/sign-in`);
+    }
+  }, [status, session, router]);
 
   const signOut = async () => {
     try {
@@ -38,18 +41,12 @@ function UserAvatar({ name }: UserAvatarProps) {
     }
   };
 
-  useEffect(() => {
-    if (!userName) {
-      // const cookieName = getCookie("name")?.toString();
-      const cookieName = "name"; // Replace with actual cookie retrieval logic
-      setUserName(cookieName || "");
-    }
-  }, [userName]);
+  const userName = session?.user?.firstName || null;
 
   return (
     <Suspense fallback={<User2Icon />}>
       <DropdownMenu>
-        <DropdownMenuTrigger>
+        <DropdownMenuTrigger className="">
           {userName ? (
             <span className="hover:bg-transparent hover:text-udua-orange-primary delay-75 transition-all ease-in-out">
               {userName}

@@ -39,7 +39,7 @@ function SearchBar() {
               type="search"
               autoComplete="off"
               placeholder="Search products..."
-              className="h-9 md:w-[370px] lg:w-[580px] delay-75 transition-all ease-in-out  focus:!ring-white focus:!outline-none focus:!ring-1 focus:!ring-opacity-90"
+              className="h-9 md:w-[370px] lg:w-[580px] delay-75 transition-all ease-in-out focus:!ring-white focus:!outline-none focus:!ring-1 focus:!ring-opacity-90"
               defaultValue={query}
               onChange={(e) => setQuery(e.target.value)}
             />

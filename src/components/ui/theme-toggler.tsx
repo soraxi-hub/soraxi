@@ -18,7 +18,7 @@ export const ThemeSwitcher = () => {
   return (
     <div className="flex items-center space-x-2 w-fit rounded-full p-1 bg-soraxi-darkmode-background border-[#ffffff28] border">
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <Button
             onClick={() => setTheme("light")}
             className={className}
@@ -34,7 +34,7 @@ export const ThemeSwitcher = () => {
       </Tooltip>
 
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <Button
             onClick={() => setTheme("dark")}
             className={className}
@@ -50,7 +50,7 @@ export const ThemeSwitcher = () => {
       </Tooltip>
 
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <Button
             onClick={() => setTheme("system")}
             className={className}
