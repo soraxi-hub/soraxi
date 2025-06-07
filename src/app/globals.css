@@ -4,7 +4,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-upwork-green: var(--upwork-green);
+  --color-soraxi-darkmode-success: var(--soraxi-darkmode-success);
+
+  --color-soraxi-darkmode-background: var(--soraxi-darkmode-background);
+  --color-background: var(--soraxi-background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -45,7 +51,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --soraxi-background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -76,10 +82,19 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  --soraxi-darkmode-background: #1e1e1e;
+  --soraxi-darkmode-surface: #2c2c2c;
+  --soraxi-border: #3c3c3c;
+  --soraxi-darkmode-text-primary: #e6e6e6;
+  --soraxi-darkmode-text-secondary: #a0a0a0;
+  --soraxi-darkmode-accent-green: #6fda44;
+  --soraxi-darkmode-success: #14a800;
+  --soraxi-darkmode-error: #ff6b6b;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --soraxi-background: #1e1e1e;
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -110,6 +125,15 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --soraxi-darkmode-background: #1e1e1e;
+  --soraxi-darkmode-surface: #2c2c2c;
+  --soraxi-border: #3c3c3c;
+  --soraxi-darkmode-text-primary: #e6e6e6;
+  --soraxi-darkmode-text-secondary: #a0a0a0;
+  --soraxi-darkmode-accent-green: #6fda44;
+  --soraxi-darkmode-success: #14a800;
+  --soraxi-darkmode-error: #ff6b6b;
 }
 
 @layer base {
