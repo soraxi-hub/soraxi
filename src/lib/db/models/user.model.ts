@@ -146,3 +146,14 @@ export async function getUserByEmail(email: string): Promise<IUser | null> {
   const User = await getUserModel();
   return User.findOne({ email }).lean();
 }
+
+/**
+ * Get a user by id
+ * @param id - The user's id
+ * @returns A single user document or null
+ */
+export async function getUserById(id: string): Promise<IUser | null> {
+  await connectToDatabase();
+  const User = await getUserModel();
+  return User.findById(id).lean();
+}

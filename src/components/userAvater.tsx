@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { User2Icon } from "lucide-react";
 import {
   DropdownMenu,
@@ -13,35 +12,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
 import { useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 
 function UserAvatar() {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (status === "unauthenticated" || session?.user === null) {
-      // If the user is not authenticated, redirect to the sign-in page
-      router.push(`/sign-in`);
-    }
-  }, [status, session, router]);
-
-  const signOut = async () => {
-    try {
-      const response = await axios.get("/api/auth/signOut");
-      if (response.status === 200) {
-        router.push("/sign-in");
-      }
-      // console.log(`response`, response);
-
-      // return response;
-    } catch (error) {
-      return error;
-    }
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut({ redirect: true, callbackUrl: "/sign-in" });
   };
 
-  const userName = session?.user?.firstName || null;
+  const userName =
+    status === "unauthenticated" ? null : session?.user?.firstName;
 
   return (
     <Suspense fallback={<User2Icon />}>
@@ -78,7 +61,7 @@ function UserAvatar() {
               <DropdownMenuSeparator className=" border" />
               <DropdownMenuLabel>
                 <Button
-                  onClick={signOut}
+                  onClick={handleLogout}
                   variant={`ghost`}
                   className="w-full dark:hover:bg-transparent dark:hover:text-udua-orange-primary font-semibold hover:bg-transparent hover:text-udua-orange-primary delay-75 transition-all ease-in-out h-5"
                 >
@@ -90,7 +73,7 @@ function UserAvatar() {
             <Link href={`/sign-in`}>
               <DropdownMenuLabel>
                 <Button
-                  onClick={signOut}
+                  onClick={handleLogout}
                   variant={`ghost`}
                   className="w-full dark:hover:bg-transparent dark:hover:text-udua-orange-primary font-semibold hover:bg-transparent hover:text-udua-orange-primary delay-75 transition-all ease-in-out h-5"
                 >

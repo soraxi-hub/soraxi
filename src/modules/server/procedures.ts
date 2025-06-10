@@ -1,8 +1,21 @@
-import { getUserByEmail } from "@/lib/db/models/user.model";
+import { getUserByEmail, getUserById } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { z } from "zod";
 
 export const userRouter = createTRPCRouter({
+  getById: baseProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .query(async (input) => {
+      const { id } = input.input;
+
+      const user = await getUserById(id);
+      return user;
+    }),
+
   getByEmail: baseProcedure
     .input(
       z.object({
