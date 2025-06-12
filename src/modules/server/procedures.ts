@@ -1,6 +1,7 @@
+import { z } from "zod";
+
 import { getUserByEmail, getUserById } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { z } from "zod";
 
 export const userRouter = createTRPCRouter({
   getById: baseProcedure

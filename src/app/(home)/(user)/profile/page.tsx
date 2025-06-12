@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { caller, getQueryClient, trpc } from "@/trpc/server";
+import { getQueryClient, trpc } from "@/trpc/server";
 import Profile from "@/modules/user/components/user-profile";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -12,7 +12,7 @@ async function Page() {
 
   // If not authenticated, redirect to login
   if (!session) {
-    redirect(`/sign-in`);
+    return redirect(`/sign-in`);
   }
 
   const userId = session.user._id;

@@ -1,12 +1,12 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getQueryClient, trpc } from "@/trpc/server";
-import { caller } from "@/trpc/server";
+import { getQueryClient } from "@/trpc/server";
+// import { caller } from "@/trpc/server";
 
 export default async function Home() {
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(
-    trpc.users.getByEmail.queryOptions({ email: "mishaeljoe55@gmail.com" })
-  );
+  // void queryClient.prefetchQuery(
+  //   trpc.users.getByEmail.queryOptions({ email: "mishaeljoe55@gmail.com" })
+  // );
 
   // const user = await caller.users.getByEmail({
   //   email: "mishaeljoe55@gmail.com",
