@@ -1,7 +1,5 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
-
 import {
   UserIcon,
   PackageIcon,
@@ -49,6 +47,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { siteConfig } from "@/config/site";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const sidebarItems = [
   {
@@ -100,11 +101,22 @@ const sidebarItems = [
   },
 ];
 
-export function AppSidebar() {
-  const { data: session, status } = useSession();
-
-  const userName =
-    status === "unauthenticated" ? null : session?.user?.firstName;
+export function AppSidebar({ userName }: { userName?: string }) {
+  const router = useRouter();
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post("/api/auth/sign-out");
+      if (response.status === 200) {
+        router.push("/sign-in");
+        router.refresh();
+        toast.success("Logged out successfully");
+        return;
+      }
+      toast.error("Logout failed. Please try again.");
+    } catch (error) {
+      return error;
+    }
+  };
   return (
     <Sidebar
       variant={`inset`}
@@ -168,7 +180,7 @@ export function AppSidebar() {
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
-                <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

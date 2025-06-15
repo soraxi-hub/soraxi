@@ -4,27 +4,25 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
 import Profile from "@/modules/user/components/user-profile";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
 async function Page() {
-  const session = await getServerSession(authOptions);
+  const user = await getUserFromCookie();
 
   // If not authenticated, redirect to login
-  if (!session) {
+  if (!user) {
     return redirect(`/sign-in`);
   }
 
-  const userId = session.user._id;
   const queryClient = getQueryClient();
   void queryClient.prefetchQuery(
-    trpc.users.getById.queryOptions({ id: userId })
+    trpc.users.getById.queryOptions({ id: user.id })
   );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <Suspense fallback={`Profile`}>
-        <Profile />
+        <Profile id={user.id} />
       </Suspense>
     </HydrationBoundary>
   );

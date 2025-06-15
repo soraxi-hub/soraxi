@@ -1,34 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { sendMail } from "@/lib/helpers/mail";
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { authOptions } from "@/lib/auth";
-import { TRPCError } from "@trpc/server";
 import { getUserById, IUser } from "@/lib/db/models/user.model";
+import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
-
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      throw new TRPCError({
-        message: "Unauthorized",
-        code: "UNAUTHORIZED",
-        cause: `You must be logged in to perform this action`,
-      });
+    const userData = await getUserDataFromToken(request);
+    if (!userData) {
+      throw new AppError(
+        "Unauthorized",
+        401,
+        "You must be logged in to perform this action",
+        "user not logged in"
+      );
     }
 
-    const userId = session.user._id;
+    const userId = userData.id;
     const user = (await getUserById(userId)) as IUser | null;
 
     if (!user) {
-      throw new TRPCError({
-        message: "User not found",
-        code: "NOT_FOUND",
-        cause: `User with ID ${userId} does not exist`,
-      });
+      throw new AppError(
+        "User Not Found",
+        404,
+        "User not found in the database",
+        "user not found"
+      );
     }
 
     const userEmail = user.email;
@@ -40,9 +41,7 @@ export async function POST(_request: NextRequest) {
     });
 
     return NextResponse.json({ message: response }, { status: 200 });
-  } catch (error: any) {
-    console.error(error);
-    // throw new Error(`Error sending email`, error.message);
-    return NextResponse.json({ error: error.message }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

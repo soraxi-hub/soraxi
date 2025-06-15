@@ -2,6 +2,8 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -19,16 +21,13 @@ export async function POST(request: NextRequest) {
   } = requestBody;
 
   try {
-    connectToDatabase();
+    await connectToDatabase();
     // Check if the user already exist
 
     const User = await getUserModel();
     const userAlreadyExists = (await User.findOne({ email })) as IUser | null;
     if (userAlreadyExists) {
-      return NextResponse.json(
-        { error: "Email already exist" },
-        { status: 401 }
-      );
+      throw new AppError("Email already exist", 401);
     }
 
     // Check if the user already exist
@@ -36,10 +35,7 @@ export async function POST(request: NextRequest) {
       phoneNumber,
     })) as IUser | null;
     if (phoneNumberAlreadyExists) {
-      return NextResponse.json(
-        { error: "Phone Number already exist" },
-        { status: 401 }
-      );
+      throw new AppError("Phone Number already exist", 401);
     }
 
     // hash the password
@@ -66,7 +62,7 @@ export async function POST(request: NextRequest) {
       { message: `User created successfully`, success: true, savedUser },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

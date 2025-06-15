@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import { getUserModel } from "../db/models/user.model";
 import { siteConfig } from "@/config/site";
 import { connectToDatabase } from "../db/mongoose";
+import { handleApiError } from "../utils/handle-api-error";
 
 type SendMail = {
   email: string;
@@ -113,8 +114,9 @@ export const sendMail = async ({ email, emailType, userId }: SendMail) => {
     const mailResponse = await transporter.sendMail(mailOptions);
 
     return mailResponse;
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    throw new Error(`Error sending email: ${error.message}`);
+    throw handleApiError(error);
+    // throw new Error(`Error sending email: ${error.message}`);
   }
 };

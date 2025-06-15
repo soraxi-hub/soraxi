@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { authOptions } from "@/lib/auth";
-import { getUserById } from "@/lib/db/models/user.model";
+import { getUserById, IUser } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
 
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
 
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const userData = await getUserDataFromToken(request);
+    if (!userData) {
       throw new AppError("Unauthorized", 401, "UNAUTHORIZED", "Login required");
     }
 
     const { token } = await request.json();
-    const userId = session.user._id;
-    const user = await getUserById(userId);
+    const userId = userData.id;
+
+    const user = (await getUserById(userId)) as IUser | null;
 
     if (!user) {
       throw new AppError("User not found", 404);

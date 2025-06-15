@@ -45,6 +45,7 @@ function Categories() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [childedOpen, setChildedOpen] = useState("");
 
   // Refs for DOM measurements
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,6 +125,7 @@ function Categories() {
     if (!container) return;
 
     const resizeObserver = new ResizeObserver((entries) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for (const _entry of entries) {
         // Debounce the calculation to avoid excessive calls
         const timeoutId = setTimeout(() => {
@@ -192,12 +194,23 @@ function Categories() {
     subcategories,
     categorySlug,
     inSidebar = false,
+    childedOpen = "",
   }: {
     subcategories: Category["subcategories"];
     categorySlug: string;
     inSidebar?: boolean;
+    childedOpen?: string;
   }) => (
-    <div className={inSidebar ? "space-y-1" : "grid gap-1"}>
+    <div
+      className={inSidebar ? "space-y-1" : "grid gap-1"}
+      onMouseEnter={() => {
+        setChildedOpen(childedOpen);
+      }}
+      onMouseLeave={() => {
+        setChildedOpen("");
+      }}
+    >
+      {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
       {subcategories.map((subcategory, _index) => (
         <Link
           key={subcategory.slug}
@@ -241,7 +254,12 @@ function Categories() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <CategoryLink category={category} />
+                    <CategoryLink
+                      className={`hover:text-soraxi-green ${
+                        category.name === childedOpen ? "text-soraxi-green" : ""
+                      }`}
+                      category={category}
+                    />
                   </div>
                 </TooltipTrigger>
                 {category.subcategories.length > 0 && (
@@ -258,6 +276,7 @@ function Categories() {
                       <SubcategoryLinks
                         subcategories={category.subcategories}
                         categorySlug={category.slug}
+                        childedOpen={category.name}
                       />
                     </div>
                   </TooltipContent>

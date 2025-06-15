@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Check, X, Eye, EyeOff, Loader } from "lucide-react";
-import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -76,8 +75,20 @@ function SignUp() {
   });
 
   const handleNext = async () => {
-    const fields = steps[currentStep - 1].fields;
-    const isValid = await form.trigger(fields as any);
+    const fields = steps[currentStep - 1].fields as Array<
+      | "firstName"
+      | "lastName"
+      | "otherNames"
+      | "email"
+      | "password"
+      | "confirmPassword"
+      | "address"
+      | "phoneNumber"
+      | "cityOfResidence"
+      | "stateOfResidence"
+      | "postalCode"
+    >;
+    const isValid = await form.trigger(fields);
     if (isValid) setCurrentStep((prev) => Math.min(prev + 1, steps.length));
   };
 
@@ -148,24 +159,15 @@ function SignUp() {
       const response = await axios.post(`/api/auth/sign-up`, values);
       if (response.status === 200 || response.data.success === true) {
         toast.success("Sign Up Successful");
-
-        const result = await signIn("credentials", {
-          redirect: false,
-          email: values.email,
-          password: values.password,
-        });
-
-        if (result?.status !== 200) {
-          // setLoginError(result!.error);
-          // setIsLoading(false);
-          router.push("/sign-in");
-          toast.error("Sign In Failed. Please try again.");
-          return;
-        }
-        router.push("/");
+        router.push("/sign-in");
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "An error occurred");
+      toast.error("An error occurred");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.error || "An error occurred");
+      } else {
+        toast.error("An error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -238,7 +240,7 @@ function SignUp() {
                       <FormField
                         key={field}
                         control={form.control}
-                        name={field as any}
+                        name={field as "firstName" | "lastName" | "otherNames"}
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
@@ -274,7 +276,13 @@ function SignUp() {
                       <FormField
                         key={field}
                         control={form.control}
-                        name={field as any}
+                        name={
+                          field as
+                            | "address"
+                            | "cityOfResidence"
+                            | "stateOfResidence"
+                            | "postalCode"
+                        }
                         render={({ field }) => (
                           <FormItem
                           // className={
@@ -316,7 +324,13 @@ function SignUp() {
                       <FormField
                         key={field}
                         control={form.control}
-                        name={field as any}
+                        name={
+                          field as
+                            | "email"
+                            | "phoneNumber"
+                            | "password"
+                            | "confirmPassword"
+                        }
                         render={({ field }) => (
                           <FormItem>
                             <div className="relative">

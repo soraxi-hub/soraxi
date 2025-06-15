@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+// import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,31 +16,20 @@ import {
   ShieldCheck,
   Store,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { IUser } from "@/lib/db/models/user.model";
 
-const Profile = () => {
+const Profile = ({ id }: { id: string }) => {
   // State management
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === "unauthenticated" || session?.user === null) {
-      // If the user is not authenticated, redirect to the sign-in page
-      router.push(`/sign-in`);
-    }
-  }, [status, session, router]);
+  // const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState(false);
+  // const router = useRouter();
 
   const trpc = useTRPC();
-  const data = useQuery(
-    trpc.users.getById.queryOptions({ id: session?.user._id! })
-  );
+  const data = useQuery(trpc.users.getById.queryOptions({ id }));
 
   // if (data.data) return JSON.stringify(data.data, null, 2);
   const user: IUser | undefined = data.data as unknown as IUser;
@@ -128,7 +117,7 @@ const Profile = () => {
       {/* Store Section */}
       {user.stores.length > 0 && (
         <StoreSection
-          storeId={user.stores[0].storeId}
+          storeId={user.stores[0].storeId.toString()}
           userName={user.firstName}
         />
       )}
@@ -200,7 +189,7 @@ const StoreSection = ({ storeId, userName }: StoreSectionProps) => (
       </p>
       <Button
         asChild
-        className="mt-4 bg-udua-orange-primary hover:bg-orange-400"
+        className="mt-4 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
       >
         <Link href={`/store/${storeId}/my-store`}>
           <Store className="w-4 h-4 mr-2" />
@@ -302,19 +291,19 @@ const ProfileSkeleton = () => (
   </div>
 );
 
-const ErrorState = () => (
-  <div className="h-screen flex items-center justify-center text-center p-4">
-    <div className="max-w-md space-y-4">
-      <h2 className="text-xl font-bold text-destructive">
-        Failed to Load Profile
-      </h2>
-      <p className="text-muted-foreground">
-        We couldn't load your profile information. Please check your connection
-        and try again.
-      </p>
-      <Button onClick={() => window.location.reload()}>Retry</Button>
-    </div>
-  </div>
-);
+// const ErrorState = () => (
+//   <div className="h-screen flex items-center justify-center text-center p-4">
+//     <div className="max-w-md space-y-4">
+//       <h2 className="text-xl font-bold text-destructive">
+//         Failed to Load Profile
+//       </h2>
+//       <p className="text-muted-foreground">
+//         We couldn't load your profile information. Please check your connection
+//         and try again.
+//       </p>
+//       <Button onClick={() => window.location.reload()}>Retry</Button>
+//     </div>
+//   </div>
+// );
 
 export default Profile;

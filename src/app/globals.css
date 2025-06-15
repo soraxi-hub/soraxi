@@ -6,7 +6,7 @@
 @theme inline {
   --color-success: var(--success);
   --color-error: var(--error);
-  --color-upwork-green: var(--upwork-green);
+  --color-soraxi-green: var(--soraxi-green);
   --color-soraxi-darkmode-success: var(--soraxi-darkmode-success);
 
   --color-soraxi-darkmode-background: var(--soraxi-darkmode-background);
@@ -91,6 +91,7 @@
   --soraxi-darkmode-accent-green: #6fda44;
   --soraxi-darkmode-success: #14a800;
   --soraxi-darkmode-error: #ff6b6b;
+  --soraxi-green: #14a800;
 }
 
 .dark {
@@ -134,6 +135,7 @@
   --soraxi-darkmode-accent-green: #6fda44;
   --soraxi-darkmode-success: #14a800;
   --soraxi-darkmode-error: #ff6b6b;
+  --soraxi-green: #14a800;
 }
 
 @layer base {

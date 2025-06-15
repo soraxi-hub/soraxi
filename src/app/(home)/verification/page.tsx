@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 // Core Imports
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -48,6 +50,7 @@ export default function VerificationPage() {
       setCountdown(60); // Reset 60-second timer
       toast.success(`A new OTP code has been sent to your email!`);
     } catch (error) {
+      console.error("Error resending OTP:", error);
       toast.error(`Failed to resend OTP. Please try again later.`);
     }
   };
@@ -74,6 +77,7 @@ export default function VerificationPage() {
       }
     } catch (error) {
       toast.error(`Verification failed. Please check your code and try again.`);
+      console.error("Verification error:", error);
     } finally {
       setIsVerifying(false);
     }

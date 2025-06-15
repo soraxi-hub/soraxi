@@ -4,7 +4,7 @@ import { connectToDatabase } from "../mongoose";
 /**
  * Shipping Method Schema Subdocument Interface
  */
-interface IShippingMethod {
+export interface IShippingMethod {
   name: string;
   price: number;
   estimatedDeliveryDays?: number;
@@ -22,7 +22,7 @@ interface IShippingMethod {
 /**
  * Payout Account Subdocument Interface
  */
-interface IPayoutAccount {
+export interface IPayoutAccount {
   payoutMethod: "Bank Transfer";
   bankDetails: {
     bankName: string;
@@ -38,7 +38,7 @@ interface IPayoutAccount {
 /**
  * Payout History Entry Interface
  */
-interface IPayoutHistory {
+export interface IPayoutHistory {
   payoutAccount: string;
   amount: number;
   payoutDate: Date;
