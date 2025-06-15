@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import SearchBar from "@/components/search-bar";
 import Categories from "@/components/categories";
+import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
 /**
  * Main header component with responsive design
@@ -18,6 +19,7 @@ import Categories from "@/components/categories";
  * - User actions (cart, profile)
  */
 export async function HomeHeader() {
+  const user = await getUserFromCookie();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Main Header Row */}
@@ -47,7 +49,7 @@ export async function HomeHeader() {
           {/* User Actions */}
           <div className="flex items-center gap-2">
             <CartCount />
-            <UserAvatar />
+            <UserAvatar userName={user?.firstName} />
           </div>
         </div>
 

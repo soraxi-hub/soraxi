@@ -139,21 +139,31 @@ export async function getUserModel(): Promise<Model<IUser>> {
 /**
  * Get a user by email
  * @param email - The user's email
+ * @param lean - Whether to return a plain object (lean) or a Mongoose document
  * @returns A single user document or null
  */
-export async function getUserByEmail(email: string): Promise<IUser | null> {
+export async function getUserByEmail(
+  email: string,
+  lean: boolean = false
+): Promise<IUser | null> {
   await connectToDatabase();
   const User = await getUserModel();
-  return User.findOne({ email }).lean();
+
+  return lean ? User.findOne({ email }).lean() : User.findOne({ email });
 }
 
 /**
  * Get a user by id
  * @param id - The user's id
+ * @param lean - Whether to return a plain object (lean) or a Mongoose document
  * @returns A single user document or null
  */
-export async function getUserById(id: string): Promise<IUser | null> {
+export async function getUserById(
+  id: string,
+  lean: boolean = false
+): Promise<IUser | null> {
   await connectToDatabase();
   const User = await getUserModel();
-  return User.findById(id).lean();
+
+  return lean ? User.findById(id).lean() : User.findById(id);
 }

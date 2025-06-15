@@ -5,7 +5,6 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "next-themes";
 
 import { TRPCReactProvider } from "@/trpc/client";
-import { AuthProvider } from "@/components/providers";
 
 // Configure Geist Sans font with CSS variables
 const geistSans = Geist({
@@ -46,19 +45,17 @@ export default function RootLayout({
           Using suppressHydrationWarning on the html tag is a common solution
           when using theme providers with SSR.
         */}
-        <AuthProvider>
-          <TRPCReactProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange // Helps prevent flash of unstyled content
-            >
-              {children}
-              <Toaster />
-            </ThemeProvider>
-          </TRPCReactProvider>
-        </AuthProvider>
+        <TRPCReactProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange // Helps prevent flash of unstyled content
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

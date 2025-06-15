@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/modules/user/components/app-sidebar";
 import { cookies } from "next/headers";
+import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
 export const metadata: Metadata = {
   title: siteConfig.siteTitle,
@@ -26,9 +27,10 @@ export default async function RootLayout({
 }) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+  const user = await getUserFromCookie();
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar />
+      <AppSidebar userName={user?.firstName} />
       <SidebarTrigger />
       <SidebarInset>
         <main>{children}</main>

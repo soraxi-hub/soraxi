@@ -12,19 +12,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-function UserAvatar() {
-  const { data: session, status } = useSession();
+function UserAvatar({ userName }: { userName?: string }) {
+  const router = useRouter();
 
   // Handle logout
   const handleLogout = async () => {
-    await signOut({ redirect: true, callbackUrl: "/sign-in" });
+    try {
+      const response = await axios.post("/api/auth/sign-out");
+      if (response.status === 200) {
+        router.push("/sign-in");
+        router.refresh();
+        toast.success("Logged out successfully");
+        return;
+      }
+      toast.error("Logout failed. Please try again.");
+    } catch (error) {
+      return error;
+    }
   };
-
-  const userName =
-    status === "unauthenticated" ? null : session?.user?.firstName;
 
   return (
     <Suspense fallback={<User2Icon />}>
