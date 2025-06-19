@@ -48,12 +48,12 @@ export async function POST(request: NextRequest) {
       email: user.email,
     };
 
-    // One week in seconds
-    const oneWeekInSeconds = 7 * 24 * 60 * 60;
+    // One Day in seconds
+    const oneDayInSeconds = 24 * 60 * 60;
 
     // create token
     const token = await jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
-      expiresIn: oneWeekInSeconds,
+      expiresIn: oneDayInSeconds,
     });
 
     const response = NextResponse.json(
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set("user", token, {
       httpOnly: true,
-      maxAge: oneWeekInSeconds,
+      maxAge: oneDayInSeconds,
     });
 
     return response;

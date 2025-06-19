@@ -191,7 +191,7 @@ const StoreSection = ({ storeId, userName }: StoreSectionProps) => (
         asChild
         className="mt-4 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
       >
-        <Link href={`/store/${storeId}/my-store`}>
+        <Link href={`/store/${storeId}/dashboard`}>
           <Store className="w-4 h-4 mr-2" />
           Open Store Dashboard
         </Link>

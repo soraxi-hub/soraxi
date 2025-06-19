@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { getUserByEmail, getUserById } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
+import { TRPCError } from "@trpc/server";
 
 export const userRouter = createTRPCRouter({
   getById: baseProcedure
@@ -14,6 +15,13 @@ export const userRouter = createTRPCRouter({
       const { id } = input.input;
 
       const user = await getUserById(id);
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `User with id ${id} not found.`,
+          cause: "UserNotFound",
+        });
+      }
       return user;
     }),
 

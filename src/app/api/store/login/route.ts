@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
         "StoreSuspended"
       );
 
+    // TODO: Uncomment when password hashing is implemented
     const isPasswordValid = await bcrypt.compare(password, store.password);
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 
@@ -51,11 +52,12 @@ export async function POST(request: NextRequest) {
       status: store.status,
     };
 
-    const oneWeekInSeconds = 7 * 24 * 60 * 60;
+    // One Day in seconds
+    const oneDayInSeconds = 24 * 60 * 60;
 
     // Sign JWT
     const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
-      expiresIn: oneWeekInSeconds,
+      expiresIn: oneDayInSeconds,
     });
 
     // Calculate onboarding status
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Set the token in an HTTP-only cookie
     response.cookies.set("store", token, {
       httpOnly: true,
-      maxAge: oneWeekInSeconds,
+      maxAge: oneDayInSeconds,
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
     });

@@ -15,19 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Loader2,
-  Store,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertCircle,
-} from "lucide-react";
+import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
 // import { useToast } from "@/hooks/use-toast"
 import { toast } from "sonner";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
+import AlertUI from "@/modules/shared/alert";
 
 /**
  * Store Login Form Schema
@@ -57,7 +49,7 @@ export default function StoreLoginPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Get redirect URL from query params (for post-login navigation)
-  const redirectTo = searchParams.get("redirect") || "/dashboard/store";
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const {
     register,
@@ -108,7 +100,7 @@ export default function StoreLoginPage() {
       ) {
         const nextStep = determineOnboardingStep(result.store.onboarding);
         router.push(
-          `/dashboard/store/onboarding/${nextStep}?storeId=${result.store.id}`
+          `/store/${result.store.id}/dashboard/onboarding/${nextStep}`
         );
       } else {
         router.push(redirectTo);
@@ -163,12 +155,7 @@ export default function StoreLoginPage() {
         </div>
 
         {/* Login Error Alert */}
-        {loginError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{loginError}</AlertDescription>
-          </Alert>
-        )}
+        {loginError && <AlertUI message={loginError} variant={"destructive"} />}
 
         {/* Store Login Form */}
         <Card>

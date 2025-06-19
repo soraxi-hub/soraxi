@@ -128,3 +128,18 @@ export const categories = [
     ],
   },
 ];
+
+// Helper function to get subcategories for a category
+export const getSubcategoriesForCategory = (categorySlug: string) => {
+  const category = categories.find((cat) => cat.slug === categorySlug);
+  return category?.subcategories || [];
+};
+
+// Get all category names
+export const getCategoryNames = () => categories.map((cat) => cat.name);
+
+// Get all subcategory names for a category
+export const getSubcategoryNames = (categoryName: string) => {
+  const category = categories.find((cat) => cat.name === categoryName);
+  return category?.subcategories.map((sub) => sub.name) || [];
+};
