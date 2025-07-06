@@ -20,7 +20,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
-import { IStore } from "@/lib/db/models/store.model";
+// import { IStore } from "@/lib/db/models/store.model";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import AlertUI from "@/modules/shared/alert";
@@ -40,25 +40,7 @@ export default function StoreDashboardPage({
 }) {
   const trpc = useTRPC();
   const data = useQuery(trpc.store.getById.queryOptions({ id: store_id }));
-  const storeData = data.data as
-    | (IStore & {
-        onboarding?: {
-          profileComplete: boolean;
-          businessInfoComplete: boolean;
-          shippingComplete: boolean;
-          payoutComplete: boolean;
-          termsComplete: boolean;
-          isComplete: boolean;
-          completedSteps: number;
-          totalSteps: number;
-          percentage: number;
-        };
-        verification?: {
-          isVerified: boolean;
-          verificationStatus: string;
-        };
-      })
-    | undefined;
+  const storeData = data.data;
   const router = useRouter();
 
   /**

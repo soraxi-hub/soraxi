@@ -217,7 +217,7 @@ const StoreSchema = new Schema<IStore>(
     },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     physicalProducts: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "physicalproducts" },
+      { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     ],
     digitalProducts: [
       { type: mongoose.Schema.Types.ObjectId, ref: "digitalproducts" },

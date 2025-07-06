@@ -8,6 +8,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { redirect } from "next/navigation";
 
 // Metadata for the application
 export const metadata: Metadata = {
@@ -23,9 +24,12 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
   const store = await getStoreFromCookie();
+  if (!store) {
+    redirect(`/login`);
+  }
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <StoreSidebar store={store!} />
+      <StoreSidebar store={store} />
       <SidebarTrigger />
       <SidebarInset>
         <main>{children}</main>

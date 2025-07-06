@@ -1,7 +1,6 @@
 import { z } from "zod";
-
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { getStoreByUniqueId } from "@/lib/db/models/store.model";
+import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 
 export const storeRouter = createTRPCRouter({
@@ -13,9 +12,12 @@ export const storeRouter = createTRPCRouter({
     )
     .query(async (input) => {
       const { id } = input.input;
-      console.log("Fetching store with id:", id);
+      const Store = await getStoreModel();
 
-      const store = await getStoreByUniqueId(id);
+      const store = (await Store.findById(id).select(
+        "name storeEmail status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description logoUrl bannerUrl"
+      )) as (IStore & { _id: string }) | null;
+
       if (!store) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -23,6 +25,45 @@ export const storeRouter = createTRPCRouter({
           cause: "StoreNotFound",
         });
       }
-      return store;
+
+      return {
+        id: store._id.toString(),
+        name: store.name,
+        storeEmail: store.storeEmail,
+        status: store.status,
+        verification: store.verification,
+        logoUrl: store.logoUrl,
+        bannerUrl: store.bannerUrl,
+        onboarding: computeOnboardingStatus(store),
+      };
     }),
 });
+
+export const computeOnboardingStatus = (store: IStore) => {
+  const onboardingStatus = {
+    profileComplete: !!(store.name && store.description),
+    businessInfoComplete: !!(
+      store.businessInfo &&
+      (store.businessInfo.type === "individual" ||
+        (store.businessInfo.type === "company" &&
+          store.businessInfo.businessName &&
+          store.businessInfo.registrationNumber))
+    ),
+    shippingComplete: !!(
+      store.shippingMethods && store.shippingMethods.length > 0
+    ),
+    payoutComplete: !!(store.payoutAccounts && store.payoutAccounts.length > 0),
+    termsComplete: !!store.agreedToTermsAt,
+  };
+
+  const completedSteps = Object.values(onboardingStatus).filter(Boolean).length;
+  const totalSteps = Object.keys(onboardingStatus).length;
+
+  return {
+    ...onboardingStatus,
+    completedSteps,
+    totalSteps,
+    isComplete: completedSteps === totalSteps,
+    percentage: Math.round((completedSteps / totalSteps) * 100),
+  };
+};

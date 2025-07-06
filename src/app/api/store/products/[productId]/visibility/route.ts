@@ -8,7 +8,7 @@ import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
     // Check store authentication
@@ -20,7 +20,7 @@ export async function PATCH(
       );
     }
 
-    const { productId } = params;
+    const { productId } = await params;
     const { isVisible } = await request.json();
 
     const Product = await getProductModel();

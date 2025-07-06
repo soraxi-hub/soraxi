@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 // import { useRouter } from "next/navigation";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { IUser } from "@/lib/db/models/user.model";
 
@@ -29,10 +29,11 @@ const Profile = ({ id }: { id: string }) => {
   // const router = useRouter();
 
   const trpc = useTRPC();
-  const data = useQuery(trpc.users.getById.queryOptions({ id }));
+  const { data } = useSuspenseQuery(trpc.user.getById.queryOptions({ id }));
+  // const data = useQuery(trpc.users.getById.queryOptions({ id }));
 
   // if (data.data) return JSON.stringify(data.data, null, 2);
-  const user: IUser | undefined = data.data as unknown as IUser;
+  const user: IUser | undefined = data as unknown as IUser;
 
   /**
    * Fetches recently viewed products from localStorage

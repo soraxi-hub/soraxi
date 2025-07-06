@@ -1,12 +1,15 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getStoreModel } from "@/lib/db/models/store.model"
-import { AUDIT_ACTIONS } from "@/lib/admin/audit-logger"
+import { type NextRequest, NextResponse } from "next/server";
+import { getStoreModel } from "@/lib/db/models/store.model";
+import { AUDIT_ACTIONS } from "@/lib/admin/audit-logger";
 
 /**
  * API Route: Store Actions
  * Handles approve, reject, suspend, reactivate actions on stores
  */
-export async function POST(request: NextRequest, { params }: { params: { storeId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ storeId: string }> }
+) {
   try {
     // TODO: Add admin authentication check here
     // const admin = getAdminFromRequest(request)
@@ -14,83 +17,98 @@ export async function POST(request: NextRequest, { params }: { params: { storeId
     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     // }
 
-    const { storeId } = params
-    const body = await request.json()
-    const { action, reason } = body
+    const { storeId } = await params;
+    const body = await request.json();
+    const { action, reason } = body;
 
     if (!action) {
-      return NextResponse.json({ error: "Action is required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Action is required" },
+        { status: 400 }
+      );
     }
 
-    const Store = await getStoreModel()
-    const store = await Store.findById(storeId)
+    const Store = await getStoreModel();
+    const store = await Store.findById(storeId);
 
     if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 })
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
     }
 
-    let updateData: any = {}
-    let auditAction = ""
-    let message = ""
+    let updateData = {};
+    let auditAction = "";
+    let message = "";
 
     switch (action) {
       case "approve":
         if (store.status !== "pending") {
-          return NextResponse.json({ error: "Store is not pending approval" }, { status: 400 })
+          return NextResponse.json(
+            { error: "Store is not pending approval" },
+            { status: 400 }
+          );
         }
         updateData = {
           status: "active",
           "verification.isVerified": true,
           "verification.verifiedAt": new Date(),
           "verification.notes": reason || "Approved by admin",
-        }
-        auditAction = AUDIT_ACTIONS.STORE_APPROVED
-        message = "Store approved successfully"
-        break
+        };
+        auditAction = AUDIT_ACTIONS.STORE_APPROVED;
+        message = "Store approved successfully";
+        break;
 
       case "reject":
         if (store.status !== "pending") {
-          return NextResponse.json({ error: "Store is not pending approval" }, { status: 400 })
+          return NextResponse.json(
+            { error: "Store is not pending approval" },
+            { status: 400 }
+          );
         }
         updateData = {
           status: "rejected",
           "verification.isVerified": false,
           "verification.notes": reason || "Rejected by admin",
-        }
-        auditAction = AUDIT_ACTIONS.STORE_REJECTED
-        message = "Store rejected"
-        break
+        };
+        auditAction = AUDIT_ACTIONS.STORE_REJECTED;
+        message = "Store rejected";
+        break;
 
       case "suspend":
         if (store.status !== "active") {
-          return NextResponse.json({ error: "Store is not active" }, { status: 400 })
+          return NextResponse.json(
+            { error: "Store is not active" },
+            { status: 400 }
+          );
         }
         updateData = {
           status: "suspended",
           "verification.notes": reason || "Suspended by admin",
-        }
-        auditAction = AUDIT_ACTIONS.STORE_SUSPENDED
-        message = "Store suspended"
-        break
+        };
+        auditAction = AUDIT_ACTIONS.STORE_SUSPENDED;
+        message = "Store suspended";
+        break;
 
       case "reactivate":
         if (store.status !== "suspended") {
-          return NextResponse.json({ error: "Store is not suspended" }, { status: 400 })
+          return NextResponse.json(
+            { error: "Store is not suspended" },
+            { status: 400 }
+          );
         }
         updateData = {
           status: "active",
           "verification.notes": reason || "Reactivated by admin",
-        }
-        auditAction = AUDIT_ACTIONS.STORE_REACTIVATED
-        message = "Store reactivated"
-        break
+        };
+        auditAction = AUDIT_ACTIONS.STORE_REACTIVATED;
+        message = "Store reactivated";
+        break;
 
       default:
-        return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
     // Update store
-    await Store.findByIdAndUpdate(storeId, updateData)
+    await Store.findByIdAndUpdate(storeId, updateData);
 
     // Log admin action
     // await logAdminAction({
@@ -112,9 +130,12 @@ export async function POST(request: NextRequest, { params }: { params: { storeId
     return NextResponse.json({
       success: true,
       message,
-    })
+    });
   } catch (error) {
-    console.error("Error performing store action:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error performing store action:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

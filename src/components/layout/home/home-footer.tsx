@@ -129,7 +129,7 @@ const Copyright = ({ currentYear }: { currentYear: number }) => (
       href="https://mishael-joe.vercel.app"
       target="_blank"
       rel="noopener noreferrer"
-      className="hover:text-udua-orange-primary"
+      className="hover:text-soraxi-green"
     >
       {siteConfig.name} LLC
     </a>

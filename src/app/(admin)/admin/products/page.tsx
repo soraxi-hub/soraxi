@@ -1,5 +1,3 @@
-"use client";
-
 import { ProductModeration } from "@/modules/admin/products/ProductModeration";
 
 /**

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 export async function POST() {
   try {
@@ -19,7 +20,7 @@ export async function POST() {
       { message: `successfull`, timestamp, signature },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

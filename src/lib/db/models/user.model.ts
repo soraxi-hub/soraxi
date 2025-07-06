@@ -165,5 +165,13 @@ export async function getUserById(
   await connectToDatabase();
   const User = await getUserModel();
 
-  return lean ? User.findById(id).lean() : User.findById(id);
+  return lean
+    ? User.findById(id)
+        .select(
+          "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+        )
+        .lean()
+    : User.findById(id).select(
+        "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+      );
 }

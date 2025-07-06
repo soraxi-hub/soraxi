@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -21,8 +24,6 @@ import {
 } from "@/components/ui/carousel";
 import {
   Search,
-  Star,
-  ShoppingCart,
   Award,
   Zap,
   Shield,
@@ -31,149 +32,52 @@ import {
   Grid3X3,
   List,
 } from "lucide-react";
-import Link from "next/link";
+
+import { ProductCard } from "../products/product-detail/product-card";
 
 /**
- * Modern Homepage Component
- * Showcases approved products with banners, categories, and features
+ * HomePage Component
+ * Fully migrated to use tRPC for all product and category data
  */
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  images: string[];
-  category: string[];
-  subCategory: string[];
-  rating: number;
-  storeID: string;
-  storeName: string;
-  slug: string;
-  isVerifiedProduct: boolean;
-  formattedPrice: string;
-}
-
-interface Category {
-  name: string;
-  icon: string;
-  count: number;
-  image: string;
-}
-
 export function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
+
+  // UI State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  useEffect(() => {
-    loadHomePageData();
-  }, []);
+  // Data fetching with tRPC and React Query
+  const { data: publicProductsData, isLoading: productsLoading } = useQuery(
+    trpc.home.getPublicProducts.queryOptions({ verified: true })
+  );
 
-  const loadHomePageData = async () => {
-    try {
-      setLoading(true);
+  const { data: featuredProducts } = useQuery(
+    trpc.home.getFeaturedProducts.queryOptions()
+  );
 
-      // Load featured products (high-rated, verified products)
-      const featuredResponse = await fetch("/api/products/featured");
-      const featuredData = await featuredResponse.json();
+  const { data: categories } = useQuery(trpc.home.getCategories.queryOptions());
 
-      // Load all products
-      const productsResponse = await fetch(
-        "/api/products?limit=20&verified=true"
-      );
-      const productsData = await productsResponse.json();
+  // Derive filtered products from query data and search/category filters
+  const filteredProducts = (publicProductsData?.products || []).filter(
+    (product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.some((cat) =>
+          cat.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
-      // Load categories
-      const categoriesResponse = await fetch("/api/categories");
-      const categoriesData = await categoriesResponse.json();
+      const matchesCategory =
+        selectedCategory === "all" ||
+        product.category.includes(selectedCategory);
 
-      if (featuredData.success) setFeaturedProducts(featuredData.products);
-      if (productsData.success) setProducts(productsData.products);
-      if (categoriesData.success) setCategories(categoriesData.categories);
-    } catch (error) {
-      console.error("Error loading homepage data:", error);
-    } finally {
-      setLoading(false);
+      return matchesSearch && matchesCategory;
     }
-  };
-
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.some((cat) =>
-        cat.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    const matchesCategory =
-      selectedCategory === "all" || product.category.includes(selectedCategory);
-    return matchesSearch && matchesCategory;
-  });
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`w-4 h-4 ${
-          i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-        }`}
-      />
-    ));
-  };
-
-  const ProductCard = ({ product }: { product: Product }) => (
-    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-      <div className="relative overflow-hidden rounded-t-lg">
-        <img
-          src={product.images[0] || "/placeholder.svg?height=200&width=300"}
-          alt={product.name}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        {product.isVerifiedProduct && (
-          <Badge className="absolute top-2 left-2 bg-soraxi-green text-white">
-            <Shield className="w-3 h-3 mr-1" />
-            Verified
-          </Badge>
-        )}
-        <Button
-          size="sm"
-          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <ShoppingCart className="w-4 h-4" />
-        </Button>
-      </div>
-      <CardContent className="p-4">
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-soraxi-green transition-colors">
-            {product.name}
-          </h3>
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center">
-              {renderStars(product.rating)}
-            </div>
-            <span className="text-sm text-muted-foreground">
-              ({product.rating})
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-soraxi-green">
-              {product.formattedPrice}
-            </span>
-            <Badge variant="outline">{product.category[0]}</Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            by {product.storeName}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
   );
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Banner */}
+      {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-soraxi-green to-soraxi-green/80 text-white py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -203,62 +107,46 @@ export function HomePage() {
                 </Button>
               </div>
             </div>
-            <div className="relative">
-              <img
-                src="/placeholder.svg?height=400&width=500"
-                alt="Shopping illustration"
-                className="w-full h-auto rounded-lg shadow-2xl"
-              />
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Feature Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
-                <Shield className="w-8 h-8 text-soraxi-green" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            {[Shield, Truck, Award, Zap].map((Icon, i) => (
+              <div className="space-y-4" key={i}>
+                <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
+                  <Icon className="w-8 h-8 text-soraxi-green" />
+                </div>
+                <h3 className="font-semibold text-lg">
+                  {
+                    [
+                      "Verified Sellers",
+                      "Fast Delivery",
+                      "Quality Guaranteed",
+                      "24/7 Support",
+                    ][i]
+                  }
+                </h3>
+                <p className="text-muted-foreground">
+                  {
+                    [
+                      "All our sellers are verified and trusted",
+                      "Quick and reliable shipping nationwide",
+                      "Premium products with quality assurance",
+                      "Round-the-clock customer support",
+                    ][i]
+                  }
+                </p>
               </div>
-              <h3 className="font-semibold text-lg">Verified Sellers</h3>
-              <p className="text-muted-foreground">
-                All our sellers are verified and trusted
-              </p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
-                <Truck className="w-8 h-8 text-soraxi-green" />
-              </div>
-              <h3 className="font-semibold text-lg">Fast Delivery</h3>
-              <p className="text-muted-foreground">
-                Quick and reliable shipping nationwide
-              </p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
-                <Award className="w-8 h-8 text-soraxi-green" />
-              </div>
-              <h3 className="font-semibold text-lg">Quality Guaranteed</h3>
-              <p className="text-muted-foreground">
-                Premium products with quality assurance
-              </p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
-                <Zap className="w-8 h-8 text-soraxi-green" />
-              </div>
-              <h3 className="font-semibold text-lg">24/7 Support</h3>
-              <p className="text-muted-foreground">
-                Round-the-clock customer support
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Products Carousel */}
+      {/* Featured Products */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
@@ -277,13 +165,19 @@ export function HomePage() {
 
           <Carousel className="w-full">
             <CarouselContent className="-ml-2 md:-ml-4">
-              {featuredProducts.map((product) => (
+              {(featuredProducts || []).map((product) => (
                 <CarouselItem
                   key={product.id}
                   className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
                 >
                   <Link href={`/products/${product.slug}`}>
-                    <ProductCard product={product} />
+                    <ProductCard
+                      product={{
+                        ...product,
+                        price: product.price ?? 0,
+                        formattedPrice: product.formattedPrice ?? "",
+                      }}
+                    />
                   </Link>
                 </CarouselItem>
               ))}
@@ -294,26 +188,24 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* Categories */}
       <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground">
-              Shop by Category
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              Explore our wide range of product categories
-            </p>
-          </div>
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold text-foreground mb-2">
+            Shop by Category
+          </h2>
+          <p className="text-muted-foreground mb-8">
+            Explore our wide range of product categories
+          </p>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {categories.map((category) => (
+            {(categories || []).map((category) => (
               <Card
                 key={category.name}
-                className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+                className="group hover:shadow-lg cursor-pointer"
               >
                 <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-soraxi-green/20 transition-colors">
+                  <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-soraxi-green/20">
                     <span className="text-2xl">{category.icon}</span>
                   </div>
                   <h3 className="font-semibold text-lg mb-2">
@@ -329,43 +221,39 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Products Section */}
+      {/* Product Filters */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-foreground">All Products</h2>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Search and Category Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
             <Select
               value={selectedCategory}
@@ -376,7 +264,7 @@ export function HomePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
+                {(categories || []).map((category) => (
                   <SelectItem key={category.name} value={category.name}>
                     {category.name}
                   </SelectItem>
@@ -385,11 +273,11 @@ export function HomePage() {
             </Select>
           </div>
 
-          {/* Products Grid */}
-          {loading ? (
+          {/* Product Grid or Loader */}
+          {productsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
+                <Card key={i} className="animate-pulse p-0">
                   <div className="h-48 bg-muted rounded-t-lg" />
                   <CardContent className="p-4 space-y-2">
                     <div className="h-4 bg-muted rounded" />
@@ -409,13 +297,20 @@ export function HomePage() {
             >
               {filteredProducts.map((product) => (
                 <Link key={product.id} href={`/products/${product.slug}`}>
-                  <ProductCard product={product} />
+                  <ProductCard
+                    product={{
+                      ...product,
+                      price: product.price ?? 0,
+                      formattedPrice: product.formattedPrice ?? "",
+                    }}
+                  />
                 </Link>
               ))}
             </div>
           )}
 
-          {filteredProducts.length === 0 && !loading && (
+          {/* Empty State */}
+          {filteredProducts.length === 0 && !productsLoading && (
             <div className="text-center py-12">
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-12 h-12 text-muted-foreground" />
@@ -429,7 +324,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter Section */}
+      {/* Newsletter CTA */}
       <section className="py-16 bg-soraxi-green text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>

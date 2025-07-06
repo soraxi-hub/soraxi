@@ -50,6 +50,10 @@ import {
   Search,
   Filter,
 } from "lucide-react";
+import { formatNaira } from "@/lib/utils/naira";
+import { useTRPC } from "@/trpc/client";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import Image from "next/image";
 
 /**
  * Product Moderation Component
@@ -75,8 +79,8 @@ interface ProductData {
 }
 
 export function ProductModeration() {
-  const [products, setProducts] = useState<ProductData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
+
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(
     null
   );
@@ -87,58 +91,34 @@ export function ProductModeration() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    loadProducts();
-  }, [statusFilter, categoryFilter]);
+  const { data, isLoading, refetch } = useSuspenseQuery(
+    trpc.admin.list.queryOptions({
+      status: statusFilter,
+      category: categoryFilter,
+      search: searchQuery,
+      page: 1,
+      limit: 20,
+    })
+  );
 
-  const loadProducts = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") params.append("status", statusFilter);
-      if (categoryFilter !== "all") params.append("category", categoryFilter);
-      if (searchQuery) params.append("search", searchQuery);
+  const mutation = trpc.admin.action.mutationOptions({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      refetch(); // refresh products
+      setSelectedProduct(null);
+      setShowProductDetails(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Action failed");
+    },
+  });
 
-      const response = await fetch(`/api/admin/products?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setProducts(data.products);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleProductAction = async (
+  const handleProductAction = (
     productId: string,
-    action: string,
-    reason?: string
+    action: "approve" | "reject" | "unpublish" | "delete",
+    reason: string
   ) => {
-    try {
-      const response = await fetch(`/api/admin/products/${productId}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message);
-        loadProducts();
-        setSelectedProduct(null);
-        setShowProductDetails(false);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Action failed");
-    }
+    mutation.onMutate({ productId, action, reason });
   };
 
   const getStatusBadge = (status: string) => {
@@ -156,7 +136,7 @@ export function ProductModeration() {
     );
   };
 
-  const filteredProducts = products.filter(
+  const filteredProducts = (data?.products ?? []).filter(
     (product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.store.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -227,7 +207,7 @@ export function ProductModeration() {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button onClick={loadProducts} className="w-full">
+              <Button onClick={() => refetch} className="w-full">
                 <Filter className="w-4 h-4 mr-2" />
                 Apply Filters
               </Button>
@@ -255,7 +235,7 @@ export function ProductModeration() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
                     Loading products...
@@ -274,7 +254,9 @@ export function ProductModeration() {
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                           {product.images.length > 0 ? (
-                            <img
+                            <Image
+                              width={100}
+                              height={100}
                               src={product.images[0] || "/placeholder.svg"}
                               alt={product.name}
                               className="w-full h-full object-cover"
@@ -309,9 +291,8 @@ export function ProductModeration() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
-                        <DollarSign className="w-3 h-3" />
                         <span className="font-medium">
-                          {product.price.toFixed(2)}
+                          {formatNaira(product.price)}
                         </span>
                       </div>
                     </TableCell>
@@ -337,7 +318,7 @@ export function ProductModeration() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem
                             onClick={() => {
-                              setSelectedProduct(product);
+                              setSelectedProduct(product as ProductData);
                               setShowProductDetails(true);
                             }}
                           >
@@ -418,7 +399,9 @@ export function ProductModeration() {
                       key={index}
                       className="aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
-                      <img
+                      <Image
+                        width={100}
+                        height={100}
                         src={image || "/placeholder.svg"}
                         alt={`${selectedProduct.name} ${index + 1}`}
                         className="w-full h-full object-cover"

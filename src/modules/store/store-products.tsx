@@ -47,6 +47,7 @@ import {
 import Link from "next/link";
 import type { StoreProduct } from "@/types/onboarding";
 import { formatNaira } from "@/lib/utils/naira";
+import Image from "next/image";
 
 /**
  * Store Products Management Component
@@ -217,7 +218,7 @@ export function StoreProductsManagement({
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Products</h1>
           <p className="text-muted-foreground">
-            Manage your store's product catalog
+            Manage your store&apos;s product catalog
           </p>
         </div>
         <Link href={`/store/${store_id}/products/upload`}>
@@ -388,7 +389,9 @@ export function StoreProductsManagement({
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                           {product.images.length > 0 ? (
-                            <img
+                            <Image
+                              width={100}
+                              height={100}
                               src={product.images[0] || "/placeholder.svg"}
                               alt={product.name}
                               className="w-full h-full object-cover"

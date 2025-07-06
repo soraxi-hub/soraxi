@@ -25,6 +25,7 @@ export async function middleware(request: NextRequest) {
     "/cart",
     "/partner-with-udua",
     "/admin-sign-in",
+    "/products/:path*",
   ];
 
   const isPublicPath = publicPaths.includes(pathname);
@@ -49,7 +50,7 @@ export async function middleware(request: NextRequest) {
 
   if (!storeToken && isStorePath(pathname)) {
     // If the user is authenticated but does not have a store token, redirect to store login
-    const signInUrl = new URL("/store/login", request.url);
+    const signInUrl = new URL("/login", request.url);
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
   }

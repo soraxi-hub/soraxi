@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getProductModel } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
 
 /**
@@ -8,7 +8,7 @@ import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
     // Check store authentication
@@ -20,16 +20,16 @@ export async function DELETE(
       );
     }
 
-    const { productId } = params;
+    const { productId } = await params;
     const Product = await getProductModel();
 
     // Find the product and verify ownership
-    const product = await Product.findById(productId);
+    const product = (await Product.findById(productId)) as IProduct | null;
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    if (product.storeID !== storeSession.id) {
+    if (product.storeID.toString() !== storeSession.id) {
       return NextResponse.json(
         { error: "Unauthorized access to product" },
         { status: 403 }
@@ -54,7 +54,7 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
     // Check store authentication
@@ -66,7 +66,7 @@ export async function GET(
       );
     }
 
-    const { productId } = params;
+    const { productId } = await params;
     const Product = await getProductModel();
 
     // Find the product and verify ownership
@@ -75,7 +75,7 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    if (product.storeID !== storeSession.id) {
+    if (product.storeID.toString() !== storeSession.id) {
       return NextResponse.json(
         { error: "Unauthorized access to product" },
         { status: 403 }

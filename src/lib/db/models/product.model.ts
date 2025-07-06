@@ -8,7 +8,7 @@ import currency from "currency.js";
  */
 export interface IProduct extends Document {
   storeID: mongoose.Types.ObjectId;
-  productType: "physicalproducts" | "digitalproducts";
+  productType: "Product" | "digitalproducts";
   name: string;
   price?: number;
   sizes?: {
@@ -19,7 +19,7 @@ export interface IProduct extends Document {
   productQuantity: number;
   images: string[];
   description: string;
-  specifications: string[];
+  specifications: string;
   category: string[];
   subCategory: string[];
   isVerifiedProduct: boolean;
@@ -41,8 +41,8 @@ const ProductSchema = new Schema<IProduct>(
     },
     productType: {
       type: String,
-      enum: ["physicalproducts", "digitalproducts"],
-      default: "physicalproducts",
+      enum: ["Product", "digitalproducts"],
+      default: "Product",
       required: [true, "Product type is required"],
     },
     name: {
@@ -79,7 +79,7 @@ const ProductSchema = new Schema<IProduct>(
       index: true,
     },
     specifications: {
-      type: [String],
+      type: String,
       required: [true, "Specifications are required"],
     },
     category: {
@@ -179,25 +179,39 @@ export async function getProducts(
     limit?: number;
     skip?: number;
     minRating?: number;
+    search?: string;
+    verified?: boolean;
   } = {}
 ): Promise<IProduct[]> {
   await connectToDatabase();
   const Product = await getProductModel();
 
-  const query: any = {};
+  const query: { [key: string]: any } = {};
+
   if (options.visibleOnly) query.isVisible = true;
   if (options.category) query.category = options.category;
   if (options.minRating !== undefined)
     query.rating = { $gte: options.minRating };
+  if (options.verified === true) query.isVerifiedProduct = true;
 
-  let productQuery = Product.find(query).sort({ createdAt: -1 });
+  // Case-insensitive search across name, category array, or subCategory
+  if (options.search) {
+    const searchRegex = new RegExp(options.search, "i");
+    query.$or = [
+      { name: searchRegex },
+      { category: { $elemMatch: searchRegex } },
+      { subCategory: searchRegex },
+    ];
+  }
+
+  let productQuery = Product.find<IProduct>(query).sort({ createdAt: -1 });
 
   if (options.skip !== undefined)
     productQuery = productQuery.skip(options.skip);
   if (options.limit !== undefined)
     productQuery = productQuery.limit(options.limit);
 
-  return productQuery.lean();
+  return productQuery;
 }
 
 export async function getProductBySlug(slug: string): Promise<IProduct | null> {

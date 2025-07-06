@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const uniqueId = await generateUniqueStoreId(storeName);
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // TODO: review this logic from top to bottom
 

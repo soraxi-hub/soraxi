@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getProductModel } from "@/lib/db/models/product.model";
-import { getStoreModel } from "@/lib/db/models/store.model";
+// import { getStoreModel } from "@/lib/db/models/store.model";
+
+// type Query = {
+//   status: string
+//   category: string
+// }
 
 /**
  * API Route: Admin Product Management
@@ -22,10 +27,10 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "20");
 
     const Product = await getProductModel();
-    const Store = await getStoreModel();
+    // const Store = await getStoreModel();
 
     // Build query
-    const query: any = {};
+    const query: { [key: string]: any } = {};
 
     if (status && status !== "all") {
       query.status = status;

@@ -123,6 +123,7 @@ export function FinancePanel() {
       }
     } catch (error) {
       toast.error("Failed to load finance data");
+      console.log("Failed to load finance data", error);
     } finally {
       setLoading(false);
     }

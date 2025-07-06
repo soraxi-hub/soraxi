@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getStoreModel } from "@/lib/db/models/store.model"
+import { type NextRequest, NextResponse } from "next/server";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 /**
  * API Route: Admin Store Management
@@ -13,40 +13,45 @@ export async function GET(request: NextRequest) {
     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     // }
 
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get("status")
-    const verified = searchParams.get("verified")
-    const search = searchParams.get("search")
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "20")
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+    const verified = searchParams.get("verified");
+    const search = searchParams.get("search");
+    const page = Number.parseInt(searchParams.get("page") || "1");
+    const limit = Number.parseInt(searchParams.get("limit") || "20");
 
-    const Store = await getStoreModel()
+    const Store = await getStoreModel();
 
     // Build query
-    const query: any = {}
+    const query: { [key: string]: any } = {};
 
     if (status && status !== "all") {
-      query.status = status
+      query.status = status;
     }
 
     if (verified && verified !== "all") {
-      query["verification.isVerified"] = verified === "true"
+      query["verification.isVerified"] = verified === "true";
     }
 
     if (search) {
-      query.$or = [{ name: { $regex: search, $options: "i" } }, { storeEmail: { $regex: search, $options: "i" } }]
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { storeEmail: { $regex: search, $options: "i" } },
+      ];
     }
 
     // Get stores with pagination
     const stores = await Store.find(query)
-      .select("name storeEmail status verification businessInfo createdAt updatedAt")
+      .select(
+        "name storeEmail status verification businessInfo createdAt updatedAt"
+      )
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .lean()
+      .lean();
 
     // Get total count for pagination
-    const total = await Store.countDocuments(query)
+    const total = await Store.countDocuments(query);
 
     // Transform data for frontend
     const transformedStores = stores.map((store: any) => ({
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
       createdAt: store.createdAt,
       lastActivity: store.updatedAt,
       notes: [], // TODO: Fetch from notes collection
-    }))
+    }));
 
     // Log admin action
     // await logAdminAction({
@@ -89,9 +94,12 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error("Error fetching stores:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching stores:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

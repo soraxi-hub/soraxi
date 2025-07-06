@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     // Create product data
     const productData = {
       storeID,
-      productType: productType || "physicalproducts",
+      productType: productType || "Product",
       name,
       price: sizes?.length > 0 ? undefined : price,
       sizes: sizes?.length > 0 ? sizes : undefined,
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     const Product = await getProductModel();
 
     // Build query for store's products
-    const query: any = { storeID: storeSession.id };
+    const query: { [key: string]: any } = { storeID: storeSession.id };
 
     if (status === "pending") {
       query.isVerifiedProduct = false;
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
     const total = await Product.countDocuments(query);
 
     // Transform data
-    const transformedProducts = products.map((product: any) => ({
+    const transformedProducts = products.map((product) => ({
       id: product._id.toString(),
       name: product.name,
       price: product.price,

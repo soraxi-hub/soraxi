@@ -1,4 +1,5 @@
 import axios from "axios";
+import { handleApiError } from "./handle-api-error";
 
 export const uploadImagesToCloudinary = async (images: File[]) => {
   try {
@@ -10,7 +11,7 @@ export const uploadImagesToCloudinary = async (images: File[]) => {
     const url = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
     const uploadedImageUrls = [];
 
-    for (let image of images) {
+    for (const image of images) {
       const formData = new FormData();
       formData.append("file", image);
       formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
@@ -32,8 +33,9 @@ export const uploadImagesToCloudinary = async (images: File[]) => {
     }
 
     return uploadedImageUrls;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error uploading images to Cloudinary:", error);
-    throw new Error(`Error uploading images to Cloudinary: ${error.message}`);
+    // throw new Error(`Error uploading images to Cloudinary: ${error.message}`);
+    throw handleApiError(error);
   }
 };

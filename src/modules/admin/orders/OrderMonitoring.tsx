@@ -51,6 +51,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
+import Image from "next/image";
 
 /**
  * Order Monitoring Component
@@ -134,6 +135,7 @@ export function OrderMonitoring() {
       }
     } catch (error) {
       toast.error("Failed to load orders");
+      console.log("Failed to load orders", error);
     } finally {
       setLoading(false);
     }
@@ -560,7 +562,9 @@ export function OrderMonitoring() {
                       >
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                           {item.image ? (
-                            <img
+                            <Image
+                              width={100}
+                              height={100}
                               src={item.image || "/placeholder.svg"}
                               alt={item.name}
                               className="w-full h-full object-cover"

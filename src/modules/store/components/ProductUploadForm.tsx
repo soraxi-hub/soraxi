@@ -32,7 +32,7 @@ import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary-upload";
  */
 const productUploadSchema = z.object({
   name: z.string().min(5, "Product name must be at least 5 characters"),
-  productType: z.enum(["physicalproducts", "digitalproducts"]).optional(),
+  productType: z.enum(["Product", "digitalproducts"]).optional(),
   price: z.number().min(0.01, "Price must be greater than 0").optional(),
   sizes: z
     .array(
@@ -88,7 +88,7 @@ export function ProductUploadForm({
   } = useForm<ProductUploadFormData>({
     resolver: zodResolver(productUploadSchema),
     defaultValues: {
-      productType: "physicalproducts",
+      productType: "Product",
       productQuantity: 0,
       images: [],
       category: "",
@@ -342,7 +342,7 @@ export function ProductUploadForm({
                 <CardTitle>Product Details</CardTitle>
                 <CardDescription>
                   Vividly describe your product. We will have to verify this
-                  product once it's been uploaded.
+                  product once it&apos;s been uploaded.
                 </CardDescription>
               </CardHeader>
               <CardContent>

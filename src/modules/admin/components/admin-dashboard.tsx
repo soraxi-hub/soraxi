@@ -1,9 +1,15 @@
 "use client";
 
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { Role } from "@/modules/shared/roles";
 import Link from "next/link";
 
-function DashboardContent({ admin }: { admin?: any }) {
+type Admin = {
+  name: string;
+  roles: Role[];
+};
+
+function DashboardContent({ admin }: { admin?: Admin }) {
   return (
     <div className="p-6 md:p-10">
       <h1 className="text-3xl font-bold text-soraxi-green mb-2">
