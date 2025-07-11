@@ -10,7 +10,7 @@ import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
  * Shipping Methods Onboarding Page
  * Third step in the onboarding process - configures shipping options
  */
-export default function ShippingPage() {
+export default function ShippingPage({ storeId }: { storeId: string }) {
   const router = useRouter();
   const { setCurrentStep } = useStoreOnboarding();
 
@@ -24,7 +24,7 @@ export default function ShippingPage() {
    * Redirects to payout setup page
    */
   const handleNext = () => {
-    router.push("/dashboard/store/onboarding/payout");
+    router.push(`/store/onboarding/${storeId}/terms`);
   };
 
   /**
@@ -32,13 +32,14 @@ export default function ShippingPage() {
    * Redirects back to business information page
    */
   const handleBack = () => {
-    router.push("/dashboard/store/onboarding/business-info");
+    router.push(`/store/onboarding/${storeId}/business-info`);
   };
 
   return (
     <OnboardingLayout
       title="Shipping Methods"
       description="Configure how you'll deliver products to your customers"
+      onBack={handleBack}
     >
       <ShippingMethodsForm
         onNextAction={handleNext}

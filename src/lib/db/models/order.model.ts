@@ -195,7 +195,24 @@ export async function getOrderById(
   await connectToDatabase();
   const Order = await getOrderModel();
 
-  return lean ? Order.findById(id).lean() : Order.findById(id);
+  let query = Order.findById(id)
+    .populate({
+      path: "user",
+      model: "User",
+      select: "_id firstName lastName email phoneNumber",
+    })
+    .populate({
+      path: "subOrders.products.Product",
+      model: "Product",
+      select: "_id name images price productType storeID",
+    })
+    .populate({
+      path: "subOrders.store",
+      model: "Store",
+      select: "name storeEmail logo",
+    });
+
+  return lean ? query.lean().exec() : query.exec();
 }
 
 /**

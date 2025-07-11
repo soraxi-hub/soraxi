@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Upload, ImageIcon } from "lucide-react";
+// import { Upload, ImageIcon } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 import type { StoreProfileData } from "@/types/onboarding";
-import Image from "next/image";
+// import Image from "next/image";
+import { useEffect } from "react";
 
 /**
  * Store Profile Form Schema
@@ -47,6 +48,7 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
     handleSubmit,
     formState: { errors, isValid },
     watch,
+    reset,
   } = useForm<StoreProfileFormData>({
     resolver: zodResolver(storeProfileSchema),
     defaultValues: state.data.profile || {
@@ -57,6 +59,18 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
     },
     mode: "onChange",
   });
+
+  // ✅ Reset form values when hydrated data becomes available
+  useEffect(() => {
+    if (state.data.profile) {
+      reset({
+        name: state.data.profile.name || "",
+        description: state.data.profile.description || "",
+        logoUrl: state.data.profile.logoUrl || "",
+        bannerUrl: state.data.profile.bannerUrl || "",
+      });
+    }
+  }, [state.data.profile, reset]);
 
   /**
    * Handle form submission
@@ -77,6 +91,8 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
 
   // Watch form values for real-time updates
   const watchedValues = watch();
+
+  console.log("description", watchedValues.description);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -123,7 +139,7 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
       </div>
 
       {/* Logo Upload */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="logoUrl" className="text-sm font-medium">
           Store Logo (Optional)
         </Label>
@@ -160,10 +176,10 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
         <p className="text-xs text-muted-foreground">
           Recommended size: 200x200px. Supports JPG, PNG formats.
         </p>
-      </div>
+      </div> */}
 
       {/* Banner Upload */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="bannerUrl" className="text-sm font-medium">
           Store Banner (Optional)
         </Label>
@@ -206,7 +222,7 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
           Recommended size: 1200x300px. This will be displayed at the top of
           your store page.
         </p>
-      </div>
+      </div> */}
 
       {/* Form Actions */}
       <div className="flex justify-end pt-6 border-t border-border">

@@ -73,9 +73,6 @@ export async function POST(request: NextRequest) {
       shippingComplete: !!(
         store.shippingMethods && store.shippingMethods.length > 0
       ),
-      payoutComplete: !!(
-        store.payoutAccounts && store.payoutAccounts.length > 0
-      ),
       termsComplete: !!store.agreedToTermsAt,
     };
 

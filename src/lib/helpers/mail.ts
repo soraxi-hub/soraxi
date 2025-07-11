@@ -4,6 +4,140 @@ import { siteConfig } from "@/config/site";
 import { connectToDatabase } from "../db/mongoose";
 import { handleApiError } from "../utils/handle-api-error";
 
+// type EmailTypes =
+//   | "emailVerification"
+//   | "passwordReset"
+//   | "orderConfirmation"
+//   | "storeOrderNotification";
+
+// type SendMail = {
+//   email: string;
+//   emailType: EmailTypes;
+//   userId?: string;
+//   subject?: string;
+//   html?: string;
+//   text?: string;
+// };
+
+// export const sendMail = async ({
+//   email,
+//   emailType,
+//   userId,
+//   subject,
+//   html,
+//   text,
+// }: SendMail) => {
+//   const transporter = nodemailer.createTransport({
+//     host: "smtp.zoho.com",
+//     port: 465,
+//     secure: true,
+//     auth: {
+//       user: process.env.ZOHO_MAIL_USERNAME,
+//       pass: process.env.NEXT_SECRET_APP_SPECIFIED_KEY,
+//     },
+//   });
+
+//   await connectToDatabase();
+//   const User = await getUserModel();
+
+//   try {
+//     let finalSubject = subject || "";
+//     let finalHtml = html || "";
+//     let finalText = text || "";
+
+//     if (emailType === "emailVerification" && userId) {
+//       const token = Math.floor(100000 + Math.random() * 900000);
+
+//       await User.findByIdAndUpdate(userId, {
+//         verifyToken: token,
+//         verifyTokenExpiry: Date.now() + 1000 * 60 * 15, // 15 mins
+//       });
+
+//       finalSubject = "ACCOUNT VERIFICATION";
+//       finalHtml = generateVerificationHtml(token);
+//     }
+
+//     const mailOptions = {
+//       from: process.env.ZOHO_MAIL_USERNAME,
+//       to: email,
+//       subject: finalSubject,
+//       text: finalText,
+//       html: finalHtml,
+//     };
+
+//     const mailResponse = await transporter.sendMail(mailOptions);
+//     return mailResponse;
+//   } catch (error) {
+//     console.error(error);
+//     throw handleApiError(error);
+//   }
+// };
+
+// function generateVerificationHtml(token: number): string {
+//   return `
+//   <!DOCTYPE html>
+//   <html lang="en">
+//     <head>
+//       <meta charset="UTF-8" />
+//       <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+//       <title>Account Verification</title>
+//       <style>
+//         body {
+//           font-family: Arial, sans-serif;
+//           background-color: #f9f9f9;
+//           padding: 20px;
+//           color: #333;
+//         }
+//         .container {
+//           max-width: 600px;
+//           margin: auto;
+//           background-color: #ffffff;
+//           border-radius: 8px;
+//           box-shadow: 0 0 10px rgba(0,0,0,0.1);
+//           padding: 30px;
+//         }
+//         .header {
+//           background-color: #14a800;
+//           padding: 20px;
+//           text-align: center;
+//           border-radius: 6px 6px 0 0;
+//           color: white;
+//         }
+//         .otp {
+//           font-size: 24px;
+//           font-weight: bold;
+//           color: #14a800;
+//           margin: 20px 0;
+//           text-align: center;
+//         }
+//         .footer {
+//           margin-top: 30px;
+//           font-size: 12px;
+//           color: #777;
+//           text-align: center;
+//         }
+//       </style>
+//     </head>
+//     <body>
+//       <div class="container">
+//         <div class="header">
+//           <h1>Welcome to ${siteConfig.name}</h1>
+//         </div>
+//         <main>
+//           <p>Someone has created an account on <strong>${siteConfig.name}</strong> using this email address.</p>
+//           <p>If it was you, please enter the following One-Time Password (OTP):</p>
+//           <div class="otp">${token}</div>
+//           <p>This OTP is valid for <strong>15 minutes</strong>.</p>
+//           <p>If you did not create this account, you can safely ignore this message.</p>
+//         </main>
+//         <div class="footer">
+//           &copy; ${new Date().getFullYear()} ${siteConfig.name}. All rights reserved.
+//         </div>
+//       </div>
+//     </body>
+//   </html>`;
+// }
+
 type SendMail = {
   email: string;
   emailType: "emailVerification" | "passwordReset";

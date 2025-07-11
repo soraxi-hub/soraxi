@@ -113,11 +113,9 @@ export interface IStore extends Document {
   forgotpasswordTokenExpiry?: Date;
 
   // Financials
-  availableBalance: number;
-  pendingBalance: number;
   platformFee: number;
   transactionFees: number;
-  totalEarnings: number;
+  wallet: mongoose.Schema.Types.ObjectId;
 
   // Shipping
   shippingMethods: IShippingMethod[];
@@ -282,11 +280,12 @@ const StoreSchema = new Schema<IStore>(
     forgotpasswordTokenExpiry: Date,
 
     // ✅ Financials
-    availableBalance: { type: Number, default: 0 },
-    pendingBalance: { type: Number, default: 0 },
     platformFee: { type: Number, default: 0 },
     transactionFees: { type: Number, default: 0 },
-    totalEarnings: { type: Number, default: 0 },
+    wallet: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Wallet",
+    },
 
     // ✅ Shipping
     shippingMethods: [ShippingMethodSchema],
@@ -339,8 +338,8 @@ const StoreSchema = new Schema<IStore>(
 export async function getStoreModel(): Promise<Model<IStore>> {
   await connectToDatabase();
   return (
-    (mongoose.models.stores as Model<IStore>) ||
-    mongoose.model<IStore>("stores", StoreSchema)
+    (mongoose.models.Store as Model<IStore>) ||
+    mongoose.model<IStore>("Store", StoreSchema)
   );
 }
 

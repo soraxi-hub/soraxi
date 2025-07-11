@@ -89,14 +89,14 @@ const UserSchema = new Schema<IUser>(
     followingStores: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "stores",
+        ref: "Store",
       },
     ],
     stores: [
       {
         storeId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "stores",
+          ref: "Store",
         },
       },
     ],

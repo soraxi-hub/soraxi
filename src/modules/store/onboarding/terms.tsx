@@ -10,7 +10,7 @@ import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
  * Terms and Conditions Onboarding Page
  * Final step in the onboarding process - agreement to platform terms
  */
-export default function TermsPage() {
+export default function TermsPage({ storeId }: { storeId: string }) {
   const router = useRouter();
   const { setCurrentStep } = useStoreOnboarding();
 
@@ -24,7 +24,7 @@ export default function TermsPage() {
    * Redirects back to payout setup page
    */
   const handleBack = () => {
-    router.push("/dashboard/store/onboarding/payout");
+    router.push(`/store/onboarding/${storeId}/shipping`);
   };
 
   return (

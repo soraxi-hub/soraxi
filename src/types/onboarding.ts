@@ -21,7 +21,7 @@ export interface OnboardingProgress {
 
 export interface StoreProfileData {
   name: string;
-  description: string;
+  description?: string;
   logoUrl?: string;
   bannerUrl?: string;
 }
@@ -63,7 +63,6 @@ export interface OnboardingData {
   profile: StoreProfileData;
   businessInfo: BusinessInfoData;
   shipping: ShippingMethodData[];
-  payout: PayoutData;
   termsAgreed: boolean;
 }
 
@@ -95,8 +94,8 @@ export interface StoreProduct {
   isVerifiedProduct: boolean;
   isVisible: boolean;
   slug: string;
-  rating: number;
   createdAt: string;
-  updatedAt: string;
   status: "pending" | "approved" | "rejected";
+  // rating: number;
+  // updatedAt: string;
 }

@@ -23,6 +23,7 @@ export interface IProduct extends Document {
   category: string[];
   subCategory: string[];
   isVerifiedProduct: boolean;
+  status: "pending" | "approved" | "rejected";
   isVisible: boolean;
   slug: string;
   rating?: number;
@@ -36,7 +37,7 @@ const ProductSchema = new Schema<IProduct>(
   {
     storeID: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "stores",
+      ref: "Store",
       required: [true, "Store ID is required"],
     },
     productType: {
@@ -95,6 +96,12 @@ const ProductSchema = new Schema<IProduct>(
     isVerifiedProduct: {
       type: Boolean,
       default: false,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
     },
     isVisible: {
       type: Boolean,

@@ -44,7 +44,6 @@ export const wishlistRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      console.log("productType", input.productType);
       const updated = await addItemToWishlist(input.userId, {
         productId: new mongoose.Types.ObjectId(input.productId),
         productType: input.productType,

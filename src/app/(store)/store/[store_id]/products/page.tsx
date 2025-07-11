@@ -10,7 +10,6 @@ async function Page(props: { params: Promise<{ store_id: string }> }) {
           <StoreProductsManagement store_id={store_id} />
         </div>
       </div>
-      {/* <StoreProducts store_id={store_id} /> */}
     </Suspense>
   );
 }

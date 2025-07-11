@@ -2,10 +2,10 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 
 /**
- * Wallet Interface - represents a seller's wallet account
+ * Wallet Interface - represents a store's wallet account
  */
 export interface IWallet extends Document {
-  seller: mongoose.Schema.Types.ObjectId;
+  store: mongoose.Schema.Types.ObjectId;
   balance: number;
   pending: number;
   totalEarned: number;
@@ -30,7 +30,7 @@ export interface IWalletTransaction extends Document {
 // Wallet Schema
 const WalletSchema = new Schema<IWallet>(
   {
-    seller: {
+    store: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: true,

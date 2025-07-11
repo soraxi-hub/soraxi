@@ -15,12 +15,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   Settings,
-  BarChart3,
+  // BarChart3,
   Package,
   AlertCircle,
   CheckCircle,
+  WalletIcon,
 } from "lucide-react";
-// import { IStore } from "@/lib/db/models/store.model";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import AlertUI from "@/modules/shared/alert";
@@ -59,7 +59,7 @@ export default function StoreDashboardPage({
     else if (!onboarding.payoutComplete) nextStep = "payout";
     else if (!onboarding.termsComplete) nextStep = "terms";
 
-    router.push(`/store/${store_id}/dashboard/onboarding/${nextStep}`);
+    router.push(`/store/onboarding/${store_id}/${nextStep}`);
   };
 
   if (error) {
@@ -189,14 +189,14 @@ export default function StoreDashboardPage({
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="w-5 h-5 text-soraxi-green" />
-                <span>Analytics</span>
+                <WalletIcon className="w-5 h-5 text-soraxi-green" />
+                <span>My Wallet</span>
               </CardTitle>
-              <CardDescription>Track your store performance</CardDescription>
+              <CardDescription>Track your store's Finanials</CardDescription>
             </CardHeader>
             <CardContent>
               <Button variant="outline" className="w-full">
-                View Analytics
+                View Wallet
               </Button>
             </CardContent>
           </Card>

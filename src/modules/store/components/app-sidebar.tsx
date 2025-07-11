@@ -16,6 +16,7 @@ import {
   ChevronDownIcon,
   User2,
   ChevronUp,
+  WalletIcon,
 } from "lucide-react";
 
 import {
@@ -68,19 +69,9 @@ const sidebarItems = (storeId: string) => [
         icon: CreditCardIcon,
       },
       {
-        title: "Inventory",
-        url: `/store/${storeId}/inventory`,
-        icon: PackageIcon,
-      },
-      {
-        title: "Customers",
-        url: `/store/${storeId}/customers`,
-        icon: UserIcon,
-      },
-      {
-        title: "Store Reviews",
-        url: `/store/${storeId}/reviews`,
-        icon: StarIcon,
+        title: "Wallet",
+        url: `/store/${storeId}/wallet`,
+        icon: WalletIcon,
       },
     ],
   },
@@ -99,36 +90,36 @@ const sidebarItems = (storeId: string) => [
       },
       {
         title: "Payment Setup",
-        url: `/store/${storeId}/payments`,
+        url: `/store/${storeId}/payment-setup`,
         icon: CreditCardIcon,
       },
-      {
-        title: "Tax Settings",
-        url: `/store/${storeId}/tax`,
-        icon: LockIcon,
-      },
+      // {
+      //   title: "Tax Settings",
+      //   url: `/store/${storeId}/tax`,
+      //   icon: LockIcon,
+      // },
     ],
   },
-  {
-    label: "Marketing",
-    items: [
-      {
-        title: "Discounts",
-        url: `/store/${storeId}/discounts`,
-        icon: HeartIcon,
-      },
-      {
-        title: "Promotions",
-        url: `/store/${storeId}/promotions`,
-        icon: Share2Icon,
-      },
-      {
-        title: "Analytics",
-        url: `/store/${storeId}/analytics`,
-        icon: GlobeIcon,
-      },
-    ],
-  },
+  // {
+  //   label: "Marketing",
+  //   items: [
+  //     {
+  //       title: "Discounts",
+  //       url: `/store/${storeId}/discounts`,
+  //       icon: HeartIcon,
+  //     },
+  //     {
+  //       title: "Promotions",
+  //       url: `/store/${storeId}/promotions`,
+  //       icon: Share2Icon,
+  //     },
+  //     {
+  //       title: "Analytics",
+  //       url: `/store/${storeId}/analytics`,
+  //       icon: GlobeIcon,
+  //     },
+  //   ],
+  // },
   {
     label: "Support",
     items: [

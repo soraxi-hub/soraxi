@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { getUserByEmail, getUserById } from "@/lib/db/models/user.model";
+import { getUserByEmail, getUserModel } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { User } from "@/types";
@@ -15,8 +15,14 @@ export const userRouter = createTRPCRouter({
     )
     .query(async (input) => {
       const { id } = input.input;
+      const User = await getUserModel();
 
-      const user = await getUserById(id, true);
+      const user = await User.findById(id)
+        .select(
+          "_id firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode isVerified stores"
+        )
+        .lean();
+
       if (!user) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -35,6 +41,8 @@ export const userRouter = createTRPCRouter({
         cityOfResidence: user.cityOfResidence,
         stateOfResidence: user.stateOfResidence,
         postalCode: user.postalCode,
+        isVerified: user.isVerified,
+        stores: user.stores,
       };
       return serializedUser;
     }),

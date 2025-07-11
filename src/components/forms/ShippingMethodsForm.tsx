@@ -22,10 +22,11 @@ import {
   Truck,
   MapPin,
   Clock,
-  DollarSign,
+  // DollarSign,
 } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 import type { ShippingMethodData } from "@/types/onboarding";
+import { nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Shipping Methods Form Schema
@@ -146,7 +147,7 @@ export function ShippingMethodsForm({
     const shippingData: ShippingMethodData[] = data.shippingMethods.map(
       (method) => ({
         name: method.name,
-        price: method.price,
+        price: nairaToKobo(method.price),
         estimatedDeliveryDays: method.estimatedDeliveryDays,
         description: method.description || undefined,
         applicableRegions: method.applicableRegions?.filter(Boolean) || [],
@@ -195,8 +196,8 @@ export function ShippingMethodsForm({
                     <CardDescription>
                       {watchedMethods[index]?.price !== undefined && (
                         <span className="flex items-center space-x-1">
-                          <DollarSign className="w-3 h-3" />
-                          <span>${watchedMethods[index].price}</span>
+                          <span>₦</span>
+                          <span>{watchedMethods[index].price}</span>
                           {watchedMethods[index]?.estimatedDeliveryDays && (
                             <>
                               <span className="mx-1">•</span>
@@ -271,12 +272,12 @@ export function ShippingMethodsForm({
                       htmlFor={`price-${index}`}
                       className="text-sm font-medium"
                     >
-                      Shipping Price ($) *
+                      Shipping Price (₦)*
                     </Label>
                     <Input
                       id={`price-${index}`}
                       type="number"
-                      step="0.01"
+                      step="500"
                       min="0"
                       {...register(`shippingMethods.${index}.price`, {
                         valueAsNumber: true,
@@ -377,7 +378,7 @@ export function ShippingMethodsForm({
                 </div>
 
                 {/* Advanced Conditions */}
-                <div className="border-t border-border pt-4">
+                {/* <div className="border-t border-border pt-4">
                   <h4 className="text-sm font-medium mb-3 flex items-center space-x-2">
                     <MapPin className="w-4 h-4" />
                     <span>Shipping Conditions (Optional)</span>
@@ -454,7 +455,7 @@ export function ShippingMethodsForm({
                       />
                     </div>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             )}
           </Card>

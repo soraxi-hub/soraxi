@@ -10,7 +10,7 @@ import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
  * Store Profile Onboarding Page
  * First step in the onboarding process - collects basic store information
  */
-export default function StoreProfilePage() {
+export default function StoreProfilePage({ storeId }: { storeId: string }) {
   const router = useRouter();
   const { setCurrentStep } = useStoreOnboarding();
 
@@ -24,7 +24,7 @@ export default function StoreProfilePage() {
    * Redirects to business information page
    */
   const handleNext = () => {
-    router.push("/dashboard/store/onboarding/business-info");
+    router.push(`/store/onboarding/${storeId}/business-info`);
   };
 
   return (

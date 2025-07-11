@@ -62,7 +62,7 @@ function UserAvatar({ userName }: { userName?: string }) {
                   Wishlist
                 </DropdownMenuItem>
               </Link>
-              <Link href={`/order-history`}>
+              <Link href={`/orders`}>
                 <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
                   Orders
                 </DropdownMenuItem>
