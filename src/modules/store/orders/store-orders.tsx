@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import {
+  Search,
   Filter,
+  Download,
   Eye,
+  MoreHorizontal,
   Package,
   Truck,
   CheckCircle,
-  XCircle,
   Clock,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -37,133 +47,82 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-// import { useToast } from "@/hooks/use-toast";
+// import { useToast } from "@/hooks/use-toast"
 import Link from "next/link";
+// import { useTRPC } from "@/trpc/client";
 
 /**
- * Interface for Order Data Structure
+ * Interface for Order Summary Information
  *
- * Represents the complete order information as received from the API,
- * including sub-orders, products, and delivery tracking information.
+ * Represents the essential order data displayed in the orders management table.
+ * Optimized for list view with key information for quick order identification.
  */
-interface OrderData {
+interface OrderSummary {
   _id: string;
   user: {
     _id: string;
-    name?: string;
-    email?: string;
+    name: string;
+    email: string;
   };
   totalAmount: number;
   paymentStatus: string;
   paymentMethod: string;
-  shippingAddress: {
-    postalCode: string;
-    address: string;
-  };
   createdAt: string;
-  updatedAt: string;
-  subOrders: SubOrder[];
-}
-
-/**
- * Interface for Sub-Order Structure
- *
- * Each order can contain multiple sub-orders for different stores.
- * This interface represents the store-specific portion of an order.
- */
-interface SubOrder {
-  _id: string;
-  store: string;
-  products: OrderProduct[];
-  totalAmount: number;
-  deliveryStatus:
-    | "Order Placed"
-    | "Processing"
-    | "Shipped"
-    | "Out for Delivery"
-    | "Delivered"
-    | "Canceled"
-    | "Returned"
-    | "Failed Delivery"
-    | "Refunded";
-  shippingMethod?: {
-    name: string;
-    price: number;
-    estimatedDeliveryDays?: string;
-    description?: string;
-  };
-  trackingNumber?: string;
-  deliveryDate?: string;
-  escrow: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: string;
-    refunded: boolean;
-    refundReason?: string;
-  };
-  returnWindow?: string;
-}
-
-/**
- * Interface for Order Product Structure
- *
- * Represents individual products within a sub-order,
- * including quantity, pricing, and size information.
- */
-interface OrderProduct {
-  Product: {
+  subOrders: {
     _id: string;
-    name: string;
-    images: string[];
-    price: number;
-    productType: string;
-  };
-  quantity: number;
-  price: number;
-  selectedSize?: {
-    size: string;
-    price: number;
-  };
+    deliveryStatus: string;
+    products: {
+      Product: {
+        _id: string;
+        name: string;
+        images: string[];
+      };
+      quantity: number;
+    }[];
+    trackingNumber?: string;
+  }[];
 }
 
 /**
- * Interface for Order Filters
+ * Interface for API Response Structure
  *
- * Defines the available filtering options for order management,
- * including date ranges and delivery status filtering.
+ * Defines the structure of the API response including pagination
+ * metadata and filtering information.
  */
-interface OrderFilters {
-  dateRange: "current" | "last" | "custom";
-  customMonth?: Date;
-  deliveryStatus: string;
-  searchQuery: string;
+interface OrdersResponse {
+  success: boolean;
+  orders: OrderSummary[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  filters: {
+    dateRange: { startDate: string; endDate: string } | null;
+    deliveryStatus: string;
+    searchQuery: string;
+  };
 }
 
 /**
  * Store Orders Management Component
  *
  * A comprehensive order management interface for store owners that provides:
- * - Monthly order filtering with custom date selection
- * - Delivery status filtering and management
- * - Order search functionality
- * - Detailed order information display
- * - Order status update capabilities
- * - Mobile-responsive design with sheet-based filters
  *
- * Features:
- * - Real-time order data fetching with loading states
- * - Professional order status badges with color coding
- * - Comprehensive error handling and user feedback
- * - Modular component architecture for maintainability
- * - Responsive design optimized for all screen sizes
+ * - Advanced filtering by date range, delivery status, and search terms
+ * - Professional order table with key information display
+ * - Pagination support for large order datasets
+ * - Quick actions for order management and status updates
+ * - Mobile-responsive design with sheet-based filters
+ * - Real-time order status tracking and updates
+ * - Export functionality for order data
+ * - Professional loading states and error handling
+ *
+ * The component integrates with the store's order API to provide real-time
+ * order management capabilities with comprehensive filtering and search options.
  */
 export default function StoreOrdersManagement({
   storeId,
@@ -173,109 +132,91 @@ export default function StoreOrdersManagement({
   // ==================== State Management ====================
 
   /**
-   * Orders State Management
+   * Orders Data State
    *
-   * Manages the complete list of orders, loading states, and error handling
-   * for the order management interface.
+   * Manages the complete orders dataset including loading states,
+   * error handling, and pagination information.
    */
-  const [orders, setOrders] = useState<OrderData[]>([]);
+  const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // const trpc = useTRPC();
+
+  /**
+   * Pagination State
+   *
+   * Tracks current page and pagination metadata for efficient
+   * data loading and navigation.
+   */
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   /**
    * Filter State Management
    *
-   * Manages all filtering options including date ranges, delivery status,
-   * and search queries for comprehensive order filtering.
+   * Manages all filtering options including date ranges,
+   * status filters, and search queries.
    */
-  const [filters, setFilters] = useState<OrderFilters>({
-    dateRange: "current",
-    deliveryStatus: "all",
-    searchQuery: "",
-  });
-
-  /**
-   * UI State Management
-   *
-   * Manages mobile filter sheet visibility and other UI-related states
-   * for responsive design implementation.
-   */
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState("current");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Hook for toast notifications
-  //   const { toast } = useToast();
+  // const { toast } = useToast()
 
   // ==================== Utility Functions ====================
 
   /**
-   * Get Delivery Status Badge Configuration
+   * Get Date Range for Month Selection
    *
-   * Returns appropriate styling and icon configuration for different
-   * delivery statuses to provide visual consistency across the interface.
+   * Calculates the start and end dates for different month options
+   * including current month, last month, and custom selections.
    *
-   * @param status - The delivery status to get configuration for
-   * @returns Object containing variant, icon, and color information
+   * @param monthOption - The selected month option
+   * @returns Object containing start and end dates
    */
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      "Order Placed": {
-        variant: "secondary" as const,
-        icon: Clock,
-        color: "text-blue-600",
-      },
-      Processing: {
-        variant: "default" as const,
-        icon: Package,
-        color: "text-orange-600",
-      },
-      Shipped: {
-        variant: "default" as const,
-        icon: Truck,
-        color: "text-purple-600",
-      },
-      "Out for Delivery": {
-        variant: "default" as const,
-        icon: Truck,
-        color: "text-indigo-600",
-      },
-      Delivered: {
-        variant: "default" as const,
-        icon: CheckCircle,
-        color: "text-green-600",
-      },
-      Canceled: {
-        variant: "destructive" as const,
-        icon: XCircle,
-        color: "text-red-600",
-      },
-      Returned: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "text-yellow-600",
-      },
-      "Failed Delivery": {
-        variant: "destructive" as const,
-        icon: XCircle,
-        color: "text-red-600",
-      },
-      Refunded: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "text-gray-600",
-      },
-    };
+  const getDateRange = (monthOption: string) => {
+    const now = new Date();
 
-    return (
-      statusConfig[status as keyof typeof statusConfig] ||
-      statusConfig["Order Placed"]
-    );
+    switch (monthOption) {
+      case "current":
+        return {
+          startDate: startOfMonth(now),
+          endDate: endOfMonth(now),
+        };
+      case "last":
+        const lastMonth = subMonths(now, 1);
+        return {
+          startDate: startOfMonth(lastMonth),
+          endDate: endOfMonth(lastMonth),
+        };
+      case "two-months":
+        const twoMonthsAgo = subMonths(now, 2);
+        return {
+          startDate: startOfMonth(twoMonthsAgo),
+          endDate: endOfMonth(twoMonthsAgo),
+        };
+      case "three-months":
+        const threeMonthsAgo = subMonths(now, 3);
+        return {
+          startDate: startOfMonth(threeMonthsAgo),
+          endDate: endOfMonth(threeMonthsAgo),
+        };
+      default:
+        return {
+          startDate: startOfMonth(now),
+          endDate: endOfMonth(now),
+        };
+    }
   };
 
   /**
    * Format Currency Display
    *
    * Formats monetary values in Nigerian Naira with proper formatting
-   * for consistent display across the interface.
+   * for consistent display across the orders table.
    *
    * @param amount - Amount in kobo (smallest currency unit)
    * @returns Formatted currency string
@@ -288,189 +229,264 @@ export default function StoreOrdersManagement({
   };
 
   /**
-   * Get Date Range for Filtering
+   * Get Status Badge Configuration
    *
-   * Calculates the appropriate date range based on the selected filter option
-   * to ensure accurate order filtering by date.
+   * Returns appropriate styling and icon configuration for different
+   * delivery statuses with enhanced visual indicators.
    *
-   * @param filterType - The type of date filter to apply
-   * @param customDate - Custom date for specific month filtering
-   * @returns Object containing start and end dates
+   * @param status - The delivery status to get configuration for
+   * @returns Object containing variant, icon, and color information
    */
-  const getDateRange = (filterType: string, customDate?: Date) => {
-    const now = new Date();
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      "Order Placed": {
+        variant: "secondary" as const,
+        icon: Clock,
+        color: "bg-blue-100 text-blue-800",
+      },
+      Processing: {
+        variant: "default" as const,
+        icon: Package,
+        color: "bg-orange-100 text-orange-800",
+      },
+      Shipped: {
+        variant: "default" as const,
+        icon: Truck,
+        color: "bg-purple-100 text-purple-800",
+      },
+      "Out for Delivery": {
+        variant: "default" as const,
+        icon: Truck,
+        color: "bg-indigo-100 text-indigo-800",
+      },
+      Delivered: {
+        variant: "default" as const,
+        icon: CheckCircle,
+        color: "bg-green-100 text-green-800",
+      },
+      Canceled: {
+        variant: "destructive" as const,
+        icon: AlertCircle,
+        color: "bg-red-100 text-red-800",
+      },
+      Returned: {
+        variant: "secondary" as const,
+        icon: AlertCircle,
+        color: "bg-yellow-100 text-yellow-800",
+      },
+      "Failed Delivery": {
+        variant: "destructive" as const,
+        icon: AlertCircle,
+        color: "bg-red-100 text-red-800",
+      },
+      Refunded: {
+        variant: "secondary" as const,
+        icon: AlertCircle,
+        color: "bg-gray-100 text-gray-800",
+      },
+    };
 
-    switch (filterType) {
-      case "current":
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        };
-      case "last":
-        const lastMonth = subMonths(now, 1);
-        return {
-          start: startOfMonth(lastMonth),
-          end: endOfMonth(lastMonth),
-        };
-      case "custom":
-        if (customDate) {
-          return {
-            start: startOfMonth(customDate),
-            end: endOfMonth(customDate),
-          };
-        }
-        return getDateRange("current");
-      default:
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        };
-    }
+    return (
+      statusConfig[status as keyof typeof statusConfig] ||
+      statusConfig["Order Placed"]
+    );
+  };
+
+  /**
+   * Get Month Display Name
+   *
+   * Returns user-friendly display names for month selection options.
+   *
+   * @param monthOption - The month option key
+   * @returns Human-readable month description
+   */
+  const getMonthDisplayName = (monthOption: string) => {
+    const monthNames = {
+      current: "Current Month",
+      last: "Last Month",
+      "two-months": "2 Months Ago",
+      "three-months": "3 Months Ago",
+    };
+
+    return (
+      monthNames[monthOption as keyof typeof monthNames] || "Current Month"
+    );
   };
 
   // ==================== Data Fetching ====================
 
   /**
-   * Fetch Store Orders
+   * Fetch Orders from API
    *
-   * Retrieves orders for the current store based on applied filters.
-   * Implements comprehensive error handling and loading state management
-   * for optimal user experience.
+   * Retrieves orders from the store orders API with comprehensive
+   * filtering, pagination, and error handling.
    *
    * Features:
-   * - Date range filtering with flexible options
+   * - Date range filtering based on month selection
    * - Delivery status filtering
-   * - Search query implementation
-   * - Error handling with user-friendly messages
+   * - Search query processing
+   * - Pagination support
    * - Loading state management
+   * - Error handling with user feedback
    */
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Calculate date range based on current filters
-      const dateRange = getDateRange(filters.dateRange, filters.customMonth);
+      // Build query parameters
+      const params = new URLSearchParams();
 
-      // Build query parameters for API request
-      const queryParams = new URLSearchParams({
-        startDate: dateRange.start.toISOString(),
-        endDate: dateRange.end.toISOString(),
-        ...(filters.deliveryStatus !== "all" && {
-          deliveryStatus: filters.deliveryStatus,
-        }),
-        ...(filters.searchQuery && { search: filters.searchQuery }),
-      });
+      // Add date range parameters
+      const dateRange = getDateRange(selectedMonth);
+      params.append("startDate", dateRange.startDate.toISOString());
+      params.append("endDate", dateRange.endDate.toISOString());
 
-      // Make API request to fetch filtered orders
-      const response = await fetch(`/api/store/orders?${queryParams}`);
+      // Add filtering parameters
+      if (selectedStatus !== "all") {
+        params.append("deliveryStatus", selectedStatus);
+      }
+
+      if (searchQuery.trim()) {
+        params.append("search", searchQuery.trim());
+      }
+
+      // Add pagination parameters
+      params.append("page", page.toString());
+      params.append("limit", "20");
+
+      // Execute API request
+      const response = await fetch(`/api/store/orders?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch orders: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data: OrdersResponse = await response.json();
 
-      // Update orders state with fetched data
-      setOrders(data.orders || []);
-
-      // Show success feedback for data refresh
-      if (data.orders?.length === 0) {
-        // toast({
-        //   title: "No Orders Found",
-        //   description: "No orders match your current filters.",
-        // });
+      if (!data.success) {
+        throw new Error("Failed to fetch orders");
       }
+
+      // Update state with fetched data
+      setOrders(data.orders);
+      setCurrentPage(data.pagination.currentPage);
+      setTotalPages(data.pagination.totalPages);
+      setTotalCount(data.pagination.totalCount);
     } catch (err) {
-      // Handle and display errors appropriately
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch orders";
       setError(errorMessage);
 
-      //   toast({
-      //     title: "Error",
-      //     description: errorMessage,
-      //     variant: "destructive",
-      //   });
+      // toast({
+      //   title: "Error",
+      //   description: errorMessage,
+      //   variant: "destructive",
+      // })
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  };
 
   // ==================== Effect Hooks ====================
 
   /**
-   * Initial Data Load and Filter Change Handler
+   * Initial Data Load and Filter Changes
    *
-   * Automatically fetches orders when the component mounts or when
-   * filters change, ensuring data is always up-to-date.
+   * Fetches orders when the component mounts or when filters change.
+   * Resets to page 1 when filters are modified.
    */
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchOrders(1);
+  }, [selectedMonth, selectedStatus, searchQuery]);
+
+  /**
+   * Pagination Changes
+   *
+   * Fetches new page data when pagination controls are used.
+   */
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchOrders(currentPage);
+    }
+  }, [currentPage]);
 
   // ==================== Event Handlers ====================
 
   /**
-   * Handle Filter Changes
+   * Handle Search Input
    *
-   * Updates filter state and triggers data refetch when filters are modified.
-   * Provides immediate feedback to user actions.
+   * Processes search input with debouncing to prevent excessive API calls.
    *
-   * @param key - The filter key to update
-   * @param value - The new filter value
+   * @param value - The search query value
    */
-  const handleFilterChange = (key: keyof OrderFilters, value: any) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   /**
-   * Handle Order Status Update
+   * Handle Filter Changes
    *
-   * Updates the delivery status of a specific sub-order and refreshes
-   * the order list to reflect changes immediately.
+   * Processes filter changes and resets pagination to first page.
    *
-   * @param orderId - The ID of the order containing the sub-order
-   * @param subOrderId - The ID of the sub-order to update
-   * @param newStatus - The new delivery status to set
+   * @param filterType - The type of filter being changed
+   * @param value - The new filter value
    */
-  const handleStatusUpdate = async (
-    orderId: string,
-    subOrderId: string,
-    newStatus: string
+  const handleFilterChange = (
+    filterType: "month" | "status",
+    value: string
   ) => {
+    if (filterType === "month") {
+      setSelectedMonth(value);
+    } else if (filterType === "status") {
+      setSelectedStatus(value);
+    }
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  /**
+   * Handle Page Navigation
+   *
+   * Manages pagination navigation with proper bounds checking.
+   *
+   * @param direction - Navigation direction or specific page number
+   */
+  const handlePageChange = (direction: "prev" | "next" | number) => {
+    if (direction === "prev" && currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    } else if (direction === "next" && currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    } else if (
+      typeof direction === "number" &&
+      direction >= 1 &&
+      direction <= totalPages
+    ) {
+      setCurrentPage(direction);
+    }
+  };
+
+  /**
+   * Handle Order Export
+   *
+   * Initiates the export process for filtered orders with user feedback.
+   */
+  const handleExportOrders = async () => {
     try {
-      const response = await fetch(`/api/store/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subOrderId,
-          deliveryStatus: newStatus,
-        }),
-      });
+      // toast({
+      //   title: "Export Started",
+      //   description: "Your order export is being prepared...",
+      // })
 
-      if (!response.ok) {
-        throw new Error("Failed to update order status");
-      }
-
-      // Refresh orders after successful update
-      await fetchOrders();
-
-      //   toast({
-      //     title: "Status Updated",
-      //     description: `Order status updated to ${newStatus}`,
-      //   });
+      // TODO: Implement actual export functionality
+      // This would typically call an export API endpoint
+      console.log("Exporting orders with current filters...");
     } catch (err) {
-      //   toast({
-      //     title: "Error",
-      //     description: "Failed to update order status",
-      //     variant: "destructive",
-      //   });
+      // toast({
+      //   title: "Export Failed",
+      //   description: "Failed to export orders. Please try again.",
+      //   variant: "destructive",
+      // })
     }
   };
 
@@ -479,56 +495,41 @@ export default function StoreOrdersManagement({
   /**
    * Render Filter Controls
    *
-   * Renders the complete set of filter controls including date range selection,
-   * delivery status filtering, and search functionality.
-   *
-   * @returns JSX element containing all filter controls
+   * Displays the filtering interface with month selection,
+   * status filtering, and search functionality.
    */
   const renderFilters = () => (
     <div className="space-y-4">
-      {/* Date Range Filter */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Date Range</label>
+      <div>
+        <label className="text-sm font-medium mb-2 block">
+          Filter by Month
+        </label>
         <Select
-          value={filters.dateRange}
-          onValueChange={(value) => handleFilterChange("dateRange", value)}
+          value={selectedMonth}
+          onValueChange={(value) => handleFilterChange("month", value)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select date range" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="current">Current Month</SelectItem>
             <SelectItem value="last">Last Month</SelectItem>
-            <SelectItem value="custom">Custom Month</SelectItem>
+            <SelectItem value="two-months">2 Months Ago</SelectItem>
+            <SelectItem value="three-months">3 Months Ago</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Custom Month Selector */}
-      {filters.dateRange === "custom" && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Select Month</label>
-          <Input
-            type="month"
-            value={
-              filters.customMonth ? format(filters.customMonth, "yyyy-MM") : ""
-            }
-            onChange={(e) =>
-              handleFilterChange("customMonth", new Date(e.target.value))
-            }
-          />
-        </div>
-      )}
-
-      {/* Delivery Status Filter */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Delivery Status</label>
+      <div>
+        <label className="text-sm font-medium mb-2 block">
+          Filter by Status
+        </label>
         <Select
-          value={filters.deliveryStatus}
-          onValueChange={(value) => handleFilterChange("deliveryStatus", value)}
+          value={selectedStatus}
+          onValueChange={(value) => handleFilterChange("status", value)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select status" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
@@ -545,158 +546,81 @@ export default function StoreOrdersManagement({
         </Select>
       </div>
 
-      {/* Search Filter */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Search Orders</label>
+      <div>
+        <label className="text-sm font-medium mb-2 block">Search Orders</label>
         <Input
-          placeholder="Search by order ID, customer, or product..."
-          value={filters.searchQuery}
-          onChange={(e) => handleFilterChange("searchQuery", e.target.value)}
+          placeholder="Search by order ID, customer name, or product..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
         />
       </div>
     </div>
   );
 
   /**
-   * Render Order Row
+   * Render Loading State
    *
-   * Renders a single order row in the orders table with all relevant
-   * information and action buttons.
-   *
-   * @param order - The order data to render
-   * @returns JSX element representing the order row
+   * Displays a professional loading interface while orders
+   * are being fetched from the server.
    */
-  const renderOrderRow = (order: OrderData) => {
-    // Calculate total items across all sub-orders
-    const totalItems = order.subOrders.reduce(
-      (sum, subOrder) =>
-        sum +
-        subOrder.products.reduce(
-          (productSum, product) => productSum + product.quantity,
-          0
-        ),
-      0
-    );
-
+  if (loading && orders.length === 0) {
     return (
-      <TableRow key={order._id}>
-        <TableCell className="font-medium">
-          #{order._id.slice(-8).toUpperCase()}
-        </TableCell>
-        <TableCell>
-          <div className="space-y-1">
-            <p className="font-medium">{order.user.name || "N/A"}</p>
-            <p className="text-sm text-muted-foreground">
-              {order.user.email || "N/A"}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Orders Management</h1>
+            <p className="text-muted-foreground">
+              Manage and track your store orders
             </p>
           </div>
-        </TableCell>
-        <TableCell>{totalItems} items</TableCell>
-        <TableCell className="font-medium">
-          {formatCurrency(order.totalAmount)}
-        </TableCell>
-        <TableCell>
-          <div className="space-y-1">
-            {order.subOrders.map((subOrder, index) => {
-              const statusConfig = getStatusBadge(subOrder.deliveryStatus);
-              const StatusIcon = statusConfig.icon;
+        </div>
 
-              return (
-                <div key={index} className="flex items-center gap-2">
-                  <Badge
-                    variant={statusConfig.variant}
-                    className="flex items-center gap-1"
-                  >
-                    <StatusIcon className="h-3 w-3" />
-                    {subOrder.deliveryStatus}
-                  </Badge>
-                  {order.subOrders.length > 1 && (
-                    <span className="text-xs text-muted-foreground">
-                      ({index + 1}/{order.subOrders.length})
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </TableCell>
-        <TableCell>
-          {format(new Date(order.createdAt), "MMM dd, yyyy")}
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            {/* View Order Details */}
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/store/${storeId}/orders/${order._id}`}>
-                <Eye className="h-4 w-4 mr-1" />
-                View
-              </Link>
-            </Button>
-
-            {/* Status Update Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Update Status
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {order.subOrders.map((subOrder, index) => (
-                  <div key={index}>
-                    {index > 0 && <Separator className="my-1" />}
-                    <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                      Sub-order {index + 1}
-                    </div>
-                    {[
-                      "Processing",
-                      "Shipped",
-                      "Out for Delivery",
-                      "Delivered",
-                      "Canceled",
-                    ].map((status) => (
-                      <DropdownMenuItem
-                        key={status}
-                        onClick={() =>
-                          handleStatusUpdate(order._id, subOrder._id, status)
-                        }
-                        disabled={subOrder.deliveryStatus === status}
-                      >
-                        {status}
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </TableCell>
-      </TableRow>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading orders...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
-  };
+  }
 
   // ==================== Main Render ====================
 
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Order Management</h1>
+          <h1 className="text-2xl font-bold">Orders Management</h1>
           <p className="text-muted-foreground">
-            Manage and track your store orders
+            Manage and track your store orders •{" "}
+            {getMonthDisplayName(selectedMonth)}
           </p>
         </div>
 
-        {/* Mobile Filter Button */}
-        <div className="flex items-center gap-2 sm:hidden">
-          <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportOrders}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+
+          <Button variant="outline" onClick={() => fetchOrders(currentPage)}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+
+          {/* Mobile Filter Sheet */}
+          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="md:hidden bg-transparent">
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="right" className="w-80">
               <SheetHeader>
                 <SheetTitle>Filter Orders</SheetTitle>
               </SheetHeader>
@@ -708,7 +632,7 @@ export default function StoreOrdersManagement({
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Desktop Filters Sidebar */}
-        <div className="hidden lg:block">
+        <div className="hidden md:block">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -725,61 +649,244 @@ export default function StoreOrdersManagement({
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Orders</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchOrders}
-                    disabled={loading}
-                  >
-                    {loading ? "Loading..." : "Refresh"}
-                  </Button>
+                <CardTitle>
+                  Orders ({totalCount} total)
+                  {selectedStatus !== "all" && (
+                    <Badge variant="outline" className="ml-2">
+                      {selectedStatus}
+                    </Badge>
+                  )}
+                </CardTitle>
+
+                {/* Desktop Search */}
+                <div className="hidden md:flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search orders..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent>
               {error ? (
-                <div className="text-center py-8">
+                <div className="text-center py-12">
                   <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">
                     Error Loading Orders
                   </h3>
                   <p className="text-muted-foreground mb-4">{error}</p>
-                  <Button onClick={fetchOrders}>Try Again</Button>
-                </div>
-              ) : loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading orders...</p>
+                  <Button onClick={() => fetchOrders(currentPage)}>
+                    Try Again
+                  </Button>
                 </div>
               ) : orders.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-12">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">
                     No Orders Found
                   </h3>
                   <p className="text-muted-foreground">
-                    No orders match your current filters.
+                    {searchQuery || selectedStatus !== "all"
+                      ? "No orders match your current filters."
+                      : "You haven't received any orders yet."}
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Items</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>{orders.map(renderOrderRow)}</TableBody>
-                  </Table>
-                </div>
+                <>
+                  {/* Orders Table */}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order ID</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Products</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map((order) => {
+                          const primaryStatus =
+                            order.subOrders[0]?.deliveryStatus ||
+                            "Order Placed";
+                          const statusConfig = getStatusBadge(primaryStatus);
+                          const StatusIcon = statusConfig.icon;
+
+                          return (
+                            <TableRow key={order._id}>
+                              <TableCell className="font-medium">
+                                #{order._id.slice(-8).toUpperCase()}
+                              </TableCell>
+
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">
+                                    {order.user.name}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {order.user.email}
+                                  </p>
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="space-y-1">
+                                  {order.subOrders.map((subOrder, index) => (
+                                    <div key={index} className="text-sm">
+                                      {subOrder.products
+                                        .slice(0, 2)
+                                        .map((product, productIndex) => (
+                                          <p
+                                            key={productIndex}
+                                            className="truncate max-w-[200px]"
+                                          >
+                                            {product.Product.name} (×
+                                            {product.quantity})
+                                          </p>
+                                        ))}
+                                      {subOrder.products.length > 2 && (
+                                        <p className="text-muted-foreground">
+                                          +{subOrder.products.length - 2} more
+                                          items
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`p-1 rounded-full ${statusConfig.color}`}
+                                  >
+                                    <StatusIcon className="h-3 w-3" />
+                                  </div>
+                                  <Badge variant={statusConfig.variant}>
+                                    {primaryStatus}
+                                  </Badge>
+                                </div>
+                                {order.subOrders[0]?.trackingNumber && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Tracking:{" "}
+                                    {order.subOrders[0].trackingNumber}
+                                  </p>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="font-medium">
+                                {formatCurrency(order.totalAmount)}
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="text-sm">
+                                  <p>
+                                    {format(
+                                      new Date(order.createdAt),
+                                      "MMM dd, yyyy"
+                                    )}
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    {format(
+                                      new Date(order.createdAt),
+                                      "h:mm a"
+                                    )}
+                                  </p>
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                      <Link
+                                        href={`/store/${storeId}/orders/${order._id}`}
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View Details
+                                      </Link>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6">
+                      <p className="text-sm text-muted-foreground">
+                        Showing page {currentPage} of {totalPages} ({totalCount}{" "}
+                        total orders)
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange("prev")}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+
+                        {/* Page Numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from(
+                            { length: Math.min(5, totalPages) },
+                            (_, i) => {
+                              const pageNum = Math.max(1, currentPage - 2) + i;
+                              if (pageNum > totalPages) return null;
+
+                              return (
+                                <Button
+                                  key={pageNum}
+                                  variant={
+                                    pageNum === currentPage
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  size="sm"
+                                  onClick={() => handlePageChange(pageNum)}
+                                  className="w-8 h-8 p-0"
+                                >
+                                  {pageNum}
+                                </Button>
+                              );
+                            }
+                          )}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange("next")}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

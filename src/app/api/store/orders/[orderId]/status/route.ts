@@ -277,7 +277,7 @@ export async function PATCH(
      */
     console.log(
       `Order status updated: ${orderId} | Sub-order: ${subOrderId} | ` +
-        `Store: ${storeSession.storeId} | Status: ${previousStatus} → ${deliveryStatus} | ` +
+        `Store: ${storeSession.id} | Status: ${previousStatus} → ${deliveryStatus} | ` +
         `Tracking: ${trackingNumber || "N/A"}`
     );
 

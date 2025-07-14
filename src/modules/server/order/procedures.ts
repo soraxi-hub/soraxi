@@ -70,7 +70,7 @@ export const orderRouter = createTRPCRouter({
           })
           .populate({
             path: "subOrders.store",
-            model: "stores", // Ensure this matches your actual model name
+            model: "Store", // Ensure this matches your actual model name
             select: "_id name storeEmail logoUrl",
           })
           .select(

@@ -6,6 +6,7 @@ import { connectToDatabase } from "../mongoose";
  * All monetary values (if any) are assumed to be stored in kobo to avoid floating-point errors.
  */
 export interface IUser extends Document {
+  _id: mongoose.Schema.Types.ObjectId;
   firstName: string;
   lastName: string;
   otherNames: string;

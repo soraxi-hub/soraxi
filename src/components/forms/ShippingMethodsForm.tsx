@@ -20,7 +20,7 @@ import {
   Trash2,
   ArrowLeft,
   Truck,
-  MapPin,
+  // MapPin,
   Clock,
   // DollarSign,
 } from "lucide-react";
@@ -499,7 +499,7 @@ export function ShippingMethodsForm({
             • Offer multiple shipping options to cater to different customer
             needs
           </li>
-          <li>• Consider free shipping for orders above a certain amount</li>
+          {/* <li>• Consider free shipping for orders above a certain amount</li> */}
           <li>
             • Be realistic with delivery timeframes to set proper expectations
           </li>
@@ -526,7 +526,7 @@ export function ShippingMethodsForm({
           disabled={!isValid}
           className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
         >
-          Continue to Payout Setup
+          Continue to Terms
         </Button>
       </div>
     </form>

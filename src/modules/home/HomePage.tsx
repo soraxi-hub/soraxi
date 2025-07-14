@@ -297,13 +297,7 @@ export function HomePage() {
             >
               {filteredProducts.map((product) => (
                 <Link key={product.id} href={`/products/${product.slug}`}>
-                  <ProductCard
-                    product={{
-                      ...product,
-                      price: product.price ?? 0,
-                      formattedPrice: product.formattedPrice ?? "",
-                    }}
-                  />
+                  <ProductCard product={product} />
                 </Link>
               ))}
             </div>

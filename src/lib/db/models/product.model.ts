@@ -145,12 +145,12 @@ ProductSchema.index(
   }
 );
 
-ProductSchema.virtual("formattedPrice").get(function (this: IProduct) {
-  return currency(this.price ?? 0 / 100, {
-    symbol: "₦",
-    precision: 2,
-  }).format();
-});
+// ProductSchema.virtual("formattedPrice").get(function (this: IProduct) {
+//   return currency(this.price ?? 0 / 100, {
+//     symbol: "₦",
+//     precision: 2,
+//   }).format();
+// });
 
 ProductSchema.pre("save", async function (next) {
   if (!this.slug) {

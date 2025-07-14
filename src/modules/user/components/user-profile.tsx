@@ -7,21 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 // import { formatNaira } from "@/lib/utils";
 // import { shimmer, toBase64 } from "@/lib/image";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  ShieldCheck,
-  Store,
-} from "lucide-react";
+import { User, Mail, Phone, MapPin, ShieldCheck } from "lucide-react";
 // import { useRouter } from "next/navigation";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 
-const Profile = ({ id }: { id: string }) => {
+const Profile = () => {
   // State management
   // const [loading, setLoading] = useState(true);
   // const [error, setError] = useState(false);
@@ -29,7 +21,7 @@ const Profile = ({ id }: { id: string }) => {
 
   const trpc = useTRPC();
   const { data: user, isLoading } = useSuspenseQuery(
-    trpc.user.getById.queryOptions({ id })
+    trpc.user.getById.queryOptions()
   );
 
   // if (data.data) return JSON.stringify(data.data, null, 2);
@@ -114,14 +106,6 @@ const Profile = ({ id }: { id: string }) => {
         </div>
       </section>
 
-      {/* Store Section */}
-      {user.stores.length > 0 && (
-        <StoreSection
-          storeId={user.stores[0].storeId.toString()}
-          userName={user.firstName}
-        />
-      )}
-
       {/* Verification Section 66fbae5615b9fec5eac1b9bb */}
       {!user.isVerified && <VerificationSection />}
 
@@ -168,36 +152,6 @@ const DetailSection = ({ icon, title, items }: DetailSectionProps) => (
       ))}
     </div>
   </div>
-);
-
-interface StoreSectionProps {
-  storeId: string;
-  userName: string;
-}
-
-const StoreSection = ({ storeId, userName }: StoreSectionProps) => (
-  <section className="bg-card rounded-lg p-6 shadow-xs">
-    <div className="flex items-center gap-4 mb-4">
-      <Building className="w-8 h-8 text-primary" />
-      <h2 className="text-xl font-bold">Store Management</h2>
-    </div>
-
-    <div className="space-y-3">
-      <p className="text-muted-foreground">
-        Welcome back, {userName}. Manage your store products, orders, and
-        settings.
-      </p>
-      <Button
-        asChild
-        className="mt-4 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
-      >
-        <Link href={`/store/${storeId}/dashboard`}>
-          <Store className="w-4 h-4 mr-2" />
-          Open Store Dashboard
-        </Link>
-      </Button>
-    </div>
-  </section>
 );
 
 const VerificationSection = () => (

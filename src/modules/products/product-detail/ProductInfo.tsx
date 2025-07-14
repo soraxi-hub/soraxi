@@ -1,10 +1,9 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Star, Truck, Shield, RotateCcw } from "lucide-react";
+import { Star, Shield, RotateCcw } from "lucide-react";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
@@ -27,6 +26,7 @@ interface ProductInfoProps {
 
 export function ProductInfo({ product }: ProductInfoProps) {
   const trpc = useTRPC();
+  const [isCopied, setIsCopied] = useState(false);
 
   // State for current logged-in user ID (fetched once on component mount)
   // You may want to manage user state globally in a real app
@@ -36,12 +36,8 @@ export function ProductInfo({ product }: ProductInfoProps) {
   }, []);
 
   // Fetch user's wishlist from backend using TRPC query
-  // Enabled only if userId is available
   const { data: wishlist, refetch: refetchWishlist } = useQuery(
-    trpc.wishlist.getByUserId.queryOptions(
-      { userId: userId ?? "" },
-      { enabled: !!userId }
-    )
+    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions()
   );
 
   // Helper: check if current product is already in user's wishlist
@@ -110,7 +106,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
     if (isInWishlist) {
       // If already in wishlist, remove it
       removeFromWishlist.mutate({
-        userId,
         productId: product.id,
       });
     } else {
@@ -130,7 +125,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
       return;
     }
     const selectedSizeData = product.sizes?.find((s) => s.size === size);
-    console.log("product", product);
 
     addToCart.mutate({
       userId,
@@ -146,6 +140,15 @@ export function ProductInfo({ product }: ProductInfoProps) {
           }
         : undefined,
     });
+  };
+
+  const handleShareProduct = () => {
+    const productUrl = `${window.location.origin}/products/${product.slug}`;
+    navigator.clipboard.writeText(productUrl);
+    setIsCopied(true);
+    toast.success(`Product slug copied to clipboard!`);
+
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const hasVariants = product.sizes && product.sizes.length > 0;
@@ -178,18 +181,8 @@ export function ProductInfo({ product }: ProductInfoProps) {
             ))}
           </div>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            {product.rating ? product.rating.toFixed(1) : 0} (24 reviews)
+            ({product.rating ? product.rating.toFixed(1) : 0} reviews)
           </span>
-        </div>
-
-        {/* Status Badges */}
-        <div className="flex gap-2 mb-4">
-          {product.isVerifiedProduct && (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Verified Product
-            </Badge>
-          )}
-          <Badge variant="outline">{product.category.join(", ")}</Badge>
         </div>
       </div>
 
@@ -234,7 +227,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
                     <div className="text-right">
                       <div className="text-sm text-gray-600">
                         {sizeOption.quantity > 0 ? (
-                          <span className="text-green-600">
+                          <span className="text-soraxi-green">
                             {sizeOption.quantity} in stock
                           </span>
                         ) : (
@@ -269,10 +262,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <Separator />
 
       {/* Add to Cart and Wishlist Buttons */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
         <Button
           size="lg"
-          className="w-full"
+          className="w-full col-span-2 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
           disabled={!hasVariants ? product.productQuantity === 0 : false}
           onClick={() => handleAddToCart(product)}
         >
@@ -287,6 +280,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
         >
           {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         </Button>
+
+        <Button size="lg" className="w-full" onClick={handleShareProduct}>
+          {isCopied ? "Copied!" : "Share Product"}
+        </Button>
       </div>
 
       <Separator />
@@ -294,16 +291,12 @@ export function ProductInfo({ product }: ProductInfoProps) {
       {/* Product Features */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-sm">
-          <Truck className="w-4 h-4 text-gray-600" />
-          <span>Free shipping on orders over ₦10,000</span>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <Shield className="w-4 h-4 text-gray-600" />
+          <Shield className="w-4 h-4 text-soraxi-green" />
           <span>Secure payment & buyer protection</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <RotateCcw className="w-4 h-4 text-gray-600" />
-          <span>30-day return policy</span>
+          <RotateCcw className="w-4 h-4  text-soraxi-green" />
+          <span>7-day return policy</span>
         </div>
       </div>
     </div>

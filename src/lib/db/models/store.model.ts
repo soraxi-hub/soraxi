@@ -5,11 +5,12 @@ import { connectToDatabase } from "../mongoose";
  * Shipping Method Schema Subdocument Interface
  */
 export interface IShippingMethod {
+  _id?: mongoose.Types.ObjectId;
   name: string;
   price: number;
-  estimatedDeliveryDays?: number;
+  estimatedDeliveryDays: number;
   isActive?: boolean;
-  description?: string;
+  description: string;
   applicableRegions?: string[];
   conditions?: {
     minOrderValue?: number;
@@ -132,26 +133,23 @@ export interface IStore extends Document {
 /**
  * Define Store Schema
  */
-const ShippingMethodSchema = new Schema<IShippingMethod>(
-  {
-    name: {
-      type: String,
-      required: [true, "Shipping method name is required"],
-    },
-    price: { type: Number, required: [true, "Shipping price is required"] },
-    estimatedDeliveryDays: Number,
-    isActive: { type: Boolean, default: true },
-    description: String,
-    applicableRegions: [String],
-    conditions: {
-      minOrderValue: Number,
-      maxOrderValue: Number,
-      minWeight: Number,
-      maxWeight: Number,
-    },
+const ShippingMethodSchema = new Schema<IShippingMethod>({
+  name: {
+    type: String,
+    required: [true, "Shipping method name is required"],
   },
-  { _id: false }
-);
+  price: { type: Number, required: [true, "Shipping price is required"] },
+  estimatedDeliveryDays: Number,
+  isActive: { type: Boolean, default: true },
+  description: String,
+  applicableRegions: [String],
+  conditions: {
+    minOrderValue: Number,
+    maxOrderValue: Number,
+    minWeight: Number,
+    maxWeight: Number,
+  },
+});
 
 const PayoutAccountSchema = new Schema<IPayoutAccount>(
   {

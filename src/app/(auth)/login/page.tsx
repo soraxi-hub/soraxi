@@ -237,7 +237,7 @@ export default function StoreLoginPage() {
                   type="button"
                   variant="link"
                   className="text-sm text-soraxi-green hover:text-soraxi-green/80 p-0 h-auto"
-                  onClick={() => router.push("/store/forgot-password")}
+                  onClick={() => router.push("/forgot-password?ref=store")}
                 >
                   Forgot your password?
                 </Button>
@@ -263,7 +263,7 @@ export default function StoreLoginPage() {
         </Card>
 
         {/* Create Store Link */}
-        <div className="text-center space-y-2">
+        {/* <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">
             Don&apos;t have a store yet?
           </p>
@@ -274,7 +274,7 @@ export default function StoreLoginPage() {
           >
             Create Your Store
           </Button>
-        </div>
+        </div> */}
 
         {/* Back to Main Site */}
         <div className="text-center">

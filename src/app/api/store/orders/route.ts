@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getOrderModel } from "@/lib/db/models/order.model";
-// import { getStoreSession } from "@/lib/utils/store-session"
+import { getOrderModel, IOrder } from "@/lib/db/models/order.model";
 import mongoose from "mongoose";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
+import { FilterQuery } from "mongoose";
 
 /**
  * Store Orders API Route Handler
@@ -91,7 +91,8 @@ export async function GET(request: NextRequest) {
     const Order = await getOrderModel();
 
     // Base match conditions for store-specific orders
-    const matchConditions: any = {
+    // This line ensures that: Only orders containing this store’s ID in the stores array field are fetched.
+    const matchConditions: FilterQuery<IOrder> = {
       stores: new mongoose.Types.ObjectId(storeSession.id),
     };
 
@@ -249,28 +250,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-/**
- * Store Order Creation Handler (POST)
- *
- * Handles manual order creation by store owners for special cases
- * such as phone orders, custom orders, or order corrections.
- *
- * Features:
- * - Manual order entry with validation
- * - Custom pricing and product selection
- * - Special shipping arrangements
- * - Administrative order notes
- *
- * @param request - Next.js request object with order data
- * @returns JSON response with created order information
- */
-// export async function POST(request: NextRequest) {
-//   try {
-//     // Store session validation
-//     const storeSession = await getStoreSession()
-
-//     if (!storeSession?.storeId) {
-//       return NextResponse.json(
-//         { error: 'Unauthorized access' },
-//         { status: \

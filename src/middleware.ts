@@ -28,7 +28,13 @@ export async function middleware(request: NextRequest) {
     "/products/:path*",
   ];
 
-  const isPublicPath = publicPaths.includes(pathname);
+  const isPublicPath = publicPaths.some((path) => {
+    if (path.includes(":path*")) {
+      const basePath = path.replace("/:path*", "");
+      return pathname.startsWith(basePath);
+    }
+    return pathname === path;
+  });
 
   // Check if the path is an admin path
   const isAdminPath =
@@ -48,7 +54,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  if (!storeToken && isStorePath(pathname)) {
+  /**
+   * Protects store onboarding routes with dynamic storeId segments,
+   * such as: /store/onboarding/:storeId/profile
+   *
+   * Since this route doesn't match the ObjectId pattern used in `isStorePath`,
+   * we protect it manually by checking if it starts with a specific base path.
+   */
+  const protectedStoreBasePath = "/store/onboarding";
+
+  /**
+   * Determines if the current path is a protected store onboarding route.
+   * Use this in your middleware condition alongside `isStorePath()`.
+   */
+  const isProtectedStoreOnboardingPath = pathname.startsWith(
+    protectedStoreBasePath
+  );
+
+  if (
+    !storeToken &&
+    (isStorePath(pathname) || isProtectedStoreOnboardingPath)
+  ) {
     // If the user is authenticated but does not have a store token, redirect to store login
     const signInUrl = new URL("/login", request.url);
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
@@ -105,7 +131,7 @@ export const config = {
   //   runtime: "nodejs",
 };
 
-const storePaths = ["/dashboard"];
+// const storePaths = ["/dashboard"];
 
 /**
  * Checks if a given path corresponds to a valid store-related route.
@@ -118,14 +144,36 @@ const storePaths = ["/dashboard"];
  * @param path - The URL path to evaluate.
  * @returns A boolean indicating whether the path is a recognized store route.
  */
-const isStorePath = (path: string) => {
-  return storePaths.some((storePath) => {
-    // If the path begins with "/store/", check if it ends with a valid store path
-    if (path.startsWith("/store/")) {
-      return path.endsWith(storePath);
-    }
+// const isStorePath = (path: string) => {
+//   return storePaths.some((storePath) => {
+//     // If the path begins with "/store/", check if it ends with a valid store path
+//     if (path.startsWith("/store/")) {
+//       return path.endsWith(storePath);
+//     }
 
-    // Otherwise, check for an exact match
-    return storePath === path;
-  });
+//     // Otherwise, check for an exact match
+//     return storePath === path;
+//   });
+// };
+
+/**
+ * Checks if a given path matches a dynamic store route that includes a valid MongoDB ObjectId.
+ *
+ * This ensures only paths like:
+ *   - /store/684c94a748eb382ea33710aa
+ *   - /store/684c94a748eb382ea33710aa/products
+ *   - /store/684c94a748eb382ea33710aa/...
+ * are considered protected store routes.
+ *
+ * Public routes like:
+ *   - /store/create
+ *   - /store/onboarding
+ *   - /store/preview/...
+ * will NOT match and are therefore treated separately.
+ *
+ * @param path - The URL path to evaluate.
+ * @returns A boolean indicating whether the path is a recognized store route.
+ */
+const isStorePath = (path: string) => {
+  return /^\/store\/[a-f\d]{24}(\/.*)?$/i.test(path);
 };

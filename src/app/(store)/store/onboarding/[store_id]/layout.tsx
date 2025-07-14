@@ -53,7 +53,7 @@ function OnboardingInitializer() {
 
         const { storeId, data, progress } = store;
 
-        // console.log("store", store);
+        console.log("store", store);
 
         if (storeId) setStoreId(storeId);
         if (data) initializeData(data);

@@ -249,7 +249,7 @@ export const computeOnboardingStatus = (store: IStore) => {
     shippingComplete: !!(
       store.shippingMethods && store.shippingMethods.length > 0
     ),
-    payoutComplete: !!(store.payoutAccounts && store.payoutAccounts.length > 0),
+    // payoutComplete: !!(store.payoutAccounts && store.payoutAccounts.length > 0),
     termsComplete: !!store.agreedToTermsAt,
   };
 

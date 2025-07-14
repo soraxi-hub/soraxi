@@ -76,15 +76,21 @@ export async function getWishlistModel(): Promise<Model<IWishlist>> {
  * @returns Wishlist document or plain object
  */
 export async function getWishlistByUserId(
-  userId: string,
-  lean = false
+  userId: string
 ): Promise<IWishlist | null> {
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
 
-  return lean
-    ? Wishlist.findOne<IWishlist>({ user: userId }).lean()
-    : Wishlist.findOne<IWishlist>({ user: userId });
+  const wishlist = await Wishlist.findOne<IWishlist>({ user: userId }).populate(
+    {
+      path: "products.productId",
+      select:
+        "name price sizes images productType slug category formattedPrice",
+    }
+  );
+  // .lean();
+
+  return wishlist;
 }
 
 /**

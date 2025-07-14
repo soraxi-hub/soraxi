@@ -9,6 +9,7 @@ export interface TokenData {
   firstName: string;
   lastName: string;
   email: string;
+  store?: string;
 }
 
 /**
@@ -16,12 +17,14 @@ export interface TokenData {
  */
 function isTokenData(payload: unknown): payload is TokenData {
   return (
-    typeof payload === "object" &&
-    payload !== null &&
-    typeof (payload as TokenData).id === "string" &&
-    typeof (payload as TokenData).firstName === "string" &&
-    typeof (payload as TokenData).lastName === "string" &&
-    typeof (payload as TokenData).email === "string"
+    (typeof payload === "object" &&
+      payload !== null &&
+      typeof (payload as TokenData).id === "string" &&
+      typeof (payload as TokenData).firstName === "string" &&
+      typeof (payload as TokenData).lastName === "string" &&
+      typeof (payload as TokenData).email === "string" &&
+      (payload as TokenData).store === undefined) ||
+    typeof (payload as TokenData).store === "string"
   );
 }
 

@@ -19,14 +19,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 
 export function UserOrders({ userId }: { userId: string }) {
   const trpc = useTRPC();
-  const { data: orders, isLoading } = useSuspenseQuery(
+  const { data: orders } = useSuspenseQuery(
     trpc.order.getByUserId.queryOptions({ userId })
   );
 
-  console.log("orders", orders);
-
   return (
-    <main className="min-h-screen w-full">
+    <main className="min-h-screen w-full p-8">
       <Card className="bg-card rounded-lg shadow-xs">
         <CardHeader>
           <div className="flex items-center justify-between">

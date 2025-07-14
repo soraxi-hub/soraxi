@@ -2,6 +2,8 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { HomePage } from "@/modules/home/HomePage";
 import { CartProvider } from "@/modules/cart/cart-provider";
+import { ErrorBoundary } from "react-error-boundary";
+import { Suspense } from "react";
 
 /**
  * Home Page
@@ -21,13 +23,17 @@ export default async function Home() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      {/* 
-        CartHydration component handles loading user's cart data
-        Must be included early in the component tree to ensure
-        cart data is available for other components that depend on it
-      */}
-      <CartProvider />
-      <HomePage />
+      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+        <Suspense fallback={<div>Loading...</div>}>
+          {/* 
+            CartHydration component handles loading user's cart data
+            Must be included early in the component tree to ensure
+            cart data is available for other components that depend on it
+          */}
+          <CartProvider />
+          <HomePage />
+        </Suspense>
+      </ErrorBoundary>
     </HydrationBoundary>
   );
 }

@@ -27,7 +27,7 @@ function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/"; // Default to Home-page
+  const redirect = searchParams.get("redirect") || "/"; // Default to Home-page
 
   const form = useForm<z.infer<typeof userSignInInfoValidation>>({
     resolver: zodResolver(userSignInInfoValidation),
@@ -57,7 +57,7 @@ function SignIn() {
 
       if (response.data.success === true || response.status === 200) {
         toast.success(`You have Successfully signed In.`);
-        router.push(callbackUrl);
+        router.push(redirect);
       } else {
         toast.error("Sign In Failed. Please try again.");
       }

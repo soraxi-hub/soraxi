@@ -67,6 +67,35 @@ export const formatNaira = (
 };
 
 /**
+ * Adds the Naira sign to a value
+ * This is useful for displaying values that are already in Naira
+ * @param value - The monetary value which is already in naira (formatted and returned as number from the DB)
+ * @param options - Optional formatting options
+ */
+export const addNairaSign = (
+  value: number,
+  options?: {
+    /** Whether to include the currency symbol */
+    symbol?: boolean;
+    /** Whether to include decimal places */
+    showDecimals?: boolean;
+  }
+) => {
+  const { symbol = true, showDecimals = false } = options || {};
+
+  const config: currency.Options = {
+    symbol: symbol ? "₦" : "",
+    precision: showDecimals ? 2 : 0,
+    separator: ",",
+    decimal: ".",
+    pattern: "! #",
+    negativePattern: "-! #",
+  };
+
+  return currency(value, config).format();
+};
+
+/**
  * Performs currency operations with proper precision
  * All values are in kobo
  */

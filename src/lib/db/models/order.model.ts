@@ -20,6 +20,7 @@ export interface IOrderProduct {
  * Interface representing a sub-order within an order.
  */
 export interface ISubOrder {
+  _id?: mongoose.Schema.Types.ObjectId;
   store: mongoose.Schema.Types.ObjectId;
   products: IOrderProduct[];
   totalAmount: number;
@@ -42,13 +43,13 @@ export interface ISubOrder {
     | "Failed Delivery"
     | "Refunded";
   escrow: {
-    held: { type: Boolean; default: true }; // money is currently in escrow
-    released: { type: Boolean; default: false }; // money has been paid to seller
-    releasedAt: { type: Date }; // when escrow was released
-    refunded: { type: Boolean; default: false }; // for returned or refunded orders
-    refundReason: { type: String }; // optional reason
+    held: Boolean; // money is currently in escrow
+    released: Boolean; // money has been paid to seller
+    releasedAt: Date; // when escrow was released
+    refunded: Boolean; // for returned or refunded orders
+    refundReason: String; // optional reason
   };
-  returnWindow: { type: Date }; // to track deadline for returns before releasing escrow
+  returnWindow: Date; // to track deadline for returns before releasing escrow
 }
 
 /**
@@ -129,11 +130,11 @@ const SubOrderSchema = new Schema<ISubOrder>({
     default: "Order Placed",
   },
   escrow: {
-    held: { type: Boolean, default: true },
-    released: { type: Boolean, default: false },
-    releasedAt: { type: Date },
-    refunded: { type: Boolean, default: false },
-    refundReason: { type: String },
+    held: { type: Boolean, default: true }, // money is currently in escrow
+    released: { type: Boolean, default: false }, // money has been paid to seller
+    releasedAt: { type: Date }, // when escrow was released
+    refunded: { type: Boolean, default: false }, // for returned or refunded orders
+    refundReason: { type: String }, // optional reason
   },
   returnWindow: { type: Date }, // set at delivery, e.g., +7 days
 });

@@ -9,6 +9,9 @@ import { checkoutRouter } from "@/modules/server/checkout/procedures";
 import { paystackRouter } from "@/modules/server/paystack/procedures";
 import { orderRouter } from "@/modules/server/order/procedures";
 import { paymentRouter } from "@/modules/server/payment/procedures";
+import { storeOrdersRouter } from "@/modules/server/store/store-oders/procedures";
+import { storeProfileRouter } from "@/modules/server/store/profile/procedures";
+import { storeShippingRouter } from "@/modules/server/store/shipping/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -20,7 +23,10 @@ export const appRouter = createTRPCRouter({
   checkout: checkoutRouter,
   paystack: paystackRouter,
   order: orderRouter,
+  storeOrders: storeOrdersRouter,
   payment: paymentRouter,
+  storeProfile: storeProfileRouter,
+  storeShipping: storeShippingRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

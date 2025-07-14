@@ -60,7 +60,9 @@ export function ProductDetailPage({
             <BreadcrumbSeparator />
 
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/category/${product.category[0]}`}>
+              <BreadcrumbLink
+                href={`/category/${slugify(product.category[0])}`}
+              >
                 {product.category[0]}
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -70,7 +72,9 @@ export function ProductDetailPage({
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink
-                    href={`/category/${product.category[0]}/${product.subCategory[0]}`}
+                    href={`/category/${slugify(product.category[0])}/${slugify(
+                      product.subCategory[0]
+                    )}`}
                   >
                     {product.subCategory[0]}
                   </BreadcrumbLink>
@@ -92,6 +96,7 @@ export function ProductDetailPage({
             <ProductImageGallery
               images={product.images}
               productName={product.name}
+              isVerifiedProduct={product.isVerifiedProduct}
             />
           </div>
           <div>
@@ -113,4 +118,14 @@ export function ProductDetailPage({
       </div>
     </div>
   );
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase() // Convert to lowercase
+    .replace(/'/g, "") // Remove apostrophes
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/[^a-z0-9\-]/g, "") // Remove any other non-url-friendly characters
+    .replace(/-+/g, "-") // Collapse multiple hyphens
+    .replace(/^-|-$/g, ""); // Trim hyphens from start/end
 }

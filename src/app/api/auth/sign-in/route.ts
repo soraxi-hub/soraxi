@@ -12,6 +12,7 @@ interface userData {
   firstName: string;
   lastName: string;
   email: string;
+  store?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -24,11 +25,9 @@ export async function POST(request: NextRequest) {
 
     // Check if the user exist
     const User = await getUserModel();
-    const user = (await User.findOne({ email })) as
-      | (IUser & {
-          _id: string;
-        })
-      | null;
+    const user = (await User.findOne({ email }).select(
+      "firstName lastName email password stores"
+    )) as IUser | null;
     if (!user) {
       throw new AppError("User not found", 404);
     }
@@ -42,10 +41,11 @@ export async function POST(request: NextRequest) {
 
     // create tokenData
     const tokenData: userData = {
-      id: user._id,
+      id: user._id.toString(),
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      store: user.stores?.[0] ? user.stores[0].storeId.toString() : undefined,
     };
 
     // One Day in seconds

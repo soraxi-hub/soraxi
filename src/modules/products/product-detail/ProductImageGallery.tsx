@@ -1,41 +1,57 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { useState } from "react";
+import Image from "next/image";
+import { ChevronLeft, ChevronRight, VerifiedIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ProductImageGalleryProps {
-  images: string[]
-  productName: string
+  images: string[];
+  productName: string;
+  isVerifiedProduct?: boolean;
 }
 
-export function ProductImageGallery({ images, productName }: ProductImageGalleryProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+export function ProductImageGallery({
+  images,
+  productName,
+  isVerifiedProduct,
+}: ProductImageGalleryProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % images.length)
-  }
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
 
   const previousImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
-  }
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   if (!images || images.length === 0) {
     return (
       <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
         <span className="text-gray-400">No image available</span>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
       {/* Main Image */}
       <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group">
+        {/* Status Badges */}
+        <div className="relative z-20 top-2 left-2 text-soraxi-green w-fit">
+          {isVerifiedProduct && (
+            <span className="flex items-center gap-1">
+              <VerifiedIcon className="text-soraxi-green w-fit" />{" "}
+              <span>Verified</span>
+            </span>
+          )}
+        </div>
         <Image
-          src={images[currentImageIndex] || "/placeholder.svg?height=600&width=600"}
+          src={
+            images[currentImageIndex] || "/placeholder.svg?height=600&width=600"
+          }
           alt={`${productName} - Image ${currentImageIndex + 1}`}
           fill
           className="object-cover"
@@ -80,7 +96,9 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
               onClick={() => setCurrentImageIndex(index)}
               className={cn(
                 "relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors",
-                currentImageIndex === index ? "border-primary" : "border-gray-200 hover:border-gray-300",
+                currentImageIndex === index
+                  ? "border-primary"
+                  : "border-gray-200 hover:border-gray-300"
               )}
             >
               <Image
@@ -94,5 +112,5 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
         </div>
       )}
     </div>
-  )
+  );
 }

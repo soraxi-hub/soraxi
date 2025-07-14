@@ -5,6 +5,7 @@ import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "react-error-boundary";
+import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
 
 async function Page() {
   const user = await getUserFromCookie();
@@ -12,13 +13,13 @@ async function Page() {
   if (!user) {
     return redirect(`/sign-in`);
   }
-  prefetch(trpc.user.getById.queryOptions({ id: user.id }));
+  prefetch(trpc.user.getById.queryOptions());
 
   return (
     <HydrateClient>
       <ErrorBoundary fallback={<div>Something went wrong</div>}>
-        <Suspense fallback={`Profile`}>
-          <Profile id={user.id} />
+        <Suspense fallback={<ProfileSkeleton />}>
+          <Profile />
         </Suspense>
       </ErrorBoundary>
     </HydrateClient>

@@ -1,19 +1,22 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { addNairaSign } from "@/lib/utils/naira";
 import { Shield, ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 
-import type { inferProcedureOutput } from "@trpc/server";
-import type { AppRouter } from "@/trpc/routers/_app";
-
-type ProductsOutput = inferProcedureOutput<
-  AppRouter["home"]["getPublicProducts"]
->;
-type Product = ProductsOutput["products"][number];
-
 interface ProductCardProps {
-  product: Product;
+  product: {
+    id: string;
+    name: string;
+    price?: number;
+    images: string[];
+    category: string[];
+    rating?: number;
+    slug: string;
+    isVerifiedProduct?: boolean;
+    formattedPrice?: string;
+  };
 }
 
 const renderStars = (rating: number) => {
@@ -56,14 +59,16 @@ export const ProductCard = ({ product }: ProductCardProps) => (
           {product.name}
         </h3>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center">{renderStars(product.rating)}</div>
+          <div className="flex items-center">
+            {renderStars(product.rating || 0)}
+          </div>
           <span className="text-sm text-muted-foreground">
-            ({product.rating})
+            ({product.rating ? product.rating.toFixed(1) : 0} reviews)
           </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-2xl font-bold text-soraxi-green">
-            {product.formattedPrice}
+            {addNairaSign(product.price || 0)}
           </span>
           <Badge variant="outline">{product.category[0]}</Badge>
         </div>
