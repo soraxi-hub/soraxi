@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
+// import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -29,93 +29,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-// import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
-
-/**
- * Interface for Detailed Order Information
- *
- * Extended order interface that includes complete customer information,
- * detailed product data, and comprehensive tracking information.
- */
-interface DetailedOrder {
-  _id: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  totalAmount: number;
-  paymentStatus: string;
-  paymentMethod: string;
-  shippingAddress: {
-    postalCode: string;
-    address: string;
-  };
-  notes?: string;
-  discount?: number;
-  taxAmount?: number;
-  createdAt: string;
-  updatedAt: string;
-  subOrders: DetailedSubOrder[];
-}
-
-/**
- * Interface for Detailed Sub-Order Information
- *
- * Comprehensive sub-order data including populated product information,
- * shipping details, and escrow status.
- */
-interface DetailedSubOrder {
-  _id: string;
-  store: string;
-  products: DetailedOrderProduct[];
-  totalAmount: number;
-  deliveryStatus: string;
-  shippingMethod?: {
-    name: string;
-    price: number;
-    estimatedDeliveryDays?: string;
-    description?: string;
-  };
-  trackingNumber?: string;
-  deliveryDate?: string;
-  escrow: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: string;
-    refunded: boolean;
-    refundReason?: string;
-  };
-  returnWindow?: string;
-}
-
-/**
- * Interface for Detailed Order Product Information
- *
- * Complete product information including images, specifications,
- * and pricing details for order display.
- */
-interface DetailedOrderProduct {
-  Product: {
-    _id: string;
-    name: string;
-    images: string[];
-    price: number;
-    productType: string;
-    category: string[];
-    subCategory: string[];
-  };
-  quantity: number;
-  price: number;
-  selectedSize?: {
-    size: string;
-    price: number;
-  };
-}
+import { toast } from "sonner";
+import { formatNaira } from "@/lib/utils/naira";
+import { useTRPC } from "@/trpc/client";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { isPopulatedUser } from "@/lib/utils/order-formatter";
 
 /**
  * Order Detail View Component Props
@@ -152,9 +72,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    * Manages the complete order information including loading states
    * and error handling for the order detail interface.
    */
-  const [order, setOrder] = useState<DetailedOrder | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const trpc = useTRPC();
 
   /**
    * Form State Management
@@ -162,30 +80,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    * Manages form inputs for order updates including tracking numbers,
    * delivery status changes, and notes.
    */
-  const [trackingNumber, setTrackingNumber] = useState("");
-  const [deliveryNotes, setDeliveryNotes] = useState("");
   const [updating, setUpdating] = useState(false);
-
-  // Hook for toast notifications
-  //   const { toast } = useToast();
-
-  // ==================== Utility Functions ====================
-
-  /**
-   * Format Currency Display
-   *
-   * Formats monetary values in Nigerian Naira with proper formatting
-   * for consistent display across the order detail interface.
-   *
-   * @param amount - Amount in kobo (smallest currency unit)
-   * @returns Formatted currency string
-   */
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount / 100);
-  };
 
   /**
    * Get Status Badge Configuration
@@ -265,59 +160,16 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    * - Data validation and formatting
    * - Automatic retry on failure
    */
-  const fetchOrderDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const {
+    data,
+    isLoading: loading,
+    refetch: refetchOrder,
+    error,
+  } = useSuspenseQuery(
+    trpc.storeOrders.getStoreOrderById.queryOptions({ orderId })
+  );
 
-      const response = await fetch(`/api/store/orders/${orderId}`);
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch order details: ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-
-      if (!data.order) {
-        throw new Error("Order not found");
-      }
-
-      setOrder(data.order);
-
-      // Set initial form values from order data
-      if (data.order.subOrders[0]?.trackingNumber) {
-        setTrackingNumber(data.order.subOrders[0].trackingNumber);
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch order details";
-      setError(errorMessage);
-
-      //   toast({
-      //     title: "Error",
-      //     description: errorMessage,
-      //     variant: "destructive",
-      //   });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ==================== Effect Hooks ====================
-
-  /**
-   * Initial Data Load
-   *
-   * Fetches order details when the component mounts or when the
-   * order ID changes.
-   */
-  useEffect(() => {
-    if (orderId) {
-      fetchOrderDetails();
-    }
-  }, [orderId]);
+  const { order } = data;
 
   // ==================== Event Handlers ====================
 
@@ -342,8 +194,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         body: JSON.stringify({
           subOrderId,
           deliveryStatus: newStatus,
-          trackingNumber: trackingNumber || undefined,
-          notes: deliveryNotes || undefined,
         }),
       });
 
@@ -352,75 +202,11 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
       }
 
       // Refresh order details after successful update
-      await fetchOrderDetails();
+      refetchOrder();
 
-      //   toast({
-      //     title: "Status Updated",
-      //     description: `Order status updated to ${newStatus}`,
-      //   });
-
-      // Clear form fields after successful update
-      setDeliveryNotes("");
+      toast.success(`Order status updated to ${newStatus}`);
     } catch (err) {
-      //   toast({
-      //     title: "Error",
-      //     description: "Failed to update order status",
-      //     variant: "destructive",
-      //   });
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  /**
-   * Handle Tracking Number Update
-   *
-   * Updates the tracking number for a sub-order with validation
-   * and immediate feedback to the user.
-   *
-   * @param subOrderId - The ID of the sub-order to update
-   */
-  const handleTrackingUpdate = async (subOrderId: string) => {
-    if (!trackingNumber.trim()) {
-      //   toast({
-      //     title: "Error",
-      //     description: "Please enter a tracking number",
-      //     variant: "destructive",
-      //   });
-      return;
-    }
-
-    try {
-      setUpdating(true);
-
-      const response = await fetch(`/api/store/orders/${orderId}/tracking`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subOrderId,
-          trackingNumber: trackingNumber.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update tracking number");
-      }
-
-      // Refresh order details after successful update
-      await fetchOrderDetails();
-
-      //   toast({
-      //     title: "Tracking Updated",
-      //     description: "Tracking number has been updated successfully",
-      //   });
-    } catch (err) {
-      //   toast({
-      //     title: "Error",
-      //     description: "Failed to update tracking number",
-      //     variant: "destructive",
-      //   });
+      toast.error(`Failed to update order status`);
     } finally {
       setUpdating(false);
     }
@@ -476,9 +262,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Error Loading Order</h3>
           <p className="text-muted-foreground mb-4">
-            {error || "Order not found"}
+            {error?.message || "Order not found"}
           </p>
-          <Button onClick={fetchOrderDetails}>Try Again</Button>
+          <Button onClick={() => refetchOrder}>Try Again</Button>
         </div>
       </div>
     );
@@ -549,7 +335,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                     </div>
 
                     {/* Tracking Number Management */}
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor={`tracking-${index}`}>
                         Tracking Number
                       </Label>
@@ -573,51 +359,14 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                           Current: {subOrder.trackingNumber}
                         </p>
                       )}
-                    </div>
+                    </div> */}
 
                     {/* Status Update Controls */}
-                    <div className="space-y-2">
-                      <Label>Update Status</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          onValueChange={(value) =>
-                            handleStatusUpdate(subOrder._id, value)
-                          }
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select new status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Processing">
-                              Processing
-                            </SelectItem>
-                            <SelectItem value="Shipped">Shipped</SelectItem>
-                            <SelectItem value="Out for Delivery">
-                              Out for Delivery
-                            </SelectItem>
-                            <SelectItem value="Delivered">Delivered</SelectItem>
-                            <SelectItem value="Canceled">Canceled</SelectItem>
-                            <SelectItem value="Failed Delivery">
-                              Failed Delivery
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Delivery Notes */}
-                    <div className="space-y-2">
-                      <Label htmlFor={`notes-${index}`}>
-                        Delivery Notes (Optional)
-                      </Label>
-                      <Textarea
-                        id={`notes-${index}`}
-                        placeholder="Add notes about this delivery..."
-                        value={deliveryNotes}
-                        onChange={(e) => setDeliveryNotes(e.target.value)}
-                        rows={2}
-                      />
-                    </div>
+                    <SellerStatusUpdate
+                      subOrder={subOrder}
+                      updating={updating}
+                      handleStatusUpdateAction={handleStatusUpdate}
+                    />
 
                     {/* Escrow Information */}
                     {subOrder.escrow && (
@@ -716,24 +465,13 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                             {item.selectedSize && (
                               <span>Size: {item.selectedSize.size}</span>
                             )}
-                            <span>Price: {formatCurrency(item.price)}</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {item.Product.category.map((cat, catIndex) => (
-                              <Badge
-                                key={catIndex}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {cat}
-                              </Badge>
-                            ))}
+                            <span>Price: {formatNaira(item.price)}</span>
                           </div>
                         </div>
 
                         <div className="text-right">
                           <p className="font-medium">
-                            {formatCurrency(item.price * item.quantity)}
+                            {formatNaira(item.price * item.quantity)}
                           </p>
                         </div>
                       </div>
@@ -757,18 +495,24 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{order.user.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{order.user.email}</span>
-                </div>
-                {order.user.phone && (
+                {isPopulatedUser(order.user) && order.user.firstName && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {order.user.firstName} {order.user.lastName}
+                    </span>
+                  </div>
+                )}
+                {isPopulatedUser(order.user) && order.user.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{order.user.email}</span>
+                  </div>
+                )}
+                {isPopulatedUser(order.user) && order.user.phoneNumber && (
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{order.user.phone}</span>
+                    <span className="text-sm">{order.user.phoneNumber}</span>
                   </div>
                 )}
               </div>
@@ -787,10 +531,10 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               <div>
                 <h4 className="font-medium mb-2">Delivery Address</h4>
                 <p className="text-sm text-muted-foreground">
-                  {order.shippingAddress.address}
+                  {order.shippingAddress?.address || "Unknown"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Postal Code: {order.shippingAddress.postalCode}
+                  Postal Code: {order.shippingAddress?.postalCode || "Unknown"}
                 </p>
               </div>
 
@@ -800,7 +544,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                   <div className="space-y-1 text-sm">
                     <p>{order.subOrders[0].shippingMethod.name}</p>
                     <p className="text-muted-foreground">
-                      {formatCurrency(order.subOrders[0].shippingMethod.price)}
+                      {formatNaira(order.subOrders[0].shippingMethod.price)}
                     </p>
                     {order.subOrders[0].shippingMethod
                       .estimatedDeliveryDays && (
@@ -848,28 +592,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               <Separator />
 
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal:</span>
-                  <span>
-                    {formatCurrency(order.totalAmount - (order.taxAmount || 0))}
-                  </span>
-                </div>
-                {order.discount && order.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount:</span>
-                    <span>-{formatCurrency(order.discount)}</span>
-                  </div>
-                )}
-                {order.taxAmount && order.taxAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tax:</span>
-                    <span>{formatCurrency(order.taxAmount)}</span>
-                  </div>
-                )}
-                <Separator />
                 <div className="flex justify-between font-medium text-lg">
                   <span>Total:</span>
-                  <span>{formatCurrency(order.totalAmount)}</span>
+                  <span>{formatNaira(order.totalAmount)}</span>
                 </div>
               </div>
             </CardContent>
@@ -914,6 +639,82 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+// All possible delivery statuses
+const allStatuses = [
+  "Processing",
+  "Shipped",
+  "Out for Delivery",
+  "Delivered",
+  "Canceled",
+  "Failed Delivery",
+];
+
+// Valid transitions from each current status
+const allowedNextStatuses: Record<string, string[]> = {
+  "Order Placed": ["Processing", "Canceled"],
+  Processing: ["Shipped", "Canceled"],
+  Shipped: ["Out for Delivery"],
+  "Out for Delivery": ["Delivered", "Failed Delivery"],
+  "Failed Delivery": ["Delivered"], // if seller reattempts delivery
+};
+
+interface Props {
+  subOrder: {
+    _id: string;
+    deliveryStatus: string;
+  };
+  updating: boolean;
+  handleStatusUpdateAction: (id: string, value: string) => void;
+}
+
+function SellerStatusUpdate({
+  subOrder,
+  updating,
+  handleStatusUpdateAction,
+}: Props) {
+  const currentStatus = subOrder.deliveryStatus;
+  const validStatuses = allowedNextStatuses[currentStatus] ?? [];
+
+  const disableEntireSelect = ["Delivered", "Canceled"].includes(currentStatus);
+
+  // Explanation message
+  const explanationMessage = disableEntireSelect
+    ? `This order is already marked as "${currentStatus}". Further updates are disabled.`
+    : "Only valid status transitions are enabled based on the current order state.";
+
+  return (
+    <div className="space-y-2">
+      <Label>Update Status</Label>
+      <div className="flex gap-2">
+        <Select
+          onValueChange={(value) =>
+            handleStatusUpdateAction(subOrder._id, value)
+          }
+          disabled={disableEntireSelect || updating}
+        >
+          <SelectTrigger className="flex-1">
+            <SelectValue placeholder="Select new status" />
+          </SelectTrigger>
+          <SelectContent>
+            {allStatuses.map((status) => (
+              <SelectItem
+                key={status}
+                value={status}
+                disabled={!validStatuses.includes(status)}
+              >
+                {status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <span className="text-sm text-muted-foreground block">
+        {explanationMessage}
+      </span>
     </div>
   );
 }

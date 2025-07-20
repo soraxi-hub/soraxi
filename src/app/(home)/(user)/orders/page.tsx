@@ -1,3 +1,4 @@
+import { ErrorFallback } from "@/components/error-fallback";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { UserOrders } from "@/modules/user/user-orders";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
@@ -13,7 +14,7 @@ async function Page() {
   prefetch(trpc.order.getByUserId.queryOptions({ userId: userId.id }));
   return (
     <HydrateClient>
-      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+      <ErrorBoundary fallback={<ErrorFallback />}>
         <Suspense fallback={<div>Loading...</div>}>
           <UserOrders userId={userId.id} />
         </Suspense>

@@ -3,6 +3,7 @@ import { getQueryClient, trpc } from "@/trpc/server";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import StoreProfile from "@/modules/store/profile/store-profile";
+import { ErrorFallback } from "@/components/error-fallback";
 
 async function Page() {
   const queryClient = getQueryClient();
@@ -11,7 +12,7 @@ async function Page() {
   );
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+      <ErrorBoundary fallback={<ErrorFallback />}>
         <Suspense fallback={<div>Loading...</div>}>
           <StoreProfile />
         </Suspense>

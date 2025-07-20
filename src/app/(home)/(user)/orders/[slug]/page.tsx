@@ -16,28 +16,24 @@
 
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  CheckCircle2Icon,
   ClipboardEditIcon,
   Clock,
   CreditCard,
   DollarSign,
-  Gift,
   Loader,
   MapPin,
   Package,
-  Percent,
   ShoppingBag,
   Star,
   Store,
-  Tag,
   Truck,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,7 +65,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
 import { getStatusClassName } from "@/lib/utils";
 import { AppRouter } from "@/trpc/routers/_app";
@@ -77,10 +73,6 @@ import { inferProcedureOutput } from "@trpc/server";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 type Product = ProductsOutput["subOrders"][number]["products"][number];
-
-interface ProductInfoProps {
-  product: Product;
-}
 
 interface PageParams {
   slug: string;
@@ -90,20 +82,31 @@ export default function OrderDetailsPage(props: {
   params: Promise<PageParams>;
 }) {
   const params = use(props.params);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const router = useRouter();
 
   // Review state
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [selectedProductId, setSelectedProductId] = useState("");
-  const [selectedSubOrderId, setSelectedSubOrderId] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const trpc = useTRPC();
-  const { data: orderDetails, isLoading } = useSuspenseQuery(
+  const { data: orderDetails, refetch } = useSuspenseQuery(
     trpc.order.getByOrderId.queryOptions({ orderId: params.slug })
+  );
+
+  const customerConfirmedDelivery = useMutation(
+    trpc.order.customerConfirmedDelivery.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.message);
+        setSubmitting(false);
+        refetch();
+      },
+      onError: (data) => {
+        toast.error(data.message);
+        setSubmitting(false);
+      },
+    })
   );
 
   /**
@@ -112,24 +115,12 @@ export default function OrderDetailsPage(props: {
    */
   const updateDeliveryStatus = async (subOrderId: string) => {
     if (!orderDetails) return;
+    setSubmitting(true);
 
-    try {
-      setSubmitting(true);
-      await axios.post("/api/store/update-order-delivery-status", {
-        mainOrderID: orderDetails._id,
-        subOrderID: subOrderId,
-        updatedDeliveryStatus: "Delivered",
-      });
-
-      // toast({
-      //   title: "Success",
-      //   description: "Order status updated to Delivered",
-      // });
-      router.refresh();
-    } catch (error) {
-    } finally {
-      setSubmitting(false);
-    }
+    customerConfirmedDelivery.mutate({
+      mainOrderId: orderDetails._id,
+      subOrderId: subOrderId,
+    });
   };
 
   /**
@@ -170,9 +161,8 @@ export default function OrderDetailsPage(props: {
    * @param productId - The ID of the product being reviewed
    * @param subOrderId - The ID of the sub-order containing the product
    */
-  const handleReviewInit = (productId: string, subOrderId: string) => {
+  const handleReviewInit = (productId: string) => {
     setSelectedProductId(productId);
-    setSelectedSubOrderId(subOrderId);
     setRating(0);
     setReview("");
     setDialogOpen(true);
@@ -262,11 +252,6 @@ export default function OrderDetailsPage(props: {
                 label="Payment Status"
                 value={orderDetails.paymentStatus?.toUpperCase() || "N/A"}
               />
-              {/* <DetailItem
-                icon={<Tag className="h-4 w-4 text-muted-foreground" />}
-                label="Reference"
-                value={orderDetails.paymentReference || "N/A"}
-              /> */}
             </CardContent>
           </Card>
 
@@ -281,12 +266,17 @@ export default function OrderDetailsPage(props: {
               <DetailItem
                 icon={<MapPin className="h-4 w-4 text-muted-foreground" />}
                 label="Shipping Address"
-                value={orderDetails.shippingAddress?.address!}
+                value={
+                  orderDetails.shippingAddress?.address ?? "No address provided"
+                }
               />
               <DetailItem
                 icon={<MapPin className="h-4 w-4 text-muted-foreground" />}
                 label="Postal Code"
-                value={orderDetails.shippingAddress?.postalCode!}
+                value={
+                  orderDetails.shippingAddress?.postalCode ??
+                  "No postal code provided"
+                }
               />
               <DetailItem
                 icon={<Store className="h-4 w-4 text-muted-foreground" />}
@@ -346,15 +336,10 @@ export default function OrderDetailsPage(props: {
                         value={subOrder.shippingMethod?.name || "N/A"}
                       />
                       <DetailItem
-                        icon={<Tag className="h-4 w-4 text-muted-foreground" />}
-                        label="Tracking Number"
-                        value={subOrder.trackingNumber || "N/A"}
-                      />
-                      <DetailItem
                         icon={
                           <Clock className="h-4 w-4 text-muted-foreground" />
                         }
-                        label="Estimated Delivery"
+                        label="Delivery Date"
                         value={
                           subOrder.deliveryDate
                             ? new Date(
@@ -377,27 +362,64 @@ export default function OrderDetailsPage(props: {
                         icon={
                           <Clock className="h-4 w-4 text-muted-foreground" />
                         }
-                        label="Delivery Days"
+                        label="Estimated Delivery"
                         value={
                           subOrder.shippingMethod?.estimatedDeliveryDays ||
                           "N/A"
                         }
                       />
 
-                      {subOrder.deliveryStatus === "Out for Delivery" && (
-                        <Button
-                          onClick={() =>
-                            updateDeliveryStatus(subOrder._id || "")
+                      {!subOrder.customerConfirmedDelivery.confirmed &&
+                        !subOrder.customerConfirmedDelivery.autoConfirmed &&
+                        subOrder.deliveryStatus === "Delivered" && (
+                          <Button
+                            onClick={() =>
+                              updateDeliveryStatus(subOrder._id || "")
+                            }
+                            disabled={submitting}
+                            className="w-full md:w-aut mt-2 text-white bg-soraxi-green hover:bg-soraxi-green-hover"
+                          >
+                            {submitting ? (
+                              <Loader className="animate-spin mr-2" />
+                            ) : (
+                              "Confirm Delivery"
+                            )}
+                          </Button>
+                        )}
+
+                      {subOrder.customerConfirmedDelivery.confirmed && (
+                        <DetailItem
+                          icon={
+                            <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
                           }
-                          disabled={submitting}
-                          className="w-full md:w-aut mt-2 bg-orange-400 hover:bg-udua-orange-primary"
-                        >
-                          {submitting ? (
-                            <Loader className="animate-spin mr-2" />
-                          ) : (
-                            "Mark as Delivered"
-                          )}
-                        </Button>
+                          label=""
+                          value={"Delivery Confirmed"}
+                        />
+                      )}
+                      {subOrder.customerConfirmedDelivery.confirmed && (
+                        <DetailItem
+                          icon={
+                            <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                          }
+                          label="Delivery Confirmed On"
+                          value={
+                            subOrder.customerConfirmedDelivery.confirmedAt
+                              ? new Date(
+                                  subOrder.customerConfirmedDelivery.confirmedAt
+                                ).toLocaleDateString()
+                              : "N/A"
+                          }
+                        />
+                      )}
+
+                      {subOrder.customerConfirmedDelivery.autoConfirmed && (
+                        <DetailItem
+                          icon={
+                            <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                          }
+                          label=""
+                          value={"Auto Confirmed"}
+                        />
                       )}
                     </div>
                   </div>
@@ -410,10 +432,7 @@ export default function OrderDetailsPage(props: {
                       <ProductItem
                         key={`${productIndex}`}
                         product={product}
-                        onReviewInit={(id) =>
-                          // handleReviewInit(id, subOrder._id || "")
-                          handleReviewInit(id, "")
-                        }
+                        onReviewInit={(id) => handleReviewInit(id)}
                         deliveryStatus={subOrder.deliveryStatus}
                       />
                     ))}
@@ -507,18 +526,17 @@ const ProductItem = ({
             <p className="text-sm text-muted-foreground">
               Quantity: {product.quantity}
             </p>
-            {/* {deliveryStatus === "Delivered" && (
-              
-            )} */}
-            <Button
-              className="mt-2 bg-soraxi-green hover:bg-soraxi-green/85 text-white w-full text-sm flex items-center gap-2"
-              onClick={() => onReviewInit(product.Product._id)}
-              aria-label="Review product"
-              size="sm"
-            >
-              <ClipboardEditIcon className="h-4 w-4" />
-              Write Review
-            </Button>
+            {deliveryStatus === "Delivered" && (
+              <Button
+                className="mt-2 bg-soraxi-green hover:bg-soraxi-green-hover text-white w-full text-sm flex items-center gap-2"
+                onClick={() => onReviewInit(product.Product._id)}
+                aria-label="Review product"
+                size="sm"
+              >
+                <ClipboardEditIcon className="h-4 w-4" />
+                Write Review
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

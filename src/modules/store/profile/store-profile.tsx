@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Users, Package, Share2 } from "lucide-react";
 import StoreDescription from "./store-description";
 
-// import DOMPurify from "dompurify";
 import { useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -76,7 +75,6 @@ export default function StoreProfile() {
   }
 
   const { name, description, products, uniqueId, followers } = store;
-  // const sanitizedDescription = DOMPurify.sanitize(description ? description : "");
 
   return (
     <main className="container mx-auto px-4 md:px-8 py-6">
@@ -132,12 +130,6 @@ export default function StoreProfile() {
             <div className="prose dark:prose-invert max-w-4xl">
               {description}
             </div>
-            {/* {description && (
-              <div
-                className="prose dark:prose-invert max-w-4xl"
-                dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
-              />
-            )} */}
           </div>
         </CardContent>
       </Card>
@@ -160,7 +152,7 @@ export default function StoreProfile() {
             </CardHeader>
             <CardContent>
               <div
-                className={`grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
+                className={`grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
               >
                 {products.map((product) => (
                   <Link key={product._id} href={`/products/${product.slug}`}>

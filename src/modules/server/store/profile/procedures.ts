@@ -4,6 +4,7 @@ import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { IProduct } from "@/lib/db/models/product.model";
+import { koboToNaira } from "@/lib/utils/naira";
 
 type Product = Pick<
   IProduct,
@@ -33,14 +34,14 @@ export const storeProfileRouter = createTRPCRouter({
     const Store = await getStoreModel();
     const storeData = await Store.findById(store.id)
       .select(
-        "-password -storeOwner -recipientCode -wallet -digitalProducts -suspensionReason -payoutHistory -platformFee -shippingMethods -payoutAccounts -transactionFees -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+        "-password -storeOwner -recipientCode -wallet -suspensionReason -payoutHistory -platformFee -shippingMethods -payoutAccounts -transactionFees -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
       )
       .populate({
         path: "physicalProducts",
         model: "Product",
         match: { isVerifiedProduct: true },
         select:
-          "_id name images price sizes slug isVerifiedProduct formattedPrice category productType", // Replace with the fields you want to include
+          "_id name images price sizes slug isVerifiedProduct category productType",
       })
       .lean();
 
@@ -65,12 +66,11 @@ export const storeProfileRouter = createTRPCRouter({
         _id: product._id.toString(),
         name: product.name,
         images: product.images,
-        price: product.price,
+        price: koboToNaira(product.price || 0),
         sizes: product.sizes,
         slug: product.slug,
         category: product.category,
         isVerifiedProduct: product.isVerifiedProduct,
-        formattedPrice: product.formattedPrice,
         productType: product.productType,
       })),
       logoUrl: storeData.logoUrl,

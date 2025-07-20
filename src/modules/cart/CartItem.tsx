@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Trash2, Plus, Minus, HeartIcon } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 
 /**
@@ -189,7 +189,17 @@ export function CartItem({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemoveItemAction(item.productId)}
+              onClick={() => onMoveToWishlistAction(item.id)}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <HeartIcon className="h-4 w-4 mr-1" />
+              Save
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemoveItemAction(item.id)}
               className="text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-4 w-4 mr-1" />

@@ -84,7 +84,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <main className="min-h-screen flex justify-center items-center">
+    <main className="min-h-screen flex justify-center items-center bg-background">
       <section className="w-full">
         <div className="w-full max-w-sm mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md px-6 py-4">
           <h3 className="text-xl font-medium text-center text-gray-600 dark:text-gray-200">
@@ -99,7 +99,9 @@ const ResetPassword = () => {
             className="space-y-4 mt-6"
           >
             <div>
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword" className="py-3">
+                New Password
+              </Label>
               <Input
                 id="newPassword"
                 type={showPassword ? "text" : "password"}
@@ -113,7 +115,9 @@ const ResetPassword = () => {
             </div>
 
             <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="py-3">
+                Confirm Password
+              </Label>
               <Input
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
@@ -141,7 +145,7 @@ const ResetPassword = () => {
 
             <Button
               type="submit"
-              className="w-full bg-soraxi-green hover:bg-soraxi-green/90"
+              className="w-full bg-soraxi-green hover:bg-soraxi-green-hover text-white"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? (

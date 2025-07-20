@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic";
+
 export default function ForbiddenPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background px-4">

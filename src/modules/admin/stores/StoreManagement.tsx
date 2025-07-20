@@ -189,13 +189,6 @@ export function StoreManagement() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      active: "default",
-      pending: "secondary",
-      suspended: "destructive",
-      rejected: "destructive",
-    } as const;
-
     const colors = {
       active: "bg-green-100 text-green-800",
       pending: "bg-yellow-100 text-yellow-800",

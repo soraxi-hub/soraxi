@@ -80,8 +80,12 @@ export interface SubOrder {
     estimatedDeliveryDays?: string;
     description?: string;
   };
-  trackingNumber?: string;
   deliveryDate?: Date;
+  customerConfirmedDelivery: {
+    confirmed: boolean;
+    confirmedAt: Date;
+    autoConfirmed: boolean;
+  };
   escrow: {
     held: boolean;
     released: boolean;
@@ -92,6 +96,14 @@ export interface SubOrder {
   returnWindow?: Date;
 }
 
+export interface PopulatedUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+}
+
 /**
  * Formatted Order Interface
  *
@@ -100,7 +112,7 @@ export interface SubOrder {
  */
 export interface FormattedOrder {
   _id: string;
-  user: string;
+  user: PopulatedUser | string;
   stores: string[];
   totalAmount: number;
   paymentStatus?: string;
@@ -110,8 +122,6 @@ export interface FormattedOrder {
     address: string;
   };
   notes?: string;
-  discount?: number;
-  taxAmount?: number;
   createdAt: Date;
   updatedAt: Date;
   subOrders: SubOrder[];
@@ -125,7 +135,7 @@ export interface FormattedOrder {
  */
 export interface RawOrderDocument {
   _id: mongoose.Types.ObjectId;
-  user: mongoose.Types.ObjectId;
+  user: PopulatedUser | mongoose.Types.ObjectId;
   stores: mongoose.Types.ObjectId[];
   totalAmount: number;
   paymentStatus?: string;
@@ -135,8 +145,6 @@ export interface RawOrderDocument {
     address: string;
   };
   notes?: string;
-  discount?: number;
-  taxAmount?: number;
   createdAt: Date;
   updatedAt: Date;
   subOrders: Array<{
@@ -161,8 +169,12 @@ export interface RawOrderDocument {
       estimatedDeliveryDays?: string;
       description?: string;
     };
-    trackingNumber?: string;
     deliveryDate?: Date;
+    customerConfirmedDelivery: {
+      confirmed: boolean;
+      confirmedAt: Date;
+      autoConfirmed: boolean;
+    };
     escrow: {
       held: boolean;
       released: boolean;

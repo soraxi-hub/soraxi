@@ -45,7 +45,7 @@ const initialSteps: OnboardingStep[] = [
   {
     id: "profile",
     title: "Store Profile",
-    description: "Set up your store name, logo, and description",
+    description: "Set up your store name and description",
     path: "/dashboard/store/onboarding/profile",
     isCompleted: false,
     isActive: true,

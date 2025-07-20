@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { CategoryHeader } from "@/modules/category/CategoryHeader";
 import { ProductFilters } from "@/modules/category/ProductFilters";
@@ -43,11 +43,7 @@ export default function CategoryPage() {
     (sub) => sub.slug === subcategorySlug
   );
 
-  useEffect(() => {
-    fetchProducts();
-  }, [categorySlug, subcategorySlug, sortBy, filters]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({
@@ -70,7 +66,40 @@ export default function CategoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categorySlug, subcategorySlug, sortBy, filters]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // useEffect(() => {
+  //   fetchProducts();
+  // }, [categorySlug, subcategorySlug, sortBy, filters]);
+
+  // const fetchProducts = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const queryParams = new URLSearchParams({
+  //       category: categorySlug,
+  //       ...(subcategorySlug && { subcategory: subcategorySlug }),
+  //       sort: sortBy,
+  //       priceMin: filters.priceRange[0].toString(),
+  //       priceMax: filters.priceRange[1].toString(),
+  //       inStock: filters.inStock.toString(),
+  //       ratings: filters.ratings.join(","),
+  //       brands: filters.brands.join(","),
+  //     });
+
+  //     const response = await fetch(`/api/products/category?${queryParams}`);
+  //     const data = await response.json();
+  //     setProducts(data.products || []);
+  //   } catch (error) {
+  //     console.error("Error fetching products:", error);
+  //     setProducts([]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   if (!category) {
     return (

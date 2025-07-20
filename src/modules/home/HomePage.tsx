@@ -175,7 +175,6 @@ export function HomePage() {
                       product={{
                         ...product,
                         price: product.price ?? 0,
-                        formattedPrice: product.formattedPrice ?? "",
                       }}
                     />
                   </Link>

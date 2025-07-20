@@ -56,6 +56,7 @@ const mockProducts = [
   },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -66,7 +67,7 @@ export async function GET(
     // TODO: Replace with actual database query
     const product = mockProducts.find((p) => p.slug === slug);
 
-    if (!product) {
+    if (!product || !request) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 

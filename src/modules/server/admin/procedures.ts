@@ -3,8 +3,6 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { getProductModel } from "@/lib/db/models/product.model";
-import { getStoreModel } from "@/lib/db/models/store.model";
-import { AUDIT_ACTIONS } from "@/lib/admin/audit-logger";
 
 export const adminRouter = createTRPCRouter({
   list: baseProcedure
@@ -123,10 +121,10 @@ export const adminRouter = createTRPCRouter({
           message = "Product rejected";
           break;
         case "unpublish":
-          if (product.status !== "active") {
+          if (product.status !== "approved") {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "Product is not active",
+              message: "Product is not approved",
             });
           }
           updateData = {

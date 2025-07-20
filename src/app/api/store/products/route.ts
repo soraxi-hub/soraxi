@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 /**
  * API Route: Store Product Management
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const Product = await getProductModel();
+    const Store = await getStoreModel();
 
     // Create product data
     const productData = {
@@ -78,6 +80,11 @@ export async function POST(request: NextRequest) {
     // Create the product
     const product = new Product(productData);
     await product.save();
+
+    // Update the store by pushing the new product to the products array
+    await Store.findByIdAndUpdate(storeID, {
+      $push: { physicalProducts: product._id },
+    });
 
     return NextResponse.json({
       success: true,

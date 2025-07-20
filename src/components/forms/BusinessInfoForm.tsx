@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Upload, FileText, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 import type { BusinessInfoData } from "@/types/onboarding";
 
@@ -111,7 +111,7 @@ export function BusinessInfoForm({
           }
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+          <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors col-span-2">
             <RadioGroupItem value="individual" id="individual" />
             <div className="flex-1">
               <Label
@@ -125,7 +125,7 @@ export function BusinessInfoForm({
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+          {/* <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
             <RadioGroupItem value="company" id="company" />
             <div className="flex-1">
               <Label htmlFor="company" className="font-medium cursor-pointer">
@@ -135,7 +135,7 @@ export function BusinessInfoForm({
                 Selling as a registered company
               </p>
             </div>
-          </div>
+          </div> */}
         </RadioGroup>
       </div>
 
@@ -188,7 +188,7 @@ export function BusinessInfoForm({
       )}
 
       {/* Tax ID (Optional for both types) */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="taxId" className="text-sm font-medium">
           Tax Identification Number (Optional)
         </Label>
@@ -204,10 +204,10 @@ export function BusinessInfoForm({
         <p className="text-xs text-muted-foreground">
           Required for tax reporting in some regions
         </p>
-      </div>
+      </div> */}
 
       {/* Document Upload Section */}
-      <div className="space-y-4">
+      {/* <div className="space-y-4">
         <Label className="text-sm font-medium">
           Supporting Documents {businessType === "company" ? "*" : "(Optional)"}
         </Label>
@@ -233,7 +233,7 @@ export function BusinessInfoForm({
           {businessType === "company" &&
             " Business registration documents are required for verification."}
         </p>
-      </div>
+      </div> */}
 
       {/* Form Actions */}
       <div className="flex justify-between pt-6 border-t border-border">

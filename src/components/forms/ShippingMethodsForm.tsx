@@ -58,7 +58,7 @@ const shippingMethodsFormSchema = z.object({
   shippingMethods: z
     .array(shippingMethodSchema)
     .min(1, "At least one shipping method is required")
-    .max(10, "Maximum 10 shipping methods allowed"),
+    .max(1, "Maximum 1 shipping method allowed"),
 });
 
 type ShippingMethodsFormData = z.infer<typeof shippingMethodsFormSchema>;
@@ -94,7 +94,7 @@ export function ShippingMethodsForm({
           : [
               {
                 name: "Standard Delivery",
-                price: 0,
+                price: 1000,
                 estimatedDeliveryDays: 3,
                 description: "Regular delivery within 3-5 business days",
                 applicableRegions: [],
@@ -298,7 +298,7 @@ export function ShippingMethodsForm({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-2">
                     <Label
                       htmlFor={`delivery-${index}`}
                       className="text-sm font-medium"
@@ -330,7 +330,7 @@ export function ShippingMethodsForm({
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor={`regions-${index}`}
                       className="text-sm font-medium"
@@ -348,7 +348,7 @@ export function ShippingMethodsForm({
                       Leave empty to apply to all regions, or specify
                       cities/states
                     </p>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Description */}
@@ -462,7 +462,7 @@ export function ShippingMethodsForm({
         ))}
 
         {/* Add New Shipping Method */}
-        {fields.length < 10 && (
+        {fields.length < 1 && (
           <Button
             type="button"
             variant="outline"
@@ -495,10 +495,10 @@ export function ShippingMethodsForm({
           💡 Shipping Tips
         </h4>
         <ul className="text-sm text-muted-foreground space-y-1">
-          <li>
+          {/* <li>
             • Offer multiple shipping options to cater to different customer
             needs
-          </li>
+          </li> */}
           {/* <li>• Consider free shipping for orders above a certain amount</li> */}
           <li>
             • Be realistic with delivery timeframes to set proper expectations

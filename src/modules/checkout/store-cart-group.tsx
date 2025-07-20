@@ -25,7 +25,7 @@ type GroupedCart = CheckoutOutput["groupedCart"][number];
 
 interface StoreCartGroupProps {
   storeGroup: GroupedCart;
-  onShippingMethodChange: (method: ShippingMethod) => void;
+  onShippingMethodChangeAction: (method: ShippingMethod) => void;
   selectedShippingMethod: ShippingMethod | undefined;
 }
 
@@ -55,7 +55,7 @@ interface StoreCartGroupProps {
  */
 export default function StoreCartGroup({
   storeGroup,
-  onShippingMethodChange,
+  onShippingMethodChangeAction,
   selectedShippingMethod,
 }: StoreCartGroupProps) {
   /**
@@ -82,7 +82,7 @@ export default function StoreCartGroup({
     );
 
     if (selectedMethod) {
-      onShippingMethodChange(selectedMethod);
+      onShippingMethodChangeAction(selectedMethod);
     } else {
       console.warn(
         `Shipping method "${methodName}" not found for store ${storeGroup.storeID}`

@@ -106,7 +106,7 @@ const Profile = () => {
         </div>
       </section>
 
-      {/* Verification Section 66fbae5615b9fec5eac1b9bb */}
+      {/* Verification Section */}
       {!user.isVerified && <VerificationSection />}
 
       {/* Recently Viewed Products */}
@@ -155,9 +155,9 @@ const DetailSection = ({ icon, title, items }: DetailSectionProps) => (
 );
 
 const VerificationSection = () => (
-  <section className="bg-card rounded-lg p-6 shadow-xs border border-yellow-100">
+  <section className="bg-card rounded-lg p-6 shadow-xs border border-green-100">
     <div className="flex items-center gap-4 mb-4">
-      <ShieldCheck className="w-8 h-8 text-yellow-600" />
+      <ShieldCheck className="w-8 h-8 text-soraxi-green" />
       <h2 className="text-xl font-bold">Account Verification</h2>
     </div>
 
@@ -167,7 +167,7 @@ const VerificationSection = () => (
       </p>
       <Button
         asChild
-        className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800"
+        className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
       >
         <Link href="/verification">Complete Verification</Link>
       </Button>

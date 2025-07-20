@@ -34,7 +34,6 @@ export const checkoutRouter = createTRPCRouter({
 
       const Cart = await getCartModel();
       const Store = await getStoreModel();
-      const Product = await getProductModel();
 
       // 📦 Fetch the user's cart and populate product references
       const cart = await Cart.findOne<ICart>({

@@ -70,12 +70,12 @@ export const orderRouter = createTRPCRouter({
           })
           .populate({
             path: "subOrders.store",
-            model: "Store", // Ensure this matches your actual model name
+            model: "Store",
             select: "_id name storeEmail logoUrl",
           })
           .select(
             "_id user stores totalAmount paymentStatus paymentMethod " +
-              "shippingAddress notes discount taxAmount createdAt updatedAt subOrders"
+              "shippingAddress notes createdAt updatedAt subOrders"
           )
           .sort({ createdAt: -1 })
           .lean<RawOrderDocument[]>()
@@ -209,6 +209,68 @@ export const orderRouter = createTRPCRouter({
           message: "An unexpected error occurred while retrieving the order",
         });
       }
+    }),
+
+  customerConfirmedDelivery: baseProcedure
+    .input(
+      z.object({
+        mainOrderId: z.string(),
+        subOrderId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { mainOrderId, subOrderId } = input;
+
+      // Validate user ID format
+      if (
+        !mongoose.Types.ObjectId.isValid(mainOrderId) ||
+        !mongoose.Types.ObjectId.isValid(subOrderId)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid main Order ID or subOrder ID format",
+        });
+      }
+
+      const Order = await getOrderModel();
+
+      const order = await Order.findById(mainOrderId);
+      // Handle case where order is not found
+      if (!order) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Order with ID ${mainOrderId} not found`,
+        });
+      }
+
+      // ==================== Sub-Order Update ====================
+
+      /**
+       * Find and Update Sub-Order
+       *
+       * Locates the specific sub-order within the order and applies the
+       * status update along with any additional information.
+       */
+      const subOrder = order.subOrders.find(
+        (sub) => sub._id?.toString() === subOrderId
+      );
+
+      if (!subOrder) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `The specified sub-order: ${subOrderId} could not be found.`,
+        });
+      }
+
+      subOrder.customerConfirmedDelivery.confirmed = true;
+      subOrder.customerConfirmedDelivery.confirmedAt = new Date();
+
+      await order.save();
+
+      return {
+        success: true,
+        message: `Delivery Confirmed.`,
+      };
     }),
 
   /**

@@ -1,5 +1,6 @@
 /**
  * This script creates a super admin user
+ * Run: npx tsx scripts/create-super-admin.ts
  */
 
 import mongoose from "mongoose";

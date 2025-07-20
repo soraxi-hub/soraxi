@@ -51,30 +51,39 @@ export const wishlistRouter = createTRPCRouter({
         message: "You must be logged in to access your wishlist.",
       });
     }
+
     const wishlist = await getWishlistByUserId(user.id);
+
+    // If no wishlist exists, return a default empty structure
     if (!wishlist) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Wishlist for user ${user.id} not found.`,
-      });
+      return {
+        user: user.id,
+        products: [],
+        createdAt: null,
+        updatedAt: null,
+      };
     }
 
     const formattedWishlist = {
       user: wishlist.user.toString(),
-      products: wishlist.products.map((p) => ({
-        productId: {
-          id: p.productId._id.toString(),
-          slug: (p.productId as unknown as IProduct).slug,
-          name: (p.productId as unknown as IProduct).name,
-          price: (p.productId as unknown as IProduct).price,
-          sizes: (p.productId as unknown as IProduct).sizes,
-          images: (p.productId as unknown as IProduct).images,
-          category: (p.productId as unknown as IProduct).category,
-          formattedPrice: (p.productId as unknown as IProduct).formattedPrice,
-          productType: (p.productId as unknown as IProduct).productType,
-        },
-        productType: p.productType,
-      })),
+      products: wishlist.products.map((p) => {
+        const product = p.productId as unknown as IProduct;
+
+        return {
+          productId: {
+            id: (product._id as mongoose.Types.ObjectId).toString(),
+            slug: product.slug,
+            name: product.name,
+            price: product.price,
+            sizes: product.sizes,
+            images: product.images,
+            category: product.category,
+            formattedPrice: product.formattedPrice,
+            productType: product.productType,
+          },
+          productType: p.productType,
+        };
+      }),
       createdAt: wishlist.createdAt,
       updatedAt: wishlist.updatedAt,
     };

@@ -441,7 +441,6 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
 
       {/* Final Notice */}
       <Alert>
-        <CheckCircle className="h-4 w-4" />
         <AlertDescription>
           After submitting, your store will be reviewed by our team. This
           process typically takes 1-3 business days. You&apos;ll receive an

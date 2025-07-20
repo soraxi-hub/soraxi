@@ -62,7 +62,9 @@ const FormSchema = z.object({
 
 export function TextareaForm({
   refetchDataHandlerAction,
+  description,
 }: {
+  description: string;
   refetchDataHandlerAction: () => void;
 }) {
   const trpc = useTRPC();
@@ -81,6 +83,9 @@ export function TextareaForm({
   );
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
+    defaultValues: {
+      description: description || "",
+    },
   });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
@@ -104,7 +109,7 @@ export function TextareaForm({
             <FormItem>
               <FormLabel className="flex justify-between">
                 <span>Description Your Store</span>
-                <span>{form.watch("description").length}/1500</span>
+                <span>{field.value?.length || 0}/1500</span>
               </FormLabel>
               <FormControl>
                 <Textarea
@@ -210,6 +215,7 @@ export default function StoreDescription({
               </DialogHeader>
               <TextareaForm
                 refetchDataHandlerAction={refetchDataHandlerAction}
+                description={storeData.description || ""}
               />
             </DialogContent>
           </Dialog>

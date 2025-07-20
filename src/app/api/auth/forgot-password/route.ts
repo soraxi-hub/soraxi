@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { randomBytes } from "crypto";
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { sendMail } from "@/lib/helpers/mail";
+import { sendMail } from "@/services/mail.service";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
 import { siteConfig } from "@/config/site";

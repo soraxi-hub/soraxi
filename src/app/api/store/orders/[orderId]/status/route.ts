@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getOrderById } from "@/lib/db/models/order.model";
+import { getOrderById, getOrderModel } from "@/lib/db/models/order.model";
 import mongoose from "mongoose";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
+import { IUser } from "@/lib/db/models/user.model";
+import {
+  generateAdminOrderFailureHtml,
+  generateOrderStatusHtml,
+  sendMail,
+} from "@/services/mail.service";
 
 /**
  * Order Status Update API Route Handler
@@ -103,7 +109,7 @@ export async function PATCH(
       );
     }
 
-    const { subOrderId, deliveryStatus, trackingNumber, notes } = updateData;
+    const { subOrderId, deliveryStatus, notes } = updateData;
 
     // Validate required fields
     if (!subOrderId || !deliveryStatus) {
@@ -206,10 +212,6 @@ export async function PATCH(
     // Update sub-order fields
     subOrder.deliveryStatus = deliveryStatus;
 
-    if (trackingNumber && trackingNumber.trim()) {
-      subOrder.trackingNumber = trackingNumber.trim();
-    }
-
     // ==================== Status-Specific Logic ====================
 
     /**
@@ -221,13 +223,6 @@ export async function PATCH(
     const currentDate = new Date();
 
     switch (deliveryStatus) {
-      case "Shipped":
-        // Set tracking number if provided and not already set
-        if (trackingNumber && !subOrder.trackingNumber) {
-          subOrder.trackingNumber = trackingNumber.trim();
-        }
-        break;
-
       case "Delivered":
         // Set delivery date and calculate return window
         subOrder.deliveryDate = currentDate;
@@ -239,19 +234,19 @@ export async function PATCH(
       case "Canceled":
       case "Returned":
       case "Failed Delivery":
-        // Handle refund scenarios - mark escrow for refund processing
+        // Mark for review — admin must manually trigger refund later
         if (subOrder.escrow) {
-          subOrder.escrow.refunded = true;
           subOrder.escrow.refundReason =
-            notes || `Order ${deliveryStatus.toLowerCase()}`;
+            notes || `Marked for review: ${deliveryStatus}`;
         }
         break;
 
       case "Refunded":
-        // Complete refund process
+        // Complete refund — this is the only place refund actually happens
         if (subOrder.escrow) {
-          subOrder.escrow.refunded = true;
           subOrder.escrow.held = false;
+          subOrder.escrow.released = false;
+          subOrder.escrow.refunded = true;
           subOrder.escrow.refundReason = notes || "Order refunded";
         }
         break;
@@ -277,8 +272,7 @@ export async function PATCH(
      */
     console.log(
       `Order status updated: ${orderId} | Sub-order: ${subOrderId} | ` +
-        `Store: ${storeSession.id} | Status: ${previousStatus} → ${deliveryStatus} | ` +
-        `Tracking: ${trackingNumber || "N/A"}`
+        `Store: ${storeSession.id} | Status: ${previousStatus} → ${deliveryStatus} | `
     );
 
     // ==================== Response Formatting ====================
@@ -297,14 +291,112 @@ export async function PATCH(
         subOrderId,
         previousStatus,
         newStatus: deliveryStatus,
-        trackingNumber: subOrder.trackingNumber || null,
         deliveryDate: subOrder.deliveryDate?.toISOString() || null,
         updatedAt: currentDate.toISOString(),
       },
     };
 
     // TODO: Trigger email notification to customer about status change
-    // This would typically call an email service or queue a notification job
+    try {
+      const Order = await getOrderModel();
+
+      const orderDoc = await Order.findById(orderId).populate("user", "email");
+      const customerEmail = (orderDoc?.user as unknown as IUser)?.email;
+
+      if (!orderDoc || !orderDoc.user) {
+        console.log("Failed to fetch order or user ID");
+        return;
+      }
+
+      const isOrderFailedOrCanceled =
+        deliveryStatus === "Canceled" || deliveryStatus === "Failed Delivery";
+
+      const statusSubject = isOrderFailedOrCanceled
+        ? `Issue with your order "${subOrderId}"`
+        : `Your order is now "${deliveryStatus}"`;
+
+      const statusHtml = generateOrderStatusHtml({
+        status: deliveryStatus,
+        orderId,
+        subOrderId,
+        storeName: storeSession.name.toUpperCase(),
+      });
+
+      await sendMail({
+        email: customerEmail,
+        emailType: "storeOrderNotification",
+        subject: statusSubject,
+        html: statusHtml,
+        text: `Your order status has been updated to: ${deliveryStatus}`,
+      });
+
+      if (isOrderFailedOrCanceled) {
+        const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL!;
+
+        const adminHtml = generateAdminOrderFailureHtml({
+          deliveryStatus,
+          orderId,
+          subOrderId,
+          storeName: storeSession.name,
+          // reason: deliveryRemarks || "Not specified",
+          customerEmail: customerEmail || "Unknown",
+        });
+
+        await sendMail({
+          email: adminEmail,
+          emailType: "storeOrderNotification",
+          subject: `Order ${deliveryStatus} - ${subOrderId}`,
+          html: adminHtml,
+          text: `Order ${subOrderId} for store "${storeSession.name}" was marked as ${deliveryStatus}.`,
+        });
+
+        console.log(`Admin notified for ${deliveryStatus} case`);
+      }
+    } catch (mailErr) {
+      console.error("Failed to send status update email:", mailErr);
+    }
+
+    // try {
+    //   const Order = await getOrderModel();
+
+    //   const orderDoc = await Order.findById(orderId).populate("user", "email");
+    //   const customerEmail = (orderDoc?.user as unknown as IUser)?.email;
+
+    //   if (!orderDoc || !orderDoc.user) {
+    //     console.log("Failed to fetch order or user ID");
+    //     return;
+    //   }
+
+    //   if (
+    //     deliveryStatus !== "Canceled" ||
+    //     deliveryStatus !== "Failed Delivery"
+    //   ) {
+    //     const statusSubject = `Your order is now "${deliveryStatus}"`;
+    //     const statusHtml = generateOrderStatusHtml({
+    //       status: deliveryStatus,
+    //       orderId,
+    //       subOrderId,
+    //       storeName: storeSession.name.toUpperCase(),
+    //     });
+
+    //     await sendMail({
+    //       email: customerEmail,
+    //       emailType: "storeOrderNotification",
+    //       subject: statusSubject,
+    //       html: statusHtml,
+    //       text: `Your order status has been updated to: ${deliveryStatus}`,
+    //     });
+    //   }
+
+    //   if (
+    //     deliveryStatus === "Canceled" ||
+    //     deliveryStatus === "Failed Delivery"
+    //   ) {
+
+    //   }
+    // } catch (mailErr) {
+    //   console.error("Failed to send status update email:", mailErr);
+    // }
 
     return NextResponse.json(response);
   } catch (error) {
@@ -374,7 +466,7 @@ export async function GET(
     // Store session validation
     const storeSession = await getStoreFromCookie();
 
-    if (!storeSession?.id) {
+    if (!storeSession?.id || !request) {
       return NextResponse.json(
         { error: "Unauthorized access" },
         { status: 401 }
@@ -387,6 +479,8 @@ export async function GET(
     if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
     }
+
+    console.log("orderId", orderId);
 
     // Fetch order
     const order = await getOrderById(orderId, true);
@@ -409,7 +503,6 @@ export async function GET(
       subOrderId: subOrder._id?.toString(),
       subOrderIndex: index + 1,
       currentStatus: subOrder.deliveryStatus,
-      trackingNumber: subOrder.trackingNumber || null,
       deliveryDate: subOrder.deliveryDate?.toISOString() || null,
       escrowStatus: {
         held: subOrder.escrow?.held || false,

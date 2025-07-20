@@ -89,17 +89,24 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedBank) {
+      toast.error("Bank not selected.");
+      console.error("Bank not selected");
+      return;
+    }
+
     setIsSubmitting(true);
 
     addPayoutAccount.mutate({
       storeId,
       payoutMethod: "Bank Transfer",
       bankDetails: {
-        bankName: selectedBank?.name!,
+        bankName: selectedBank.name,
         accountNumber,
         accountHolderName,
-        bankCode: Number(selectedBank?.code),
-        bankId: selectedBank?.id!,
+        bankCode: Number(selectedBank.code),
+        bankId: selectedBank.id,
       },
     });
   };

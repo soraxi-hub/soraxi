@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,13 +46,12 @@ import {
   EyeOff,
   Trash2,
   Store,
-  DollarSign,
   Search,
   Filter,
 } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import Image from "next/image";
 
 /**
@@ -101,24 +100,26 @@ export function ProductModeration() {
     })
   );
 
-  const mutation = trpc.admin.action.mutationOptions({
-    onSuccess: (data) => {
-      toast.success(data.message);
-      refetch(); // refresh products
-      setSelectedProduct(null);
-      setShowProductDetails(false);
-    },
-    onError: (error) => {
-      toast.error(error.message || "Action failed");
-    },
-  });
+  const mutation = useMutation(
+    trpc.admin.action.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.message);
+        refetch(); // refresh products
+        setSelectedProduct(null);
+        setShowProductDetails(false);
+      },
+      onError: (error) => {
+        toast.error(error.message || "Action failed");
+      },
+    })
+  );
 
   const handleProductAction = (
     productId: string,
     action: "approve" | "reject" | "unpublish" | "delete",
-    reason: string
+    reason?: string
   ) => {
-    mutation.onMutate({ productId, action, reason });
+    mutation.mutate({ productId, action, reason });
   };
 
   const getStatusBadge = (status: string) => {

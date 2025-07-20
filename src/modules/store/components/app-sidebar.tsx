@@ -146,9 +146,9 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
   const router = useRouter();
   const handleLogout = async () => {
     try {
-      const response = await axios.post("/api/auth/sign-out");
+      const response = await axios.post("/api/store/logout");
       if (response.status === 200) {
-        router.push("/sign-in");
+        router.push("/login");
         router.refresh();
         toast.success("Logged out successfully");
         return;
@@ -162,8 +162,8 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
     <Sidebar
       variant={`inset`}
       collapsible={`offcanvas`}
-      className="absolute top-[4rem]"
-      //   className="absolute top-[7rem] h-[calc(100vh-7rem)]"
+      // className="absolute top-[4rem]"
+      className="fixed top-[4rem] h-[calc(100vh-4rem)]"
     >
       <SidebarHeader>
         <SidebarMenu>

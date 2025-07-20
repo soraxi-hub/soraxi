@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import {
   Search,
   Filter,
-  Download,
+  // Download,
   Eye,
   MoreHorizontal,
   Package,
@@ -471,24 +471,24 @@ export default function StoreOrdersManagement({
    *
    * Initiates the export process for filtered orders with user feedback.
    */
-  const handleExportOrders = async () => {
-    try {
-      // toast({
-      //   title: "Export Started",
-      //   description: "Your order export is being prepared...",
-      // })
+  // const handleExportOrders = async () => {
+  //   try {
+  //     // toast({
+  //     //   title: "Export Started",
+  //     //   description: "Your order export is being prepared...",
+  //     // })
 
-      // TODO: Implement actual export functionality
-      // This would typically call an export API endpoint
-      console.log("Exporting orders with current filters...");
-    } catch (err) {
-      // toast({
-      //   title: "Export Failed",
-      //   description: "Failed to export orders. Please try again.",
-      //   variant: "destructive",
-      // })
-    }
-  };
+  //     // TODO: Implement actual export functionality
+  //     // This would typically call an export API endpoint
+  //     console.log("Exporting orders with current filters...");
+  //   } catch (err) {
+  //     // toast({
+  //     //   title: "Export Failed",
+  //     //   description: "Failed to export orders. Please try again.",
+  //     //   variant: "destructive",
+  //     // })
+  //   }
+  // };
 
   // ==================== Render Functions ====================
 
@@ -602,10 +602,10 @@ export default function StoreOrdersManagement({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExportOrders}>
+          {/* <Button variant="outline" onClick={handleExportOrders}>
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
+          </Button> */}
 
           <Button variant="outline" onClick={() => fetchOrders(currentPage)}>
             <RefreshCw className="h-4 w-4 mr-2" />

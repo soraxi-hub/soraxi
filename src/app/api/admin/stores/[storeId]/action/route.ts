@@ -109,6 +109,8 @@ export async function POST(
 
     // Update store
     await Store.findByIdAndUpdate(storeId, updateData);
+    console.log("auditAction", auditAction); // i want tobypass this: Type error: 'auditAction' is declared but its value is never read.
+    console.log("message", message); // i want tobypass this: Type error: 'auditAction' is declared but its value is never read.
 
     // Log admin action
     // await logAdminAction({

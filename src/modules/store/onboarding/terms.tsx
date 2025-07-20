@@ -16,7 +16,7 @@ export default function TermsPage({ storeId }: { storeId: string }) {
 
   useEffect(() => {
     // Set current step when component mounts
-    setCurrentStep(4);
+    setCurrentStep(3);
   }, [setCurrentStep]);
 
   /**

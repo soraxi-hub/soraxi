@@ -26,6 +26,8 @@ export async function middleware(request: NextRequest) {
     "/partner-with-udua",
     "/admin-sign-in",
     "/products/:path*",
+    "/forgot-password",
+    "/reset-password",
   ];
 
   const isPublicPath = publicPaths.some((path) => {
@@ -52,6 +54,11 @@ export async function middleware(request: NextRequest) {
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
+  }
+
+  if (storeToken && pathname === "/login") {
+    // If your token payload includes storeId, extract and redirect dynamically
+    return NextResponse.redirect(new URL(`/`, request.url));
   }
 
   /**
@@ -130,31 +137,6 @@ export const config = {
   matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
   //   runtime: "nodejs",
 };
-
-// const storePaths = ["/dashboard"];
-
-/**
- * Checks if a given path corresponds to a valid store-related route.
- *
- * The function supports two types of matching:
- * 1. Direct match against a known store path (e.g., "/my-store").
- * 2. Match paths that start with "/store/" and end with a known store path
- *    (e.g., "/store/my-store" should match "/my-store").
- *
- * @param path - The URL path to evaluate.
- * @returns A boolean indicating whether the path is a recognized store route.
- */
-// const isStorePath = (path: string) => {
-//   return storePaths.some((storePath) => {
-//     // If the path begins with "/store/", check if it ends with a valid store path
-//     if (path.startsWith("/store/")) {
-//       return path.endsWith(storePath);
-//     }
-
-//     // Otherwise, check for an exact match
-//     return storePath === path;
-//   });
-// };
 
 /**
  * Checks if a given path matches a dynamic store route that includes a valid MongoDB ObjectId.

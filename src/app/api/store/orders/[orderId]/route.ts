@@ -26,225 +26,225 @@ import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
  * @param params - Route parameters containing orderId
  * @returns JSON response with complete order details
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
-) {
-  try {
-    // ==================== Authentication & Authorization ====================
+// export async function GET(
+//   request: NextRequest,
+//   { params }: { params: Promise<{ orderId: string }> }
+// ) {
+//   try {
+//     // ==================== Authentication & Authorization ====================
 
-    /**
-     * Store Session Validation
-     *
-     * Ensures that only authenticated store owners can access order details.
-     * Prevents unauthorized access to sensitive order information.
-     */
-    const storeSession = await getStoreFromCookie();
+//     /**
+//      * Store Session Validation
+//      *
+//      * Ensures that only authenticated store owners can access order details.
+//      * Prevents unauthorized access to sensitive order information.
+//      */
+//     const storeSession = await getStoreFromCookie();
 
-    if (!storeSession?.id) {
-      console.warn("Unauthorized order detail access attempt");
-      return NextResponse.json(
-        {
-          error: "Unauthorized access",
-          message: "Store authentication required to access order details",
-        },
-        { status: 401 }
-      );
-    }
+//     if (!storeSession?.id) {
+//       console.warn("Unauthorized order detail access attempt");
+//       return NextResponse.json(
+//         {
+//           error: "Unauthorized access",
+//           message: "Store authentication required to access order details",
+//         },
+//         { status: 401 }
+//       );
+//     }
 
-    // ==================== Parameter Validation ====================
+//     // ==================== Parameter Validation ====================
 
-    /**
-     * Order ID Validation
-     *
-     * Validates the order ID parameter to ensure it's a valid MongoDB ObjectId
-     * before attempting database queries.
-     */
-    const { orderId } = await params;
+//     /**
+//      * Order ID Validation
+//      *
+//      * Validates the order ID parameter to ensure it's a valid MongoDB ObjectId
+//      * before attempting database queries.
+//      */
+//     const { orderId } = await params;
 
-    if (!orderId || typeof orderId !== "string") {
-      return NextResponse.json(
-        {
-          error: "Invalid request",
-          message: "Order ID is required",
-        },
-        { status: 400 }
-      );
-    }
+//     if (!orderId || typeof orderId !== "string") {
+//       return NextResponse.json(
+//         {
+//           error: "Invalid request",
+//           message: "Order ID is required",
+//         },
+//         { status: 400 }
+//       );
+//     }
 
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      return NextResponse.json(
-        {
-          error: "Invalid order ID",
-          message: "Please provide a valid order ID",
-        },
-        { status: 400 }
-      );
-    }
+//     if (!mongoose.Types.ObjectId.isValid(orderId)) {
+//       return NextResponse.json(
+//         {
+//           error: "Invalid order ID",
+//           message: "Please provide a valid order ID",
+//         },
+//         { status: 400 }
+//       );
+//     }
 
-    // ==================== Database Query ====================
+//     // ==================== Database Query ====================
 
-    /**
-     * Fetch Order with Complete Population
-     *
-     * Retrieves the order with all related documents populated including:
-     * - User information (customer details)
-     * - Product information (names, images, pricing)
-     * - Store information (for sub-orders)
-     * - Complete sub-order details with escrow and shipping info
-     */
-    const order = await getOrderById(orderId, true);
+//     /**
+//      * Fetch Order with Complete Population
+//      *
+//      * Retrieves the order with all related documents populated including:
+//      * - User information (customer details)
+//      * - Product information (names, images, pricing)
+//      * - Store information (for sub-orders)
+//      * - Complete sub-order details with escrow and shipping info
+//      */
+//     const order = await getOrderById(orderId, true);
 
-    if (!order) {
-      console.warn(`Order not found: ${orderId}`);
-      return NextResponse.json(
-        {
-          error: "Order not found",
-          message: "The requested order could not be found",
-        },
-        { status: 404 }
-      );
-    }
+//     if (!order) {
+//       console.warn(`Order not found: ${orderId}`);
+//       return NextResponse.json(
+//         {
+//           error: "Order not found",
+//           message: "The requested order could not be found",
+//         },
+//         { status: 404 }
+//       );
+//     }
 
-    // ==================== Authorization Check ====================
+//     // ==================== Authorization Check ====================
 
-    /**
-     * Store Ownership Verification
-     *
-     * Ensures that the authenticated store owns this order by checking
-     * if the store ID is included in the order's stores array.
-     */
-    const storeOwnsOrder = order.stores.some(
-      (storeId) => storeId.toString() === storeSession.id
-    );
+//     /**
+//      * Store Ownership Verification
+//      *
+//      * Ensures that the authenticated store owns this order by checking
+//      * if the store ID is included in the order's stores array.
+//      */
+//     const storeOwnsOrder = order.stores.some(
+//       (storeId) => storeId.toString() === storeSession.id
+//     );
 
-    if (!storeOwnsOrder) {
-      console.warn(
-        `Unauthorized order access attempt: Store ${storeSession.id} tried to access order ${orderId}`
-      );
-      return NextResponse.json(
-        {
-          error: "Access denied",
-          message: "You don't have permission to access this order",
-        },
-        { status: 403 }
-      );
-    }
+//     if (!storeOwnsOrder) {
+//       console.warn(
+//         `Unauthorized order access attempt: Store ${storeSession.id} tried to access order ${orderId}`
+//       );
+//       return NextResponse.json(
+//         {
+//           error: "Access denied",
+//           message: "You don't have permission to access this order",
+//         },
+//         { status: 403 }
+//       );
+//     }
 
-    // ==================== Data Formatting ====================
+//     // ==================== Data Formatting ====================
 
-    /**
-     * Format Order Data for Client
-     *
-     * Transforms the raw MongoDB document into a properly formatted
-     * object suitable for client consumption with type safety.
-     */
-    const formattedOrder = {
-      _id: order._id.toString(),
-      user: {
-        _id: order.user._id?.toString() || "",
-        name:
-          `${order.user.firstName} ${order.user.lastName}` ||
-          "Unknown Customer",
-        email: order.user.email || "",
-        phone: order.user.phoneNumber || null,
-      },
-      totalAmount: order.totalAmount,
-      paymentStatus: order.paymentStatus || "Unknown",
-      paymentMethod: order.paymentMethod || "Unknown",
-      shippingAddress: {
-        postalCode: order.shippingAddress?.postalCode || "",
-        address: order.shippingAddress?.address || "",
-      },
-      notes: order.notes || null,
-      discount: order.discount || 0,
-      taxAmount: order.taxAmount || 0,
-      createdAt: order.createdAt.toISOString(),
-      updatedAt: order.updatedAt.toISOString(),
-      subOrders: order.subOrders.map((subOrder) => ({
-        _id: subOrder._id?.toString() || "",
-        store: subOrder.store._id?.toString() || "",
-        products: subOrder.products.map((product) => ({
-          Product: {
-            _id: product.Product._id?.toString() || "",
-            name: product.Product.name || "Unknown Product",
-            images: product.Product.images || [],
-            price: product.Product.price || 0,
-            productType: product.Product.productType || "Product",
-            category: product.Product.category || [],
-            subCategory: product.Product.subCategory || [],
-          },
-          quantity: product.quantity,
-          price: product.price,
-          selectedSize: product.selectedSize || null,
-        })),
-        totalAmount: subOrder.totalAmount,
-        deliveryStatus: subOrder.deliveryStatus,
-        shippingMethod: subOrder.shippingMethod || null,
-        trackingNumber: subOrder.trackingNumber || null,
-        deliveryDate: subOrder.deliveryDate?.toISOString() || null,
-        escrow: {
-          held: subOrder.escrow?.held || false,
-          released: subOrder.escrow?.released || false,
-          releasedAt: subOrder.escrow?.releasedAt?.toISOString() || null,
-          refunded: subOrder.escrow?.refunded || false,
-          refundReason: subOrder.escrow?.refundReason || null,
-        },
-        returnWindow: subOrder.returnWindow?.toISOString() || null,
-      })),
-    };
+//     /**
+//      * Format Order Data for Client
+//      *
+//      * Transforms the raw MongoDB document into a properly formatted
+//      * object suitable for client consumption with type safety.
+//      */
+//     const formattedOrder = {
+//       _id: order._id.toString(),
+//       user: {
+//         _id: order.user._id?.toString() || "",
+//         name:
+//           `${order.user.firstName} ${order.user.lastName}` ||
+//           "Unknown Customer",
+//         email: order.user.email || "",
+//         phone: order.user.phoneNumber || null,
+//       },
+//       totalAmount: order.totalAmount,
+//       paymentStatus: order.paymentStatus || "Unknown",
+//       paymentMethod: order.paymentMethod || "Unknown",
+//       shippingAddress: {
+//         postalCode: order.shippingAddress?.postalCode || "",
+//         address: order.shippingAddress?.address || "",
+//       },
+//       notes: order.notes || null,
+//       discount: order.discount || 0,
+//       taxAmount: order.taxAmount || 0,
+//       createdAt: order.createdAt.toISOString(),
+//       updatedAt: order.updatedAt.toISOString(),
+//       subOrders: order.subOrders.map((subOrder) => ({
+//         _id: subOrder._id?.toString() || "",
+//         store: subOrder.store._id?.toString() || "",
+//         products: subOrder.products.map((product) => ({
+//           Product: {
+//             _id: product.Product._id?.toString() || "",
+//             name: product.Product.name || "Unknown Product",
+//             images: product.Product.images || [],
+//             price: product.Product.price || 0,
+//             productType: product.Product.productType || "Product",
+//             category: product.Product.category || [],
+//             subCategory: product.Product.subCategory || [],
+//           },
+//           quantity: product.quantity,
+//           price: product.price,
+//           selectedSize: product.selectedSize || null,
+//         })),
+//         totalAmount: subOrder.totalAmount,
+//         deliveryStatus: subOrder.deliveryStatus,
+//         shippingMethod: subOrder.shippingMethod || null,
+//         trackingNumber: subOrder.trackingNumber || null,
+//         deliveryDate: subOrder.deliveryDate?.toISOString() || null,
+//         escrow: {
+//           held: subOrder.escrow?.held || false,
+//           released: subOrder.escrow?.released || false,
+//           releasedAt: subOrder.escrow?.releasedAt?.toISOString() || null,
+//           refunded: subOrder.escrow?.refunded || false,
+//           refundReason: subOrder.escrow?.refundReason || null,
+//         },
+//         returnWindow: subOrder.returnWindow?.toISOString() || null,
+//       })),
+//     };
 
-    // Log successful order retrieval for monitoring
-    console.log(
-      `Store ${storeSession.storeId} successfully retrieved order ${orderId}`
-    );
+//     // Log successful order retrieval for monitoring
+//     console.log(
+//       `Store ${storeSession.storeId} successfully retrieved order ${orderId}`
+//     );
 
-    return NextResponse.json({
-      success: true,
-      order: formattedOrder,
-    });
-  } catch (error) {
-    // ==================== Error Handling ====================
+//     return NextResponse.json({
+//       success: true,
+//       order: formattedOrder,
+//     });
+//   } catch (error) {
+//     // ==================== Error Handling ====================
 
-    /**
-     * Comprehensive Error Handling
-     *
-     * Logs errors for debugging while providing user-friendly error messages.
-     * Includes specific handling for common error types.
-     */
-    console.error("Store order detail fetch error:", error);
+//     /**
+//      * Comprehensive Error Handling
+//      *
+//      * Logs errors for debugging while providing user-friendly error messages.
+//      * Includes specific handling for common error types.
+//      */
+//     console.error("Store order detail fetch error:", error);
 
-    // Handle specific error types
-    if (error instanceof mongoose.Error.ValidationError) {
-      return NextResponse.json(
-        {
-          error: "Invalid request data",
-          message: "The request contains invalid data",
-        },
-        { status: 400 }
-      );
-    }
+//     // Handle specific error types
+//     if (error instanceof mongoose.Error.ValidationError) {
+//       return NextResponse.json(
+//         {
+//           error: "Invalid request data",
+//           message: "The request contains invalid data",
+//         },
+//         { status: 400 }
+//       );
+//     }
 
-    if (error instanceof mongoose.Error.CastError) {
-      return NextResponse.json(
-        {
-          error: "Invalid order ID format",
-          message: "Please provide a valid order ID",
-        },
-        { status: 400 }
-      );
-    }
+//     if (error instanceof mongoose.Error.CastError) {
+//       return NextResponse.json(
+//         {
+//           error: "Invalid order ID format",
+//           message: "Please provide a valid order ID",
+//         },
+//         { status: 400 }
+//       );
+//     }
 
-    // Generic error response
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: "Failed to fetch order details. Please try again later.",
-      },
-      { status: 500 }
-    );
-  }
-}
+//     // Generic error response
+//     return NextResponse.json(
+//       {
+//         error: "Internal server error",
+//         message: "Failed to fetch order details. Please try again later.",
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 /**
  * Update Order Information Handler (PATCH)

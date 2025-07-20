@@ -286,6 +286,7 @@ export function CartPageClient({
    * @param productId - Product identifier
    */
   const handleMoveToWishlist = (productId: string) => {
+    console.log("Moved to wishlist (feature coming soon)", productId);
     toast.success("Moved to wishlist (feature coming soon)");
     // Future implementation:
     // 1. Add to wishlist

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 // import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -12,11 +11,9 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { siteConfig } from "@/config/site";
 
-// Import components
 import StoreCartGroup from "@/modules/checkout/store-cart-group";
 import OrderSummary from "@/modules/checkout/order-summary";
 
-// Import types
 import type { ShippingMethod } from "@/types/index";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
@@ -58,7 +55,6 @@ interface CheckoutPageClientProps {
  * @param initialState - Pre-loaded checkout data from server
  */
 export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
-  const router = useRouter();
   const trpc = useTRPC();
 
   // Initialize state with server-provided data
@@ -422,7 +418,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
             <div key={group.storeID} data-store-id={group.storeID}>
               <StoreCartGroup
                 storeGroup={group}
-                onShippingMethodChange={(method) =>
+                onShippingMethodChangeAction={(method) =>
                   handleShippingMethodChange(group.storeID, method)
                 }
                 selectedShippingMethod={selectedShippingMethods[group.storeID]}

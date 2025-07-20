@@ -36,9 +36,9 @@ export async function POST(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    let updateData: any = {};
-    let auditAction = "";
-    let message = "";
+    const updateData: any = {};
+    const auditAction = "";
+    const message = "";
 
     // switch (action) {
     //   case "approve":

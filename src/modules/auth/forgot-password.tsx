@@ -52,7 +52,7 @@ const ForgotPassword = () => {
 
   if (ref === "user") {
     return (
-      <main className="min-h-screen flex flex-row justify-center items-center bg-udua-blue-primary/10">
+      <main className="bg-white dark:bg-[#1D1D1D] text-gray-900 dark:text-gray-100 min-h-screen flex flex-row justify-center items-center">
         <section className="max-w-3xl mx-auto my-5 px-6">
           {!message ? (
             <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md dark:bg-gray-800">
@@ -77,23 +77,25 @@ const ForgotPassword = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-8 ">
                   <input
-                    className="block w-full px-4 py-2 mt-2 dark:text-slate-200 text-black placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 focus:ring-udua-blue-primary! focus:outline-hidden! focus:ring-1! focus:ring-opacity-90! border-udua-blue-primary focus:border-transparent"
-                    aria-label="email"
+                    className="block w-full px-4 py-2 mt-2 text-black dark:text-white placeholder-gray-500 bg-white dark:bg-[#2d2d2d] border rounded-lg border-gray-300 dark:border-gray-600 focus:ring-soraxi-green focus:border-sorbg-soraxi-green"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
                   />
+
                   <Button
                     type="submit"
-                    className="items-end w-full bg-udua-blue-primary/80 hover:bg-udua-blue-primary"
+                    className="w-full bg-soraxi-green text-white hover:bg-soraxi-green-hover focus:ring-2 focus:ring-offset-2 focus:ring-soraxi-green"
                   >
                     {!isLoading && "Send Reset Link"}
                     {isLoading && (
-                      <Loader className=" animate-spin w-5 h-5 mr-4" />
-                    )}{" "}
-                    {isLoading && "Please wait..."}
+                      <>
+                        <Loader className="animate-spin w-5 h-5 mr-4 text-white" />
+                        Please wait...
+                      </>
+                    )}
                   </Button>
                 </form>
               </div>
@@ -117,7 +119,7 @@ const ForgotPassword = () => {
 
   if (ref === "store") {
     return (
-      <main className="min-h-screen flex flex-row justify-center items-center bg-udua-blue-primary/10">
+      <main className="bg-white dark:bg-[#1D1D1D] text-gray-900 dark:text-gray-100 min-h-screen flex flex-row justify-center items-center">
         <section className="max-w-3xl mx-auto my-5 px-6">
           {!message ? (
             <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md dark:bg-gray-800">
@@ -142,23 +144,25 @@ const ForgotPassword = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-8 ">
                   <input
-                    className="block w-full px-4 py-2 mt-2 dark:text-slate-200 text-black placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 focus:ring-udua-blue-primary! focus:outline-hidden! focus:ring-1! focus:ring-opacity-90! border-udua-blue-primary focus:border-transparent"
-                    aria-label="email"
+                    className="block w-full px-4 py-2 mt-2 text-black dark:text-white placeholder-gray-500 bg-white dark:bg-[#2d2d2d] border rounded-lg border-gray-300 dark:border-gray-600 focus:ring-soraxi-green focus:border-sorbg-soraxi-green"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
                   />
+
                   <Button
                     type="submit"
-                    className="items-end w-full bg-udua-blue-primary/80 hover:bg-udua-blue-primary"
+                    className="w-full bg-soraxi-green text-white hover:bg-soraxi-green-hover focus:ring-2 focus:ring-offset-2 focus:ring-soraxi-green"
                   >
                     {!isLoading && "Send Reset Link"}
                     {isLoading && (
-                      <Loader className=" animate-spin w-5 h-5 mr-4" />
-                    )}{" "}
-                    {isLoading && "Please wait..."}
+                      <>
+                        <Loader className="animate-spin w-5 h-5 mr-4 text-white" />
+                        Please wait...
+                      </>
+                    )}
                   </Button>
                 </form>
               </div>

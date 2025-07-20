@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
 import { type IStore, type IShippingMethod } from "@/lib/db/models/store.model";
+import {
+  generateAdminNotificationHtml,
+  generateStoreOwnerConfirmationHtml,
+  sendMail,
+} from "@/services/mail.service";
 
 // ----------- Types for incoming request -----------
 
@@ -208,8 +213,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Send notification email to admins about new store submission
-    // TODO: Send confirmation email to store owner
+    // Send notification email to admins about new store submission
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL!;
+    const storeEmail = store.storeEmail;
+
+    // Admin notification
+    await sendMail({
+      email: adminEmail,
+      emailType: "storeOrderNotification",
+      subject: `New Store Submission: ${updatedStore.name}`,
+      html: generateAdminNotificationHtml({
+        storeName: updatedStore.name,
+        ownerEmail: storeEmail,
+        submittedAt: updatedStore.agreedToTermsAt || new Date(),
+      }),
+    });
+
+    // Send confirmation email to store owner
+    await sendMail({
+      email: storeEmail,
+      emailType: "orderConfirmation",
+      subject: `Your store "${updatedStore.name}" was submitted for review`,
+      html: generateStoreOwnerConfirmationHtml(updatedStore.name, storeEmail),
+    });
 
     // Return success response with summary
     return NextResponse.json({

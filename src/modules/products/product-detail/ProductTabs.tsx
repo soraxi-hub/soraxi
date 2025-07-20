@@ -41,8 +41,8 @@ const placeholderReviews = [
 export function ProductTabs({
   description,
   specifications,
-  productId,
-}: ProductTabsProps) {
+}: // productId,
+ProductTabsProps) {
   const renderRichText = (content: string) => {
     return (
       <div

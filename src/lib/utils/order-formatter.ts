@@ -3,6 +3,7 @@ import type {
   FormattedOrder,
   PopulatedProduct,
   PopulatedStore,
+  PopulatedUser,
 } from "@/types/order";
 
 /**
@@ -45,6 +46,28 @@ function isPopulatedProduct(product: any): product is PopulatedProduct {
     typeof product === "object" &&
     "name" in product &&
     "price" in product
+  );
+}
+
+/**
+ * Type Guard: Checks if a user field is populated
+ *
+ * This function verifies whether the `user` field is a populated user object
+ * rather than just a MongoDB ObjectId. It helps ensure that fields like
+ * `firstName`, `lastName`, and `email` are available before accessing them.
+ *
+ * Usage:
+ *   if (isPopulatedUser(order.user)) {
+ *     // Safe to access user.firstName, etc.
+ *   }
+ */
+export function isPopulatedUser(user: any): user is PopulatedUser {
+  return (
+    user &&
+    typeof user === "object" &&
+    "firstName" in user &&
+    "lastName" in user &&
+    "email" in user
   );
 }
 
@@ -122,8 +145,8 @@ export function formatOrderDocument(
       deliveryStatus:
         subOrder.deliveryStatus as FormattedOrder["subOrders"][0]["deliveryStatus"],
       shippingMethod: subOrder.shippingMethod,
-      trackingNumber: subOrder.trackingNumber,
       deliveryDate: subOrder.deliveryDate,
+      customerConfirmedDelivery: subOrder.customerConfirmedDelivery,
       escrow: subOrder.escrow,
       returnWindow: subOrder.returnWindow,
     };
@@ -144,8 +167,6 @@ export function formatOrderDocument(
     paymentMethod: rawOrder.paymentMethod,
     shippingAddress: rawOrder.shippingAddress,
     notes: rawOrder.notes,
-    discount: rawOrder.discount,
-    taxAmount: rawOrder.taxAmount,
     createdAt: rawOrder.createdAt,
     updatedAt: rawOrder.updatedAt,
     subOrders: formattedSubOrders,
@@ -174,4 +195,100 @@ export function formatOrderDocuments(
       );
     }
   });
+}
+
+export function formatStoreOrderDocument(
+  rawOrder: RawOrderDocument,
+  storeId: string
+): FormattedOrder {
+  const storeSubOrders = rawOrder.subOrders.filter(
+    (subOrder) => subOrder.store?._id?.toString() === storeId
+  );
+
+  if (storeSubOrders.length === 0) {
+    throw new Error(
+      `Order ${rawOrder._id} has no sub-orders for store ${storeId}`
+    );
+  }
+
+  const formattedSubOrders = storeSubOrders.map((subOrder, index) => {
+    if (!isPopulatedStore(subOrder.store)) {
+      throw new Error(
+        `Sub-order ${index} in order ${rawOrder._id} has unpopulated store`
+      );
+    }
+
+    const formattedProducts = subOrder.products.map(
+      (productItem, productIndex) => {
+        if (!isPopulatedProduct(productItem.Product)) {
+          throw new Error(
+            `Product ${productIndex} in sub-order ${index} of order ${rawOrder._id} has unpopulated Product`
+          );
+        }
+
+        return {
+          _id: productItem._id.toString(),
+          Product: {
+            _id: productItem.Product._id,
+            name: productItem.Product.name,
+            images: productItem.Product.images,
+            price: productItem.Product.price,
+            productType: productItem.Product.productType,
+            storeID: productItem.Product.storeID,
+          },
+          store: productItem.store.toString(),
+          quantity: productItem.quantity,
+          price: productItem.price,
+          selectedSize: productItem.selectedSize,
+        };
+      }
+    );
+
+    return {
+      _id: subOrder._id?.toString() || "",
+      store: {
+        _id: subOrder.store._id,
+        name: subOrder.store.name,
+        storeEmail: subOrder.store.storeEmail,
+        logoUrl: subOrder.store.logoUrl,
+      },
+      products: formattedProducts,
+      totalAmount: subOrder.totalAmount,
+      deliveryStatus:
+        subOrder.deliveryStatus as FormattedOrder["subOrders"][0]["deliveryStatus"],
+      shippingMethod: subOrder.shippingMethod,
+      deliveryDate: subOrder.deliveryDate,
+      customerConfirmedDelivery: subOrder.customerConfirmedDelivery,
+      escrow: subOrder.escrow,
+      returnWindow: subOrder.returnWindow,
+    };
+  });
+
+  // ✅ Validate populated user
+  if (!isPopulatedUser(rawOrder.user)) {
+    throw new Error(`Order ${rawOrder._id} has unpopulated user`);
+  }
+
+  // ✅ Handle populated user safely
+  const user = {
+    _id: rawOrder.user._id.toString(),
+    firstName: rawOrder.user.firstName,
+    lastName: rawOrder.user.lastName,
+    email: rawOrder.user.email,
+    phoneNumber: rawOrder.user.phoneNumber || "unknown",
+  };
+
+  return {
+    _id: rawOrder._id.toString(),
+    user,
+    stores: [storeId],
+    totalAmount: formattedSubOrders.reduce((sum, s) => sum + s.totalAmount, 0),
+    paymentStatus: rawOrder.paymentStatus,
+    paymentMethod: rawOrder.paymentMethod,
+    shippingAddress: rawOrder.shippingAddress,
+    notes: rawOrder.notes,
+    createdAt: rawOrder.createdAt,
+    updatedAt: rawOrder.updatedAt,
+    subOrders: formattedSubOrders,
+  };
 }

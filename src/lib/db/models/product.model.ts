@@ -1,7 +1,7 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import slugify from "slugify";
-import currency from "currency.js";
+import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Interface for Product document
@@ -56,8 +56,8 @@ const ProductSchema = new Schema<IProduct>(
       required: function () {
         return !this.sizes || this.sizes.length === 0;
       },
-      set: (price: number) => Math.round(currency(price).multiply(100).value),
-      get: (price: number) => currency(price / 100).value,
+      set: (price: number) => nairaToKobo(price),
+      get: (price: number) => koboToNaira(price),
     },
     sizes: [
       {

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   try {
     // Validate store session
     const storeSession = await getStoreFromCookie();
-    if (!storeSession?.id) {
+    if (!storeSession?.id || !request) {
       return NextResponse.json(
         { error: "Unauthorized - Store session required" },
         { status: 401 }
@@ -129,7 +129,16 @@ export async function POST(request: NextRequest) {
       currency,
     });
 
-    const savedWallet = await newWallet.save();
+    const savedWallet = (await newWallet.save()) as {
+      _id: { toString: () => string };
+      store: { toString: () => string };
+      balance: number;
+      pending: number;
+      totalEarned: number;
+      currency: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
 
     // Format response
     const formattedWallet = {

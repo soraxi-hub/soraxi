@@ -30,8 +30,8 @@ export default async function RootLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <StoreSidebar store={store} />
-      <SidebarTrigger />
       <SidebarInset>
+        <SidebarTrigger className="fixed top-[5rem]" />
         <main>{children}</main>
       </SidebarInset>
     </SidebarProvider>

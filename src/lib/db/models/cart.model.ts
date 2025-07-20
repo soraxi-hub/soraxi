@@ -148,13 +148,13 @@ export async function addItemToCart(
   await connectToDatabase();
   const Cart = await getCartModel();
 
-  const query = {
-    user: userId,
-    "items.product": newItem.product,
-    ...(newItem.selectedSize?.size && {
-      "items.selectedSize.size": newItem.selectedSize.size,
-    }),
-  };
+  // const query = {
+  //   user: userId,
+  //   "items.product": newItem.product,
+  //   ...(newItem.selectedSize?.size && {
+  //     "items.selectedSize.size": newItem.selectedSize.size,
+  //   }),
+  // };
 
   const existingCart = await Cart.findOne<ICart>({ user: userId });
 

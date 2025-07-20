@@ -27,11 +27,11 @@ export interface ISubOrder {
   shippingMethod?: {
     name: string;
     price: number;
-    estimatedDeliveryDays?: string;
+    estimatedDeliveryDays?: string; // Estimated number of days for delivery after order placement (e.g., "3-5 days")
     description?: string;
   };
-  trackingNumber?: string;
-  deliveryDate?: Date;
+  // trackingNumber?: string; // For the start and our MVP, we don't need it
+  deliveryDate?: Date; // The date the product was delivered
   deliveryStatus:
     | "Order Placed"
     | "Processing"
@@ -42,12 +42,18 @@ export interface ISubOrder {
     | "Returned"
     | "Failed Delivery"
     | "Refunded";
+  customerConfirmedDelivery: {
+    confirmed: boolean; // true if customer manually confirmed delivery
+    confirmedAt?: Date; // when the customer confirmed
+    autoConfirmed: boolean; // true if system auto-confirmed
+  };
+
   escrow: {
-    held: Boolean; // money is currently in escrow
-    released: Boolean; // money has been paid to seller
+    held: boolean; // money is currently in escrow
+    released: boolean; // money has been paid to seller
     releasedAt: Date; // when escrow was released
-    refunded: Boolean; // for returned or refunded orders
-    refundReason: String; // optional reason
+    refunded: boolean; // for returned or refunded orders
+    refundReason: string; // optional reason
   };
   returnWindow: Date; // to track deadline for returns before releasing escrow
 }
@@ -112,7 +118,7 @@ const SubOrderSchema = new Schema<ISubOrder>({
     estimatedDeliveryDays: { type: String },
     description: { type: String },
   },
-  trackingNumber: { type: String },
+  // trackingNumber: { type: String }, // For the start and our MVP, we don't need it
   deliveryDate: { type: Date },
   deliveryStatus: {
     type: String,
@@ -128,6 +134,11 @@ const SubOrderSchema = new Schema<ISubOrder>({
       "Refunded",
     ],
     default: "Order Placed",
+  },
+  customerConfirmedDelivery: {
+    confirmed: { type: Boolean, default: false },
+    confirmedAt: { type: Date },
+    autoConfirmed: { type: Boolean, default: false },
   },
   escrow: {
     held: { type: Boolean, default: true }, // money is currently in escrow
@@ -196,7 +207,7 @@ export async function getOrderById(
   await connectToDatabase();
   const Order = await getOrderModel();
 
-  let query = Order.findById(id)
+  const query = Order.findById(id)
     .populate({
       path: "user",
       model: "User",

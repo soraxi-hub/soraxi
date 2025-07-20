@@ -28,7 +28,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 export default function StoreWalletPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showWithdrawal, setShowWithdrawal] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [walletBalance] = useState(0);
 
   /**
    * Handle successful withdrawal

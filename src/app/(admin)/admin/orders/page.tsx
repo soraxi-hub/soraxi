@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic";
+
 import { AdminLayout } from "@/modules/admin/AdminLayout";
 import { OrderMonitoring } from "@/modules/admin/orders/OrderMonitoring";
 

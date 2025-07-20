@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
-// import { useToast } from "@/hooks/use-toast"
 import { toast } from "sonner";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
@@ -62,7 +61,6 @@ type CreateStoreFormData = z.infer<typeof createStoreSchema>;
  */
 export default function CreateStorePage() {
   const router = useRouter();
-  // const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -129,23 +127,12 @@ export default function CreateStorePage() {
 
       // Success - show toast and redirect to onboarding
       toast.success(`Let's set up your store profile to get started.`);
-      // toast({
-      //   title: "Store Created Successfully!",
-      //   description: "Let's set up your store profile to get started.",
-      // })
 
       // Redirect to onboarding with the new store ID
-      router.push(
-        `/dashboard/store/onboarding/profile?storeId=${result.store.id}`
-      );
+      router.push(`/store/onboarding/${result.store.id}/profile`);
     } catch (error) {
       console.error("Store creation error:", error);
       toast.error(`Failed to create store. Please try again.`);
-      // toast({
-      //   title: "Creation Failed",
-      //   description: error instanceof Error ? error.message : "Failed to create store. Please try again.",
-      //   variant: "destructive",
-      // })
     } finally {
       setIsLoading(false);
     }
@@ -328,11 +315,10 @@ export default function CreateStorePage() {
 
         {/* Additional Info */}
         <Alert>
-          <Store className="h-4 w-4" />
           <AlertDescription>
             After creating your store, you&apos;ll be guided through a setup
-            process to configure your store profile, business information,
-            shipping methods, and payment details.
+            process to configure your store profile, business information, and
+            shipping methods.
           </AlertDescription>
         </Alert>
 

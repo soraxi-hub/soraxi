@@ -187,20 +187,6 @@ export function StoreProductsManagement({
     );
   };
 
-  // const formatPrice = (price?: number, sizes?: any[]) => {
-  //   if (sizes && sizes.length > 0) {
-  //     const minPrice = Math.min(...sizes.map((s) => s.price));
-  //     const maxPrice = Math.max(...sizes.map((s) => s.price));
-  //     if (minPrice === maxPrice) {
-  //       return `₦${(minPrice / 100).toFixed(2)}`;
-  //     }
-  //     return `₦${(minPrice / 100).toFixed(2)} - ₦${(maxPrice / 100).toFixed(
-  //       2
-  //     )}`;
-  //   }
-  //   return price ? `₦${(price / 100).toFixed(2)}` : "N/A";
-  // };
-
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );

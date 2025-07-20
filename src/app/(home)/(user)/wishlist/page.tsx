@@ -1,3 +1,4 @@
+import { ErrorFallback } from "@/components/error-fallback";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { WishlistSkeleton } from "@/modules/skeletons/wishlist-skeleton";
 import { Wishlist } from "@/modules/user/wishlist";
@@ -14,7 +15,7 @@ async function Page() {
   prefetch(trpc.wishlist.getByUserId.queryOptions());
   return (
     <HydrateClient>
-      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+      <ErrorBoundary fallback={<ErrorFallback />}>
         <Suspense fallback={<WishlistSkeleton />}>
           <Wishlist />
         </Suspense>

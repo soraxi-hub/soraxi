@@ -59,7 +59,7 @@ const formSchema = z.object({
     .optional(),
 });
 
-export const MAX_METHODS = 3;
+export const MAX_METHODS = 1;
 
 export default function ShippingMethodForm() {
   const [regions, setRegions] = useState<string[]>([]);

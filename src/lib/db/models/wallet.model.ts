@@ -18,6 +18,7 @@ export interface IWallet extends Document {
  * Wallet Transaction Interface - represents a single wallet entry (credit or debit)
  */
 export interface IWalletTransaction extends Document {
+  _id: mongoose.Types.ObjectId;
   wallet: mongoose.Schema.Types.ObjectId;
   type: "credit" | "debit";
   amount: number;

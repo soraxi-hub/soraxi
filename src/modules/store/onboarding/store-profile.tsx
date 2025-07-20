@@ -30,7 +30,7 @@ export default function StoreProfilePage({ storeId }: { storeId: string }) {
   return (
     <OnboardingLayout
       title="Store Profile"
-      description="Let's start by setting up your store's basic information and branding"
+      description="Let's start by setting up your store's basic information."
       showBackButton={false}
     >
       <StoreProfileForm onNextAction={handleNext} />

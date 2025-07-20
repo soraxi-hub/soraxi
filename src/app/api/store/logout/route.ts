@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 /**
@@ -5,15 +6,13 @@ import { NextResponse } from "next/server";
  * This route can be called from any component to sign out the store.
  */
 export async function POST() {
-  const response = NextResponse.json({
+  const cookieStore = await cookies();
+
+  // Remove cookies
+  cookieStore.delete("store");
+
+  return NextResponse.json({
     success: true,
     message: "Store logged out successfully",
   });
-
-  response.cookies.set("store", "", {
-    httpOnly: true,
-    expires: new Date(0), // Immediately expire the cookie
-  });
-
-  return response;
 }

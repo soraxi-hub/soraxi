@@ -17,7 +17,13 @@ interface Store {
       logoUrl: string | undefined;
       bannerUrl: string | undefined;
     };
-    "business-info": {};
+    "business-info": {
+      businessName?: string;
+      registrationNumber?: string;
+      taxId?: string;
+      type: "individual" | "company";
+      documentUrls?: string[];
+    };
     shipping: IShippingMethod[];
     terms: Date | undefined;
   };
@@ -53,7 +59,7 @@ function OnboardingInitializer() {
 
         const { storeId, data, progress } = store;
 
-        console.log("store", store);
+        // console.log("store", store);
 
         if (storeId) setStoreId(storeId);
         if (data) initializeData(data);

@@ -99,7 +99,6 @@ export async function POST(request: NextRequest) {
       // Initialize empty arrays and default values
       followers: [],
       physicalProducts: [],
-      digitalProducts: [],
       shippingMethods: [],
       payoutAccounts: [],
       payoutHistory: [],

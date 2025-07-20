@@ -126,7 +126,9 @@ export const userRouter = createTRPCRouter({
           message: "User updated successfully",
           user: {
             ...updatedUser,
-            _id: (updatedUser._id as mongoose.Types.ObjectId).toString(),
+            _id: (
+              updatedUser._id as unknown as mongoose.Types.ObjectId
+            ).toString(),
           },
         };
       } catch (error: any) {

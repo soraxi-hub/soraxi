@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 export function CartHydration() {
   // Zustand store setter for updating cart state
   const setCart = useCartStore((s) => s.setCart);
+  const resetCart = useCartStore((s) => s.resetCart);
 
   // tRPC client instance for type-safe API calls
   const trpc = useTRPC();
@@ -130,6 +131,9 @@ export function CartHydration() {
         // Optional chaining for size to handle missing selectedSize
         size: item.selectedSize?.size,
       }));
+
+      // Reset the cart by making it empty to remove deleted products that may still be in the cart. The update the cart.
+      resetCart();
 
       // Update the Zustand store with transformed data
       setCart(items);

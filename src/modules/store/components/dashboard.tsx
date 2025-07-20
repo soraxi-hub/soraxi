@@ -56,7 +56,6 @@ export default function StoreDashboardPage({
     if (!onboarding.profileComplete) nextStep = "profile";
     else if (!onboarding.businessInfoComplete) nextStep = "business-info";
     else if (!onboarding.shippingComplete) nextStep = "shipping";
-    else if (!onboarding.payoutComplete) nextStep = "payout";
     else if (!onboarding.termsComplete) nextStep = "terms";
 
     router.push(`/store/onboarding/${store_id}/${nextStep}`);
