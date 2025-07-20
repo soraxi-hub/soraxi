@@ -40,11 +40,11 @@ function UserAvatar({ userName }: { userName?: string }) {
       <DropdownMenu>
         <DropdownMenuTrigger className="">
           {userName ? (
-            <span className="hover:bg-transparent hover:text-udua-orange-primary delay-75 transition-all ease-in-out">
+            <span className="hover:bg-transparent hover:text-soraxi-green delay-75 transition-all ease-in-out">
               {userName}
             </span>
           ) : (
-            <User2Icon className="hover:bg-transparent! hover:text-udua-orange-primary! delay-75! transition-all! ease-in-out!" />
+            <User2Icon className="hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!" />
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -53,17 +53,17 @@ function UserAvatar({ userName }: { userName?: string }) {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator className=" border" />
               <Link href={`/profile`}>
-                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-udua-orange-primary! delay-75! transition-all! ease-in-out! hover:font-semibold">
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
                   Profile
                 </DropdownMenuItem>
               </Link>
               <Link href={`/wishlist`}>
-                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-udua-orange-primary! delay-75! transition-all! ease-in-out! hover:font-semibold">
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
                   Wishlist
                 </DropdownMenuItem>
               </Link>
-              <Link href={`/order-history`}>
-                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-udua-orange-primary! delay-75! transition-all! ease-in-out! hover:font-semibold">
+              <Link href={`/orders`}>
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
                   Orders
                 </DropdownMenuItem>
               </Link>
@@ -72,7 +72,7 @@ function UserAvatar({ userName }: { userName?: string }) {
                 <Button
                   onClick={handleLogout}
                   variant={`ghost`}
-                  className="w-full dark:hover:bg-transparent dark:hover:text-udua-orange-primary font-semibold hover:bg-transparent hover:text-udua-orange-primary delay-75 transition-all ease-in-out h-5"
+                  className="w-full dark:hover:bg-transparent dark:hover:text-soraxi-green font-semibold hover:bg-transparent hover:text-soraxi-green delay-75 transition-all ease-in-out h-5"
                 >
                   Sign out
                 </Button>
@@ -82,9 +82,8 @@ function UserAvatar({ userName }: { userName?: string }) {
             <Link href={`/sign-in`}>
               <DropdownMenuLabel>
                 <Button
-                  onClick={handleLogout}
                   variant={`ghost`}
-                  className="w-full dark:hover:bg-transparent dark:hover:text-udua-orange-primary font-semibold hover:bg-transparent hover:text-udua-orange-primary delay-75 transition-all ease-in-out h-5"
+                  className="w-full dark:hover:bg-transparent dark:hover:text-soraxi-green font-semibold hover:bg-transparent hover:text-soraxi-green delay-75 transition-all ease-in-out h-5"
                 >
                   Sign In
                 </Button>

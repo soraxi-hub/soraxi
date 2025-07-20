@@ -20,12 +20,13 @@ import {
   Trash2,
   ArrowLeft,
   Truck,
-  MapPin,
+  // MapPin,
   Clock,
-  DollarSign,
+  // DollarSign,
 } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 import type { ShippingMethodData } from "@/types/onboarding";
+import { nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Shipping Methods Form Schema
@@ -57,7 +58,7 @@ const shippingMethodsFormSchema = z.object({
   shippingMethods: z
     .array(shippingMethodSchema)
     .min(1, "At least one shipping method is required")
-    .max(10, "Maximum 10 shipping methods allowed"),
+    .max(1, "Maximum 1 shipping method allowed"),
 });
 
 type ShippingMethodsFormData = z.infer<typeof shippingMethodsFormSchema>;
@@ -93,7 +94,7 @@ export function ShippingMethodsForm({
           : [
               {
                 name: "Standard Delivery",
-                price: 0,
+                price: 1000,
                 estimatedDeliveryDays: 3,
                 description: "Regular delivery within 3-5 business days",
                 applicableRegions: [],
@@ -146,7 +147,7 @@ export function ShippingMethodsForm({
     const shippingData: ShippingMethodData[] = data.shippingMethods.map(
       (method) => ({
         name: method.name,
-        price: method.price,
+        price: nairaToKobo(method.price),
         estimatedDeliveryDays: method.estimatedDeliveryDays,
         description: method.description || undefined,
         applicableRegions: method.applicableRegions?.filter(Boolean) || [],
@@ -195,8 +196,8 @@ export function ShippingMethodsForm({
                     <CardDescription>
                       {watchedMethods[index]?.price !== undefined && (
                         <span className="flex items-center space-x-1">
-                          <DollarSign className="w-3 h-3" />
-                          <span>${watchedMethods[index].price}</span>
+                          <span>₦</span>
+                          <span>{watchedMethods[index].price}</span>
                           {watchedMethods[index]?.estimatedDeliveryDays && (
                             <>
                               <span className="mx-1">•</span>
@@ -271,12 +272,12 @@ export function ShippingMethodsForm({
                       htmlFor={`price-${index}`}
                       className="text-sm font-medium"
                     >
-                      Shipping Price ($) *
+                      Shipping Price (₦)*
                     </Label>
                     <Input
                       id={`price-${index}`}
                       type="number"
-                      step="0.01"
+                      step="500"
                       min="0"
                       {...register(`shippingMethods.${index}.price`, {
                         valueAsNumber: true,
@@ -297,7 +298,7 @@ export function ShippingMethodsForm({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-2">
                     <Label
                       htmlFor={`delivery-${index}`}
                       className="text-sm font-medium"
@@ -329,7 +330,7 @@ export function ShippingMethodsForm({
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor={`regions-${index}`}
                       className="text-sm font-medium"
@@ -347,7 +348,7 @@ export function ShippingMethodsForm({
                       Leave empty to apply to all regions, or specify
                       cities/states
                     </p>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Description */}
@@ -377,7 +378,7 @@ export function ShippingMethodsForm({
                 </div>
 
                 {/* Advanced Conditions */}
-                <div className="border-t border-border pt-4">
+                {/* <div className="border-t border-border pt-4">
                   <h4 className="text-sm font-medium mb-3 flex items-center space-x-2">
                     <MapPin className="w-4 h-4" />
                     <span>Shipping Conditions (Optional)</span>
@@ -454,14 +455,14 @@ export function ShippingMethodsForm({
                       />
                     </div>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             )}
           </Card>
         ))}
 
         {/* Add New Shipping Method */}
-        {fields.length < 10 && (
+        {fields.length < 1 && (
           <Button
             type="button"
             variant="outline"
@@ -494,11 +495,11 @@ export function ShippingMethodsForm({
           💡 Shipping Tips
         </h4>
         <ul className="text-sm text-muted-foreground space-y-1">
-          <li>
+          {/* <li>
             • Offer multiple shipping options to cater to different customer
             needs
-          </li>
-          <li>• Consider free shipping for orders above a certain amount</li>
+          </li> */}
+          {/* <li>• Consider free shipping for orders above a certain amount</li> */}
           <li>
             • Be realistic with delivery timeframes to set proper expectations
           </li>
@@ -525,7 +526,7 @@ export function ShippingMethodsForm({
           disabled={!isValid}
           className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
         >
-          Continue to Payout Setup
+          Continue to Terms
         </Button>
       </div>
     </form>

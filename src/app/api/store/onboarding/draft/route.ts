@@ -3,7 +3,6 @@ import {
   getStoreModel,
   IStore,
   IShippingMethod,
-  IPayoutAccount,
 } from "@/lib/db/models/store.model";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
 
@@ -37,8 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    // const { storeId, data, progress } = body;
-    const { storeId, data } = body;
+    const { storeId, data, progress } = body;
+    // const { storeId, data } = body;
+
+    console.log("storeId", storeId);
+    console.log("data", data);
+    console.log("progress", progress);
 
     if (!storeId) {
       return NextResponse.json(
@@ -87,11 +90,6 @@ export async function POST(request: NextRequest) {
     // Update shipping methods if provided
     if (data.shipping && Array.isArray(data.shipping)) {
       updateData.shippingMethods = data.shipping as IShippingMethod[];
-    }
-
-    // Update payout info if provided
-    if (data.payout) {
-      updateData.payoutAccounts = [data.payout as IPayoutAccount];
     }
 
     // Update terms agreement if provided

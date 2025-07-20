@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { InstagramIcon, LinkedinIcon } from "lucide-react";
@@ -5,8 +7,23 @@ import { InstagramIcon, LinkedinIcon } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { playpenSans } from "@/constants/constant";
+import { usePathname } from "next/navigation";
 
 export function HomeFooter() {
+  const pathname = usePathname();
+  // Hide footer on specific paths
+  const hideHomeFooter = () => {
+    return (
+      pathname.startsWith("/profile") ||
+      pathname.startsWith("/orders") ||
+      pathname.startsWith("/wishlist") ||
+      pathname.startsWith("/edit-profile")
+    );
+  };
+
+  if (hideHomeFooter()) {
+    return null; // Do not render footer if condition is met
+  }
   const currentYear = new Date().getFullYear();
   const linkStyles =
     "text-sm hover:text-soraxi-darkmode-success transition-colors duration-200";
@@ -129,7 +146,7 @@ const Copyright = ({ currentYear }: { currentYear: number }) => (
       href="https://mishael-joe.vercel.app"
       target="_blank"
       rel="noopener noreferrer"
-      className="hover:text-udua-orange-primary"
+      className="hover:text-soraxi-green"
     >
       {siteConfig.name} LLC
     </a>

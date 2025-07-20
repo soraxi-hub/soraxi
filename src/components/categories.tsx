@@ -266,7 +266,7 @@ function Categories() {
                   <TooltipContent
                     side="bottom"
                     align="center"
-                    className="w-48 p-3"
+                    className="w-48 p-3 mx-2"
                     sideOffset={8}
                   >
                     <div className="space-y-2">

@@ -7,32 +7,24 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 // import { formatNaira } from "@/lib/utils";
 // import { shimmer, toBase64 } from "@/lib/image";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  ShieldCheck,
-  Store,
-} from "lucide-react";
+import { User, Mail, Phone, MapPin, ShieldCheck } from "lucide-react";
 // import { useRouter } from "next/navigation";
 
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { IUser } from "@/lib/db/models/user.model";
 
-const Profile = ({ id }: { id: string }) => {
+const Profile = () => {
   // State management
   // const [loading, setLoading] = useState(true);
   // const [error, setError] = useState(false);
   // const router = useRouter();
 
   const trpc = useTRPC();
-  const data = useQuery(trpc.users.getById.queryOptions({ id }));
+  const { data: user, isLoading } = useSuspenseQuery(
+    trpc.user.getById.queryOptions()
+  );
 
   // if (data.data) return JSON.stringify(data.data, null, 2);
-  const user: IUser | undefined = data.data as unknown as IUser;
 
   /**
    * Fetches recently viewed products from localStorage
@@ -59,7 +51,7 @@ const Profile = ({ id }: { id: string }) => {
 
   // if (loading) return <ProfileSkeleton />;
   // if (error) return <ErrorState />;
-  if (!user) return <ProfileSkeleton />;
+  if (isLoading) return <ProfileSkeleton />;
 
   return (
     <div className="space-y-6 px-4 md:px-3 py-4">
@@ -114,15 +106,7 @@ const Profile = ({ id }: { id: string }) => {
         </div>
       </section>
 
-      {/* Store Section */}
-      {user.stores.length > 0 && (
-        <StoreSection
-          storeId={user.stores[0].storeId.toString()}
-          userName={user.firstName}
-        />
-      )}
-
-      {/* Verification Section 66fbae5615b9fec5eac1b9bb */}
+      {/* Verification Section */}
       {!user.isVerified && <VerificationSection />}
 
       {/* Recently Viewed Products */}
@@ -170,40 +154,10 @@ const DetailSection = ({ icon, title, items }: DetailSectionProps) => (
   </div>
 );
 
-interface StoreSectionProps {
-  storeId: string;
-  userName: string;
-}
-
-const StoreSection = ({ storeId, userName }: StoreSectionProps) => (
-  <section className="bg-card rounded-lg p-6 shadow-xs">
-    <div className="flex items-center gap-4 mb-4">
-      <Building className="w-8 h-8 text-primary" />
-      <h2 className="text-xl font-bold">Store Management</h2>
-    </div>
-
-    <div className="space-y-3">
-      <p className="text-muted-foreground">
-        Welcome back, {userName}. Manage your store products, orders, and
-        settings.
-      </p>
-      <Button
-        asChild
-        className="mt-4 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
-      >
-        <Link href={`/store/${storeId}/my-store`}>
-          <Store className="w-4 h-4 mr-2" />
-          Open Store Dashboard
-        </Link>
-      </Button>
-    </div>
-  </section>
-);
-
 const VerificationSection = () => (
-  <section className="bg-card rounded-lg p-6 shadow-xs border border-yellow-100">
+  <section className="bg-card rounded-lg p-6 shadow-xs border border-green-100">
     <div className="flex items-center gap-4 mb-4">
-      <ShieldCheck className="w-8 h-8 text-yellow-600" />
+      <ShieldCheck className="w-8 h-8 text-soraxi-green" />
       <h2 className="text-xl font-bold">Account Verification</h2>
     </div>
 
@@ -213,7 +167,7 @@ const VerificationSection = () => (
       </p>
       <Button
         asChild
-        className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800"
+        className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
       >
         <Link href="/verification">Complete Verification</Link>
       </Button>

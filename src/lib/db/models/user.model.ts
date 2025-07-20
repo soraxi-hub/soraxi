@@ -6,6 +6,7 @@ import { connectToDatabase } from "../mongoose";
  * All monetary values (if any) are assumed to be stored in kobo to avoid floating-point errors.
  */
 export interface IUser extends Document {
+  _id: mongoose.Schema.Types.ObjectId;
   firstName: string;
   lastName: string;
   otherNames: string;
@@ -89,14 +90,14 @@ const UserSchema = new Schema<IUser>(
     followingStores: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "stores",
+        ref: "Store",
       },
     ],
     stores: [
       {
         storeId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "stores",
+          ref: "Store",
         },
       },
     ],
@@ -165,5 +166,13 @@ export async function getUserById(
   await connectToDatabase();
   const User = await getUserModel();
 
-  return lean ? User.findById(id).lean() : User.findById(id);
+  return lean
+    ? User.findById(id)
+        .select(
+          "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+        )
+        .lean()
+    : User.findById(id).select(
+        "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+      );
 }

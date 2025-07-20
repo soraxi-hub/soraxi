@@ -1,27 +1,39 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getQueryClient } from "@/trpc/server";
-// import { caller } from "@/trpc/server";
+import { getQueryClient, trpc } from "@/trpc/server";
+import { HomePage } from "@/modules/home/HomePage";
+import { CartProvider } from "@/modules/cart/cart-provider";
+import { ErrorBoundary } from "react-error-boundary";
+import { Suspense } from "react";
 
+/**
+ * Home Page
+ * Main landing page showcasing products and features
+ *
+ * The main landing page of the application.
+ * Includes the CartHydration component to ensure user's cart
+ * is loaded and available throughout the application.
+ *
+ * Architecture note: CartHydration is included at the page level
+ * rather than in the layout to provide more granular control
+ * over when cart hydration occurs.
+ */
 export default async function Home() {
   const queryClient = getQueryClient();
-  // void queryClient.prefetchQuery(
-  //   trpc.users.getByEmail.queryOptions({ email: "mishaeljoe55@gmail.com" })
-  // );
+  void queryClient.prefetchQuery(trpc.home.getPublicProducts.queryOptions({}));
 
-  // const user = await caller.users.getByEmail({
-  //   email: "mishaeljoe55@gmail.com",
-  // });
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="grid items-center justify-items-center min-h-screen p-8 pb-20 gap-3 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-background">
-        <p>SORAXI</p>
-        {/* {user && (
-          <div className="text-center">
-            <h1 className="text-2xl font-bold">{user.firstName}</h1>
-            <p className="text-sm text-muted-foreground">ID: {user.id}</p>
-          </div>
-        )} */}
-      </div>
+      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+        <Suspense fallback={<div>Loading...</div>}>
+          {/* 
+            CartHydration component handles loading user's cart data
+            Must be included early in the component tree to ensure
+            cart data is available for other components that depend on it
+          */}
+          <CartProvider />
+          <HomePage />
+        </Suspense>
+      </ErrorBoundary>
     </HydrationBoundary>
   );
 }

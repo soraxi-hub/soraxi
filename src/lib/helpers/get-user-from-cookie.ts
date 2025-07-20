@@ -8,6 +8,7 @@ export interface TokenData {
   firstName: string;
   lastName: string;
   email: string;
+  store?: string; // Optional store field
 }
 
 /**
@@ -27,7 +28,8 @@ export async function getUserFromCookie(): Promise<TokenData | null> {
       typeof decoded.id === "string" &&
       typeof decoded.firstName === "string" &&
       typeof decoded.lastName === "string" &&
-      typeof decoded.email === "string";
+      typeof decoded.email === "string" &&
+      (decoded.store === undefined || typeof decoded.store === "string");
 
     return isValid ? decoded : null;
   } catch (err) {

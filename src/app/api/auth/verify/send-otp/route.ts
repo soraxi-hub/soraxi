@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { sendMail } from "@/lib/helpers/mail";
+import { sendMail } from "@/services/mail.service";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserById, IUser } from "@/lib/db/models/user.model";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";

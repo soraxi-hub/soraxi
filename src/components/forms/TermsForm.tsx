@@ -26,6 +26,7 @@ import {
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 // import { useToast } from "@/hooks/use-toast"
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 /**
  * Terms Form Schema
@@ -60,7 +61,7 @@ interface TermsFormProps {
 export function TermsForm({ onBackAction }: TermsFormProps) {
   const { state, updateData, markStepCompleted, saveDraft } =
     useStoreOnboarding();
-  //   const { toast } = useToast()
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -105,8 +106,8 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          storeId: "", // TODO: Replace with actual store ID
-          // storeId: state.storeId,
+          // storeId: "", // TODO: Replace with actual store ID
+          storeId: state.storeId,
           onboardingData: {
             ...state.data,
             termsAgreed: true,
@@ -127,7 +128,8 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
       );
 
       // Redirect to dashboard or confirmation page
-      window.location.href = "/dashboard/store?onboarding=complete";
+      // window.location.href = "/dashboard/store?onboarding=complete";
+      router.push(`/store/${state.storeId}/dashboard`);
     } catch (error) {
       console.error("Onboarding submission error:", error);
       toast.error(`Failed to submit onboarding. Please try again.`);
@@ -195,13 +197,6 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
               <p className="text-muted-foreground">
                 <strong>Methods:</strong> {state.data.shipping?.length || 0}{" "}
                 configured
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground mb-2">Payout</h4>
-              <p className="text-muted-foreground">
-                <strong>Bank:</strong>{" "}
-                {state.data.payout?.bankDetails.bankName || "Not provided"}
               </p>
             </div>
           </div>
@@ -446,7 +441,6 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
 
       {/* Final Notice */}
       <Alert>
-        <CheckCircle className="h-4 w-4" />
         <AlertDescription>
           After submitting, your store will be reviewed by our team. This
           process typically takes 1-3 business days. You&apos;ll receive an

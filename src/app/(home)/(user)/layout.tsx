@@ -30,9 +30,9 @@ export default async function RootLayout({
   const user = await getUserFromCookie();
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar userName={user?.firstName} />
-      <SidebarTrigger />
+      <AppSidebar user={user} />
       <SidebarInset>
+        <SidebarTrigger className="fixed top-[8rem]" />
         <main>{children}</main>
       </SidebarInset>
     </SidebarProvider>

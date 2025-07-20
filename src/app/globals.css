@@ -7,6 +7,7 @@
   --color-success: var(--success);
   --color-error: var(--error);
   --color-soraxi-green: var(--soraxi-green);
+  --color-soraxi-green-hover: var(--soraxi-green-hover);
   --color-soraxi-darkmode-success: var(--soraxi-darkmode-success);
 
   --color-soraxi-darkmode-background: var(--soraxi-darkmode-background);
@@ -92,6 +93,7 @@
   --soraxi-darkmode-success: #14a800;
   --soraxi-darkmode-error: #ff6b6b;
   --soraxi-green: #14a800;
+  --soraxi-green-hover: #128a00;
 }
 
 .dark {
@@ -136,6 +138,7 @@
   --soraxi-darkmode-success: #14a800;
   --soraxi-darkmode-error: #ff6b6b;
   --soraxi-green: #14a800;
+  --soraxi-green-hover: #128a00;
 }
 
 @layer base {

@@ -1,15 +1,17 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Shipping Method Schema Subdocument Interface
  */
 export interface IShippingMethod {
+  _id?: mongoose.Types.ObjectId;
   name: string;
   price: number;
-  estimatedDeliveryDays?: number;
+  estimatedDeliveryDays: number; // Estimated number of days for delivery after order placement (e.g., "3-5 days")
   isActive?: boolean;
-  description?: string;
+  description: string;
   applicableRegions?: string[];
   conditions?: {
     minOrderValue?: number;
@@ -69,7 +71,6 @@ export interface IStore extends Document {
   uniqueId: string;
   followers: mongoose.Types.ObjectId[];
   physicalProducts: mongoose.Types.ObjectId[];
-  digitalProducts: mongoose.Types.ObjectId[];
   recipientCode: string;
 
   // Branding
@@ -113,11 +114,9 @@ export interface IStore extends Document {
   forgotpasswordTokenExpiry?: Date;
 
   // Financials
-  availableBalance: number;
-  pendingBalance: number;
   platformFee: number;
   transactionFees: number;
-  totalEarnings: number;
+  wallet: mongoose.Schema.Types.ObjectId;
 
   // Shipping
   shippingMethods: IShippingMethod[];
@@ -134,61 +133,60 @@ export interface IStore extends Document {
 /**
  * Define Store Schema
  */
-const ShippingMethodSchema = new Schema<IShippingMethod>(
-  {
-    name: {
-      type: String,
-      required: [true, "Shipping method name is required"],
-    },
-    price: { type: Number, required: [true, "Shipping price is required"] },
-    estimatedDeliveryDays: Number,
-    isActive: { type: Boolean, default: true },
-    description: String,
-    applicableRegions: [String],
-    conditions: {
-      minOrderValue: Number,
-      maxOrderValue: Number,
-      minWeight: Number,
-      maxWeight: Number,
-    },
+const ShippingMethodSchema = new Schema<IShippingMethod>({
+  name: {
+    type: String,
+    required: [true, "Shipping method name is required"],
   },
-  { _id: false }
-);
+  price: {
+    type: Number,
+    set: (price: number) => nairaToKobo(price),
+    get: (price: number) => koboToNaira(price),
+    required: [true, "Shipping price is required"],
+  },
+  estimatedDeliveryDays: Number,
+  isActive: { type: Boolean, default: true },
+  description: String,
+  applicableRegions: [String],
+  conditions: {
+    minOrderValue: Number,
+    maxOrderValue: Number,
+    minWeight: Number,
+    maxWeight: Number,
+  },
+});
 
-const PayoutAccountSchema = new Schema<IPayoutAccount>(
-  {
-    payoutMethod: {
-      type: String,
-      enum: {
-        values: ["Bank Transfer"],
-        message: "Invalid payout method",
-      },
-      required: [true, "Payout method is required"],
+const PayoutAccountSchema = new Schema<IPayoutAccount>({
+  payoutMethod: {
+    type: String,
+    enum: {
+      values: ["Bank Transfer"],
+      message: "Invalid payout method",
     },
-    bankDetails: {
-      bankName: {
-        type: String,
-        required: [true, "Bank name is required"],
-      },
-      accountNumber: {
-        type: String,
-        required: [true, "Bank account number is required"],
-      },
-      accountHolderName: {
-        type: String,
-        required: [true, "Account holder name is required"],
-      },
-      bankCode: {
-        type: Number,
-        required: [true, "Bank code is required"],
-      },
-      bankId: Number,
-    },
-    totalEarnings: { type: Number, default: 0 },
-    lastPayoutDate: { type: Date, default: null },
+    required: [true, "Payout method is required"],
   },
-  { _id: false }
-);
+  bankDetails: {
+    bankName: {
+      type: String,
+      required: [true, "Bank name is required"],
+    },
+    accountNumber: {
+      type: String,
+      required: [true, "Bank account number is required"],
+    },
+    accountHolderName: {
+      type: String,
+      required: [true, "Account holder name is required"],
+    },
+    bankCode: {
+      type: Number,
+      required: [true, "Bank code is required"],
+    },
+    bankId: Number,
+  },
+  totalEarnings: { type: Number, default: 0 },
+  lastPayoutDate: { type: Date, default: null },
+});
 
 const StoreSchema = new Schema<IStore>(
   {
@@ -217,10 +215,7 @@ const StoreSchema = new Schema<IStore>(
     },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     physicalProducts: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "physicalproducts" },
-    ],
-    digitalProducts: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "digitalproducts" },
+      { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     ],
     recipientCode: {
       type: String,
@@ -282,11 +277,12 @@ const StoreSchema = new Schema<IStore>(
     forgotpasswordTokenExpiry: Date,
 
     // ✅ Financials
-    availableBalance: { type: Number, default: 0 },
-    pendingBalance: { type: Number, default: 0 },
     platformFee: { type: Number, default: 0 },
     transactionFees: { type: Number, default: 0 },
-    totalEarnings: { type: Number, default: 0 },
+    wallet: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Wallet",
+    },
 
     // ✅ Shipping
     shippingMethods: [ShippingMethodSchema],
@@ -339,8 +335,8 @@ const StoreSchema = new Schema<IStore>(
 export async function getStoreModel(): Promise<Model<IStore>> {
   await connectToDatabase();
   return (
-    (mongoose.models.stores as Model<IStore>) ||
-    mongoose.model<IStore>("stores", StoreSchema)
+    (mongoose.models.Store as Model<IStore>) ||
+    mongoose.model<IStore>("Store", StoreSchema)
   );
 }
 
@@ -352,5 +348,5 @@ export async function getStoreByUniqueId(
 ): Promise<IStore | null> {
   await connectToDatabase();
   const Store = await getStoreModel();
-  return Store.findOne({ uniqueId }).lean();
+  return Store.findById(uniqueId).lean();
 }

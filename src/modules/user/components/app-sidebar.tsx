@@ -4,18 +4,19 @@ import {
   UserIcon,
   PackageIcon,
   HeartIcon,
-  MapPinIcon,
-  CreditCardIcon,
-  StarIcon,
+  EditIcon,
+  // MapPinIcon,
+  // CreditCardIcon,
+  // StarIcon,
   LockIcon,
-  BellIcon,
-  GlobeIcon,
-  HelpCircleIcon,
+  // BellIcon,
+  // GlobeIcon,
+  // HelpCircleIcon,
   RefreshCwIcon,
   MailIcon,
-  BriefcaseIcon,
+  BuildingIcon,
   UserPlusIcon,
-  Share2Icon,
+  // Share2Icon,
   ChevronDownIcon,
   User2,
   ChevronUp,
@@ -50,35 +51,37 @@ import { siteConfig } from "@/config/site";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { TokenData } from "@/lib/helpers/getUserDataFromToken";
 
-const sidebarItems = [
+const sidebarItems = (user: TokenData) => [
   {
     label: "My Account",
     items: [
       { title: "Profile", url: "/profile", icon: UserIcon },
       { title: "Order History", url: "/orders", icon: PackageIcon },
       { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
-      { title: "Addresses", url: "/addresses", icon: MapPinIcon },
-      {
-        title: "Payment Methods",
-        url: "/payment-methods",
-        icon: CreditCardIcon,
-      },
-      { title: "Reviews", url: "/reviews", icon: StarIcon },
+      // { title: "Addresses", url: "/addresses", icon: MapPinIcon },
+      // {
+      //   title: "Payment Methods",
+      //   url: "/payment-methods",
+      //   icon: CreditCardIcon,
+      // },
+      // { title: "Reviews", url: "/reviews", icon: StarIcon },
     ],
   },
   {
     label: "Settings",
     items: [
       { title: "Security", url: "/security", icon: LockIcon },
-      { title: "Notifications", url: "/notifications", icon: BellIcon },
-      { title: "Language", url: "/language", icon: GlobeIcon },
+      { title: "Edit Profile", url: "/edit-profile", icon: EditIcon },
+      // { title: "Notifications", url: "/notifications", icon: BellIcon },
+      // { title: "Language", url: "/language", icon: GlobeIcon },
     ],
   },
   {
     label: "Help & Support",
     items: [
-      { title: "FAQs", url: "/faqs", icon: HelpCircleIcon },
+      // { title: "FAQs", url: "/faqs", icon: HelpCircleIcon },
       { title: "Returns", url: "/returns", icon: RefreshCwIcon },
       { title: "Contact", url: "/contact", icon: MailIcon },
     ],
@@ -86,22 +89,30 @@ const sidebarItems = [
   {
     label: `Partner with ${siteConfig.name}`,
     items: [
+      ...(user?.store
+        ? [
+            {
+              title: "Store Management",
+              url: `/store/${user.store}/dashboard`,
+              icon: BuildingIcon,
+            },
+          ]
+        : []),
       {
-        title: "Seller Dashboard",
-        url: "/seller-dashboard",
-        icon: BriefcaseIcon,
+        title: "Become a Partner",
+        url: "/become-partner",
+        icon: UserPlusIcon,
       },
-      { title: "Become a Partner", url: "/become-partner", icon: UserPlusIcon },
-      {
-        title: "Affiliate Program",
-        url: "/affiliate-program",
-        icon: Share2Icon,
-      },
+      // {
+      //   title: "Affiliate Program",
+      //   url: "/affiliate-program",
+      //   icon: Share2Icon,
+      // },
     ],
   },
 ];
 
-export function AppSidebar({ userName }: { userName?: string }) {
+export function AppSidebar({ user }: { user: TokenData | null }) {
   const router = useRouter();
   const handleLogout = async () => {
     try {
@@ -117,16 +128,24 @@ export function AppSidebar({ userName }: { userName?: string }) {
       return error;
     }
   };
+
+  if (!user) {
+    router.push("/sign-in");
+    return;
+  }
+
   return (
     <Sidebar
-      variant={`inset`}
+      // variant={`inset`}
       collapsible={`offcanvas`}
-      className="absolute top-[7rem]"
-      //   className="absolute top-[7rem] h-[calc(100vh-7rem)]"
+      // className="absolute top-[7rem]"
+      className="fixed top-[7rem] h-[calc(100vh-7rem)]"
     >
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-border p-4 text-lg">
         <SidebarMenu>
-          <SidebarMenuItem>Greetings, {userName}</SidebarMenuItem>
+          <SidebarMenuItem>
+            Greetings, {user?.firstName || "User"}
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
@@ -134,7 +153,7 @@ export function AppSidebar({ userName }: { userName?: string }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems.map((section, i) => (
+              {sidebarItems(user).map((section, i) => (
                 <Collapsible key={i} defaultOpen className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -166,27 +185,20 @@ export function AppSidebar({ userName }: { userName?: string }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton>
-                  <User2 /> {userName}
-                  <ChevronUp className="ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                className="w-[--radix-popper-anchor-width]"
-              >
-                <DropdownMenuItem onClick={handleLogout}>
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="border-t border-border p-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton className="w-full justify-start p-2">
+              <User2 /> {user?.firstName || "User"}
+              <ChevronUp className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top" className="w-56">
+            <DropdownMenuItem onClick={handleLogout}>
+              <span>Sign out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { getWalletModel } from "@/lib/db/models/wallet.model";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
 import { AppError } from "@/lib/errors/app-error";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import mongoose from "mongoose";
 
 /**
  * API Route: Create New Store
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
     const uniqueId = await generateUniqueStoreId(storeName);
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // TODO: review this logic from top to bottom
 
@@ -97,15 +99,11 @@ export async function POST(request: NextRequest) {
       // Initialize empty arrays and default values
       followers: [],
       physicalProducts: [],
-      digitalProducts: [],
       shippingMethods: [],
       payoutAccounts: [],
       payoutHistory: [],
-      availableBalance: 0,
-      pendingBalance: 0,
       platformFee: 0,
       transactionFees: 0,
-      totalEarnings: 0,
       ratings: {
         averageRating: 0,
         reviewCount: 0,
@@ -115,6 +113,26 @@ export async function POST(request: NextRequest) {
 
     // Save the store to database
     const savedStore = await newStore.save();
+
+    // Create Wallet for the new Store
+    const Wallet = await getWalletModel();
+    const existingWallet = await Wallet.findOne({ store: savedStore._id });
+
+    if (!existingWallet) {
+      const wallet = await Wallet.create({
+        store: savedStore._id,
+        balance: 0,
+        pending: 0,
+        totalEarned: 0,
+        currency: "NGN",
+      });
+
+      // Link the wallet back to the store
+      savedStore.wallet = wallet._id as mongoose.Schema.Types.ObjectId;
+      await savedStore.save();
+
+      console.log(`Wallet created and linked for store ${savedStore._id}`);
+    }
 
     // Update the user's stores array
     const User = await getUserModel();

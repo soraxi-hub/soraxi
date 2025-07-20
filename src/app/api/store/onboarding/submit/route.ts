@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
 import { type IStore, type IShippingMethod } from "@/lib/db/models/store.model";
+import {
+  generateAdminNotificationHtml,
+  generateStoreOwnerConfirmationHtml,
+  sendMail,
+} from "@/services/mail.service";
 
 // ----------- Types for incoming request -----------
 
@@ -22,24 +27,11 @@ interface OnboardingBusinessInfo {
   documentUrls?: string[];
 }
 
-// Payout setup
-interface OnboardingPayoutAccount {
-  payoutMethod: "Bank Transfer";
-  bankDetails: {
-    bankName: string;
-    accountNumber: string;
-    accountHolderName: string;
-    bankCode: number;
-    bankId?: number;
-  };
-}
-
 // Full onboarding data payload
 interface OnboardingData {
   profile: OnboardingProfile;
-  businessInfo: OnboardingBusinessInfo;
+  "business-info": OnboardingBusinessInfo;
   shipping: IShippingMethod[];
-  payout: OnboardingPayoutAccount;
   termsAgreed: boolean;
 }
 
@@ -98,8 +90,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract onboarding data sections
-    const { profile, businessInfo, shipping, payout, termsAgreed } =
-      onboardingData;
+    const { profile, shipping, termsAgreed } = onboardingData;
+    const businessInfo = onboardingData["business-info"];
+
+    // console.log("businessInfo", businessInfo);
 
     // Validate profile info
     if (!profile?.name || !profile?.description) {
@@ -131,14 +125,6 @@ export async function POST(request: NextRequest) {
     if (!shipping || shipping.length === 0) {
       return NextResponse.json(
         { error: "At least one shipping method is required" },
-        { status: 400 }
-      );
-    }
-
-    // Validate payout details
-    if (!payout?.bankDetails?.bankName || !payout?.bankDetails?.accountNumber) {
-      return NextResponse.json(
-        { error: "Payout information is incomplete" },
         { status: 400 }
       );
     }
@@ -201,16 +187,6 @@ export async function POST(request: NextRequest) {
         conditions: method.conditions || {},
       })),
 
-      // Payout account (initial)
-      payoutAccounts: [
-        {
-          payoutMethod: payout.payoutMethod,
-          bankDetails: payout.bankDetails,
-          totalEarnings: 0,
-          lastPayoutDate: null,
-        },
-      ],
-
       // Terms agreement date
       agreedToTermsAt: new Date(agreementTimestamp),
 
@@ -237,8 +213,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Send notification email to admins about new store submission
-    // TODO: Send confirmation email to store owner
+    // Send notification email to admins about new store submission
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL!;
+    const storeEmail = store.storeEmail;
+
+    // Admin notification
+    await sendMail({
+      email: adminEmail,
+      emailType: "storeOrderNotification",
+      subject: `New Store Submission: ${updatedStore.name}`,
+      html: generateAdminNotificationHtml({
+        storeName: updatedStore.name,
+        ownerEmail: storeEmail,
+        submittedAt: updatedStore.agreedToTermsAt || new Date(),
+      }),
+    });
+
+    // Send confirmation email to store owner
+    await sendMail({
+      email: storeEmail,
+      emailType: "orderConfirmation",
+      subject: `Your store "${updatedStore.name}" was submitted for review`,
+      html: generateStoreOwnerConfirmationHtml(updatedStore.name, storeEmail),
+    });
 
     // Return success response with summary
     return NextResponse.json({

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 import { ProgressTracker } from "./ProgressTracker";
 import { toast } from "sonner";
-// import { useToast } from "@/hooks/use-toast"
 
 /**
  * Onboarding Layout Component
@@ -31,7 +30,6 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const router = useRouter();
   const { saveDraft, state } = useStoreOnboarding();
-  // const { toast } = useToast()
 
   /**
    * Handle save draft action
@@ -55,7 +53,7 @@ export function OnboardingLayout({
     if (onBack) {
       onBack();
     } else {
-      router.push("/dashboard/store");
+      router.back();
     }
   };
 

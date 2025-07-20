@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { getUserById, IUser } from "@/lib/db/models/user.model";
+import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
@@ -17,15 +17,18 @@ export async function POST(request: NextRequest) {
 
     const { token } = await request.json();
     const userId = userData.id;
+    const User = await getUserModel();
 
-    const user = (await getUserById(userId)) as IUser | null;
+    const user = (await User.findById(userId).select(
+      "verifyToken isVerified verifyTokenExpiry"
+    )) as IUser | null;
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
     const tokenIsValid =
-      user.verifyToken === token &&
+      user.verifyToken === token.toString() &&
       Date.now() < new Date(user.verifyTokenExpiry!).getTime();
 
     if (!tokenIsValid) {
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     user.isVerified = true;
-    user.verifyToken = "";
+    user.verifyToken = undefined;
     user.verifyTokenExpiry = undefined;
     await user.save();
 

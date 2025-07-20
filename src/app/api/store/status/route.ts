@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest) {
     // Get store model and find user's store
     const Store = await getStoreModel();
     const store = await Store.findById(storeData.id).select(
-      "name description logoUrl bannerUrl businessInfo shippingMethods payoutAccounts status verification agreedToTermsAt"
+      "name description logoUrl bannerUrl businessInfo shippingMethods status verification agreedToTermsAt"
     );
 
     if (!store) {
@@ -48,9 +48,6 @@ export async function GET(_request: NextRequest) {
       ),
       shippingComplete: !!(
         store.shippingMethods && store.shippingMethods.length > 0
-      ),
-      payoutComplete: !!(
-        store.payoutAccounts && store.payoutAccounts.length > 0
       ),
       termsComplete: !!store.agreedToTermsAt,
     };
