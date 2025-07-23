@@ -19,6 +19,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
+import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
+import AlertUI from "@/modules/shared/alert";
 
 /**
  * Store Creation Form Schema
@@ -64,6 +66,7 @@ export default function CreateStorePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resError, setResError] = useState<string | null>(null);
 
   const {
     register,
@@ -122,6 +125,9 @@ export default function CreateStorePage() {
           return;
         }
 
+        const { message } = await parseErrorFromResponse(response);
+        setResError(message);
+
         throw new Error(result.error || "Failed to create store");
       }
 
@@ -155,6 +161,8 @@ export default function CreateStorePage() {
             Start selling on our platform by creating your store account
           </p>
         </div>
+
+        {resError && <AlertUI message={resError} variant={"destructive"} />}
 
         {/* Store Creation Form */}
         <Card>

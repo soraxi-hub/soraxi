@@ -216,10 +216,11 @@ export const orderRouter = createTRPCRouter({
       z.object({
         mainOrderId: z.string(),
         subOrderId: z.string(),
+        deliveryStatus: z.enum(["Delivered"]),
       })
     )
     .mutation(async ({ input }) => {
-      const { mainOrderId, subOrderId } = input;
+      const { mainOrderId, subOrderId, deliveryStatus } = input;
 
       // Validate user ID format
       if (
@@ -255,6 +256,13 @@ export const orderRouter = createTRPCRouter({
         (sub) => sub._id?.toString() === subOrderId
       );
 
+      if (deliveryStatus !== "Delivered") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `BAD REQUEST: DELIVERY STATUS MUST BE MARKED AS "Delivered" and not "${deliveryStatus}".`,
+        });
+      }
+
       if (!subOrder) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -262,8 +270,34 @@ export const orderRouter = createTRPCRouter({
         });
       }
 
+      if (
+        subOrder.deliveryStatus !== "Out for Delivery" &&
+        subOrder.deliveryStatus !== "Delivered"
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Delivery cannot be confirmed unless it's marked as "Out for Delivery" or "Delivered".`,
+        });
+      }
+
+      const currentDate = new Date();
+
       subOrder.customerConfirmedDelivery.confirmed = true;
       subOrder.customerConfirmedDelivery.confirmedAt = new Date();
+
+      // Store previous status for logging
+      const previousStatus = subOrder.deliveryStatus;
+
+      // Update sub-order fields
+      subOrder.deliveryStatus = deliveryStatus;
+
+      if (previousStatus === "Out for Delivery") {
+        // Set delivery date and calculate return window
+        subOrder.deliveryDate = currentDate;
+        subOrder.returnWindow = new Date(
+          currentDate.getTime() + 7 * 24 * 60 * 60 * 1000
+        ); // 7 days
+      }
 
       await order.save();
 

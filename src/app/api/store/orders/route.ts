@@ -168,6 +168,14 @@ export async function GET(request: NextRequest) {
         .skip(skip)
         .limit(limit)
         .lean()
+        .transform((docs) => {
+          return docs.map((doc) => ({
+            ...doc,
+            subOrders: doc.subOrders.filter(
+              (subOrder) => subOrder.store._id.toString() === storeSession.id
+            ),
+          }));
+        })
         .exec(),
 
       // Count query for pagination metadata

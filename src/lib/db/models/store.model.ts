@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
+import { nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Shipping Method Schema Subdocument Interface
@@ -71,7 +71,6 @@ export interface IStore extends Document {
   uniqueId: string;
   followers: mongoose.Types.ObjectId[];
   physicalProducts: mongoose.Types.ObjectId[];
-  recipientCode: string;
 
   // Branding
   logoUrl?: string;
@@ -141,7 +140,6 @@ const ShippingMethodSchema = new Schema<IShippingMethod>({
   price: {
     type: Number,
     set: (price: number) => nairaToKobo(price),
-    get: (price: number) => koboToNaira(price),
     required: [true, "Shipping price is required"],
   },
   estimatedDeliveryDays: Number,
@@ -217,10 +215,6 @@ const StoreSchema = new Schema<IStore>(
     physicalProducts: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     ],
-    recipientCode: {
-      type: String,
-      unique: true,
-    },
 
     // ✅ Optional store branding
     logoUrl: String,

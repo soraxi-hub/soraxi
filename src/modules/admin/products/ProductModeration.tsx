@@ -53,6 +53,9 @@ import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import Image from "next/image";
+import { IProduct } from "@/lib/db/models/product.model";
+
+type Status = IProduct["status"];
 
 /**
  * Product Moderation Component
@@ -65,7 +68,7 @@ interface ProductData {
   description: string;
   price: number;
   category: string;
-  status: "active" | "pending" | "rejected" | "unpublished";
+  status: Status;
   images: string[];
   store: {
     id: string;
@@ -74,7 +77,6 @@ interface ProductData {
   };
   createdAt: string;
   updatedAt: string;
-  moderationNotes?: string;
 }
 
 export function ProductModeration() {
@@ -86,7 +88,7 @@ export function ProductModeration() {
   const [showProductDetails, setShowProductDetails] = useState(false);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -116,7 +118,7 @@ export function ProductModeration() {
 
   const handleProductAction = (
     productId: string,
-    action: "approve" | "reject" | "unpublish" | "delete",
+    action: "approve" | "reject" | "delete",
     reason?: string
   ) => {
     mutation.mutate({ productId, action, reason });
@@ -124,10 +126,9 @@ export function ProductModeration() {
 
   const getStatusBadge = (status: string) => {
     const colors = {
-      active: "bg-green-100 text-green-800",
+      approved: "bg-green-100 text-green-800",
       pending: "bg-yellow-100 text-yellow-800",
       rejected: "bg-red-100 text-red-800",
-      unpublished: "bg-gray-100 text-gray-800",
     };
 
     return (
@@ -178,16 +179,18 @@ export function ProductModeration() {
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(e: Status | "all") => setStatusFilter(e)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending Review</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="unpublished">Unpublished</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -268,9 +271,6 @@ export function ProductModeration() {
                         </div>
                         <div>
                           <p className="font-medium">{product.name}</p>
-                          {/* <p className="text-sm text-muted-foreground line-clamp-1">
-                            {product.description}
-                          </p> */}
                         </div>
                       </div>
                     </TableCell>
@@ -349,15 +349,15 @@ export function ProductModeration() {
                               </DropdownMenuItem>
                             </>
                           )}
-                          {product.status === "active" && (
+                          {product.status === "approved" && (
                             <DropdownMenuItem
                               onClick={() =>
-                                handleProductAction(product.id, "unpublish")
+                                handleProductAction(product.id, "reject")
                               }
                               className="text-orange-600"
                             >
                               <EyeOff className="w-4 h-4 mr-2" />
-                              Unpublish
+                              Reject
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
@@ -436,7 +436,7 @@ export function ProductModeration() {
                     <div>
                       <Label className="text-sm font-medium">Price</Label>
                       <p className="text-sm font-medium">
-                        ${selectedProduct.price.toFixed(2)}
+                        {formatNaira(selectedProduct.price)}
                       </p>
                     </div>
                     <div>
@@ -475,16 +475,6 @@ export function ProductModeration() {
                         {new Date(selectedProduct.updatedAt).toLocaleString()}
                       </p>
                     </div>
-                    {selectedProduct.moderationNotes && (
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Moderation Notes
-                        </Label>
-                        <p className="text-sm">
-                          {selectedProduct.moderationNotes}
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -512,17 +502,6 @@ export function ProductModeration() {
                       Reject Product
                     </Button>
                   </>
-                )}
-                {selectedProduct.status === "active" && (
-                  <Button
-                    onClick={() =>
-                      handleProductAction(selectedProduct.id, "unpublish")
-                    }
-                    variant="outline"
-                  >
-                    <EyeOff className="w-4 h-4 mr-2" />
-                    Unpublish
-                  </Button>
                 )}
                 <Button
                   onClick={() =>

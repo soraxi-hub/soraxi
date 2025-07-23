@@ -1,4 +1,4 @@
-import { StoreManagement } from "@/modules/admin/stores/StoreManagement";
+import { StoreManagement } from "@/modules/admin/stores/store-management";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";

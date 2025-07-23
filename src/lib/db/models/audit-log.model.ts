@@ -87,6 +87,8 @@ AuditLogSchema.index({ resourceId: 1, resourceType: 1 });
 
 /**
  * Get or create the AuditLog model
+ *
+ * Returns the Mongoose model for audit logs, creating it if it doesn't exist.
  */
 export async function getAuditLogModel(): Promise<Model<IAuditLog>> {
   await connectToDatabase();

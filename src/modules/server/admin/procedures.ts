@@ -2,13 +2,17 @@ import { z } from "zod";
 
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { getProductModel } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
+import {
+  formatProductListResponse,
+  RawProductDocument,
+} from "@/modules/admin/product-formatter";
 
 export const adminRouter = createTRPCRouter({
   list: baseProcedure
     .input(
       z.object({
-        status: z.string().optional(),
+        status: z.enum(["pending", "approved", "rejected", "all"]).optional(),
         category: z.string().optional(),
         search: z.string().optional(),
         page: z.number().default(1),
@@ -32,49 +36,23 @@ export const adminRouter = createTRPCRouter({
       const products = await Product.find(query)
         .populate("storeID", "name storeEmail")
         .select(
-          "name description price category status images createdAt updatedAt moderationNotes"
+          "name description price category status images createdAt updatedAt"
         )
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .lean();
+        .lean<RawProductDocument[]>();
 
       const total = await Product.countDocuments(query);
 
-      const transformed = products.map((product: any) => ({
-        id: product._id.toString(),
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-        status: product.status || "",
-        images: product.images || [],
-        store: {
-          id: product.storeID._id.toString(),
-          name: product.storeID.name,
-          email: product.storeID.storeEmail,
-        },
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-        moderationNotes: product.moderationNotes,
-      }));
-
-      return {
-        products: transformed,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit),
-        },
-      };
+      return formatProductListResponse(products, total, page, limit);
     }),
 
   action: baseProcedure
     .input(
       z.object({
         productId: z.string(),
-        action: z.enum(["approve", "reject", "unpublish", "delete"]),
+        action: z.enum(["approve", "reject", "delete"]),
         reason: z.string().optional(),
       })
     )
@@ -90,7 +68,15 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      let updateData: any = {};
+      let updateData: {
+        status: IProduct["status"];
+        isVerifiedProduct: boolean;
+        moderationNotes: string;
+      } = {
+        status: "pending",
+        isVerifiedProduct: false,
+        moderationNotes: "",
+      };
       let message = "";
 
       switch (action) {
@@ -102,7 +88,8 @@ export const adminRouter = createTRPCRouter({
             });
           }
           updateData = {
-            status: "active",
+            status: "approved",
+            isVerifiedProduct: true,
             moderationNotes: reason || "Approved by admin",
           };
           message = "Product approved successfully";
@@ -116,22 +103,10 @@ export const adminRouter = createTRPCRouter({
           }
           updateData = {
             status: "rejected",
+            isVerifiedProduct: false,
             moderationNotes: reason || "Rejected by admin",
           };
           message = "Product rejected";
-          break;
-        case "unpublish":
-          if (product.status !== "approved") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Product is not approved",
-            });
-          }
-          updateData = {
-            status: "unpublished",
-            moderationNotes: reason || "Unpublished by admin",
-          };
-          message = "Product unpublished";
           break;
         case "delete":
           await Product.findByIdAndDelete(productId);

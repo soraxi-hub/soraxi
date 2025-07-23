@@ -63,10 +63,7 @@ export const sendMail = async ({
     }
 
     if (emailType === "storeOrderNotification" && html) {
-      finalHtml = wrapWithBrandedTemplate({
-        title: subject || "New Order",
-        bodyContent: html,
-      });
+      finalHtml = html;
     }
 
     const mailOptions = {

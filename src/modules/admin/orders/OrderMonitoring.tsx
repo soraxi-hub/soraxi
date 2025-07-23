@@ -36,7 +36,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
 import {
   ShoppingCart,
   MoreHorizontal,
@@ -50,8 +49,17 @@ import {
   Store,
   Search,
   Filter,
+  Calendar,
+  RefreshCw,
 } from "lucide-react";
-import Image from "next/image";
+import { format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { toast } from "sonner";
 
 /**
  * Order Monitoring Component
@@ -79,21 +87,20 @@ interface OrderData {
     image?: string;
   }>;
   status:
-    | "pending"
-    | "confirmed"
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled"
-    | "refunded";
+    | "Order Placed"
+    | "Processing"
+    | "Shipped"
+    | "Out for Delivery"
+    | "Delivered"
+    | "Canceled"
+    | "Returned"
+    | "Failed Delivery"
+    | "Refunded";
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
   totalAmount: number;
   shippingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
+    postalCode: string;
+    address: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -109,33 +116,47 @@ export function OrderMonitoring() {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+  const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     loadOrders();
-  }, [statusFilter, paymentFilter]);
+  }, [statusFilter, page, limit]);
 
   const loadOrders = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
+
+      // Add filters to params
       if (statusFilter !== "all") params.append("status", statusFilter);
-      if (paymentFilter !== "all")
-        params.append("paymentStatus", paymentFilter);
+      if (fromDate) params.append("fromDate", fromDate.toISOString());
+      if (toDate) params.append("toDate", toDate.toISOString());
       if (searchQuery) params.append("search", searchQuery);
+
+      // Add pagination
+      params.append("page", page.toString());
+      params.append("limit", limit.toString());
 
       const response = await fetch(`/api/admin/orders?${params}`);
       const data = await response.json();
 
       if (response.ok) {
         setOrders(data.orders);
+        setTotalOrders(data.pagination.total);
+        setTotalPages(data.pagination.pages);
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
       toast.error("Failed to load orders");
-      console.log("Failed to load orders", error);
     } finally {
       setLoading(false);
     }
@@ -144,13 +165,13 @@ export function OrderMonitoring() {
   const handleOrderAction = async (
     orderId: string,
     action: string,
-    data?: any
+    subOrderId?: string
   ) => {
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...data }),
+        body: JSON.stringify({ action, subOrderId }),
       });
 
       const result = await response.json();
@@ -169,25 +190,27 @@ export function OrderMonitoring() {
   };
 
   const getStatusBadge = (status: string) => {
-    const colors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      confirmed: "bg-blue-100 text-blue-800",
-      processing: "bg-purple-100 text-purple-800",
-      shipped: "bg-indigo-100 text-indigo-800",
-      delivered: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800",
-      refunded: "bg-gray-100 text-gray-800",
+    const colors: Record<string, string> = {
+      "Order Placed": "bg-yellow-100 text-yellow-800",
+      Processing: "bg-blue-100 text-blue-800",
+      Shipped: "bg-purple-100 text-purple-800",
+      "Out for Delivery": "bg-indigo-100 text-indigo-800",
+      Delivered: "bg-green-100 text-green-800",
+      Canceled: "bg-red-100 text-red-800",
+      Returned: "bg-orange-100 text-orange-800",
+      "Failed Delivery": "bg-gray-100 text-gray-800",
+      Refunded: "bg-pink-100 text-pink-800",
     };
 
     return (
-      <Badge className={colors[status as keyof typeof colors]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
+        {status}
       </Badge>
     );
   };
 
   const getPaymentBadge = (status: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       pending: "bg-yellow-100 text-yellow-800",
       paid: "bg-green-100 text-green-800",
       failed: "bg-red-100 text-red-800",
@@ -195,18 +218,34 @@ export function OrderMonitoring() {
     };
 
     return (
-      <Badge className={colors[status as keyof typeof colors]}>
+      <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
 
-  const filteredOrders = orders.filter(
-    (order) =>
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.store.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleApplyFilters = () => {
+    setPage(1); // Reset to first page when applying new filters
+    loadOrders();
+  };
+
+  const handleResetFilters = () => {
+    setStatusFilter("all");
+    setFromDate(undefined);
+    setToDate(undefined);
+    setSearchQuery("");
+    setPage(1);
+    // Load orders with reset filters
+    setTimeout(() => {
+      loadOrders();
+    }, 0);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -225,7 +264,10 @@ export function OrderMonitoring() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+          <CardTitle className="text-lg flex items-center">
+            <Filter className="w-5 h-5 mr-2 text-soraxi-green" />
+            Filters
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -249,35 +291,85 @@ export function OrderMonitoring() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="processing">Processing</SelectItem>
-                  <SelectItem value="shipped">Shipped</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
+                  <SelectItem value="Order Placed">Order Placed</SelectItem>
+                  <SelectItem value="Processing">Processing</SelectItem>
+                  <SelectItem value="Shipped">Shipped</SelectItem>
+                  <SelectItem value="Out for Delivery">
+                    Out for Delivery
+                  </SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  <SelectItem value="Canceled">Canceled</SelectItem>
+                  <SelectItem value="Returned">Returned</SelectItem>
+                  <SelectItem value="Failed Delivery">
+                    Failed Delivery
+                  </SelectItem>
+                  <SelectItem value="Refunded">Refunded</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Payment Status</Label>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payments</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Date Range</Label>
+              <div className="flex space-x-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${
+                        !fromDate ? "text-muted-foreground" : ""
+                      }`}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, "PPP") : "From Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={fromDate}
+                      onSelect={setFromDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${
+                        !toDate ? "text-muted-foreground" : ""
+                      }`}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {toDate ? format(toDate, "PPP") : "To Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={toDate}
+                      onSelect={setToDate}
+                      initialFocus
+                      disabled={(date) => (fromDate ? date < fromDate : false)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            <div className="flex items-end">
-              <Button onClick={loadOrders} className="w-full">
+            <div className="flex items-end space-x-2">
+              <Button
+                onClick={handleApplyFilters}
+                className="flex-1 bg-soraxi-green hover:bg-soraxi-green/90"
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 Apply Filters
+              </Button>
+              <Button
+                onClick={handleResetFilters}
+                variant="outline"
+                className="flex-1 bg-transparent"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reset
               </Button>
             </div>
           </div>
@@ -287,7 +379,10 @@ export function OrderMonitoring() {
       {/* Orders Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Orders ({filteredOrders.length})</CardTitle>
+          <CardTitle className="flex items-center">
+            <ShoppingCart className="w-5 h-5 mr-2 text-soraxi-green" />
+            Orders ({totalOrders})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -307,18 +402,27 @@ export function OrderMonitoring() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
-                    Loading orders...
+                    <div className="flex flex-col items-center justify-center">
+                      <RefreshCw className="h-8 w-8 animate-spin text-soraxi-green mb-2" />
+                      <span>Loading orders...</span>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredOrders.length === 0 ? (
+              ) : orders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
-                    No orders found
+                    <div className="flex flex-col items-center justify-center">
+                      <ShoppingCart className="h-12 w-12 text-muted-foreground mb-2" />
+                      <h3 className="font-medium text-lg">No orders found</h3>
+                      <p className="text-muted-foreground">
+                        Try adjusting your filters or search criteria
+                      </p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
+                orders.map((order) => (
+                  <TableRow key={order.id} className="hover:bg-muted/30">
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-soraxi-green/10 rounded-lg flex items-center justify-center">
@@ -363,7 +467,7 @@ export function OrderMonitoring() {
                       <div className="flex items-center space-x-1">
                         <DollarSign className="w-3 h-3" />
                         <span className="font-medium">
-                          {order.totalAmount.toFixed(2)}
+                          {(order.totalAmount / 100).toFixed(2)}
                         </span>
                       </div>
                     </TableCell>
@@ -398,7 +502,7 @@ export function OrderMonitoring() {
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {order.status === "pending" && (
+                          {order.status === "Order Placed" && (
                             <DropdownMenuItem
                               onClick={() =>
                                 handleOrderAction(order.id, "confirm")
@@ -409,7 +513,7 @@ export function OrderMonitoring() {
                               Confirm Order
                             </DropdownMenuItem>
                           )}
-                          {["pending", "confirmed", "processing"].includes(
+                          {["Order Placed", "Processing"].includes(
                             order.status
                           ) && (
                             <DropdownMenuItem
@@ -422,23 +526,12 @@ export function OrderMonitoring() {
                               Cancel Order
                             </DropdownMenuItem>
                           )}
-                          {order.status === "confirmed" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleOrderAction(order.id, "process")
-                              }
-                              className="text-blue-600"
-                            >
-                              <Package className="w-4 h-4 mr-2" />
-                              Mark Processing
-                            </DropdownMenuItem>
-                          )}
-                          {order.status === "processing" && (
+                          {order.status === "Processing" && (
                             <DropdownMenuItem
                               onClick={() =>
                                 handleOrderAction(order.id, "ship")
                               }
-                              className="text-purple-600"
+                              className="text-blue-600"
                             >
                               <Truck className="w-4 h-4 mr-2" />
                               Mark Shipped
@@ -452,6 +545,66 @@ export function OrderMonitoring() {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {!loading && orders.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {(page - 1) * limit + 1} to{" "}
+                {Math.min(page * limit, totalOrders)} of {totalOrders} orders
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Show pages around current page
+                    let pageNum = page;
+                    if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+
+                    if (pageNum > 0 && pageNum <= totalPages) {
+                      return (
+                        <Button
+                          key={i}
+                          variant={pageNum === page ? "default" : "outline"}
+                          size="sm"
+                          className={
+                            pageNum === page
+                              ? "bg-soraxi-green hover:bg-soraxi-green/90"
+                              : ""
+                          }
+                          onClick={() => handlePageChange(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -459,7 +612,10 @@ export function OrderMonitoring() {
       <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
+            <DialogTitle className="flex items-center">
+              <ShoppingCart className="w-5 h-5 mr-2 text-soraxi-green" />
+              Order Details
+            </DialogTitle>
             <DialogDescription>
               Complete information for order {selectedOrder?.orderNumber}
             </DialogDescription>
@@ -470,7 +626,7 @@ export function OrderMonitoring() {
               {/* Order Summary */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Order Info</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -499,7 +655,7 @@ export function OrderMonitoring() {
                         Total Amount
                       </Label>
                       <p className="text-sm font-medium">
-                        ${selectedOrder.totalAmount.toFixed(2)}
+                        ${(selectedOrder.totalAmount / 100).toFixed(2)}
                       </p>
                     </div>
                     {selectedOrder.trackingNumber && (
@@ -516,7 +672,7 @@ export function OrderMonitoring() {
                 </Card>
 
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Customer</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -532,7 +688,7 @@ export function OrderMonitoring() {
                 </Card>
 
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Store</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -550,7 +706,7 @@ export function OrderMonitoring() {
 
               {/* Order Items */}
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-lg">Order Items</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -562,9 +718,7 @@ export function OrderMonitoring() {
                       >
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                           {item.image ? (
-                            <Image
-                              width={100}
-                              height={100}
+                            <img
                               src={item.image || "/placeholder.svg"}
                               alt={item.name}
                               className="w-full h-full object-cover"
@@ -576,12 +730,13 @@ export function OrderMonitoring() {
                         <div className="flex-1">
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Quantity: {item.quantity} × ${item.price.toFixed(2)}
+                            Quantity: {item.quantity} × $
+                            {(item.price / 100).toFixed(2)}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">
-                            ${(item.quantity * item.price).toFixed(2)}
+                            ${((item.quantity * item.price) / 100).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -592,18 +747,15 @@ export function OrderMonitoring() {
 
               {/* Shipping Address */}
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-lg">Shipping Address</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm">
-                    <p>{selectedOrder.shippingAddress.street}</p>
+                    <p>{selectedOrder.shippingAddress.address}</p>
                     <p>
-                      {selectedOrder.shippingAddress.city},{" "}
-                      {selectedOrder.shippingAddress.state}{" "}
-                      {selectedOrder.shippingAddress.zipCode}
+                      Postal Code: {selectedOrder.shippingAddress.postalCode}
                     </p>
-                    <p>{selectedOrder.shippingAddress.country}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -611,7 +763,7 @@ export function OrderMonitoring() {
               {/* Notes */}
               {selectedOrder.notes && (
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Notes</CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -619,6 +771,49 @@ export function OrderMonitoring() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2 justify-end">
+                {selectedOrder.status === "Order Placed" && (
+                  <Button
+                    onClick={() =>
+                      handleOrderAction(selectedOrder.id, "confirm")
+                    }
+                    className="bg-soraxi-green hover:bg-soraxi-green/90"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Confirm Order
+                  </Button>
+                )}
+                {selectedOrder.status === "Processing" && (
+                  <Button
+                    onClick={() => handleOrderAction(selectedOrder.id, "ship")}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Mark Shipped
+                  </Button>
+                )}
+                {["Order Placed", "Processing"].includes(
+                  selectedOrder.status
+                ) && (
+                  <Button
+                    onClick={() =>
+                      handleOrderAction(selectedOrder.id, "cancel")
+                    }
+                    variant="destructive"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Cancel Order
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowOrderDetails(false)}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

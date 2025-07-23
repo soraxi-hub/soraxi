@@ -48,12 +48,11 @@ import {
   Pause,
   Play,
   MessageSquare,
-  DollarSign,
-  Package,
-  ShoppingCart,
   Search,
   Filter,
+  MoreVerticalIcon,
 } from "lucide-react";
+import Link from "next/link";
 
 /**
  * Store Management Component
@@ -296,7 +295,6 @@ export function StoreManagement() {
                 <TableHead>Status</TableHead>
                 <TableHead>Verification</TableHead>
                 <TableHead>Business Type</TableHead>
-                <TableHead>Stats</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -348,24 +346,6 @@ export function StoreManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm space-y-1">
-                        <div className="flex items-center space-x-1">
-                          <Package className="w-3 h-3" />
-                          <span>{store.stats.totalProducts} products</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <ShoppingCart className="w-3 h-3" />
-                          <span>{store.stats.totalOrders} orders</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <DollarSign className="w-3 h-3" />
-                          <span>
-                            ${store.stats.totalRevenue.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
                       <div className="text-sm">
                         <p>{new Date(store.createdAt).toLocaleDateString()}</p>
                         <p className="text-muted-foreground">
@@ -391,6 +371,12 @@ export function StoreManagement() {
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/stores/${store.id}`}>
+                              <MoreVerticalIcon className="w-4 h-4 mr-2" />
+                              View More
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {store.status === "pending" && (

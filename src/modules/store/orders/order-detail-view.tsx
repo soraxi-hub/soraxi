@@ -5,15 +5,12 @@ import { format } from "date-fns";
 import {
   ArrowLeft,
   Package,
-  Truck,
   MapPin,
   CreditCard,
   User,
   Phone,
   Mail,
   Calendar,
-  Clock,
-  CheckCircle,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +33,7 @@ import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { isPopulatedUser } from "@/lib/utils/order-formatter";
+import { getStatusBadge } from "@/lib/utils";
 
 /**
  * Order Detail View Component Props
@@ -81,70 +79,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    * delivery status changes, and notes.
    */
   const [updating, setUpdating] = useState(false);
-
-  /**
-   * Get Status Badge Configuration
-   *
-   * Returns appropriate styling and icon configuration for different
-   * delivery statuses with enhanced visual indicators.
-   *
-   * @param status - The delivery status to get configuration for
-   * @returns Object containing variant, icon, and color information
-   */
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      "Order Placed": {
-        variant: "secondary" as const,
-        icon: Clock,
-        color: "bg-blue-100 text-blue-800",
-      },
-      Processing: {
-        variant: "default" as const,
-        icon: Package,
-        color: "bg-orange-100 text-orange-800",
-      },
-      Shipped: {
-        variant: "default" as const,
-        icon: Truck,
-        color: "bg-purple-100 text-purple-800",
-      },
-      "Out for Delivery": {
-        variant: "default" as const,
-        icon: Truck,
-        color: "bg-indigo-100 text-indigo-800",
-      },
-      Delivered: {
-        variant: "default" as const,
-        icon: CheckCircle,
-        color: "bg-green-100 text-green-800",
-      },
-      Canceled: {
-        variant: "destructive" as const,
-        icon: AlertCircle,
-        color: "bg-red-100 text-red-800",
-      },
-      Returned: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "bg-yellow-100 text-yellow-800",
-      },
-      "Failed Delivery": {
-        variant: "destructive" as const,
-        icon: AlertCircle,
-        color: "bg-red-100 text-red-800",
-      },
-      Refunded: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "bg-gray-100 text-gray-800",
-      },
-    };
-
-    return (
-      statusConfig[status as keyof typeof statusConfig] ||
-      statusConfig["Order Placed"]
-    );
-  };
 
   // ==================== Data Fetching ====================
 

@@ -13,6 +13,7 @@ interface AdminTokenData {
   name: string;
   email: string;
   roles: Role[] | string[]; // Ensure roles are strings
+  isActive: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       name: admin.name,
       email: admin.email,
       roles: admin.roles.map((role: Role) => String(role)), // Ensure roles are strings
+      isActive: admin.isActive,
     };
 
     // One Day in seconds

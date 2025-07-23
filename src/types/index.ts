@@ -8,7 +8,7 @@ export interface Category {
 }
 
 export interface Product {
-  id: string; // Mongoose _id as string
+  _id: string; // Mongoose _id as string
   storeID: string;
   productType: "Product" | "digitalproducts";
   name: string;

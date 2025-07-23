@@ -23,6 +23,7 @@ import { userSignUpInfoValidation } from "@/validators/user-signUp-info-validati
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import { Progress } from "@/components/ui/progress";
+import AlertUI from "@/modules/shared/alert";
 
 const steps = [
   {
@@ -43,6 +44,7 @@ function SignUp() {
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Password strength state
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -160,11 +162,15 @@ function SignUp() {
       if (response.status === 200 || response.data.success === true) {
         toast.success("Sign Up Successful");
         router.push("/sign-in");
+        return;
       }
       toast.error("An error occurred");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        toast.error(error.response?.data?.error || "An error occurred");
+        toast.error(
+          error.response?.data?.error?.message || "An error occurred"
+        );
+        setError(error.response?.data?.error?.message || "An error occurred");
       } else {
         toast.error("An error occurred");
       }
@@ -227,6 +233,8 @@ function SignUp() {
             <h2 className="text-xl font-semibold text-center text-gray-800 dark:text-white mb-6">
               {steps[currentStep - 1].title}
             </h2>
+
+            {error && <AlertUI message={error} variant={"destructive"} />}
 
             <Form {...form}>
               <form

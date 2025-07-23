@@ -15,18 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Plus,
-  Trash2,
-  ArrowLeft,
-  Truck,
-  // MapPin,
-  Clock,
-  // DollarSign,
-} from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Truck, Clock } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 import type { ShippingMethodData } from "@/types/onboarding";
-import { nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Shipping Methods Form Schema
@@ -147,7 +138,7 @@ export function ShippingMethodsForm({
     const shippingData: ShippingMethodData[] = data.shippingMethods.map(
       (method) => ({
         name: method.name,
-        price: nairaToKobo(method.price),
+        price: method.price,
         estimatedDeliveryDays: method.estimatedDeliveryDays,
         description: method.description || undefined,
         applicableRegions: method.applicableRegions?.filter(Boolean) || [],

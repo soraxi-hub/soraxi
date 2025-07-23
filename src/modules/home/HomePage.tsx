@@ -316,25 +316,6 @@ export function HomePage() {
           )}
         </div>
       </section>
-
-      {/* Newsletter CTA */}
-      <section className="py-16 bg-soraxi-green text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-          <p className="text-xl opacity-90 mb-8">
-            Get the latest deals and new product announcements
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Input
-              placeholder="Enter your email"
-              className="bg-white text-black"
-            />
-            <Button variant="secondary" className="text-soraxi-green">
-              Subscribe
-            </Button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

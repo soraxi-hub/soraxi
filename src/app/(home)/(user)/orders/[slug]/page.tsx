@@ -67,9 +67,14 @@ import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
-import { getStatusClassName } from "@/lib/utils";
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
+import { getStatusBadge } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 type Product = ProductsOutput["subOrders"][number]["products"][number];
@@ -120,6 +125,7 @@ export default function OrderDetailsPage(props: {
     customerConfirmedDelivery.mutate({
       mainOrderId: orderDetails._id,
       subOrderId: subOrderId,
+      deliveryStatus: "Delivered",
     });
   };
 
@@ -300,146 +306,171 @@ export default function OrderDetailsPage(props: {
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full space-y-4">
-            {orderDetails.subOrders.map((subOrder, index) => (
-              <AccordionItem
-                key={index}
-                value={`store-${index}`}
-                className="border rounded-lg"
-              >
-                <AccordionTrigger className="px-4 hover:no-underline">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <div className="flex items-center gap-4">
-                      <Store className="w-5 h-5 text-primary" />
-                      <span className="font-medium">
-                        {typeof subOrder.store === "object" &&
-                        "name" in subOrder.store
-                          ? subOrder.store.name
-                          : `Store ${index + 1}`}
-                      </span>
+            {orderDetails.subOrders.map((subOrder, index) => {
+              const statusConfig = getStatusBadge(subOrder.deliveryStatus);
+              const StatusIcon = statusConfig.icon;
+              return (
+                <AccordionItem
+                  key={index}
+                  value={`store-${index}`}
+                  className="border rounded-lg"
+                >
+                  <AccordionTrigger className="px-4 hover:no-underline">
+                    <div className="flex items-center justify-between w-full pr-4">
+                      <div className="flex items-center gap-4">
+                        <Store className="w-5 h-5 text-primary" />
+                        <span className="font-medium">
+                          {typeof subOrder.store === "object" &&
+                          "name" in subOrder.store
+                            ? subOrder.store.name
+                            : `Store ${index + 1}`}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <div
+                          className={`p-2 rounded-full ${statusConfig.color}`}
+                        >
+                          <StatusIcon className="h-4 w-4" />
+                        </div>
+                        <Badge className={statusConfig.color}>
+                          {subOrder.deliveryStatus}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge
-                      className={getStatusClassName(subOrder.deliveryStatus)}
-                    >
-                      {subOrder.deliveryStatus}
-                    </Badge>
-                  </div>
-                </AccordionTrigger>
+                  </AccordionTrigger>
 
-                <AccordionContent className="px-4 pt-4">
-                  <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    <div className="space-y-2">
-                      <DetailItem
-                        icon={
-                          <Truck className="h-4 w-4 text-muted-foreground" />
-                        }
-                        label="Shipping Method"
-                        value={subOrder.shippingMethod?.name || "N/A"}
-                      />
-                      <DetailItem
-                        icon={
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                        }
-                        label="Delivery Date"
-                        value={
-                          subOrder.deliveryDate
-                            ? new Date(
-                                subOrder.deliveryDate
-                              ).toLocaleDateString()
-                            : "N/A"
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <DetailItem
-                        icon={
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        }
-                        label="Shipping Cost"
-                        value={formatNaira(subOrder.shippingMethod?.price || 0)}
-                      />
-                      <DetailItem
-                        icon={
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                        }
-                        label="Estimated Delivery"
-                        value={
-                          subOrder.shippingMethod?.estimatedDeliveryDays ||
-                          "N/A"
-                        }
-                      />
-
-                      {!subOrder.customerConfirmedDelivery.confirmed &&
-                        !subOrder.customerConfirmedDelivery.autoConfirmed &&
-                        subOrder.deliveryStatus === "Delivered" && (
-                          <Button
-                            onClick={() =>
-                              updateDeliveryStatus(subOrder._id || "")
-                            }
-                            disabled={submitting}
-                            className="w-full md:w-aut mt-2 text-white bg-soraxi-green hover:bg-soraxi-green-hover"
-                          >
-                            {submitting ? (
-                              <Loader className="animate-spin mr-2" />
-                            ) : (
-                              "Confirm Delivery"
-                            )}
-                          </Button>
-                        )}
-
-                      {subOrder.customerConfirmedDelivery.confirmed && (
+                  <AccordionContent className="px-4 pt-4">
+                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                      <div className="space-y-2">
                         <DetailItem
                           icon={
-                            <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                            <Truck className="h-4 w-4 text-muted-foreground" />
                           }
-                          label=""
-                          value={"Delivery Confirmed"}
+                          label="Shipping Method"
+                          value={subOrder.shippingMethod?.name || "N/A"}
                         />
-                      )}
-                      {subOrder.customerConfirmedDelivery.confirmed && (
                         <DetailItem
                           icon={
-                            <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                            <Clock className="h-4 w-4 text-muted-foreground" />
                           }
-                          label="Delivery Confirmed On"
+                          label="Delivery Date"
                           value={
-                            subOrder.customerConfirmedDelivery.confirmedAt
+                            subOrder.deliveryDate
                               ? new Date(
-                                  subOrder.customerConfirmedDelivery.confirmedAt
+                                  subOrder.deliveryDate
                                 ).toLocaleDateString()
                               : "N/A"
                           }
                         />
-                      )}
 
-                      {subOrder.customerConfirmedDelivery.autoConfirmed && (
+                        {subOrder.customerConfirmedDelivery.confirmed && (
+                          <DetailItem
+                            icon={
+                              <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                            }
+                            label=""
+                            value={"Delivery Confirmed"}
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
                         <DetailItem
                           icon={
-                            <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                           }
-                          label=""
-                          value={"Auto Confirmed"}
+                          label="Shipping Cost"
+                          value={formatNaira(
+                            subOrder.shippingMethod?.price || 0
+                          )}
                         />
-                      )}
+                        <DetailItem
+                          icon={
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          }
+                          label="Estimated Delivery"
+                          value={
+                            subOrder.shippingMethod?.estimatedDeliveryDays ||
+                            "N/A"
+                          }
+                        />
+
+                        {!subOrder.customerConfirmedDelivery.confirmed &&
+                          !subOrder.customerConfirmedDelivery.autoConfirmed &&
+                          (subOrder.deliveryStatus === "Delivered" ||
+                            subOrder.deliveryStatus === "Out for Delivery") && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() =>
+                                    updateDeliveryStatus(subOrder._id || "")
+                                  }
+                                  disabled={submitting}
+                                  className="w-full mt-2 text-white bg-soraxi-green hover:bg-soraxi-green-hover"
+                                >
+                                  {submitting ? (
+                                    <Loader className="animate-spin mr-2" />
+                                  ) : (
+                                    "Confirm Delivery"
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-sm leading-snug">
+                                If your order has arrived, please confirm it.{" "}
+                                <br />
+                                This helps us release payment to the seller.{" "}
+                                <br />
+                                You can also confirm when it's marked as{" "}
+                                <strong>Out for Delivery</strong>.
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                        {subOrder.customerConfirmedDelivery.confirmed && (
+                          <DetailItem
+                            icon={
+                              <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                            }
+                            label="Delivery Confirmed On"
+                            value={
+                              subOrder.customerConfirmedDelivery.confirmedAt
+                                ? new Date(
+                                    subOrder.customerConfirmedDelivery.confirmedAt
+                                  ).toLocaleDateString()
+                                : "N/A"
+                            }
+                          />
+                        )}
+
+                        {subOrder.customerConfirmedDelivery.autoConfirmed && (
+                          <DetailItem
+                            icon={
+                              <CheckCircle2Icon className="h-4 w-4 text-soraxi-green" />
+                            }
+                            label=""
+                            value={"Auto Confirmed"}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <Separator className="mb-6" />
+                    <Separator className="mb-6" />
 
-                  {/* Products Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {subOrder.products.map((product, productIndex) => (
-                      <ProductItem
-                        key={`${productIndex}`}
-                        product={product}
-                        onReviewInit={(id) => handleReviewInit(id)}
-                        deliveryStatus={subOrder.deliveryStatus}
-                      />
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+                    {/* Products Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {subOrder.products.map((product, productIndex) => (
+                        <ProductItem
+                          key={`${productIndex}`}
+                          product={product}
+                          onReviewInit={(id) => handleReviewInit(id)}
+                          deliveryStatus={subOrder.deliveryStatus}
+                        />
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
           </Accordion>
         </CardContent>
       </Card>
