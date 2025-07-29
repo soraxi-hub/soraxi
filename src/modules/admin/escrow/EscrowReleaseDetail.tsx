@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
-  DollarSign,
   User,
   Store,
   Package,
@@ -33,96 +32,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-/**
- * Escrow Release Detail Component
- * Detailed view for individual escrow release with complete order context
- */
-
-interface EscrowSubOrderDetail {
-  id: string;
-  subOrderNumber: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  store: {
-    id: string;
-    name: string;
-    email: string;
-    logo?: string;
-    verification: {
-      isVerified: boolean;
-      method?: string;
-      verifiedAt?: string;
-    };
-    businessInfo: {
-      type: string;
-      businessName?: string;
-      registrationNumber?: string;
-    };
-  };
-  products: Array<{
-    id: string;
-    name: string;
-    images: string[];
-    quantity: number;
-    price: number;
-    selectedSize?: {
-      size: string;
-      price: number;
-    };
-    category: string[];
-    subCategory: string[];
-    productType: string;
-    totalPrice: number;
-  }>;
-  escrowInfo: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: string;
-    refunded: boolean;
-    refundReason?: string;
-    amount: number;
-  };
-  deliveryInfo: {
-    status: string;
-    deliveredAt: string;
-    returnWindow: string;
-    daysSinceReturnWindow: number;
-    customerConfirmation: {
-      confirmed: boolean;
-      confirmedAt?: string;
-      autoConfirmed: boolean;
-    };
-    shippingMethod?: {
-      name: string;
-      price: number;
-      estimatedDeliveryDays?: string;
-      description?: string;
-    };
-  };
-  orderContext: {
-    id: string;
-    orderNumber: string;
-    totalAmount: number;
-    shippingAddress: {
-      postalCode: string;
-      address: string;
-    };
-    paymentMethod?: string;
-    paymentStatus?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  eligibilityCheck: {
-    isEligible: boolean;
-    reasons: string[];
-  };
-}
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { formatNaira } from "@/lib/utils/naira";
 
 interface EscrowReleaseDetailProps {
   subOrderId: string;
@@ -131,94 +43,56 @@ interface EscrowReleaseDetailProps {
 export default function EscrowReleaseDetail({
   subOrderId,
 }: EscrowReleaseDetailProps) {
-  const [subOrder, setSubOrder] = useState<EscrowSubOrderDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const trpc = useTRPC();
   const [releasing, setReleasing] = useState(false);
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState("");
+
+  const {
+    data,
+    refetch: loadSubOrderDetail,
+    isLoading: loading,
+    error,
+  } = useQuery(
+    trpc.adminEscrowDetail.getEscrowReleaseDetail.queryOptions({ subOrderId })
+  );
+
+  const subOrder = data?.subOrder || null;
+
+  const releaseEscrow = useMutation(
+    trpc.adminEscrowRelease.releaseEscrow.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(
+          `Escrow funds of ${formatNaira(
+            data.release.amount
+          )} released successfully to ${data.release.seller.name}`
+        );
+        loadSubOrderDetail();
+        setReleasing(false);
+      },
+      onError: (error) => {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to release escrow funds"
+        );
+        setReleasing(false);
+      },
+    })
+  );
 
   useEffect(() => {
     loadSubOrderDetail();
   }, [subOrderId]);
 
-  const loadSubOrderDetail = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(
-        `/api/admin/escrow/release-queue/${subOrderId}`
-      );
-      const data = await response.json();
-
-      if (response.ok) {
-        setSubOrder(data.subOrder);
-      } else {
-        throw new Error(data.message || "Failed to load sub-order details");
-      }
-    } catch (error) {
-      console.error("Error loading sub-order detail:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load sub-order details"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleReleaseEscrow = async () => {
     if (!subOrder) return;
+    setReleasing(true);
 
-    try {
-      setReleasing(true);
-
-      const response = await fetch("/api/admin/escrow/release", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subOrderId: subOrder.id,
-          notes: releaseNotes.trim() || undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(
-          `Escrow funds of ${formatCurrency(
-            data.release.amount
-          )} released successfully to ${data.release.seller.name}`
-        );
-
-        // Refresh the data to show updated status
-        await loadSubOrderDetail();
-        setShowReleaseDialog(false);
-        setReleaseNotes("");
-      } else {
-        throw new Error(data.message || "Failed to release escrow funds");
-      }
-    } catch (error) {
-      console.error("Error releasing escrow:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to release escrow funds"
-      );
-    } finally {
-      setReleasing(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount / 100);
+    releaseEscrow.mutate({
+      subOrderId,
+      notes: releaseNotes,
+    });
   };
 
   const getPriorityBadge = (daysSinceReturnWindow: number) => {
@@ -267,9 +141,9 @@ export default function EscrowReleaseDetail({
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="font-medium text-lg mb-2">Error Loading Details</h3>
           <p className="text-muted-foreground mb-4">
-            {error || "Sub-order not found"}
+            {error?.message || "Sub-order not found"}
           </p>
-          <Button variant="outline" onClick={loadSubOrderDetail}>
+          <Button variant="outline" onClick={() => loadSubOrderDetail()}>
             Try Again
           </Button>
         </div>
@@ -301,10 +175,9 @@ export default function EscrowReleaseDetail({
             !subOrder.escrowInfo.released && (
               <Button
                 onClick={() => setShowReleaseDialog(true)}
-                className="bg-soraxi-green hover:bg-soraxi-green/90"
+                className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
               >
-                <DollarSign className="w-4 h-4 mr-2" />
-                Release Funds ({formatCurrency(subOrder.escrowInfo.amount)})
+                Release Funds ({formatNaira(subOrder.escrowInfo.amount)})
               </Button>
             )}
         </div>
@@ -312,7 +185,7 @@ export default function EscrowReleaseDetail({
 
       {/* Status Banner */}
       {subOrder.escrowInfo.released ? (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-green-200">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-3">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -330,7 +203,7 @@ export default function EscrowReleaseDetail({
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-orange-500">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-3">
               <Clock className="w-6 h-6 text-orange-600" />
@@ -381,7 +254,7 @@ export default function EscrowReleaseDetail({
                     Order Total
                   </Label>
                   <p className="font-medium">
-                    {formatCurrency(subOrder.orderContext.totalAmount)}
+                    {formatNaira(subOrder.orderContext.totalAmount)}
                   </p>
                 </div>
                 <div>
@@ -389,7 +262,7 @@ export default function EscrowReleaseDetail({
                     Sub-Order Total
                   </Label>
                   <p className="font-medium">
-                    {formatCurrency(subOrder.escrowInfo.amount)}
+                    {formatNaira(subOrder.escrowInfo.amount)}
                   </p>
                 </div>
                 <div>
@@ -435,7 +308,7 @@ export default function EscrowReleaseDetail({
               <div className="space-y-4">
                 {subOrder.products.map((product, index) => (
                   <div
-                    key={product.id}
+                    key={index}
                     className="flex items-start space-x-4 p-4 border rounded-lg"
                   >
                     <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
@@ -459,17 +332,17 @@ export default function EscrowReleaseDetail({
                         {product.selectedSize && (
                           <p>
                             Size: {product.selectedSize.size} (+
-                            {formatCurrency(product.selectedSize.price)})
+                            {formatNaira(product.selectedSize.price)})
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">
-                        {formatCurrency(product.price)} × {product.quantity}
+                        {formatNaira(product.price)} × {product.quantity}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Total: {formatCurrency(product.totalPrice)}
+                        Total: {formatNaira(product.totalPrice)}
                       </p>
                     </div>
                   </div>
@@ -501,7 +374,12 @@ export default function EscrowReleaseDetail({
                     Delivered Date
                   </Label>
                   <p className="font-medium">
-                    {format(new Date(subOrder.deliveryInfo.deliveredAt), "PPP")}
+                    {subOrder.deliveryInfo.deliveredAt
+                      ? format(
+                          new Date(subOrder.deliveryInfo.deliveredAt),
+                          "PPP"
+                        )
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
@@ -565,9 +443,7 @@ export default function EscrowReleaseDetail({
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Cost:{" "}
-                      {formatCurrency(
-                        subOrder.deliveryInfo.shippingMethod.price
-                      )}
+                      {formatNaira(subOrder.deliveryInfo.shippingMethod.price)}
                     </p>
                     {subOrder.deliveryInfo.shippingMethod.description && (
                       <p className="text-sm text-muted-foreground">
@@ -586,11 +462,12 @@ export default function EscrowReleaseDetail({
                   <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm">
-                      {subOrder.orderContext.shippingAddress.address}
+                      {subOrder.orderContext.shippingAddress?.address || "N/A"}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Postal Code:{" "}
-                      {subOrder.orderContext.shippingAddress.postalCode}
+                      {subOrder.orderContext.shippingAddress?.postalCode ||
+                        "N/A"}
                     </p>
                   </div>
                 </div>
@@ -730,9 +607,8 @@ export default function EscrowReleaseDetail({
                   Amount
                 </Label>
                 <div className="flex items-center space-x-2">
-                  <DollarSign className="w-4 h-4 text-soraxi-green" />
                   <p className="text-lg font-bold text-soraxi-green">
-                    {formatCurrency(subOrder.escrowInfo.amount)}
+                    {formatNaira(subOrder.escrowInfo.amount)}
                   </p>
                 </div>
               </div>
@@ -815,13 +691,11 @@ export default function EscrowReleaseDetail({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center">
-              <DollarSign className="w-5 h-5 mr-2 text-soraxi-green" />
               Confirm Escrow Release
             </DialogTitle>
             <DialogDescription>
-              You are about to release{" "}
-              {formatCurrency(subOrder.escrowInfo.amount)} to{" "}
-              {subOrder.store.name}. This action cannot be undone.
+              You are about to release {formatNaira(subOrder.escrowInfo.amount)}{" "}
+              to {subOrder.store.name}. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
@@ -835,7 +709,7 @@ export default function EscrowReleaseDetail({
                 <div>
                   <span className="text-muted-foreground">Amount:</span>
                   <p className="font-medium">
-                    {formatCurrency(subOrder.escrowInfo.amount)}
+                    {formatNaira(subOrder.escrowInfo.amount)}
                   </p>
                 </div>
                 <div>
@@ -856,7 +730,7 @@ export default function EscrowReleaseDetail({
                 placeholder="Add any notes about this escrow release..."
                 value={releaseNotes}
                 onChange={(e) => setReleaseNotes(e.target.value)}
-                className="mt-1"
+                className="mt-3"
               />
             </div>
           </div>
@@ -872,7 +746,7 @@ export default function EscrowReleaseDetail({
             <Button
               onClick={handleReleaseEscrow}
               disabled={releasing}
-              className="bg-soraxi-green hover:bg-soraxi-green/90"
+              className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
             >
               {releasing ? (
                 <>
@@ -880,10 +754,7 @@ export default function EscrowReleaseDetail({
                   Releasing...
                 </>
               ) : (
-                <>
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Release Funds
-                </>
+                <>Release Funds</>
               )}
             </Button>
           </DialogFooter>

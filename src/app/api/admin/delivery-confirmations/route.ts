@@ -164,12 +164,12 @@ export async function GET(request: NextRequest) {
      * 4. Populate customer and store data
      * 5. Format results for display
      */
-    const pipeline = [
+    const pipeline: mongoose.PipelineStage[] = [
       // Initial match for orders with qualifying sub-orders
       { $match: baseMatch },
 
       // Unwind sub-orders to process individually
-      { $unwind: "$subOrders" },
+      { $unwind: { path: "$subOrders" } },
 
       // Apply sub-order specific filters
       {
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
           "subOrders.deliveryStatus": "Delivered",
           "subOrders.customerConfirmedDelivery.confirmed": false,
           "subOrders.deliveryDate": { $lte: twoDaysAgo },
-          ...(userIds.length > 0 && { user: { $in: userIds } }),
+          ...(userIds.length > 0 ? { user: { $in: userIds } } : {}),
         },
       },
 
@@ -401,8 +401,15 @@ export async function POST(request: NextRequest) {
 
     // Extract the updated sub-order from the result
     const updatedSubOrder = result.subOrders.find(
-      (so: any) => so._id.toString() === subOrderId
+      (so: any) => so._id?.toString() === subOrderId
     );
+
+    if (!updatedSubOrder || !updatedSubOrder._id) {
+      return NextResponse.json(
+        { error: "Updated sub-order not found" },
+        { status: 404 }
+      );
+    }
 
     // ==================== Audit Logging ====================
 

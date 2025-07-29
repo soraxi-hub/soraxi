@@ -6,13 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Table,
   TableBody,
@@ -22,7 +16,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DollarSign,
   Eye,
   Clock,
   CheckCircle,
@@ -43,110 +36,45 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import Link from "next/link";
-import { toast } from "sonner";
-
-/**
- * Escrow Release Queue Component
- * Interface for managing escrow fund releases to sellers
- */
-
-interface EscrowSubOrder {
-  id: string;
-  orderNumber: string;
-  subOrderNumber: string;
-  orderId: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  store: {
-    id: string;
-    name: string;
-    email: string;
-    logo?: string;
-  };
-  products: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-    image?: string;
-  }>;
-  escrowAmount: number;
-  deliveryInfo: {
-    status: string;
-    deliveredAt: string;
-    returnWindow: string;
-    daysSinceReturnWindow: number;
-    customerConfirmed: boolean;
-    autoConfirmed: boolean;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface EscrowSummary {
-  totalPendingReleases: number;
-  totalEscrowAmount: number;
-  averageEscrowAmount: number;
-  oldestPendingDays: number;
-}
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { formatNaira } from "@/lib/utils/naira";
 
 export function EscrowReleaseQueue() {
-  const [subOrders, setSubOrders] = useState<EscrowSubOrder[]>([]);
-  const [summary, setSummary] = useState<EscrowSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
 
   // Filters
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
-  const [storeFilter, setStoreFilter] = useState<string>("all");
 
   // Pagination
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [totalSubOrders, setTotalSubOrders] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10);
+  useState(1);
+
+  const {
+    data,
+    refetch: loadEscrowQueue,
+    isLoading: loading,
+  } = useQuery(
+    trpc.adminEscrowReleaseQueue.getEscrowReleaseQueue.queryOptions({
+      page,
+      limit,
+      fromDate: fromDate?.toISOString(),
+      toDate: toDate?.toISOString(),
+      search: searchQuery,
+    })
+  );
+
+  const subOrders = data?.subOrders || [];
+  const summary = data?.summary;
+  const totalSubOrders = data?.pagination.total || 0;
+  const totalPages = data?.pagination.pages || 1;
 
   useEffect(() => {
     loadEscrowQueue();
   }, [page, limit]);
-
-  const loadEscrowQueue = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-
-      // Add filters to params
-      if (fromDate) params.append("fromDate", fromDate.toISOString());
-      if (toDate) params.append("toDate", toDate.toISOString());
-      if (searchQuery) params.append("search", searchQuery);
-      if (storeFilter !== "all") params.append("storeId", storeFilter);
-
-      // Add pagination
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-
-      const response = await fetch(`/api/admin/escrow/release-queue?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setSubOrders(data.subOrders);
-        setSummary(data.summary);
-        setTotalSubOrders(data.pagination.total);
-        setTotalPages(data.pagination.pages);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error("Failed to load escrow release queue");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleApplyFilters = () => {
     setPage(1); // Reset to first page when applying new filters
@@ -157,7 +85,6 @@ export function EscrowReleaseQueue() {
     setFromDate(undefined);
     setToDate(undefined);
     setSearchQuery("");
-    setStoreFilter("all");
     setPage(1);
     // Load data with reset filters
     setTimeout(() => {
@@ -169,13 +96,6 @@ export function EscrowReleaseQueue() {
     if (newPage > 0 && newPage <= totalPages) {
       setPage(newPage);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount / 100);
   };
 
   const getPriorityBadge = (daysSinceReturnWindow: number) => {
@@ -245,11 +165,11 @@ export function EscrowReleaseQueue() {
               <CardTitle className="text-sm font-medium">
                 Total Escrow Amount
               </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <p className="text-muted-foreground">₦</p>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(summary.totalEscrowAmount)}
+                {formatNaira(summary.totalEscrowAmount)}
               </div>
               <p className="text-xs text-muted-foreground">
                 Funds ready for release
@@ -266,7 +186,7 @@ export function EscrowReleaseQueue() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(summary.averageEscrowAmount)}
+                {formatNaira(summary.averageEscrowAmount)}
               </div>
               <p className="text-xs text-muted-foreground">Per sub-order</p>
             </CardContent>
@@ -300,7 +220,7 @@ export function EscrowReleaseQueue() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Search</Label>
               <div className="relative">
@@ -315,7 +235,7 @@ export function EscrowReleaseQueue() {
             </div>
             <div className="space-y-2">
               <Label>Date Range</Label>
-              <div className="flex space-x-2">
+              <div className="grid gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -361,19 +281,8 @@ export function EscrowReleaseQueue() {
                 </Popover>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Store</Label>
-              <Select value={storeFilter} onValueChange={setStoreFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stores</SelectItem>
-                  {/* Add store options dynamically */}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end space-x-2">
+            <div className="grid gap-2">
+              <Label>Apply Changes</Label>
               <Button
                 onClick={handleApplyFilters}
                 className="flex-1 bg-soraxi-green hover:bg-soraxi-green/90"
@@ -398,7 +307,7 @@ export function EscrowReleaseQueue() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <DollarSign className="w-5 h-5 mr-2 text-soraxi-green" />
+            <p className="mr-2 text-soraxi-green">₦</p>
             Escrow Release Queue ({totalSubOrders})
           </CardTitle>
         </CardHeader>
@@ -445,7 +354,7 @@ export function EscrowReleaseQueue() {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-soraxi-green/10 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-soraxi-green" />
+                          <p className="text-soraxi-green">₦</p>
                         </div>
                         <div>
                           <p className="font-medium">
@@ -485,9 +394,8 @@ export function EscrowReleaseQueue() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
-                        <DollarSign className="w-3 h-3" />
                         <span className="font-medium">
-                          {formatCurrency(subOrder.escrowAmount)}
+                          {formatNaira(subOrder.escrowAmount)}
                         </span>
                       </div>
                     </TableCell>
@@ -499,9 +407,11 @@ export function EscrowReleaseQueue() {
                     <TableCell>
                       <div className="text-sm">
                         <p>
-                          {new Date(
-                            subOrder.deliveryInfo.deliveredAt
-                          ).toLocaleDateString()}
+                          {subOrder.deliveryInfo.deliveredAt
+                            ? new Date(
+                                subOrder.deliveryInfo.deliveredAt
+                              ).toLocaleDateString()
+                            : "N/A"}
                         </p>
                         <p className="text-muted-foreground">
                           {subOrder.deliveryInfo.customerConfirmed

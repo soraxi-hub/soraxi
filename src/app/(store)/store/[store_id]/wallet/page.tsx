@@ -28,8 +28,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 export default function StoreWalletPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showWithdrawal, setShowWithdrawal] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [walletBalance] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   /**
    * Handle successful withdrawal
@@ -44,7 +43,8 @@ export default function StoreWalletPage() {
    * Handle withdrawal button click
    * Opens withdrawal dialog and loads current balance
    */
-  const handleWithdrawClick = () => {
+  const handleWithdrawClick = (val: number) => {
+    setWalletBalance(val);
     setShowWithdrawal(true);
   };
 
@@ -108,8 +108,8 @@ export default function StoreWalletPage() {
           {/* Wallet Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <WalletOverview
-              onWithdrawClick={handleWithdrawClick}
-              onTransactionHistoryClick={handleTransactionHistoryClick}
+              onWithdrawClickAction={handleWithdrawClick}
+              onTransactionHistoryClickAction={handleTransactionHistoryClick}
             />
           </TabsContent>
 
@@ -125,8 +125,8 @@ export default function StoreWalletPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <WithdrawalRequest
             availableBalance={walletBalance}
-            onWithdrawalSuccess={handleWithdrawalSuccess}
-            onClose={() => setShowWithdrawal(false)}
+            onWithdrawalSuccessAction={handleWithdrawalSuccess}
+            onCloseAction={() => setShowWithdrawal(false)}
           />
         </DialogContent>
       </Dialog>

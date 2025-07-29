@@ -2,9 +2,9 @@ import { getAdminFromCookie } from "@/lib/helpers/get-admin-from-cookie";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { initTRPC } from "@trpc/server";
-import { cache } from "react";
+import SuperJSON from "superjson";
 
-export const createTRPCContext = cache(async () => {
+export const createTRPCContext = async () => {
   /**
    * @see: https://trpc.io/docs/server/context
    */
@@ -13,7 +13,7 @@ export const createTRPCContext = cache(async () => {
   const store = await getStoreFromCookie();
   const admin = await getAdminFromCookie();
   return { user, store, admin };
-});
+};
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
@@ -25,7 +25,7 @@ const t = initTRPC.context<Context>().create({
   /**
    * @see https://trpc.io/docs/server/data-transformers
    */
-  // transformer: superjson,
+  transformer: SuperJSON,
 });
 
 // Optional: Middleware to ensure proper context structure (not required unless you want to modify it)

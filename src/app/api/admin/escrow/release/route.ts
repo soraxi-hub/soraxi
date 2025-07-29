@@ -4,7 +4,7 @@ import {
   getWalletModel,
   getWalletTransactionModel,
 } from "@/lib/db/models/wallet.model";
-import { getStoreModel } from "@/lib/db/models/store.model";
+import { IStore } from "@/lib/db/models/store.model";
 import { getAdminFromRequest } from "@/lib/admin/permissions";
 import {
   logAdminAction,
@@ -13,6 +13,14 @@ import {
 } from "@/lib/admin/audit-logger";
 import mongoose from "mongoose";
 import { Role } from "@/modules/shared/roles";
+import { calculateCommission } from "@/lib/utils/calculate-commission";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
+import { sendMail, wrapWithBrandedTemplate } from "@/services/mail.service";
+import { siteConfig } from "@/config/site";
+import { IUser } from "@/lib/db/models/user.model";
+
+type PopulatedStore = Pick<IStore, "_id" | "name" | "storeEmail">;
+type PopulatedUser = Pick<IUser, "_id" | "firstName" | "lastName" | "email">;
 
 /**
  * Admin Escrow Release Action API Route Handler
@@ -107,7 +115,6 @@ export async function POST(request: NextRequest) {
     const Order = await getOrderModel();
     const Wallet = await getWalletModel();
     const WalletTransaction = await getWalletTransactionModel();
-    const Store = await getStoreModel();
 
     // ==================== Find and Validate Sub-Order ====================
 
@@ -185,7 +192,7 @@ export async function POST(request: NextRequest) {
     /**
      * Ensure Seller Has a Wallet
      *
-     * Finds the seller's wallet or creates one if it doesn't exist.
+     * Finds the seller's wallet.
      */
     let sellerWallet = await Wallet.findOne({ store: subOrder.store }).session(
       session
@@ -194,17 +201,6 @@ export async function POST(request: NextRequest) {
     if (!sellerWallet) {
       throw new Error(`Store Wallet not found: storeId = ${subOrder.store}`);
     }
-    // if (!sellerWallet) {
-    //   // Create wallet if it doesn't exist
-    //   sellerWallet = new Wallet({
-    //     store: subOrder.store,
-    //     balance: 0,
-    //     pending: 0,
-    //     totalEarned: 0,
-    //     currency: "NGN",
-    //   })
-    //   await sellerWallet.save({ session })
-    // }
 
     // ==================== Calculate Release Amount ====================
 
@@ -214,7 +210,17 @@ export async function POST(request: NextRequest) {
      * The full sub-order amount will be released to the seller.
      * Platform fees would have been deducted during order creation.
      */
-    const releaseAmount = subOrder.totalAmount;
+    const settleAmount = calculateCommission(subOrder.totalAmount).settleAmount;
+    const releaseAmount = currencyOperations.add(
+      settleAmount,
+      subOrder.shippingMethod?.price ?? 0
+    );
+
+    // ==================== Update Settlement Amounts ===============
+    if (subOrder.settlement) {
+      subOrder.settlement.amount = settleAmount;
+      subOrder.settlement.shippingPrice = subOrder.shippingMethod?.price ?? 0;
+    }
 
     // ==================== Update Escrow Status ====================
 
@@ -252,7 +258,9 @@ export async function POST(request: NextRequest) {
       type: "credit",
       amount: releaseAmount,
       source: "order",
-      description: `Escrow release for order ${orderWithSubOrder._id
+      description: `Escrow release for order ${(
+        orderWithSubOrder._id as { toString(): string }
+      )
         .toString()
         .substring(0, 8)
         .toUpperCase()}`,
@@ -260,6 +268,55 @@ export async function POST(request: NextRequest) {
     });
 
     await walletTransaction.save({ session });
+
+    // TODO: Add a logic for updating platform's earnings for the month and total/overall earnings.
+
+    // ==================== Notify Store ====================
+
+    /**
+     * Send Escrow Release Notification to Store
+     *
+     * Informs the store owner that their escrow funds have been released
+     * and are now available in their wallet.
+     */
+    const storeEmail =
+      typeof subOrder.store === "object" && "storeEmail" in subOrder.store
+        ? (subOrder.store as unknown as PopulatedStore).storeEmail
+        : undefined;
+    if (storeEmail) {
+      await sendMail({
+        email: storeEmail,
+        emailType: "storeOrderNotification",
+        subject: `Escrow Released for Order ${(
+          orderWithSubOrder._id as { toString(): string }
+        )
+          .toString()
+          .substring(0, 8)
+          .toUpperCase()}`,
+        html: wrapWithBrandedTemplate({
+          title: "Escrow Release Notification",
+          bodyContent: `
+            <h2>Escrow Funds Released</h2>
+            <p>Your escrow funds for order <strong>SUB-${subOrder._id
+              ?.toString()
+              .substring(0, 8)
+              .toUpperCase()}</strong> have been released.</p>
+            <p><strong>Amount Released:</strong> ${formatNaira(
+              releaseAmount
+            )}</p>
+            <p><strong>New Wallet Balance:</strong> ${formatNaira(
+              sellerWallet.balance
+            )}</p>
+            <p>The funds are now available in your wallet for withdrawal.</p>
+            <p>Transaction ID: ${walletTransaction._id
+              .toString()
+              .substring(0, 8)
+              .toUpperCase()}</p>
+            <p>Thank you for selling with ${siteConfig.name}!</p>
+          `,
+        }),
+      });
+    }
 
     // ==================== Commit Transaction ====================
 
@@ -283,8 +340,8 @@ export async function POST(request: NextRequest) {
       message: "Escrow funds released successfully",
       release: {
         subOrderId: subOrder._id?.toString(),
-        orderId: orderWithSubOrder._id.toString(),
-        orderNumber: `ORD-${orderWithSubOrder._id
+        orderId: (orderWithSubOrder._id as { toString(): string }).toString(),
+        orderNumber: `ORD-${(orderWithSubOrder._id as { toString(): string })
           .toString()
           .substring(0, 8)
           .toUpperCase()}`,
@@ -296,15 +353,34 @@ export async function POST(request: NextRequest) {
         currency: "NGN",
         releasedAt: subOrder.escrow.releasedAt?.toISOString(),
         seller: {
-          id: subOrder.store._id?.toString(),
-          name: (subOrder.store as any).name,
-          email: (subOrder.store as any).storeEmail,
+          id:
+            typeof subOrder.store === "object" && "_id" in subOrder.store
+              ? subOrder.store._id?.toString()
+              : undefined,
+          name:
+            typeof subOrder.store === "object" && "name" in subOrder.store
+              ? (subOrder.store as unknown as PopulatedStore).name
+              : undefined,
+          email:
+            typeof subOrder.store === "object" && "storeEmail" in subOrder.store
+              ? (subOrder.store as unknown as PopulatedStore).storeEmail
+              : undefined,
         },
         customer: {
-          name: `${(orderWithSubOrder.user as any).firstName} ${
-            (orderWithSubOrder.user as any).lastName
-          }`,
-          email: (orderWithSubOrder.user as any).email,
+          name:
+            typeof orderWithSubOrder.user === "object" &&
+            "firstName lastName" in orderWithSubOrder.user
+              ? `${
+                  (orderWithSubOrder.user as unknown as PopulatedUser).firstName
+                } ${
+                  (orderWithSubOrder.user as unknown as PopulatedUser).lastName
+                }`
+              : "unknown customer",
+          email:
+            typeof orderWithSubOrder.user === "object" &&
+            "email" in orderWithSubOrder.user
+              ? (orderWithSubOrder.user as unknown as PopulatedUser).email
+              : "N/R",
         },
         walletTransaction: {
           id: walletTransaction._id.toString(),
@@ -330,11 +406,21 @@ export async function POST(request: NextRequest) {
       details: {
         action: "escrow_release",
         subOrderId,
-        orderId: orderWithSubOrder._id.toString(),
+        orderId: (orderWithSubOrder._id as { toString(): string }).toString(),
         amount: releaseAmount,
-        sellerId: subOrder.store._id?.toString(),
-        sellerName: (subOrder.store as any).name,
-        customerEmail: (orderWithSubOrder.user as any).email,
+        sellerId:
+          typeof subOrder.store === "object" && "_id" in subOrder.store
+            ? (subOrder.store as unknown as PopulatedStore)._id
+            : subOrder.store.toString(),
+        sellerName:
+          typeof subOrder.store === "object" && "name" in subOrder.store
+            ? (subOrder.store as unknown as PopulatedStore).name
+            : undefined,
+        customerEmail:
+          typeof orderWithSubOrder.user === "object" &&
+          "email" in orderWithSubOrder.user
+            ? (orderWithSubOrder.user as unknown as PopulatedUser).email
+            : "N/R",
         notes: notes || null,
         walletTransactionId: walletTransaction._id.toString(),
         newWalletBalance: sellerWallet.balance,

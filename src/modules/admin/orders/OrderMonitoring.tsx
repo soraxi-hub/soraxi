@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -33,7 +26,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -41,10 +33,6 @@ import {
   MoreHorizontal,
   Eye,
   Package,
-  Truck,
-  CheckCircle,
-  XCircle,
-  DollarSign,
   User,
   Store,
   Search,
@@ -60,57 +48,21 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { AppRouter } from "@/trpc/routers/_app";
+import { inferProcedureOutput } from "@trpc/server";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 
 /**
  * Order Monitoring Component
  * Interface for monitoring and managing customer orders
  */
-
-interface OrderData {
-  id: string;
-  orderNumber: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  store: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    image?: string;
-  }>;
-  status:
-    | "Order Placed"
-    | "Processing"
-    | "Shipped"
-    | "Out for Delivery"
-    | "Delivered"
-    | "Canceled"
-    | "Returned"
-    | "Failed Delivery"
-    | "Refunded";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
-  totalAmount: number;
-  shippingAddress: {
-    postalCode: string;
-    address: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  trackingNumber?: string;
-  notes?: string;
-}
+type Output = inferProcedureOutput<AppRouter["adminOrders"]["listOrders"]>;
+type OrderData = Output["orders"][number];
 
 export function OrderMonitoring() {
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
@@ -122,45 +74,27 @@ export function OrderMonitoring() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10);
 
-  useEffect(() => {
-    loadOrders();
-  }, [statusFilter, page, limit]);
+  const {
+    data,
+    isLoading: loading,
+    refetch: loadOrders,
+    error,
+  } = useQuery(
+    trpc.adminOrders.listOrders.queryOptions({
+      page,
+      limit,
+      fromDate: fromDate?.toISOString(),
+      toDate: toDate?.toISOString(),
+      status: statusFilter,
+      search: searchQuery,
+    })
+  );
 
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-
-      // Add filters to params
-      if (statusFilter !== "all") params.append("status", statusFilter);
-      if (fromDate) params.append("fromDate", fromDate.toISOString());
-      if (toDate) params.append("toDate", toDate.toISOString());
-      if (searchQuery) params.append("search", searchQuery);
-
-      // Add pagination
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-
-      const response = await fetch(`/api/admin/orders?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setOrders(data.orders);
-        setTotalOrders(data.pagination.total);
-        setTotalPages(data.pagination.pages);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error("Failed to load orders");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const orders = data?.orders || [];
+  const totalOrders = data?.pagination?.total || 0;
+  const totalPages = data?.pagination?.pages || 1;
 
   const handleOrderAction = async (
     orderId: string,
@@ -178,7 +112,7 @@ export function OrderMonitoring() {
 
       if (response.ok) {
         toast.success(result.message);
-        loadOrders();
+        // loadOrders();
         setSelectedOrder(null);
         setShowOrderDetails(false);
       } else {
@@ -187,26 +121,6 @@ export function OrderMonitoring() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action failed");
     }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      "Order Placed": "bg-yellow-100 text-yellow-800",
-      Processing: "bg-blue-100 text-blue-800",
-      Shipped: "bg-purple-100 text-purple-800",
-      "Out for Delivery": "bg-indigo-100 text-indigo-800",
-      Delivered: "bg-green-100 text-green-800",
-      Canceled: "bg-red-100 text-red-800",
-      Returned: "bg-orange-100 text-orange-800",
-      "Failed Delivery": "bg-gray-100 text-gray-800",
-      Refunded: "bg-pink-100 text-pink-800",
-    };
-
-    return (
-      <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
-        {status}
-      </Badge>
-    );
   };
 
   const getPaymentBadge = (status: string) => {
@@ -247,6 +161,15 @@ export function OrderMonitoring() {
     }
   };
 
+  if (error) {
+    // You can customize how you want to show the error
+    return (
+      <div className="text-red-500">
+        {error.message} {/* Will show "Unauthorized access" */}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -270,7 +193,7 @@ export function OrderMonitoring() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Search</Label>
               <div className="relative">
@@ -284,32 +207,8 @@ export function OrderMonitoring() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Order Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Order Placed">Order Placed</SelectItem>
-                  <SelectItem value="Processing">Processing</SelectItem>
-                  <SelectItem value="Shipped">Shipped</SelectItem>
-                  <SelectItem value="Out for Delivery">
-                    Out for Delivery
-                  </SelectItem>
-                  <SelectItem value="Delivered">Delivered</SelectItem>
-                  <SelectItem value="Canceled">Canceled</SelectItem>
-                  <SelectItem value="Returned">Returned</SelectItem>
-                  <SelectItem value="Failed Delivery">
-                    Failed Delivery
-                  </SelectItem>
-                  <SelectItem value="Refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label>Date Range</Label>
-              <div className="flex space-x-2">
+              <div className="grid gap-3">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -331,6 +230,7 @@ export function OrderMonitoring() {
                     />
                   </PopoverContent>
                 </Popover>
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -355,7 +255,8 @@ export function OrderMonitoring() {
                 </Popover>
               </div>
             </div>
-            <div className="flex items-end space-x-2">
+            <div className="grid gap-2">
+              <Label>Apply Changes</Label>
               <Button
                 onClick={handleApplyFilters}
                 className="flex-1 bg-soraxi-green hover:bg-soraxi-green/90"
@@ -392,7 +293,6 @@ export function OrderMonitoring() {
                 <TableHead>Customer</TableHead>
                 <TableHead>Store</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Actions</TableHead>
@@ -463,15 +363,7 @@ export function OrderMonitoring() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <DollarSign className="w-3 h-3" />
-                        <span className="font-medium">
-                          {(order.totalAmount / 100).toFixed(2)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell>{formatNaira(order.totalAmount)}</TableCell>
                     <TableCell>
                       {getPaymentBadge(order.paymentStatus)}
                     </TableCell>
@@ -501,42 +393,6 @@ export function OrderMonitoring() {
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {order.status === "Order Placed" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleOrderAction(order.id, "confirm")
-                              }
-                              className="text-green-600"
-                            >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Confirm Order
-                            </DropdownMenuItem>
-                          )}
-                          {["Order Placed", "Processing"].includes(
-                            order.status
-                          ) && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleOrderAction(order.id, "cancel")
-                              }
-                              className="text-red-600"
-                            >
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Cancel Order
-                            </DropdownMenuItem>
-                          )}
-                          {order.status === "Processing" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleOrderAction(order.id, "ship")
-                              }
-                              className="text-blue-600"
-                            >
-                              <Truck className="w-4 h-4 mr-2" />
-                              Mark Shipped
-                            </DropdownMenuItem>
-                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -637,12 +493,6 @@ export function OrderMonitoring() {
                       <p className="text-sm">{selectedOrder.orderNumber}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Status</Label>
-                      <div className="mt-1">
-                        {getStatusBadge(selectedOrder.status)}
-                      </div>
-                    </div>
-                    <div>
                       <Label className="text-sm font-medium">
                         Payment Status
                       </Label>
@@ -655,19 +505,9 @@ export function OrderMonitoring() {
                         Total Amount
                       </Label>
                       <p className="text-sm font-medium">
-                        ${(selectedOrder.totalAmount / 100).toFixed(2)}
+                        {formatNaira(selectedOrder.totalAmount)}
                       </p>
                     </div>
-                    {selectedOrder.trackingNumber && (
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Tracking Number
-                        </Label>
-                        <p className="text-sm">
-                          {selectedOrder.trackingNumber}
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 
@@ -730,13 +570,17 @@ export function OrderMonitoring() {
                         <div className="flex-1">
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Quantity: {item.quantity} × $
-                            {(item.price / 100).toFixed(2)}
+                            Quantity: {item.quantity} ×{formatNaira(item.price)}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">
-                            ${((item.quantity * item.price) / 100).toFixed(2)}
+                            {formatNaira(
+                              currencyOperations.multiply(
+                                item.price,
+                                item.quantity
+                              )
+                            )}
                           </p>
                         </div>
                       </div>
@@ -752,9 +596,10 @@ export function OrderMonitoring() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm">
-                    <p>{selectedOrder.shippingAddress.address}</p>
+                    <p>{selectedOrder.shippingAddress?.address || "unKnown"}</p>
                     <p>
-                      Postal Code: {selectedOrder.shippingAddress.postalCode}
+                      Postal Code:{" "}
+                      {selectedOrder.shippingAddress?.postalCode || "unKnown"}
                     </p>
                   </div>
                 </CardContent>
@@ -774,39 +619,6 @@ export function OrderMonitoring() {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 justify-end">
-                {selectedOrder.status === "Order Placed" && (
-                  <Button
-                    onClick={() =>
-                      handleOrderAction(selectedOrder.id, "confirm")
-                    }
-                    className="bg-soraxi-green hover:bg-soraxi-green/90"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Confirm Order
-                  </Button>
-                )}
-                {selectedOrder.status === "Processing" && (
-                  <Button
-                    onClick={() => handleOrderAction(selectedOrder.id, "ship")}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Truck className="w-4 h-4 mr-2" />
-                    Mark Shipped
-                  </Button>
-                )}
-                {["Order Placed", "Processing"].includes(
-                  selectedOrder.status
-                ) && (
-                  <Button
-                    onClick={() =>
-                      handleOrderAction(selectedOrder.id, "cancel")
-                    }
-                    variant="destructive"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Cancel Order
-                  </Button>
-                )}
                 <Button
                   variant="outline"
                   onClick={() => setShowOrderDetails(false)}

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -26,7 +25,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -47,89 +45,63 @@ import {
   XCircle,
   Pause,
   Play,
-  MessageSquare,
   Search,
   Filter,
   MoreVerticalIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { IStore } from "@/lib/db/models/store.model";
+import { inferProcedureOutput } from "@trpc/server";
+import { AppRouter } from "@/trpc/routers/_app";
+
+type Output = inferProcedureOutput<AppRouter["adminStore"]["listStores"]>;
+type StoreData = Output["stores"][number];
+
+type Status = IStore["status"];
+type VerificationFilter = "all" | "true" | "false";
 
 /**
  * Store Management Component
  * Comprehensive store administration interface
  */
-
-interface StoreData {
-  id: string;
-  name: string;
-  storeEmail: string;
-  status: "active" | "pending" | "suspended" | "rejected";
-  verification: {
-    isVerified: boolean;
-    method: string;
-    notes?: string;
-  };
-  businessInfo: {
-    type: "individual" | "company";
-    businessName?: string;
-    registrationNumber?: string;
-  };
-  stats: {
-    totalProducts: number;
-    totalOrders: number;
-    totalRevenue: number;
-    averageRating: number;
-  };
-  createdAt: string;
-  lastActivity: string;
-  notes: Array<{
-    id: string;
-    adminName: string;
-    content: string;
-    createdAt: string;
-  }>;
-}
-
 export function StoreManagement() {
-  const [stores, setStores] = useState<StoreData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
   const [selectedStore, setSelectedStore] = useState<StoreData | null>(null);
   const [showStoreDetails, setShowStoreDetails] = useState(false);
-  const [showAddNote, setShowAddNote] = useState(false);
-  const [newNote, setNewNote] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [verificationFilter, setVerificationFilter] = useState<string>("all");
+  const [verificationFilter, setVerificationFilter] =
+    useState<VerificationFilter>("all");
 
+  // Use useQuery directly in component body
+  const {
+    data,
+    isLoading,
+    refetch: refetchStore,
+  } = useQuery(
+    trpc.adminStore.listStores.queryOptions({
+      search: searchQuery,
+      status: statusFilter,
+      verified: verificationFilter,
+      limit,
+      page,
+    })
+  );
+
+  const stores = data?.stores || [];
+  const loading = isLoading;
+  const total = data?.pagination.total || 0;
+
+  // Reset to page 1 when filters change
   useEffect(() => {
-    loadStores();
-  }, [statusFilter, verificationFilter]);
-
-  const loadStores = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") params.append("status", statusFilter);
-      if (verificationFilter !== "all")
-        params.append("verified", verificationFilter);
-      if (searchQuery) params.append("search", searchQuery);
-
-      const response = await fetch(`/api/admin/stores?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setStores(data.stores);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error("Failed to load stores");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setPage(1);
+  }, [statusFilter, verificationFilter, searchQuery, limit]);
 
   const handleStoreAction = async (
     storeId: string,
@@ -147,7 +119,7 @@ export function StoreManagement() {
 
       if (response.ok) {
         toast.success(data.message);
-        loadStores();
+        refetchStore();
         setSelectedStore(null);
         setShowStoreDetails(false);
       } else {
@@ -155,35 +127,6 @@ export function StoreManagement() {
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action failed");
-    }
-  };
-
-  const handleAddNote = async () => {
-    if (!selectedStore || !newNote.trim()) return;
-
-    try {
-      const response = await fetch(
-        `/api/admin/stores/${selectedStore.id}/notes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: newNote }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("Note added successfully");
-        setNewNote("");
-        setShowAddNote(false);
-        // Refresh store details
-        loadStores();
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error("Failed to add note");
     }
   };
 
@@ -243,7 +186,10 @@ export function StoreManagement() {
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(e: Status | "all") => setStatusFilter(e)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -260,7 +206,9 @@ export function StoreManagement() {
               <Label>Verification</Label>
               <Select
                 value={verificationFilter}
-                onValueChange={setVerificationFilter}
+                onValueChange={(e: VerificationFilter) =>
+                  setVerificationFilter(e)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -273,7 +221,7 @@ export function StoreManagement() {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button onClick={loadStores} className="w-full">
+              <Button onClick={() => refetchStore()} className="w-full">
                 <Filter className="w-4 h-4 mr-2" />
                 Apply Filters
               </Button>
@@ -330,20 +278,28 @@ export function StoreManagement() {
                     </TableCell>
                     <TableCell>{getStatusBadge(store.status)}</TableCell>
                     <TableCell>
-                      {store.verification.isVerified ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          Verified
-                        </Badge>
+                      {store.verification ? (
+                        store.verification.isVerified ? (
+                          <Badge className="bg-green-100 text-green-800">
+                            Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Unverified</Badge>
+                        )
                       ) : (
-                        <Badge variant="secondary">Unverified</Badge>
+                        <Badge>Hasn't completed the onboarding Process</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {store.businessInfo.type === "company"
-                          ? "Company"
-                          : "Individual"}
-                      </Badge>
+                      {store.businessInfo ? (
+                        <Badge variant="outline">
+                          {store.businessInfo.type === "company"
+                            ? "Company"
+                            : "Individual"}
+                        </Badge>
+                      ) : (
+                        <Badge>Hasn't completed the onboarding Process</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
@@ -423,15 +379,6 @@ export function StoreManagement() {
                               Reactivate
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedStore(store);
-                              setShowAddNote(true);
-                            }}
-                          >
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Add Note
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -440,6 +387,32 @@ export function StoreManagement() {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination Controls */}
+          {!isLoading && stores.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {(page - 1) * limit + 1} to{" "}
+                {Math.min(page * limit, total)} of {total} stores
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page * limit >= total}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -481,19 +454,9 @@ export function StoreManagement() {
                         Business Type
                       </Label>
                       <p className="text-sm">
-                        {selectedStore.businessInfo.type}
+                        {selectedStore.businessInfo?.type || "unKnown"}
                       </p>
                     </div>
-                    {selectedStore.businessInfo.businessName && (
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Business Name
-                        </Label>
-                        <p className="text-sm">
-                          {selectedStore.businessInfo.businessName}
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 
@@ -529,73 +492,8 @@ export function StoreManagement() {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Notes */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Internal Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedStore.notes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No notes added yet
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {selectedStore.notes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="border border-border rounded-lg p-3"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium">
-                              {note.adminName}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(note.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="text-sm">{note.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Note Dialog */}
-      <Dialog open={showAddNote} onOpenChange={setShowAddNote}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Internal Note</DialogTitle>
-            <DialogDescription>
-              Add a note about {selectedStore?.name} for other admins
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="note">Note</Label>
-              <Textarea
-                id="note"
-                placeholder="Enter your note here..."
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddNote(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddNote} disabled={!newNote.trim()}>
-              Add Note
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -257,33 +257,33 @@ export async function GET(request: NextRequest) {
       );
 
       // Determine overall order status (using the "worst" status across sub-orders)
-      const statusPriority = {
-        Canceled: 1,
-        Refunded: 2,
-        "Failed Delivery": 3,
-        Returned: 4,
-        "Order Placed": 5,
-        Processing: 6,
-        Shipped: 7,
-        "Out for Delivery": 8,
-        Delivered: 9,
-      };
+      // const statusPriority = {
+      //   Canceled: 1,
+      //   Refunded: 2,
+      //   "Failed Delivery": 3,
+      //   Returned: 4,
+      //   "Order Placed": 5,
+      //   Processing: 6,
+      //   Shipped: 7,
+      //   "Out for Delivery": 8,
+      //   Delivered: 9,
+      // };
 
-      let overallStatus = "Order Placed";
-      if (order.subOrders && order.subOrders.length > 0) {
-        // Find the status with the lowest priority (worst status)
-        overallStatus = order.subOrders.reduce((worst, subOrder) => {
-          const currentPriority =
-            statusPriority[
-              subOrder.deliveryStatus as keyof typeof statusPriority
-            ] || 5;
-          const worstPriority =
-            statusPriority[worst as keyof typeof statusPriority] || 5;
-          return currentPriority < worstPriority
-            ? subOrder.deliveryStatus
-            : worst;
-        }, "Order Placed");
-      }
+      // let overallStatus = "Order Placed";
+      // if (order.subOrders && order.subOrders.length > 0) {
+      //   // Find the status with the lowest priority (worst status)
+      //   overallStatus = order.subOrders.reduce((worst, subOrder) => {
+      //     const currentPriority =
+      //       statusPriority[
+      //         subOrder.deliveryStatus as keyof typeof statusPriority
+      //       ] || 5;
+      //     const worstPriority =
+      //       statusPriority[worst as keyof typeof statusPriority] || 5;
+      //     return currentPriority < worstPriority
+      //       ? subOrder.deliveryStatus
+      //       : worst;
+      //   }, "Order Placed");
+      // }
 
       // Determine payment status
       const paymentStatus = order.paymentStatus || "pending";
@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
         customer,
         store,
         items,
-        status: overallStatus,
+        // status: overallStatus,
         paymentStatus,
         totalAmount: order.totalAmount,
         shippingAddress: order.shippingAddress,

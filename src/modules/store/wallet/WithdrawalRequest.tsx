@@ -1,8 +1,6 @@
 "use client";
 
-import type React from "react";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,38 +21,27 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  X,
 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
+import type { inferProcedureOutput } from "@trpc/server";
+import type { AppRouter } from "@/trpc/routers/_app";
+import { cn } from "@/lib/utils";
+import { formatNaira } from "@/lib/utils/naira";
+import { toast } from "sonner";
 
 /**
- * Withdrawal Request Component
- *
- * Handles withdrawal requests from store wallet to bank account.
- * Provides comprehensive form validation, bank account verification,
- * and withdrawal processing with professional UI/UX.
- *
- * Features:
- * - Amount validation with minimum/maximum limits
- * - Bank account selection and verification
- * - Processing fee calculation and display
- * - Confirmation dialog with transaction summary
- * - Real-time form validation and error handling
- * - Professional withdrawal flow with status updates
+ * Type definitions for the component
  */
-
-interface BankAccount {
-  _id: string;
-  bankName: string;
-  accountNumber: string;
-  accountHolderName: string;
-  bankCode: number;
-  isVerified: boolean;
-}
+type Output = inferProcedureOutput<
+  AppRouter["payment"]["getStorePayoutAccounts"]
+>;
+type BankAccount = Output[number];
 
 interface WithdrawalRequestProps {
   availableBalance: number;
-  onWithdrawalSuccess: () => void;
-  onClose: () => void;
+  onWithdrawalSuccessAction: () => void;
+  onCloseAction: () => void;
 }
 
 interface WithdrawalForm {
@@ -63,12 +50,26 @@ interface WithdrawalForm {
   description: string;
 }
 
+/**
+ * WithdrawalRequest Component
+ *
+ * A comprehensive withdrawal request form that handles:
+ * - Bank account selection from verified payout accounts
+ * - Amount validation against available balance
+ * - Fee calculation and transparent breakdown
+ * - Confirmation dialog with transaction summary
+ * - Integration with backend via TRPC
+ */
 export function WithdrawalRequest({
   availableBalance,
-  onWithdrawalSuccess,
-  onClose,
+  onWithdrawalSuccessAction,
+  onCloseAction,
 }: WithdrawalRequestProps) {
+  const trpc = useTRPC();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(
+    null
+  );
   const [form, setForm] = useState<WithdrawalForm>({
     amount: "",
     bankAccountId: "",
@@ -78,38 +79,51 @@ export function WithdrawalRequest({
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [errors, setErrors] = useState<Partial<WithdrawalForm>>({});
 
-  // Withdrawal configuration
-  const MINIMUM_WITHDRAWAL = 100000; // ₦1,000 in kobo
+  // Withdrawal configuration constants
+  const MINIMUM_WITHDRAWAL = 100000; // ₦1,000 in kobo (100 kobo = ₦1)
   const MAXIMUM_WITHDRAWAL = 10000000; // ₦100,000 in kobo
-  const PROCESSING_FEE_RATE = 0.015; // 1.5%
-  const FIXED_FEE = 5000; // ₦50 in kobo
+  const PROCESSING_FEE_RATE = 0.015; // 1.5% variable fee
+  const FIXED_FEE = 5000; // ₦50 fixed fee in kobo
 
   /**
-   * Load bank accounts for withdrawal
-   * Fetches verified bank accounts from store profile
+   * Fetch payout accounts using TRPC query
+   * Automatically handles loading states and errors
    */
-  const loadBankAccounts = async () => {
-    try {
-      const response = await fetch("/api/store/profile/bank-accounts");
-      const data = await response.json();
+  const { data: payoutAccounts, isLoading: isLoadingAccounts } = useQuery(
+    trpc.payment.getStorePayoutAccounts.queryOptions()
+  );
 
-      if (response.ok) {
-        setBankAccounts(
-          data.bankAccounts.filter((account: BankAccount) => account.isVerified)
+  const createWithdrawalRequest = useMutation(
+    trpc.withdrawal.createWithdrawalRequest.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.message);
+      },
+      onError: (error) => {
+        toast.error(
+          error instanceof Error ? error.message : "An unknown Error occurred"
         );
-      }
-    } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to load bank accounts",
-      //   variant: "destructive",
-      // })
+      },
+    })
+  );
+
+  useEffect(() => {
+    // Auto-select the first account if available
+    if (payoutAccounts && payoutAccounts.length > 0) {
+      setSelectedAccount(payoutAccounts[0]);
+      setBankAccounts(payoutAccounts);
+      setForm((prev) => ({
+        ...prev,
+        bankAccountId: payoutAccounts[0].bankDetails.accountNumber,
+      }));
     }
-  };
+  }, [payoutAccounts]);
+
+  // console.log(payoutAccounts)
 
   /**
-   * Calculate processing fees
-   * Returns total fees for withdrawal amount
+   * Calculate processing fees for a given amount
+   * @param amountInKobo - The withdrawal amount in kobo
+   * @returns Object containing fee breakdown and net amount
    */
   const calculateFees = (amountInKobo: number) => {
     const percentageFee = Math.round(amountInKobo * PROCESSING_FEE_RATE);
@@ -123,20 +137,8 @@ export function WithdrawalRequest({
   };
 
   /**
-   * Format currency from kobo to naira
-   */
-  const formatCurrency = (amountInKobo: number) => {
-    const amountInNaira = amountInKobo / 100;
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 2,
-    }).format(amountInNaira);
-  };
-
-  /**
-   * Validate withdrawal form
-   * Comprehensive validation for all form fields
+   * Validate withdrawal form fields
+   * @returns boolean - true if form is valid, false otherwise
    */
   const validateForm = (): boolean => {
     const newErrors: Partial<WithdrawalForm> = {};
@@ -148,12 +150,14 @@ export function WithdrawalRequest({
     if (!form.amount || Number.parseFloat(form.amount) <= 0) {
       newErrors.amount = "Amount is required";
     } else if (amountInKobo < MINIMUM_WITHDRAWAL) {
-      newErrors.amount = `Minimum withdrawal is ${formatCurrency(
-        MINIMUM_WITHDRAWAL
+      newErrors.amount = `Minimum withdrawal is ${formatNaira(
+        MINIMUM_WITHDRAWAL,
+        { showDecimals: true }
       )}`;
     } else if (amountInKobo > MAXIMUM_WITHDRAWAL) {
-      newErrors.amount = `Maximum withdrawal is ${formatCurrency(
-        MAXIMUM_WITHDRAWAL
+      newErrors.amount = `Maximum withdrawal is ${formatNaira(
+        MAXIMUM_WITHDRAWAL,
+        { showDecimals: true }
       )}`;
     } else if (amountInKobo > availableBalance) {
       newErrors.amount = "Amount exceeds available balance";
@@ -170,73 +174,48 @@ export function WithdrawalRequest({
 
   /**
    * Handle form submission
-   * Validates form and shows confirmation dialog
+   * Validates form and shows confirmation dialog if valid
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
+    if (validateForm()) {
+      setShowConfirmation(true);
     }
-
-    await loadBankAccounts();
-    setShowConfirmation(true);
   };
 
   /**
    * Process withdrawal request
-   * Submits withdrawal to API and handles response
+   * Submits validated withdrawal to backend API
    */
   const processWithdrawal = async () => {
     try {
       setLoading(true);
-
       const amountInKobo = Math.round(Number.parseFloat(form.amount) * 100);
-      const fees = calculateFees(amountInKobo);
 
-      const response = await fetch("/api/store/wallet/withdraw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountInKobo,
-          bankAccountId: form.bankAccountId,
-          description: form.description,
-          fees: fees,
-        }),
+      createWithdrawalRequest.mutate({
+        amount: amountInKobo,
+        bankAccountId: form.bankAccountId,
+        description: form.description,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // toast({
-        //   title: "Success",
-        //   description: "Withdrawal request submitted successfully",
-        // })
-        onWithdrawalSuccess();
-        onClose();
-      } else {
-        throw new Error(data.error || "Withdrawal failed");
-      }
+      onWithdrawalSuccessAction();
+      onCloseAction();
     } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: error instanceof Error ? error.message : "Withdrawal failed",
-      //   variant: "destructive",
-      // })
+      console.error("Withdrawal error:", error);
+      // TODO: Add toast notification for error
     } finally {
       setLoading(false);
       setShowConfirmation(false);
     }
   };
 
-  const selectedBankAccount = bankAccounts.find(
-    (account) => account._id === form.bankAccountId
-  );
+  // Calculate fees whenever amount changes
   const amountInKobo = Math.round(Number.parseFloat(form.amount || "0") * 100);
   const fees = amountInKobo > 0 ? calculateFees(amountInKobo) : null;
 
   return (
     <>
+      {/* Main Withdrawal Form Card */}
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -245,29 +224,29 @@ export function WithdrawalRequest({
           </CardTitle>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              Available Balance: {formatCurrency(availableBalance)}
+              Available Balance:{" "}
+              {formatNaira(availableBalance, { showDecimals: true })}
             </span>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
           </div>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Withdrawal Amount */}
+            {/* Withdrawal Amount Input */}
             <div className="space-y-2">
               <Label htmlFor="amount">Withdrawal Amount (₦)</Label>
               <Input
                 id="amount"
                 type="number"
-                step="0.01"
-                min="0"
+                step="500"
+                min="1000"
                 placeholder="Enter amount"
                 value={form.amount}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, amount: e.target.value }))
                 }
                 className={errors.amount ? "border-red-500" : ""}
+                disabled={isLoadingAccounts}
               />
               {errors.amount && (
                 <p className="text-sm text-red-500 flex items-center">
@@ -276,15 +255,24 @@ export function WithdrawalRequest({
                 </p>
               )}
               <div className="text-xs text-muted-foreground">
-                Minimum: {formatCurrency(MINIMUM_WITHDRAWAL)} • Maximum:{" "}
-                {formatCurrency(MAXIMUM_WITHDRAWAL)}
+                Minimum:{" "}
+                {formatNaira(MINIMUM_WITHDRAWAL, { showDecimals: true })} •
+                Maximum:{" "}
+                {formatNaira(MAXIMUM_WITHDRAWAL, { showDecimals: true })}
               </div>
             </div>
 
             {/* Bank Account Selection */}
             <div className="space-y-2">
               <Label>Select Bank Account</Label>
-              {bankAccounts.length === 0 ? (
+              {isLoadingAccounts ? (
+                <div className="p-4 border rounded-lg text-center">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-muted-foreground animate-spin" />
+                  <p className="text-sm text-muted-foreground">
+                    Loading bank accounts...
+                  </p>
+                </div>
+              ) : bankAccounts.length === 0 ? (
                 <div className="p-4 border rounded-lg text-center">
                   <CreditCard className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
@@ -297,44 +285,21 @@ export function WithdrawalRequest({
               ) : (
                 <div className="space-y-2">
                   {bankAccounts.map((account) => (
-                    <div
-                      key={account._id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        form.bankAccountId === account._id
-                          ? "border-primary bg-primary/5"
-                          : "hover:bg-muted/50"
-                      }`}
-                      onClick={() =>
+                    <AccountCard
+                      key={account.bankDetails.accountNumber}
+                      account={account}
+                      isSelected={
+                        selectedAccount?.bankDetails.accountNumber ===
+                        account.bankDetails.accountNumber
+                      }
+                      onSelect={() => {
+                        setSelectedAccount(account);
                         setForm((prev) => ({
                           ...prev,
-                          bankAccountId: account._id,
-                        }))
-                      }
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{account.bankName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {account.accountHolderName} • ****
-                            {account.accountNumber.slice(-4)}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {account.isVerified && (
-                            <Badge
-                              variant="default"
-                              className="bg-green-100 text-green-800"
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Verified
-                            </Badge>
-                          )}
-                          {form.bankAccountId === account._id && (
-                            <div className="w-4 h-4 rounded-full bg-primary"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                          bankAccountId: account.bankDetails.accountNumber,
+                        }));
+                      }}
+                    />
                   ))}
                 </div>
               )}
@@ -346,12 +311,12 @@ export function WithdrawalRequest({
               )}
             </div>
 
-            {/* Description */}
+            {/* Optional Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
                 id="description"
-                placeholder="Add a note for this withdrawal..."
+                placeholder="Add a note about this withdrawal"
                 value={form.description}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, description: e.target.value }))
@@ -368,20 +333,29 @@ export function WithdrawalRequest({
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Withdrawal Amount:</span>
-                      <span>{formatCurrency(amountInKobo)}</span>
+                      <span>
+                        {formatNaira(amountInKobo, { showDecimals: true })}
+                      </span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Processing Fee (1.5%):</span>
-                      <span>-{formatCurrency(fees.percentageFee)}</span>
+                      <span>
+                        -
+                        {formatNaira(fees.percentageFee, {
+                          showDecimals: true,
+                        })}
+                      </span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Fixed Fee:</span>
-                      <span>-{formatCurrency(fees.fixedFee)}</span>
+                      <span>
+                        -{formatNaira(fees.fixedFee, { showDecimals: true })}
+                      </span>
                     </div>
                     <div className="border-t pt-2 flex justify-between font-medium">
                       <span>Net Amount:</span>
                       <span className="text-green-600">
-                        {formatCurrency(fees.netAmount)}
+                        {formatNaira(fees.netAmount, { showDecimals: true })}
                       </span>
                     </div>
                   </div>
@@ -389,12 +363,14 @@ export function WithdrawalRequest({
               </Card>
             )}
 
-            {/* Submit Button */}
+            {/* Form Actions */}
             <div className="flex space-x-3">
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={loading || bankAccounts.length === 0}
+                disabled={
+                  loading || bankAccounts.length === 0 || isLoadingAccounts
+                }
               >
                 {loading ? (
                   <>
@@ -408,7 +384,7 @@ export function WithdrawalRequest({
                   </>
                 )}
               </Button>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onCloseAction}>
                 Cancel
               </Button>
             </div>
@@ -426,44 +402,46 @@ export function WithdrawalRequest({
             </DialogDescription>
           </DialogHeader>
 
-          {selectedBankAccount && fees && (
+          {selectedAccount && fees && (
             <div className="space-y-4">
+              {/* Bank Account Summary */}
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">Bank Account</h4>
-                <p className="text-sm">{selectedBankAccount.bankName}</p>
+                <p className="text-sm">
+                  {selectedAccount.bankDetails.bankName}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedBankAccount.accountHolderName} •{" "}
-                  {selectedBankAccount.accountNumber}
+                  {selectedAccount.bankDetails.accountHolderName} •{" "}
+                  {selectedAccount.bankDetails.accountNumber}
                 </p>
               </div>
 
+              {/* Transaction Details */}
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">Transaction Details</h4>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span>Withdrawal Amount:</span>
-                    <span>{formatCurrency(amountInKobo)}</span>
+                    <span>
+                      {formatNaira(amountInKobo, { showDecimals: true })}
+                    </span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Total Fees:</span>
-                    <span>-{formatCurrency(fees.totalFee)}</span>
+                    <span>
+                      -{formatNaira(fees.totalFee, { showDecimals: true })}
+                    </span>
                   </div>
                   <div className="flex justify-between font-medium pt-1 border-t">
                     <span>Net Amount:</span>
                     <span className="text-green-600">
-                      {formatCurrency(fees.netAmount)}
+                      {formatNaira(fees.netAmount, { showDecimals: true })}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {form.description && (
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">Description</h4>
-                  <p className="text-sm">{form.description}</p>
-                </div>
-              )}
-
+              {/* Processing Notice */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-sm text-yellow-800">
                   <strong>Note:</strong> Withdrawal processing typically takes
@@ -478,6 +456,7 @@ export function WithdrawalRequest({
             <Button
               variant="outline"
               onClick={() => setShowConfirmation(false)}
+              disabled={loading}
             >
               Cancel
             </Button>
@@ -495,5 +474,49 @@ export function WithdrawalRequest({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/**
+ * AccountCard Component
+ *
+ * Reusable component for displaying bank account information
+ * with selection state and click handler.
+ */
+function AccountCard({
+  account,
+  isSelected,
+  onSelect,
+}: {
+  account: BankAccount;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <Card
+      onClick={onSelect}
+      className={cn(
+        "cursor-pointer transition-all hover:border-primary",
+        isSelected ? "border-2 border-primary" : ""
+      )}
+    >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">
+          {account.bankDetails.accountHolderName}
+        </CardTitle>
+        <span className="text-xs text-muted-foreground">
+          {account.bankDetails.bankName}
+        </span>
+      </CardHeader>
+      <CardContent>
+        <p className="font-mono text-sm">{account.bankDetails.accountNumber}</p>
+        <div className="flex items-center mt-2">
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Verified
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

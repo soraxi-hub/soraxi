@@ -24,51 +24,49 @@ export type Bank = {
 };
 
 export const paymentRouter = createTRPCRouter({
-  // ✅ Get wishlist by user ID
-  getStorePayoutAccounts: baseProcedure
-    .input(z.object({ storeId: z.string() }))
-    .query(async ({ input }) => {
-      const { storeId } = input;
-      const Store = await getStoreModel();
+  getStorePayoutAccounts: baseProcedure.query(async ({ ctx }) => {
+    const { store: storeToken } = ctx;
 
-      const store = await Store.findById(storeId)
-        .select("payoutAccounts")
-        .lean();
-
-      if (!store) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Store not found for ${storeId}.`,
-        });
-      }
-
-      const payoutAccounts = store.payoutAccounts || [];
-
-      // console.log("payoutAccounts", payoutAccounts);
-
-      // if (payoutAccounts.length === 0) {
-      //   return {};
-      // }
-
-      const formattedPayoutAccounts = payoutAccounts.map((acc) => {
-        return {
-          payoutMethod: acc.payoutMethod,
-          bankDetails: {
-            bankName: acc.bankDetails.bankName,
-            accountNumber: acc.bankDetails.accountNumber,
-            accountHolderName: acc.bankDetails.accountHolderName,
-            bankCode: acc.bankDetails.bankCode,
-            bankId: acc.bankDetails.bankId,
-          },
-          totalEarnings: acc.totalEarnings,
-          lastPayoutDate: acc.lastPayoutDate,
-        };
+    if (!storeToken) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `Please login to your store.`,
       });
+    }
+    const Store = await getStoreModel();
 
-      // console.log("formattedPayoutAccounts", formattedPayoutAccounts);
+    const store = await Store.findById(storeToken.id)
+      .select("payoutAccounts")
+      .lean();
 
-      return formattedPayoutAccounts;
-    }),
+    if (!store) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Store not found for ${storeToken.id}.`,
+      });
+    }
+
+    const payoutAccounts = store.payoutAccounts || [];
+
+    const formattedPayoutAccounts = payoutAccounts.map((acc) => {
+      return {
+        payoutMethod: acc.payoutMethod,
+        bankDetails: {
+          bankName: acc.bankDetails.bankName,
+          accountNumber: acc.bankDetails.accountNumber,
+          accountHolderName: acc.bankDetails.accountHolderName,
+          bankCode: acc.bankDetails.bankCode,
+          bankId: acc.bankDetails.bankId,
+        },
+        totalEarnings: acc.totalEarnings,
+        lastPayoutDate: acc.lastPayoutDate,
+      };
+    });
+
+    // console.log("formattedPayoutAccounts", formattedPayoutAccounts);
+
+    return formattedPayoutAccounts;
+  }),
 
   getBanks: baseProcedure.query(async () => {
     const url = "https://api.paystack.co/bank";

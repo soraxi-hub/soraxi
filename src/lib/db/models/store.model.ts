@@ -64,6 +64,7 @@ export interface IPayoutHistory {
  * Store Document Interface
  */
 export interface IStore extends Document {
+  _id: mongoose.Schema.Types.ObjectId;
   name: string;
   password: string;
   storeOwner: mongoose.Types.ObjectId;

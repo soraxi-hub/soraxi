@@ -17,8 +17,6 @@ import {
 import {
   AlertTriangle,
   CheckCircle,
-  User,
-  Store,
   Search,
   Filter,
   Calendar,
@@ -33,100 +31,48 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
-
-interface DeliveryConfirmationItem {
-  id: string;
-  orderNumber: string;
-  subOrderId: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  store: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  deliveryDate: string;
-  deliveryStatus: string;
-  escrow: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: string;
-  };
-}
-
-interface DeliveryConfirmationResponse {
-  success: boolean;
-  deliveryConfirmations: DeliveryConfirmationItem[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function DeliveryConfirmationQueue() {
-  const [items, setItems] = useState<DeliveryConfirmationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [storeFilter, setStoreFilter] = useState("");
+  const [limit] = useState(10);
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        ...(storeFilter && { storeId: storeFilter }),
-        ...(search && { search }),
-        ...(fromDate && { fromDate: fromDate.toISOString() }),
-        ...(toDate && { toDate: toDate.toISOString() }),
-      });
+  const {
+    data,
+    isLoading: loading,
+    refetch: loadData,
+  } = useQuery(
+    trpc.adminDeliveryConfirmation.getConfirmationQueue.queryOptions({
+      search,
+      limit,
+      page,
+      fromDate: fromDate?.toISOString(),
+      toDate: toDate?.toISOString(),
+    })
+  );
 
-      const response = await fetch(
-        `/api/admin/delivery-confirmations?${params}`
-      );
-      const data: DeliveryConfirmationResponse = await response.json();
+  const confirmDelivery = useMutation(
+    trpc.adminDeliveryConfirmation.autoConfirmDelivery.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.message);
+        loadData();
+      },
+      onError: (data) => {
+        toast.error(data ? data.message : "An unexpected error occurred");
+      },
+    })
+  );
 
-      if (data.success) {
-        setItems(data.deliveryConfirmations);
-        setTotal(data.pagination.total);
-      } else {
-        toast.error("Failed to load delivery confirmations");
-      }
-    } catch (error) {
-      toast.error("An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const items = data?.deliveryConfirmations || [];
+  const total = data?.pagination.total || 0;
 
   const handleManualConfirm = async (subOrderId: string) => {
-    try {
-      const response = await fetch("/api/admin/delivery-confirmations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subOrderId }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Delivery confirmed manually");
-        loadData(); // Refresh data
-      } else {
-        toast.error(data.error || "Failed to confirm delivery");
-      }
-    } catch (error) {
-      toast.error("An error occurred");
-    }
+    confirmDelivery.mutate({ subOrderId });
   };
 
   const applyFilters = () => {
@@ -135,7 +81,6 @@ export function DeliveryConfirmationQueue() {
   };
 
   const resetFilters = () => {
-    setStoreFilter("");
     setSearch("");
     setFromDate(undefined);
     setToDate(undefined);
@@ -169,7 +114,7 @@ export function DeliveryConfirmationQueue() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Search Customers</Label>
               <div className="relative">
@@ -183,16 +128,8 @@ export function DeliveryConfirmationQueue() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Store ID</Label>
-              <Input
-                placeholder="Store ID"
-                value={storeFilter}
-                onChange={(e) => setStoreFilter(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Delivery Date Range</Label>
-              <div className="flex space-x-2">
+              <div className="grid gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full">
@@ -228,7 +165,8 @@ export function DeliveryConfirmationQueue() {
                 </Popover>
               </div>
             </div>
-            <div className="flex items-end space-x-2">
+            <div className="grid gap-2">
+              <Label>Apply Changes</Label>
               <Button
                 onClick={applyFilters}
                 className="flex-1 bg-soraxi-green hover:bg-soraxi-green/90"
@@ -311,7 +249,9 @@ export function DeliveryConfirmationQueue() {
                       {item.escrow.held ? (
                         <Badge variant="destructive">Held</Badge>
                       ) : (
-                        <Badge variant="success">Released</Badge>
+                        <Badge className="bg-soraxi-green text-white">
+                          Released
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>

@@ -128,6 +128,54 @@ export interface FormattedOrder {
 }
 
 /**
+ * Formatted Order Interface
+ *
+ * Represents the final order structure returned to clients.
+ * All ObjectIds are converted to strings and data is properly formatted.
+ */
+export interface FormattedOrderForAdmin {
+  id: string;
+  orderNumber: string;
+  customer: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  store: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  items: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    image?: string;
+  }>;
+  // status:
+  //   | "Order Placed"
+  //   | "Processing"
+  //   | "Shipped"
+  //   | "Out for Delivery"
+  //   | "Delivered"
+  //   | "Canceled"
+  //   | "Returned"
+  //   | "Failed Delivery"
+  //   | "Refunded";
+  // status: string;
+  paymentStatus: string;
+  totalAmount: number;
+  shippingAddress?: {
+    postalCode: string;
+    address: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  notes?: string;
+}
+
+/**
  * Raw MongoDB Order Document Interface
  *
  * Represents the order document as it exists in MongoDB before population.
@@ -136,7 +184,7 @@ export interface FormattedOrder {
 export interface RawOrderDocument {
   _id: mongoose.Types.ObjectId;
   user: PopulatedUser | mongoose.Types.ObjectId;
-  stores: mongoose.Types.ObjectId[];
+  stores: mongoose.Types.ObjectId[] | PopulatedStore[];
   totalAmount: number;
   paymentStatus?: string;
   paymentMethod?: string;

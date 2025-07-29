@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,12 +75,14 @@ interface ProductData {
     name: string;
     email: string;
   };
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function ProductModeration() {
   const trpc = useTRPC();
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
 
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(
     null
@@ -97,10 +99,17 @@ export function ProductModeration() {
       status: statusFilter,
       category: categoryFilter,
       search: searchQuery,
-      page: 1,
-      limit: 20,
+      page,
+      limit,
     })
   );
+
+  const total = data?.pagination.total || 0;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, categoryFilter, searchQuery, limit]);
 
   const mutation = useMutation(
     trpc.admin.action.mutationOptions({
@@ -377,6 +386,32 @@ export function ProductModeration() {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination Controls */}
+          {!isLoading && data.products.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {(page - 1) * limit + 1} to{" "}
+                {Math.min(page * limit, total)} of {total} products
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page * limit >= total}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

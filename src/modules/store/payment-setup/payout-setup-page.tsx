@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Bank } from "@/modules/server/payment/procedures";
+import { Bank } from "@/modules/server/store/payout-account/procedures";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
@@ -49,7 +49,7 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
   const trpc = useTRPC();
 
   const { data: payoutAccounts } = useQuery(
-    trpc.payment.getStorePayoutAccounts.queryOptions({ storeId })
+    trpc.payment.getStorePayoutAccounts.queryOptions()
   );
   const { data: banks, isLoading } = useQuery(
     trpc.payment.getBanks.queryOptions()

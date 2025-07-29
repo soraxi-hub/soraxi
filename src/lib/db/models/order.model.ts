@@ -47,7 +47,10 @@ export interface ISubOrder {
     confirmedAt?: Date; // when the customer confirmed
     autoConfirmed: boolean; // true if system auto-confirmed
   };
-
+  settlement?: {
+    amount: number; // Amount after commission has been deducted
+    shippingPrice: number; // Gotten from the selected Shipping method and added to the amount to reflect the total settlement for the store.
+  };
   escrow: {
     held: boolean; // money is currently in escrow
     released: boolean; // money has been paid to seller
@@ -139,6 +142,10 @@ const SubOrderSchema = new Schema<ISubOrder>({
     confirmed: { type: Boolean, default: false },
     confirmedAt: { type: Date },
     autoConfirmed: { type: Boolean, default: false },
+  },
+  settlement: {
+    amount: { type: Number },
+    shippingPrice: { type: Number },
   },
   escrow: {
     held: { type: Boolean, default: true }, // money is currently in escrow

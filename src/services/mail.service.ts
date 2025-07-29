@@ -82,7 +82,7 @@ export const sendMail = async ({
   }
 };
 
-function wrapWithBrandedTemplate({
+export function wrapWithBrandedTemplate({
   title,
   bodyContent,
 }: {

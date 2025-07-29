@@ -138,8 +138,8 @@ const navigationItems = [
     title: "Finance",
     items: [
       {
-        title: "Payouts",
-        url: "/admin/finance/payouts",
+        title: "withdrawals",
+        url: "/admin/finance/withdrawals",
         icon: DollarSign,
         permissions: ["view_settlements"],
       },
