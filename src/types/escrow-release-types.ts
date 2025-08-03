@@ -1,6 +1,6 @@
-import type mongoose from "mongoose";
 import type { IStore } from "@/lib/db/models/store.model";
 import type { IUser } from "@/lib/db/models/user.model";
+import { IWalletTransaction } from "@/lib/db/models/wallet.model";
 
 /**
  * Type definitions for populated store data in escrow release operations
@@ -123,14 +123,16 @@ export interface EscrowEligibilityCheck {
  * Defines the structure for creating wallet transaction records
  * during escrow release operations.
  */
-export interface WalletTransactionData {
-  wallet: mongoose.Types.ObjectId;
-  type: "credit";
-  amount: number;
-  source: "order";
-  description: string;
-  relatedOrderId: mongoose.Types.ObjectId;
-}
+export type WalletTransactionData = Pick<
+  IWalletTransaction,
+  | "wallet"
+  | "type"
+  | "amount"
+  | "source"
+  | "description"
+  | "relatedDocumentId"
+  | "relatedDocumentType"
+>;
 
 /**
  * Interface for audit log details specific to escrow release

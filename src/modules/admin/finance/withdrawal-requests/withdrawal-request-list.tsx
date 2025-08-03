@@ -205,7 +205,10 @@ export function WithdrawalRequestList() {
             </div>
           </div>
           <div className="flex justify-end mt-4">
-            <Button onClick={() => refetchRequests()}>
+            <Button
+              onClick={() => refetchRequests()}
+              className="bg-soraxi-green hover:bg-soraxi-green-hover"
+            >
               <Filter className="w-4 h-4 mr-2" />
               Apply Filters
             </Button>

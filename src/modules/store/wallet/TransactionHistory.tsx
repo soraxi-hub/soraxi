@@ -34,6 +34,8 @@ import {
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
+import type { IWalletTransaction } from "@/lib/db/models/wallet.model";
+import Link from "next/link";
 
 /**
  * Transaction History Component
@@ -65,8 +67,10 @@ interface PaginationInfo {
   pageSize: number;
 }
 
-export function TransactionHistory() {
+export function TransactionHistory({ storeId }: { storeId: string }) {
   const trpc = useTRPC();
+  // console.log("storeId", storeId);
+
   const [filters, setFilters] = useState<TransactionFilters>({
     type: "all",
     source: "all",
@@ -137,7 +141,6 @@ export function TransactionHistory() {
     const isCredit = type === "credit";
     return (
       <Badge
-        variant={isCredit ? "default" : "destructive"}
         className={
           isCredit ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
         }
@@ -220,6 +223,41 @@ export function TransactionHistory() {
   //     // })
   //   }
   // };
+
+  const getLink = (
+    source: IWalletTransaction["source"],
+    relatedDocumentId: string | null,
+    currentStoreId: string | null
+  ) => {
+    if (!relatedDocumentId || !currentStoreId) {
+      return <span className="text-muted-foreground">-</span>;
+    }
+
+    switch (source) {
+      case "order":
+        return (
+          <Button variant="link" size="sm" className="p-0 h-auto" asChild>
+            <Link href={`/store/${currentStoreId}/orders/${relatedDocumentId}`}>
+              #{relatedDocumentId.slice(-8)}
+            </Link>
+          </Button>
+        );
+
+      case "withdrawal":
+        return (
+          <Button variant="link" size="sm" className="p-0 h-auto" asChild>
+            <Link
+              href={`/store/${currentStoreId}/withdrawals/${relatedDocumentId}`}
+            >
+              #{relatedDocumentId.slice(-8)}
+            </Link>
+          </Button>
+        );
+
+      default:
+        return <span className="text-muted-foreground">-</span>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -348,7 +386,7 @@ export function TransactionHistory() {
                 <TableHead>Source</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Order ID</TableHead>
+                <TableHead className="text-center">ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -424,12 +462,10 @@ export function TransactionHistory() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {transaction.relatedOrderId ? (
-                        <Button variant="link" size="sm" className="p-0 h-auto">
-                          #{transaction.relatedOrderId.slice(-8)}
-                        </Button>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
+                      {getLink(
+                        transaction.source,
+                        transaction.relatedDocumentId,
+                        storeId // Pass storeId to getLink
                       )}
                     </TableCell>
                   </TableRow>

@@ -114,8 +114,6 @@ export interface IStore extends Document {
   forgotpasswordTokenExpiry?: Date;
 
   // Financials
-  platformFee: number;
-  transactionFees: number;
   wallet: mongoose.Schema.Types.ObjectId;
 
   // Shipping
@@ -272,8 +270,6 @@ const StoreSchema = new Schema<IStore>(
     forgotpasswordTokenExpiry: Date,
 
     // ✅ Financials
-    platformFee: { type: Number, default: 0 },
-    transactionFees: { type: Number, default: 0 },
     wallet: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",

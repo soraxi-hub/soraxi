@@ -36,13 +36,15 @@ import {
   DollarSign,
   Users,
   FileText,
-  Settings,
   LogOut,
   Shield,
   BarChart3,
   Bell,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import axios from "axios";
+import { toast } from "sonner";
+import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 
 /**
  * Admin Layout Component
@@ -186,9 +188,19 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    // Implement logout logic
-    router.push("/admin/login");
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post("/api/auth/admin-sign-out");
+      if (response.status === 200) {
+        router.push("/admin/dashboard");
+        router.refresh();
+        toast.success("Logged out successfully");
+        return;
+      }
+      toast.error("Logout failed. Please try again.");
+    } catch (error) {
+      return error;
+    }
   };
 
   const getInitials = (name: string) => {
@@ -293,9 +305,9 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                  <DropdownMenuItem className="flex items-center justify-between gap-2">
+                    <span>Theme</span>
+                    <ThemeSwitcher page="admin" />
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

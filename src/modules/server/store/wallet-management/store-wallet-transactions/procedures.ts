@@ -14,6 +14,8 @@ import type {
   WalletTransactionAggregationResult,
   FormattedWalletTransaction,
   PaginationMetadata,
+  PopulatedOrderForTransaction, // New import
+  PopulatedWithdrawalRequestForTransaction, // New import
 } from "@/types/wallet-transaction-types";
 
 /**
@@ -26,7 +28,7 @@ import type {
  * - Advanced filtering by type, source, and date range
  * - Full-text search across transaction descriptions and sources
  * - Pagination with configurable page sizes and metadata
- * - Comprehensive transaction data with related order information
+ * - Comprehensive transaction data with related document information (orders, withdrawals, etc.)
  * - Performance-optimized MongoDB aggregation queries
  * - Atomic transaction creation with wallet balance updates
  * - Full TypeScript typing throughout for type safety
@@ -159,7 +161,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
          * 1. Matches transactions for the store's wallet
          * 2. Applies filtering based on type, source, date range, and search
          * 3. Sorts transactions by creation date (newest first)
-         * 4. Populates related order information
+         * 4. Populates related document information (Order, WithdrawalRequest)
          * 5. Handles pagination with skip/limit operations
          *
          * The pipeline is optimized for performance and returns properly typed results.
@@ -268,32 +270,79 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
         );
 
         /**
-         * Stage 8: Populate related order data
+         * Stage 8: Conditionally populate related documents
          *
-         * Joins with the orders collection to get related order information
-         * and formats the data for easier client consumption.
+         * Uses $lookup for different document types based on `relatedDocumentType`
+         * and then uses $addFields with $cond to select the correct populated document.
          */
         pipeline.push(
+          // Lookup for Orders
           {
             $lookup: {
-              from: "orders",
-              localField: "relatedOrderId",
+              from: "orders", // Collection name for orders
+              localField: "relatedDocumentId",
               foreignField: "_id",
-              as: "relatedOrder",
+              as: "populatedOrder",
               pipeline: [
                 {
                   $project: {
                     _id: 1,
                     totalAmount: 1,
                     createdAt: 1,
+                    orderNumber: 1, // Assuming this field exists
                   },
                 },
               ],
             },
           },
+          // Lookup for WithdrawalRequests
+          {
+            $lookup: {
+              from: "withdrawalrequests", // Collection name for withdrawal requests
+              localField: "relatedDocumentId",
+              foreignField: "_id",
+              as: "populatedWithdrawalRequest",
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    requestedAmount: 1,
+                    netAmount: 1,
+                    status: 1,
+                    requestNumber: 1, // Assuming this field exists
+                    createdAt: 1,
+                  },
+                },
+              ],
+            },
+          },
+          // Add a single 'relatedDocument' field based on 'relatedDocumentType'
           {
             $addFields: {
-              relatedOrder: { $arrayElemAt: ["$relatedOrder", 0] },
+              relatedDocument: {
+                $cond: {
+                  if: { $eq: ["$relatedDocumentType", "Order"] },
+                  then: { $arrayElemAt: ["$populatedOrder", 0] },
+                  else: {
+                    $cond: {
+                      if: {
+                        $eq: ["$relatedDocumentType", "WithdrawalRequest"],
+                      },
+                      then: {
+                        $arrayElemAt: ["$populatedWithdrawalRequest", 0],
+                      },
+                      else: null, // Handle other types or default to null
+                    },
+                  },
+                },
+              },
+            },
+          },
+          // Remove the temporary populated fields
+          {
+            $project: {
+              populatedOrder: 0,
+              populatedWithdrawalRequest: 0,
             },
           }
         );
@@ -336,23 +385,54 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
          * suitable for client-side display and processing with proper typing.
          */
         const formattedTransactions: FormattedWalletTransaction[] =
-          transactions.map((transaction) => ({
-            _id: transaction._id.toString(),
-            wallet: transaction.wallet.toString(),
-            type: transaction.type,
-            amount: transaction.amount,
-            source: transaction.source,
-            description: transaction.description || null,
-            relatedOrderId: transaction.relatedOrderId?.toString() || null,
-            relatedOrder: transaction.relatedOrder
-              ? {
-                  _id: transaction.relatedOrder._id,
-                  totalAmount: transaction.relatedOrder.totalAmount,
-                  createdAt: transaction.relatedOrder.createdAt,
-                }
-              : null,
-            createdAt: transaction.createdAt,
-          }));
+          transactions.map((transaction) => {
+            let formattedRelatedDocument: FormattedWalletTransaction["relatedDocument"] =
+              null;
+
+            if (
+              transaction.relatedDocument &&
+              transaction.relatedDocumentType
+            ) {
+              if (transaction.relatedDocumentType === "Order") {
+                const order =
+                  transaction.relatedDocument as PopulatedOrderForTransaction;
+                formattedRelatedDocument = {
+                  _id: order._id.toString(),
+                  createdAt: order.createdAt,
+                  totalAmount: order.totalAmount, // Map to generic 'amount'
+                  orderNumber: order.orderNumber,
+                };
+              } else if (
+                transaction.relatedDocumentType === "WithdrawalRequest"
+              ) {
+                const withdrawal =
+                  transaction.relatedDocument as PopulatedWithdrawalRequestForTransaction;
+                formattedRelatedDocument = {
+                  _id: withdrawal._id.toString(),
+                  createdAt: withdrawal.createdAt,
+                  requestedAmount: withdrawal.requestedAmount, // Map to generic 'amount'
+                  requestNumber: withdrawal.requestNumber,
+                  netAmount: withdrawal.netAmount,
+                  status: withdrawal.status,
+                };
+              }
+              // Add more conditions for other relatedDocumentTypes as needed
+            }
+
+            return {
+              _id: transaction._id.toString(),
+              wallet: transaction.wallet.toString(),
+              type: transaction.type,
+              amount: transaction.amount,
+              source: transaction.source,
+              description: transaction.description || null,
+              relatedDocumentId:
+                transaction.relatedDocumentId?.toString() || null, // Changed
+              relatedDocumentType: transaction.relatedDocumentType || null, // New field
+              relatedDocument: formattedRelatedDocument, // Changed
+              createdAt: transaction.createdAt,
+            };
+          });
 
         // ==================== Return Response ====================
 
@@ -447,14 +527,21 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
         description: z.string().min(1).optional(),
 
         /**
-         * Optional related order ID with MongoDB ObjectId validation
+         * Optional related document ID with MongoDB ObjectId validation
          */
-        relatedOrderId: z
+        relatedDocumentId: z
           .string()
           .refine((id) => !id || mongoose.Types.ObjectId.isValid(id), {
-            message: "Invalid order ID format",
+            message: "Invalid document ID format",
           })
-          .optional(),
+          .optional(), // Changed from relatedOrderId
+
+        /**
+         * Optional type of the related document
+         */
+        relatedDocumentType: z
+          .enum(["Order", "WithdrawalRequest", "Refund", "Adjustment"])
+          .optional(), // New field
       })
     )
     .mutation(
@@ -490,7 +577,8 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
             amount: input.amount,
             source: input.source,
             description: input.description,
-            relatedOrderId: input.relatedOrderId,
+            relatedDocumentId: input.relatedDocumentId, // Changed
+            relatedDocumentType: input.relatedDocumentType, // New
           };
 
           // ==================== Database Models ====================
@@ -534,9 +622,10 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
             amount: transactionInput.amount,
             source: transactionInput.source,
             description: transactionInput.description,
-            relatedOrderId: transactionInput.relatedOrderId
-              ? new mongoose.Types.ObjectId(transactionInput.relatedOrderId)
-              : undefined,
+            relatedDocumentId: transactionInput.relatedDocumentId
+              ? new mongoose.Types.ObjectId(transactionInput.relatedDocumentId)
+              : undefined, // Changed
+            relatedDocumentType: transactionInput.relatedDocumentType, // New
           });
 
           const savedTransaction = await transaction.save();
@@ -574,8 +663,10 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
             amount: savedTransaction.amount,
             source: savedTransaction.source,
             description: savedTransaction.description || null,
-            relatedOrderId: savedTransaction.relatedOrderId?.toString() || null,
-            relatedOrder: null, // New transactions don't have populated order data
+            relatedDocumentId:
+              savedTransaction.relatedDocumentId?.toString() || null, // Changed
+            relatedDocumentType: savedTransaction.relatedDocumentType || null, // New
+            relatedDocument: null, // New transactions don't have populated document data
             createdAt: savedTransaction.createdAt,
           };
 
@@ -610,7 +701,6 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
             });
           }
 
-          // Handle MongoDB cast errors
           if (error instanceof mongoose.Error.CastError) {
             throw new TRPCError({
               code: "BAD_REQUEST",

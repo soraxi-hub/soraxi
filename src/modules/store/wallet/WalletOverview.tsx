@@ -180,7 +180,7 @@ export function WalletOverview({
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-500">
               {formatBalance(walletData.pending)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -196,7 +196,7 @@ export function WalletOverview({
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-blue-500">
               {formatBalance(walletData.totalEarned)}
             </div>
             <p className="text-xs text-muted-foreground">All-time earnings</p>

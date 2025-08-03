@@ -175,7 +175,7 @@ export default function StoreLoginPage() {
                     type="email"
                     {...register("storeEmail")}
                     placeholder="Enter your store email"
-                    className={`pl-10 ${
+                    className={`pl-10 focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent ${
                       errors.storeEmail ? "border-destructive" : ""
                     }`}
                     disabled={isLoading}
@@ -201,7 +201,7 @@ export default function StoreLoginPage() {
                     type={showPassword ? "text" : "password"}
                     {...register("password")}
                     placeholder="Enter your password"
-                    className={`pl-10 pr-10 ${
+                    className={`pl-10 pr-10 focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent ${
                       errors.password ? "border-destructive" : ""
                     }`}
                     disabled={isLoading}

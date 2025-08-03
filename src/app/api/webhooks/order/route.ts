@@ -137,6 +137,9 @@ export async function POST(request: Request) {
             released: false,
             refunded: false,
           },
+          statusHistory: [
+            { status: "Order Placed", notes: "Initial Order request created." },
+          ], // we generate the status-history this way then letter, we use the push method to add items.
         };
       });
 

@@ -49,7 +49,7 @@ export const ProductCard = ({ product }: ProductCardProps) => (
     </CardHeader>
     <CardContent className="p-4 pt-0">
       <div className="space-y-2">
-        <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-soraxi-green transition-colors">
+        <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-soraxi-green transition-colors truncate">
           {product.name}
         </h3>
         <div className="flex items-center space-x-2">

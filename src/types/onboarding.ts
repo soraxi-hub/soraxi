@@ -94,7 +94,7 @@ export interface StoreProduct {
   isVerifiedProduct: boolean;
   isVisible: boolean;
   slug: string;
-  createdAt: string;
+  createdAt: Date;
   status: "pending" | "approved" | "rejected";
   // rating: number;
   // updatedAt: string;

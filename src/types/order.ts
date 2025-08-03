@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { z } from "zod";
 
 /**
  * Type definitions for populated order data structures
@@ -233,3 +234,142 @@ export interface RawOrderDocument {
     returnWindow?: Date;
   }>;
 }
+
+// Zod schema for a product within a sub-order after population and formatting
+export const FormattedOrderProductSchema = z.object({
+  _id: z.string(),
+  Product: z.object({
+    _id: z.string(),
+    name: z.string(),
+    images: z.array(z.string()),
+    price: z.number(), // Assuming this is already converted to Naira (koboToNaira)
+    productType: z.string(),
+    category: z.array(z.string()),
+    subCategory: z.array(z.string()),
+  }),
+  store: z.string(), // This is the store ObjectId as string, but it's populated in subOrder.store
+  quantity: z.number(),
+  price: z.number(), // Price per item, assuming converted to Naira
+  selectedSize: z
+    .object({
+      size: z.string(),
+      price: z.number(),
+    })
+    .optional(),
+});
+
+// Zod schema for a populated store within a sub-order
+export const PopulatedStoreSchema = z.object({
+  _id: z.string(),
+  name: z.string(),
+  storeEmail: z.string(),
+  logoUrl: z.string().optional(),
+});
+
+// Zod schema for a sub-order after population and formatting
+export const FormattedSubOrderSchema = z.object({
+  _id: z.string(),
+  store: PopulatedStoreSchema, // Populated store details
+  products: z.array(FormattedOrderProductSchema),
+  totalAmount: z.number(), // Assuming converted to Naira
+  shippingMethod: z
+    .object({
+      name: z.string(),
+      price: z.number(),
+      estimatedDeliveryDays: z.string().optional(),
+      description: z.string().optional(),
+    })
+    .optional(),
+  deliveryDate: z.string().datetime().optional(), // ISO string
+  deliveryStatus: z.enum([
+    "Order Placed",
+    "Processing",
+    "Shipped",
+    "Out for Delivery",
+    "Delivered",
+    "Canceled",
+    "Returned",
+    "Failed Delivery",
+    "Refunded",
+  ]),
+  customerConfirmedDelivery: z.object({
+    confirmed: z.boolean(),
+    confirmedAt: z.string().datetime().optional(),
+    autoConfirmed: z.boolean(),
+  }),
+  settlement: z
+    .object({
+      amount: z.number(),
+      shippingPrice: z.number(),
+    })
+    .optional(),
+  escrow: z.object({
+    held: z.boolean(),
+    released: z.boolean(),
+    releasedAt: z.string().datetime().optional(),
+    refunded: z.boolean(),
+    refundReason: z.string().optional(),
+  }),
+  returnWindow: z.string().datetime().optional(),
+});
+
+// Zod schema for a populated user
+export const PopulatedUserSchema = z.object({
+  _id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  phoneNumber: z.string().optional(),
+});
+
+// Zod schema for the main order document after population and formatting
+export const FormattedStoreOrderDocumentSchema = z.object({
+  _id: z.string(),
+  user: PopulatedUserSchema, // Populated user details
+  stores: z.array(z.string()), // Array of store ObjectIds as strings
+  subOrders: z.array(FormattedSubOrderSchema),
+  totalAmount: z.number(), // Assuming converted to Naira
+  shippingAddress: z
+    .object({
+      postalCode: z.string(),
+      address: z.string(),
+    })
+    .optional(),
+  paymentMethod: z.string().optional(),
+  paymentStatus: z.string().optional(),
+  notes: z.string().optional(),
+  discount: z.number().optional(),
+  taxAmount: z.number().optional(),
+  createdAt: z.string().datetime(), // ISO string
+  updatedAt: z.string().datetime(), // ISO string
+});
+
+// Zod schema for the output of getStoreOrders procedure
+export const GetStoreOrdersOutputSchema = z.object({
+  success: z.boolean(),
+  orders: z.array(FormattedStoreOrderDocumentSchema),
+  pagination: z.object({
+    currentPage: z.number(),
+    totalPages: z.number(),
+    totalCount: z.number(),
+    hasNextPage: z.boolean(),
+    hasPrevPage: z.boolean(),
+    limit: z.number(),
+  }),
+  filters: z.object({
+    dateRange: z
+      .object({
+        startDate: z.string(),
+        endDate: z.string(),
+      })
+      .nullable(),
+    deliveryStatus: z.string(),
+    searchQuery: z.string(),
+  }),
+});
+
+// Zod schema for the output of getStoreOrderById procedure
+export const GetStoreOrderByIdOutputSchema = z.object({
+  success: z.boolean(),
+  order: FormattedStoreOrderDocumentSchema,
+});

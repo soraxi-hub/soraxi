@@ -183,11 +183,16 @@ export async function getProducts(
   options: {
     visibleOnly?: boolean;
     category?: string;
+    subCategory?: string;
     limit?: number;
     skip?: number;
     minRating?: number;
-    search?: string;
+    search?: string | null;
     verified?: boolean;
+    sort?: "newest" | "price-asc" | "price-desc" | "rating-desc";
+    priceMin?: number;
+    priceMax?: number;
+    ratings?: number[];
   } = {}
 ): Promise<IProduct[]> {
   await connectToDatabase();
@@ -197,21 +202,42 @@ export async function getProducts(
 
   if (options.visibleOnly) query.isVisible = true;
   if (options.category) query.category = options.category;
+  if (options.subCategory) {
+    query.subCategory = {
+      $elemMatch: { $regex: `^${options.subCategory}$`, $options: "i" },
+    };
+  }
   if (options.minRating !== undefined)
     query.rating = { $gte: options.minRating };
   if (options.verified === true) query.isVerifiedProduct = true;
-
-  // Case-insensitive search across name, category array, or subCategory
-  if (options.search) {
-    const searchRegex = new RegExp(options.search, "i");
-    query.$or = [
-      { name: searchRegex },
-      { category: { $elemMatch: searchRegex } },
-      { subCategory: searchRegex },
-    ];
+  if (options.search) query.$text = { $search: options.search };
+  if (options.priceMin !== undefined || options.priceMax !== undefined) {
+    query.price = {};
+    if (options.priceMin !== undefined)
+      query.price.$gte = nairaToKobo(options.priceMin);
+    if (options.priceMax !== undefined)
+      query.price.$lte = nairaToKobo(options.priceMax);
+  }
+  if (options.ratings && options.ratings.length > 0) {
+    query.rating = { $in: options.ratings.map((r) => Number(r)) };
   }
 
-  let productQuery = Product.find<IProduct>(query).sort({ createdAt: -1 });
+  // Build sort logic
+  let sortQuery: { [key: string]: 1 | -1 } = { createdAt: -1 }; // default sort: newest
+  switch (options.sort) {
+    case "price-asc":
+      sortQuery = { price: 1 };
+      break;
+    case "price-desc":
+      sortQuery = { price: -1 };
+      break;
+    case "rating-desc":
+      sortQuery = { rating: -1 };
+      break;
+    // You can add more sort cases if needed
+  }
+
+  let productQuery = Product.find<IProduct>(query).sort(sortQuery);
 
   if (options.skip !== undefined)
     productQuery = productQuery.skip(options.skip);

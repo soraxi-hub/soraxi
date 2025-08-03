@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,85 +26,15 @@ import {
 import { format } from "date-fns";
 import Link from "next/link";
 import Image from "next/image";
-import { toast } from "sonner";
+import { useTRPC } from "@/trpc/client";
+import { formatNaira } from "@/lib/utils/naira";
+import { useQuery } from "@tanstack/react-query";
 
 /**
  * Refund Detail View Component Props
  */
 interface RefundDetailViewProps {
   subOrderId: string;
-}
-
-/**
- * Detailed Refund Item Interface
- */
-interface RefundItemDetail {
-  id: string;
-  orderNumber: string;
-  subOrderId: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-  };
-  store: {
-    id: string;
-    name: string;
-    email: string;
-    description: string;
-  };
-  products: Array<{
-    id: string;
-    name: string;
-    images: string[];
-    price: number;
-    quantity: number;
-    selectedSize?: {
-      size: string;
-      price: number;
-    };
-    category: string[];
-    subCategory: string[];
-    productType: string;
-    totalPrice: number;
-  }>;
-  subOrderAmount: number;
-  orderTotalAmount: number;
-  discount: number;
-  taxAmount: number;
-  deliveryStatus: "Canceled" | "Returned" | "Failed Delivery";
-  deliveryDate?: string;
-  customerConfirmedDelivery: {
-    confirmed: boolean;
-    confirmedAt?: string;
-    autoConfirmed: boolean;
-  };
-  returnWindow?: string;
-  escrow: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: string;
-    refunded: boolean;
-    refundReason?: string;
-  };
-  shippingMethod?: {
-    name: string;
-    price: number;
-    estimatedDeliveryDays?: string;
-    description?: string;
-  };
-  shippingAddress: {
-    postalCode: string;
-    address: string;
-  };
-  paymentMethod?: string;
-  paymentStatus?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  refundRequestDate: string;
 }
 
 /**
@@ -129,34 +59,9 @@ export default function RefundDetailView({
   subOrderId,
 }: RefundDetailViewProps) {
   // ==================== State Management ====================
-
-  /**
-   * Refund Item Data State
-   *
-   * Manages the complete refund item information including loading states
-   * and error handling for the refund detail interface.
-   */
-  const [refundItem, setRefundItem] = useState<RefundItemDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const trpc = useTRPC();
 
   // ==================== Utility Functions ====================
-
-  /**
-   * Format Currency Display
-   *
-   * Formats monetary values in Nigerian Naira with proper formatting
-   * for consistent display across the refund detail interface.
-   *
-   * @param amount - Amount in kobo (smallest currency unit)
-   * @returns Formatted currency string
-   */
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount / 100);
-  };
 
   /**
    * Get Status Badge Configuration
@@ -197,52 +102,15 @@ export default function RefundDetailView({
   };
 
   // ==================== Data Fetching ====================
-
-  /**
-   * Fetch Refund Item Details
-   *
-   * Retrieves complete refund item information including all related data
-   * such as customer details, products, and escrow information.
-   *
-   * Features:
-   * - Comprehensive error handling with user feedback
-   * - Loading state management
-   * - Data validation and formatting
-   * - Automatic retry on failure
-   */
-  const fetchRefundItemDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/admin/refunds/queue/${subOrderId}`);
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch refund item details: ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-
-      if (!data.refundItem) {
-        throw new Error("Refund item not found");
-      }
-
-      setRefundItem(data.refundItem);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Failed to fetch refund item details";
-      setError(errorMessage);
-
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const {
+    data,
+    error,
+    isLoading: loading,
+    refetch: fetchRefundItemDetails,
+  } = useQuery(
+    trpc.adminRefundDetail.getRefundItemDetail.queryOptions({ subOrderId })
+  );
+  const refundItem = data?.refundItem || null;
   // ==================== Effect Hooks ====================
 
   /**
@@ -311,10 +179,10 @@ export default function RefundDetailView({
             Error Loading Refund Item
           </h3>
           <p className="text-muted-foreground mb-4">
-            {error || "Refund item not found"}
+            {error?.message || "Refund item not found"}
           </p>
           <Button
-            onClick={fetchRefundItemDetails}
+            onClick={() => fetchRefundItemDetails()}
             className="bg-soraxi-green hover:bg-soraxi-green/90"
           >
             Try Again
@@ -339,7 +207,6 @@ export default function RefundDetailView({
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center">
-              <AlertTriangle className="w-6 h-6 mr-2 text-soraxi-green" />
               Refund Details
             </h1>
             <p className="text-muted-foreground">
@@ -379,7 +246,7 @@ export default function RefundDetailView({
                 <div>
                   <h4 className="font-medium mb-2">Refund Amount</h4>
                   <p className="text-2xl font-bold text-soraxi-green">
-                    {formatCurrency(refundItem.subOrderAmount)}
+                    {formatNaira(refundItem.subOrderAmount)}
                   </p>
                 </div>
               </div>
@@ -491,7 +358,7 @@ export default function RefundDetailView({
                         {product.selectedSize && (
                           <span>Size: {product.selectedSize.size}</span>
                         )}
-                        <span>Price: {formatCurrency(product.price)}</span>
+                        <span>Price: {formatNaira(product.price)}</span>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {product.category.map((cat, catIndex) => (
@@ -508,7 +375,7 @@ export default function RefundDetailView({
 
                     <div className="text-right">
                       <p className="font-medium">
-                        {formatCurrency(product.totalPrice)}
+                        {formatNaira(product.totalPrice)}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {product.productType}
@@ -523,7 +390,7 @@ export default function RefundDetailView({
               <div className="flex justify-between items-center">
                 <span className="font-medium">Sub-Order Total:</span>
                 <span className="text-lg font-bold">
-                  {formatCurrency(refundItem.subOrderAmount)}
+                  {formatNaira(refundItem.subOrderAmount)}
                 </span>
               </div>
             </CardContent>
@@ -564,7 +431,7 @@ export default function RefundDetailView({
                       {refundItem.shippingMethod.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {formatCurrency(refundItem.shippingMethod.price)}
+                      {formatNaira(refundItem.shippingMethod.price)}
                       {refundItem.shippingMethod.estimatedDeliveryDays &&
                         ` • Est. ${refundItem.shippingMethod.estimatedDeliveryDays} days`}
                     </p>
@@ -732,10 +599,11 @@ export default function RefundDetailView({
               <div>
                 <h4 className="font-medium mb-2">Delivery Address</h4>
                 <p className="text-sm text-muted-foreground">
-                  {refundItem.shippingAddress.address}
+                  {refundItem.shippingAddress?.address || "unknown"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Postal Code: {refundItem.shippingAddress.postalCode}
+                  Postal Code:{" "}
+                  {refundItem.shippingAddress?.postalCode || "unknown"}
                 </p>
               </div>
             </CardContent>
@@ -787,22 +655,22 @@ export default function RefundDetailView({
                   <span className="text-muted-foreground">
                     Sub-Order Amount:
                   </span>
-                  <span>{formatCurrency(refundItem.subOrderAmount)}</span>
+                  <span>{formatNaira(refundItem.subOrderAmount)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Order Total:</span>
-                  <span>{formatCurrency(refundItem.orderTotalAmount)}</span>
+                  <span>{formatNaira(refundItem.orderTotalAmount)}</span>
                 </div>
                 {refundItem.discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount:</span>
-                    <span>-{formatCurrency(refundItem.discount)}</span>
+                    <span>-{formatNaira(refundItem.discount)}</span>
                   </div>
                 )}
                 {refundItem.taxAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax:</span>
-                    <span>{formatCurrency(refundItem.taxAmount)}</span>
+                    <span>{formatNaira(refundItem.taxAmount)}</span>
                   </div>
                 )}
               </div>

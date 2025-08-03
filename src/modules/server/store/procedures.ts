@@ -36,7 +36,6 @@ export const storeRouter = createTRPCRouter({
       };
     }),
 
-  // ✅ NEW PROCEDURE
   getOnboardingDetails: baseProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
@@ -148,7 +147,7 @@ export const storeRouter = createTRPCRouter({
 
       const products = await Product.find(query)
         .select(
-          "name price sizes productQuantity images category subCategory isVerifiedProduct isVisible status createdAt slug"
+          "name price sizes productQuantity images category subCategory isVerifiedProduct isVisible status createdAt slug rating"
         )
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -171,6 +170,7 @@ export const storeRouter = createTRPCRouter({
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
         isVisible: product.isVisible,
+        rating: product.rating,
       }));
 
       return {

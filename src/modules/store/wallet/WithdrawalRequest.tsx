@@ -496,8 +496,10 @@ function AccountCard({
     <Card
       onClick={onSelect}
       className={cn(
-        "cursor-pointer transition-all hover:border-primary",
-        isSelected ? "border-2 border-primary" : ""
+        "cursor-pointer transition-all hover:border-soraxi-green",
+        isSelected
+          ? "border-2 border-soraxi-green dark:border-soraxi-green"
+          : ""
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

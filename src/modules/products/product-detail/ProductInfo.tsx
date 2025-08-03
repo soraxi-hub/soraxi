@@ -273,15 +273,18 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </Button>
 
         <Button
-          variant={isInWishlist ? "default" : "outline"}
           size="lg"
-          className="w-full"
+          className="w-full bg-blue-500 hover:bg-blue-500/85 text-white"
           onClick={() => handleWishlistToggle(product)}
         >
           {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         </Button>
 
-        <Button size="lg" className="w-full" onClick={handleShareProduct}>
+        <Button
+          size="lg"
+          className="w-full bg-yellow-500 text-white hover:bg-yellow-500/85"
+          onClick={handleShareProduct}
+        >
           {isCopied ? "Copied!" : "Share Product"}
         </Button>
       </div>

@@ -67,22 +67,51 @@ export interface CreateWalletTransactionInput {
   description?: string;
 
   /**
-   * Optional reference to related order (for order-based transactions)
+   * Optional reference to a related document (e.g., Order, WithdrawalRequest)
+   * This field will store the ObjectId of the related document.
    */
-  relatedOrderId?: string;
+  relatedDocumentId?: string; // Changed from relatedOrderId
+
+  /**
+   * Optional type of the related document (e.g., "Order", "WithdrawalRequest")
+   * This helps in dynamically populating or linking to the correct detail page.
+   */
+  relatedDocumentType?: "Order" | "WithdrawalRequest" | "Refund" | "Adjustment"; // New field
 }
 
 /**
- * Interface for populated related order data in transactions
+ * Interface for populated related Order data in transactions
  *
+ * Interface for populated related order data in transactions
  * Represents the essential order information that gets populated
  * when retrieving wallet transactions with order context.
  */
-export interface PopulatedRelatedOrder {
+export interface PopulatedOrderForTransaction {
   _id: string;
   totalAmount: number;
   createdAt: Date;
+  orderNumber: string; // Assuming orders have an orderNumber
 }
+
+/**
+ * Interface for populated related WithdrawalRequest data in transactions
+ */
+export interface PopulatedWithdrawalRequestForTransaction {
+  _id: string;
+  requestedAmount: number;
+  netAmount: number;
+  status: string;
+  requestNumber: string; // Assuming withdrawal requests have a requestNumber
+  createdAt: Date;
+}
+
+/**
+ * Union type for any populated related document.
+ * This allows for type-safe access to specific fields based on the document type.
+ */
+export type PopulatedRelatedDocument =
+  | PopulatedOrderForTransaction
+  | PopulatedWithdrawalRequestForTransaction;
 
 /**
  * Interface for formatted wallet transaction response
@@ -97,8 +126,14 @@ export interface FormattedWalletTransaction {
   amount: number;
   source: "order" | "withdrawal" | "refund" | "adjustment";
   description: string | null;
-  relatedOrderId: string | null;
-  relatedOrder: PopulatedRelatedOrder | null;
+  relatedDocumentId: string | null; // Changed from relatedOrderId
+  relatedDocumentType:
+    | "Order"
+    | "WithdrawalRequest"
+    | "Refund"
+    | "Adjustment"
+    | null; // New field
+  relatedDocument: PopulatedRelatedDocument | null; // Changed from relatedOrder
   createdAt: Date;
 }
 
@@ -106,22 +141,27 @@ export interface FormattedWalletTransaction {
  * Interface for wallet transaction aggregation result
  *
  * Represents the shape of documents returned by the MongoDB aggregation
- * pipeline when querying wallet transactions with populated order data.
+ * pipeline when querying wallet transactions with populated document data.
+ *
+ * NOTE: The underlying Mongoose model (IWalletTransaction in wallet.model.ts)
+ * must also be updated to include `relatedDocumentId` and `relatedDocumentType`
+ * fields for this to work correctly.
  */
 export interface WalletTransactionAggregationResult
-  extends Omit<IWalletTransaction, "relatedOrderId"> {
+  extends Omit<IWalletTransaction, "relatedDocumentId"> {
   /**
-   * Populated related order data (single object due to $arrayElemAt)
+   * Populated related document data (single object due to $arrayElemAt)
    *
-   * The $lookup stage populates order data, and $arrayElemAt extracts
+   * The $lookup stage populates document data, and $arrayElemAt extracts
    * the first element from the resulting array for easier access.
    */
-  relatedOrder: PopulatedRelatedOrder | null;
+  relatedDocument: PopulatedRelatedDocument | null; // Changed from relatedOrder
 
   /**
-   * Original related order ID (preserved for reference)
+   * Original related document ID (preserved for reference)
    */
-  relatedOrderId?: mongoose.Types.ObjectId;
+  relatedDocumentId?: mongoose.Types.ObjectId; // Changed from relatedOrderId
+  relatedDocumentType?: "Order" | "WithdrawalRequest" | "Refund" | "Adjustment"; // New field
 }
 
 /**

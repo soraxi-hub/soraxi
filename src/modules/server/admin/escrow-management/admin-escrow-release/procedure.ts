@@ -327,7 +327,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * linking it to the original order for complete audit trail.
          */
         const walletTransactionData: WalletTransactionData = {
-          wallet: sellerWallet._id as unknown as mongoose.Types.ObjectId,
+          wallet: sellerWallet._id as unknown as mongoose.Schema.Types.ObjectId,
           type: "credit",
           amount: releaseAmount,
           source: "order",
@@ -337,7 +337,9 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
             .toString()
             .substring(0, 8)
             .toUpperCase()}`,
-          relatedOrderId: orderWithSubOrder._id as mongoose.Types.ObjectId,
+          relatedDocumentId:
+            orderWithSubOrder._id as unknown as mongoose.Schema.Types.ObjectId,
+          relatedDocumentType: "Order",
         };
 
         const walletTransaction = new WalletTransaction(walletTransactionData);

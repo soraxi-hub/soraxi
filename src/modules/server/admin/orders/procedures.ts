@@ -81,7 +81,7 @@ export const adminOrdersRouter = createTRPCRouter({
 
         // Process date parameters
         const fromDateObj = fromDate ? new Date(fromDate) : null;
-        let toDateObj = toDate ? new Date(toDate) : null;
+        const toDateObj = toDate ? new Date(toDate) : null;
 
         // If toDate is provided, set it to the end of the day (23:59:59.999)
         if (toDateObj) {

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,7 +26,6 @@ import {
   DollarSign,
   User,
   Store,
-  Search,
   Filter,
   Calendar,
   RefreshCw,
@@ -45,7 +43,11 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import Link from "next/link";
-import { toast } from "sonner";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { formatNaira } from "@/lib/utils/naira";
+
+type Status = "Canceled" | "Returned" | "Failed Delivery";
 
 /**
  * Refund Approval Queue Component
@@ -61,80 +63,8 @@ import { toast } from "sonner";
  * - escrow.refunded === false
  */
 
-interface RefundQueueItem {
-  id: string;
-  orderNumber: string;
-  subOrderId: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  store: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  products: Array<{
-    id: string;
-    quantity: number;
-    price: number;
-    selectedSize?: {
-      size: string;
-      price: number;
-    };
-  }>;
-  totalAmount: number;
-  deliveryStatus: "Canceled" | "Returned" | "Failed Delivery";
-  escrow: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: string;
-    refunded: boolean;
-    refundReason?: string;
-  };
-  shippingMethod?: {
-    name: string;
-    price: number;
-    estimatedDeliveryDays?: string;
-    description?: string;
-  };
-  refundRequestDate: string;
-  createdAt: string;
-  updatedAt: string;
-  orderTotalAmount: number;
-  shippingAddress: {
-    postalCode: string;
-    address: string;
-  };
-  paymentMethod?: string;
-  paymentStatus?: string;
-}
-
-interface RefundQueueResponse {
-  success: boolean;
-  refundQueue: RefundQueueItem[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-  filters: {
-    fromDate: string | null;
-    toDate: string | null;
-    deliveryStatus: string;
-    search: string;
-  };
-  summary: {
-    totalPendingRefunds: number;
-    totalRefundAmount: number;
-  };
-}
-
 export function RefundApprovalQueue() {
-  const [refundQueue, setRefundQueue] = useState<RefundQueueItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
   const [summary, setSummary] = useState<{
     totalPendingRefunds: number;
     totalRefundAmount: number;
@@ -144,53 +74,43 @@ export function RefundApprovalQueue() {
   });
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Pagination
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  const {
+    data,
+    refetch: loadRefundQueue,
+    isLoading: loading,
+  } = useQuery(
+    trpc.adminRefund.getRefundQueue.queryOptions({
+      page,
+      limit,
+      fromDate: fromDate?.toISOString(),
+      toDate: toDate?.toISOString(),
+      status: statusFilter !== "all" ? statusFilter : undefined,
+    })
+  );
+
+  const refundQueue = data?.refundQueue || [];
+
+  useEffect(() => {
+    if (data) {
+      setTotalItems(data.pagination.total);
+      setTotalPages(data.pagination.pages);
+      setSummary(data.summary);
+    }
+  }, []);
 
   useEffect(() => {
     loadRefundQueue();
   }, [statusFilter, page, limit]);
-
-  const loadRefundQueue = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-
-      // Add filters to params
-      if (statusFilter !== "all") params.append("status", statusFilter);
-      if (fromDate) params.append("fromDate", fromDate.toISOString());
-      if (toDate) params.append("toDate", toDate.toISOString());
-      if (searchQuery) params.append("search", searchQuery);
-
-      // Add pagination
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-
-      const response = await fetch(`/api/admin/refunds/queue?${params}`);
-      const data: RefundQueueResponse = await response.json();
-
-      if (response.ok) {
-        setRefundQueue(data.refundQueue);
-        setTotalItems(data.pagination.total);
-        setTotalPages(data.pagination.pages);
-        setSummary(data.summary);
-      } else {
-        throw new Error(data.error || "Failed to load refund queue");
-      }
-    } catch (error) {
-      toast.error("Failed to load refund queue");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -221,13 +141,6 @@ export function RefundApprovalQueue() {
     );
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount / 100);
-  };
-
   const handleApplyFilters = () => {
     setPage(1); // Reset to first page when applying new filters
     loadRefundQueue();
@@ -237,7 +150,6 @@ export function RefundApprovalQueue() {
     setStatusFilter("all");
     setFromDate(undefined);
     setToDate(undefined);
-    setSearchQuery("");
     setPage(1);
     // Load refund queue with reset filters
     setTimeout(() => {
@@ -257,7 +169,6 @@ export function RefundApprovalQueue() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center">
-            <AlertTriangle className="w-8 h-8 mr-3 text-soraxi-green" />
             Refund Approval Queue
           </h1>
           <p className="text-muted-foreground">
@@ -294,7 +205,7 @@ export function RefundApprovalQueue() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(summary.totalRefundAmount)}
+              {formatNaira(summary.totalRefundAmount)}
             </div>
             <p className="text-xs text-muted-foreground">
               Total amount pending refund
@@ -312,22 +223,13 @@ export function RefundApprovalQueue() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search customers, stores..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 space-y-4">
             <div className="space-y-2">
               <Label>Delivery Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(e: Status | "all") => setStatusFilter(e)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -389,23 +291,23 @@ export function RefundApprovalQueue() {
                 </Popover>
               </div>
             </div>
-            <div className="flex items-end space-x-2">
-              <Button
-                onClick={handleApplyFilters}
-                className="flex-1 bg-soraxi-green hover:bg-soraxi-green/90"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Apply Filters
-              </Button>
-              <Button
-                onClick={handleResetFilters}
-                variant="outline"
-                className="flex-1 bg-transparent"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              onClick={handleApplyFilters}
+              className="bg-soraxi-green hover:bg-soraxi-green-hover"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Apply Filters
+            </Button>
+            <Button
+              onClick={handleResetFilters}
+              variant="outline"
+              className="bg-transparent"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -445,7 +347,7 @@ export function RefundApprovalQueue() {
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center">
-                      <AlertTriangle className="h-12 w-12 text-muted-foreground mb-2" />
+                      <AlertTriangle className="h-12 w-12 text-soraxi-green mb-2" />
                       <h3 className="font-medium text-lg">
                         No refunds pending
                       </h3>
@@ -504,7 +406,7 @@ export function RefundApprovalQueue() {
                       <div className="flex items-center space-x-1">
                         <DollarSign className="w-3 h-3" />
                         <span className="font-medium">
-                          {formatCurrency(item.totalAmount)}
+                          {formatNaira(item.totalAmount)}
                         </span>
                       </div>
                     </TableCell>

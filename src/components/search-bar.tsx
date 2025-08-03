@@ -1,49 +1,44 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useState } from "react";
 import { Button } from "./ui/button";
+import { useQueryState } from "nuqs";
+import debounce from "debounce";
 
 function SearchBar() {
+  const [search, setSearch] = useQueryState("search");
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const defaultSearchQuery = searchParams.get("search") ?? "";
-  const [query, setQuery] = useState(defaultSearchQuery);
 
-  // const displaySearchInput = pathname.endsWith("/");
   const displaySearchInput = pathname.startsWith("/");
 
-  const handleSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const params = new URLSearchParams(searchParams);
-    if (query) {
-      params.set("search", query);
-    } else {
-      params.delete("search");
-    }
-    router.replace(`${pathname}?${params.toString()}`);
-  };
+  const [query, setQuery] = useState(search ?? "");
+
+  // Memoized debounced setter to avoid recreating on every render
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((val: string) => {
+        if (val) {
+          setSearch(val);
+        } else {
+          setSearch(null);
+        }
+      }, 3000),
+    [setSearch]
+  );
+
+  useEffect(() => {
+    debouncedSetSearch(query);
+  }, [query, debouncedSetSearch]);
 
   return (
     <Suspense fallback={`search`}>
       <div>
         {displaySearchInput && (
-          <form onSubmit={handleSubmit} className=" relative flex">
-            <Input
-              id="search"
-              name="search"
-              type="search"
-              autoComplete="off"
-              placeholder="Search products..."
-              className="h-9 md:w-[370px] lg:w-[580px] delay-75 transition-all ease-in-out focus:!ring-white focus:!outline-none focus:!ring-1 focus:!ring-opacity-90"
-              defaultValue={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <Button className="absolute h-9 w-9 right-0 bg-transparent rounded-l-xs rounded-r p-0 hover:bg-transparent">
+          <form onSubmit={(e) => e.preventDefault()} className="relative flex">
+            <Button className="absolute h-9 w-9 left-0 bg-transparent rounded-l-xs rounded-r p-0 hover:bg-transparent">
               <div className="flex justify-center items-center">
                 <Image
                   src={"/svg/search-gray.svg"}
@@ -53,6 +48,16 @@ function SearchBar() {
                 />
               </div>
             </Button>
+            <Input
+              id="search"
+              name="search"
+              type="search"
+              autoComplete="off"
+              placeholder="Search products..."
+              className="h-9 pl-10 md:w-[370px] lg:w-[580px] delay-75 transition-all ease-in-out focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </form>
         )}
       </div>

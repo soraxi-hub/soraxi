@@ -21,6 +21,10 @@ import { adminEscrowReleaseRouter } from "@/modules/server/admin/escrow-manageme
 import { storeWalletRouter } from "@/modules/server/store/wallet-management/fetch-wallet/procedures";
 import { storeWalletTransactionsRouter } from "@/modules/server/store/wallet-management/store-wallet-transactions/procedures";
 import { withdrawalRouter } from "@/modules/server/withdrawal-router/procedure";
+import { productReviewRouter } from "@/modules/server/reviews/products/procedures";
+import { orderStatusRouter } from "@/modules/server/store/store-orders/order-status-management/procedures";
+import { adminRefundRouter } from "@/modules/server/admin/admin-refund-management/fetch-eligible-refunds/procedures";
+import { adminRefundDetailRouter } from "@/modules/server/admin/admin-refund-management/refund-details/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -44,7 +48,11 @@ export const appRouter = createTRPCRouter({
   adminEscrowRelease: adminEscrowReleaseRouter,
   storeWallet: storeWalletRouter,
   withdrawal: withdrawalRouter,
+  productReview: productReviewRouter,
   storeWalletTransactions: storeWalletTransactionsRouter,
+  orderStatus: orderStatusRouter,
+  adminRefund: adminRefundRouter,
+  adminRefundDetail: adminRefundDetailRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

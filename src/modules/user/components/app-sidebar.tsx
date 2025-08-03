@@ -18,8 +18,7 @@ import {
   UserPlusIcon,
   // Share2Icon,
   ChevronDownIcon,
-  User2,
-  ChevronUp,
+  LogOutIcon,
 } from "lucide-react";
 
 import {
@@ -29,7 +28,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   //   SidebarGroupLabel,
-  SidebarHeader,
+  // SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -40,6 +39,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible } from "@/components/ui/collapsible";
@@ -52,6 +53,9 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { TokenData } from "@/lib/helpers/getUserDataFromToken";
+import { ThemeSwitcher } from "@/components/ui/theme-toggler";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 const sidebarItems = (user: TokenData) => [
   {
@@ -134,6 +138,14 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
     return;
   }
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
   return (
     <Sidebar
       // variant={`inset`}
@@ -141,15 +153,7 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
       // className="absolute top-[7rem]"
       className="fixed top-[7rem] h-[calc(100vh-7rem)]"
     >
-      <SidebarHeader className="border-b border-border p-4 text-lg">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            Greetings, {user?.firstName || "User"}
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
+      <SidebarContent className="pl-10">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -185,17 +189,46 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-2">
+      <SidebarFooter className="border-t border-border p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="w-full justify-start p-2">
-              <User2 /> {user?.firstName || "User"}
-              <ChevronUp className="ml-auto" />
-            </SidebarMenuButton>
+            <Button variant="ghost" className="w-full justify-start p-2">
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-soraxi-green text-white text-xs">
+                    {getInitials(user.firstName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-foreground">
+                    {user.firstName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+            </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side="top" className="w-56">
-            <DropdownMenuItem onClick={handleLogout}>
-              <span>Sign out</span>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div>
+                <p className="font-medium">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="flex items-center justify-between gap-2">
+              <span>Theme</span>
+              <ThemeSwitcher page="user" />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-destructive"
+            >
+              <LogOutIcon className="w-4 h-4 mr-2" />
+              Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

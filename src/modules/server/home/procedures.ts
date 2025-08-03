@@ -22,20 +22,43 @@ export const homeRouter = createTRPCRouter({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(20),
         category: z.string().optional(),
+        subCategory: z.string().optional(),
         verified: z.boolean().optional(),
-        search: z.string().optional(),
+        search: z.string().optional().nullable(),
+        sort: z
+          .enum(["newest", "price-asc", "price-desc", "rating-desc"])
+          .optional(),
+        priceMin: z.number().optional(),
+        priceMax: z.number().optional(),
+        ratings: z.array(z.number()).optional(),
       })
     )
     .query(async ({ input }) => {
-      const { page, limit, category, verified, search } = input;
+      const {
+        page,
+        limit,
+        category,
+        subCategory,
+        verified,
+        search,
+        sort,
+        priceMin,
+        priceMax,
+        ratings,
+      } = input;
 
       const products = await getProducts({
         visibleOnly: true,
         limit,
         skip: (page - 1) * limit,
         category: category !== "all" ? category : undefined,
+        subCategory,
         verified,
         search,
+        sort,
+        priceMin,
+        priceMax,
+        ratings,
       });
 
       const formattedProducts = products.map((product) => ({

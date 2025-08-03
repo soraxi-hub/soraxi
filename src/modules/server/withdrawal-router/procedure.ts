@@ -8,7 +8,7 @@ import {
   getWalletTransactionModel,
 } from "@/lib/db/models/wallet.model";
 import { getWithdrawalRequestModel } from "@/lib/db/models/withdrawal-request.model";
-import { getAdminModel } from "@/lib/db/models/admin.model"; // Assuming an Admin model exists
+import { getAdminModel } from "@/lib/db/models/admin.model";
 import { checkAdminPermission } from "@/lib/admin/permissions";
 import {
   logAdminAction,
@@ -31,6 +31,7 @@ import type {
   AdminWithdrawalActionResponse,
   WithdrawalRequestDetailAggregationResult,
   WithdrawalAuditDetails,
+  FormattedStoreWithdrawalRequestDetail,
 } from "@/types/withdrawal-request-types";
 
 /**
@@ -173,6 +174,8 @@ export const withdrawalRouter = createTRPCRouter({
             amount: amount,
             source: "withdrawal",
             description: `Withdrawal request ${requestNumber}`,
+            relatedDocumentId: withdrawalRequest._id, // Link to withdrawal request
+            relatedDocumentType: "WithdrawalRequest", // Specify type
           });
           await walletTransaction.save({ session });
 
@@ -302,6 +305,7 @@ export const withdrawalRouter = createTRPCRouter({
         const skip = (page - 1) * limit;
 
         const WithdrawalRequestModel = await getWithdrawalRequestModel();
+        // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
         const AdminModel = await getAdminModel(); // Assuming Admin model exists
 
         const pipeline: mongoose.PipelineStage[] = [];
@@ -482,6 +486,7 @@ export const withdrawalRouter = createTRPCRouter({
 
           const WithdrawalRequestModel = await getWithdrawalRequestModel();
           const AdminModel = await getAdminModel(); // Assuming Admin model exists
+          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
           const StoreModel = await getStoreModel();
 
           const pipeline: mongoose.PipelineStage[] = [
@@ -700,6 +705,7 @@ export const withdrawalRouter = createTRPCRouter({
 
           const WithdrawalRequestModel = await getWithdrawalRequestModel();
           const WalletModel = await getWalletModel();
+          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
           const WalletTransactionModel = await getWalletTransactionModel();
           const StoreModel = await getStoreModel();
 
@@ -769,6 +775,8 @@ export const withdrawalRouter = createTRPCRouter({
           );
           // No direct balance change here, as the actual transfer happens externally.
           // The balance was already debited when the request was created.
+          // We might add a 'processed' transaction type or update the existing one.
+          // For simplicity, we'll just update the request status and rely on external system for actual money movement.
           await wallet.save({ session });
 
           // Create a wallet transaction for the actual payout (if needed, or rely on external system)
@@ -975,7 +983,8 @@ export const withdrawalRouter = createTRPCRouter({
             amount: withdrawalRequest.requestedAmount,
             source: "adjustment", // Or 'refund' if applicable
             description: `Withdrawal request ${withdrawalRequest.requestNumber} rejected. Funds returned.`,
-            relatedOrderId: withdrawalRequest._id, // Link to withdrawal request
+            relatedDocumentId: withdrawalRequest._id, // Link to withdrawal request
+            relatedDocumentType: "WithdrawalRequest", // Specify type
           });
           await walletTransaction.save({ session });
 
@@ -1053,6 +1062,171 @@ export const withdrawalRouter = createTRPCRouter({
           if (session) {
             await session.endSession();
           }
+        }
+      }
+    ),
+
+  /**
+   * Store-facing: Get detailed information about a single withdrawal request for the store owner.
+   * Ensures the request belongs to the authenticated store.
+   */
+  getStoreWithdrawalRequestDetail: baseProcedure
+    .input(
+      z.object({
+        storeId: z.string().min(1, "Store ID is required"),
+        requestId: z.string().min(1, "Request ID is required"),
+      })
+    )
+    .query(
+      async ({
+        input,
+        ctx,
+      }): Promise<{
+        success: true;
+        request: FormattedStoreWithdrawalRequestDetail;
+      }> => {
+        const { store } = ctx;
+        try {
+          // Authenticate store
+          if (!store?.id) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "Store authentication required",
+            });
+          }
+
+          const { storeId, requestId } = input;
+
+          // Ensure the authenticated store matches the requested storeId
+          if (store.id !== storeId) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Access denied to this store's withdrawal requests",
+            });
+          }
+
+          if (!mongoose.Types.ObjectId.isValid(requestId)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Invalid request ID",
+            });
+          }
+
+          const WithdrawalRequestModel = await getWithdrawalRequestModel();
+          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
+          const WalletModel = await getWalletModel();
+          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
+          const AdminModel = await getAdminModel(); // Needed to get admin names for status history
+
+          const pipeline: mongoose.PipelineStage[] = [
+            {
+              $match: {
+                _id: new mongoose.Types.ObjectId(requestId),
+                store: new mongoose.Types.ObjectId(storeId),
+              },
+            },
+            // Populate store details (essential for wallet balance)
+            {
+              $lookup: {
+                from: "stores",
+                localField: "store",
+                foreignField: "_id",
+                as: "storeDetails",
+                pipeline: [
+                  { $project: { _id: 1, name: 1, storeEmail: 1, wallet: 1 } },
+                ],
+              },
+            },
+            {
+              $addFields: {
+                storeDetails: { $arrayElemAt: ["$storeDetails", 0] },
+              },
+            },
+            // Populate wallet balance for the store
+            {
+              $lookup: {
+                from: "wallets",
+                localField: "storeDetails.wallet",
+                foreignField: "_id",
+                as: "walletDetails",
+                pipeline: [{ $project: { balance: 1 } }],
+              },
+            },
+            {
+              $addFields: {
+                walletDetails: { $arrayElemAt: ["$walletDetails", 0] },
+              },
+            },
+          ];
+
+          const results: WithdrawalRequestDetailAggregationResult[] =
+            await WithdrawalRequestModel.aggregate(pipeline);
+
+          if (!results || results.length === 0) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message:
+                "Withdrawal request not found or does not belong to this store",
+            });
+          }
+
+          const request = results[0];
+
+          // Format status history (without adminName for store view)
+          const formattedStatusHistory = await Promise.all(
+            request.statusHistory.map(async (history) => {
+              return {
+                status: history.status,
+                timestamp: history.timestamp.toISOString(),
+                notes: history.notes,
+              };
+            })
+          );
+
+          const formattedRequest: FormattedStoreWithdrawalRequestDetail = {
+            id: request._id.toString(),
+            requestNumber: request.requestNumber,
+            store: {
+              id: request.storeDetails._id.toString(),
+              name: request.storeDetails.name,
+              email: request.storeDetails.storeEmail,
+              walletBalance: request.walletDetails?.balance || 0,
+            },
+            requestedAmount: request.requestedAmount,
+            processingFee: request.processingFee,
+            netAmount: request.netAmount,
+            bankDetails: {
+              bankName: request.bankDetails.bankName,
+              accountNumber: request.bankDetails.accountNumber,
+              accountHolderName: request.bankDetails.accountHolderName,
+            },
+            status: request.status,
+            statusHistory: formattedStatusHistory,
+            description: request.description,
+            review: {
+              reviewedAt: request.reviewedAt?.toISOString(),
+              notes: request.reviewNotes,
+              rejectionReason: request.rejectionReason,
+            },
+            processing: {
+              processedAt: request.processedAt?.toISOString(),
+              transactionReference: request.transactionReference,
+            },
+            createdAt: request.createdAt.toISOString(),
+            updatedAt: request.updatedAt.toISOString(),
+          };
+
+          return { success: true, request: formattedRequest };
+        } catch (error) {
+          console.error(
+            "Error fetching store withdrawal request detail:",
+            error
+          );
+          if (error instanceof TRPCError) throw error;
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to fetch withdrawal request details",
+          });
         }
       }
     ),

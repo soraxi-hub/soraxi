@@ -47,7 +47,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { AppRouter } from "@/trpc/routers/_app";
@@ -96,32 +96,32 @@ export function OrderMonitoring() {
   const totalOrders = data?.pagination?.total || 0;
   const totalPages = data?.pagination?.pages || 1;
 
-  const handleOrderAction = async (
-    orderId: string,
-    action: string,
-    subOrderId?: string
-  ) => {
-    try {
-      const response = await fetch(`/api/admin/orders/${orderId}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, subOrderId }),
-      });
+  // const handleOrderAction = async (
+  //   orderId: string,
+  //   action: string,
+  //   subOrderId?: string
+  // ) => {
+  //   try {
+  //     const response = await fetch(`/api/admin/orders/${orderId}/action`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ action, subOrderId }),
+  //     });
 
-      const result = await response.json();
+  //     const result = await response.json();
 
-      if (response.ok) {
-        toast.success(result.message);
-        // loadOrders();
-        setSelectedOrder(null);
-        setShowOrderDetails(false);
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Action failed");
-    }
-  };
+  //     if (response.ok) {
+  //       toast.success(result.message);
+  //       // loadOrders();
+  //       setSelectedOrder(null);
+  //       setShowOrderDetails(false);
+  //     } else {
+  //       throw new Error(result.error);
+  //     }
+  //   } catch (error) {
+  //     toast.error(error instanceof Error ? error.message : "Action failed");
+  //   }
+  // };
 
   const getPaymentBadge = (status: string) => {
     const colors: Record<string, string> = {

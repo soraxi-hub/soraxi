@@ -35,6 +35,54 @@ export interface CreateWithdrawalRequestResponse {
 }
 
 /**
+ * Interface for formatted single withdrawal request detail response (store-facing)
+ * This is a subset of the admin-facing detail, tailored for the store owner.
+ */
+export interface FormattedStoreWithdrawalRequestDetail {
+  id: string;
+  requestNumber: string;
+  store: {
+    id: string;
+    name: string;
+    email: string;
+    walletBalance: number; // Current wallet balance of the store
+  };
+  requestedAmount: number;
+  processingFee: number;
+  netAmount: number;
+  bankDetails: {
+    bankName: string;
+    accountNumber: string;
+    accountHolderName: string;
+  };
+  status:
+    | "pending"
+    | "under_review"
+    | "approved"
+    | "processing"
+    | "completed"
+    | "rejected"
+    | "failed";
+  statusHistory: Array<{
+    status: string;
+    timestamp: string;
+    notes?: string;
+  }>; // AdminName is omitted for store view
+  description?: string;
+  review: {
+    reviewedAt?: string;
+    notes?: string;
+    rejectionReason?: string;
+  };
+  processing: {
+    processedAt?: string;
+    transactionReference?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Interface for populated store details in withdrawal request aggregation
  */
 export type PopulatedStoreForWithdrawal = Pick<

@@ -69,6 +69,7 @@ interface AggregationResultItem {
  * Business Logic:
  * - deliveryStatus = "Delivered"
  * - customerConfirmedDelivery.confirmed = false
+ * - customerConfirmedDelivery.autoConfirmed = false
  * - deliveryDate is older than 2 days
  *
  * Features:
@@ -142,7 +143,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
 
         // Process date parameters
         const fromDateObj = fromDate ? new Date(fromDate) : null;
-        let toDateObj = toDate ? new Date(toDate) : null;
+        const toDateObj = toDate ? new Date(toDate) : null;
 
         // Adjust toDate to end of day if provided
         if (toDateObj) toDateObj.setHours(23, 59, 59, 999);
@@ -415,6 +416,13 @@ export const deliveryConfirmationRouter = createTRPCRouter({
         const Order = await getOrderModel();
         const now = new Date();
 
+        // Prepare the status history update
+        const statusUpdate = {
+          status: "Delivered",
+          timestamp: now,
+          notes: "Delivery auto-confirmed by System.",
+        };
+
         const result = await Order.findOneAndUpdate(
           {
             "subOrders._id": new mongoose.Types.ObjectId(subOrderId),
@@ -427,6 +435,9 @@ export const deliveryConfirmationRouter = createTRPCRouter({
               "subOrders.$.customerConfirmedDelivery.confirmed": false,
               "subOrders.$.customerConfirmedDelivery.confirmedAt": now,
               "subOrders.$.customerConfirmedDelivery.autoConfirmed": true,
+            },
+            $push: {
+              "subOrders.$.statusHistory": statusUpdate,
             },
           },
           { new: true } // Return the updated document

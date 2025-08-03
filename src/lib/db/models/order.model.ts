@@ -59,6 +59,20 @@ export interface ISubOrder {
     refundReason: string; // optional reason
   };
   returnWindow: Date; // to track deadline for returns before releasing escrow
+  statusHistory: Array<{
+    status:
+      | "Order Placed"
+      | "Processing"
+      | "Shipped"
+      | "Out for Delivery"
+      | "Delivered"
+      | "Canceled"
+      | "Returned"
+      | "Failed Delivery"
+      | "Refunded";
+    timestamp: Date;
+    notes?: string;
+  }>;
 }
 
 /**
@@ -155,6 +169,27 @@ const SubOrderSchema = new Schema<ISubOrder>({
     refundReason: { type: String }, // optional reason
   },
   returnWindow: { type: Date }, // set at delivery, e.g., +7 days
+  statusHistory: [
+    {
+      status: {
+        type: String,
+        enum: [
+          "Order Placed",
+          "Processing",
+          "Shipped",
+          "Out for Delivery",
+          "Delivered",
+          "Canceled",
+          "Returned",
+          "Failed Delivery",
+          "Refunded",
+        ],
+        required: true,
+      },
+      timestamp: { type: Date, default: Date.now },
+      notes: String,
+    },
+  ],
 });
 
 /**

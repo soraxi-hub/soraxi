@@ -45,11 +45,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import type { StoreProduct } from "@/types/onboarding";
 import { formatNaira } from "@/lib/utils/naira";
 import Image from "next/image";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
+import { inferProcedureOutput } from "@trpc/server";
+import { AppRouter } from "@/trpc/routers/_app";
+
+type Output = inferProcedureOutput<AppRouter["store"]["getStoreProducts"]>;
+type StoreProduct = Output["products"][number];
 
 /**
  * Store Products Management Component
@@ -202,7 +206,7 @@ export function StoreProductsManagement({
           </p>
         </div>
         <Link href={`/store/${store_id}/products/upload`}>
-          <Button className="bg-soraxi-green hover:bg-soraxi-green/90 text-white">
+          <Button className="bg-soraxi-green hover:bg-soraxi-green-hover text-white">
             <Plus className="w-4 h-4 mr-2" />
             Add Product
           </Button>
@@ -322,7 +326,10 @@ export function StoreProductsManagement({
               </Select>
             </div>
             <div className="flex items-end">
-              <Button onClick={loadProducts} className="w-full">
+              <Button
+                onClick={loadProducts}
+                className="w-full bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 Apply Filters
               </Button>

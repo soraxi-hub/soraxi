@@ -290,6 +290,11 @@ export const orderRouter = createTRPCRouter({
 
       // Update sub-order fields
       subOrder.deliveryStatus = deliveryStatus;
+      subOrder.statusHistory.push({
+        status: deliveryStatus,
+        timestamp: currentDate,
+        notes: `Delivery Confirmed by customer.`,
+      }); // Here we push in this confirmation action.
 
       if (previousStatus === "Out for Delivery") {
         // Set delivery date and calculate return window
