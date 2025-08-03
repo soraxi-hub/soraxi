@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
+import { nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Shipping Method Schema Subdocument Interface
@@ -64,6 +64,7 @@ export interface IPayoutHistory {
  * Store Document Interface
  */
 export interface IStore extends Document {
+  _id: mongoose.Schema.Types.ObjectId;
   name: string;
   password: string;
   storeOwner: mongoose.Types.ObjectId;
@@ -71,7 +72,6 @@ export interface IStore extends Document {
   uniqueId: string;
   followers: mongoose.Types.ObjectId[];
   physicalProducts: mongoose.Types.ObjectId[];
-  recipientCode: string;
 
   // Branding
   logoUrl?: string;
@@ -114,8 +114,6 @@ export interface IStore extends Document {
   forgotpasswordTokenExpiry?: Date;
 
   // Financials
-  platformFee: number;
-  transactionFees: number;
   wallet: mongoose.Schema.Types.ObjectId;
 
   // Shipping
@@ -141,7 +139,6 @@ const ShippingMethodSchema = new Schema<IShippingMethod>({
   price: {
     type: Number,
     set: (price: number) => nairaToKobo(price),
-    get: (price: number) => koboToNaira(price),
     required: [true, "Shipping price is required"],
   },
   estimatedDeliveryDays: Number,
@@ -217,10 +214,6 @@ const StoreSchema = new Schema<IStore>(
     physicalProducts: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     ],
-    recipientCode: {
-      type: String,
-      unique: true,
-    },
 
     // ✅ Optional store branding
     logoUrl: String,
@@ -277,8 +270,6 @@ const StoreSchema = new Schema<IStore>(
     forgotpasswordTokenExpiry: Date,
 
     // ✅ Financials
-    platformFee: { type: Number, default: 0 },
-    transactionFees: { type: Number, default: 0 },
     wallet: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",

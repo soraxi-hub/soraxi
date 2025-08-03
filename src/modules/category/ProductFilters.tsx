@@ -1,56 +1,61 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { X } from "lucide-react"
-
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
+import debounce from "debounce";
 interface FilterOptions {
-  priceRange: [number, number]
-  inStock: boolean
-  ratings: number[]
-  brands: string[]
+  priceRange: [number, number];
+  inStock: boolean;
+  ratings: number[];
 }
 
 interface ProductFiltersProps {
-  filters: FilterOptions
-  onFiltersChange: (filters: FilterOptions) => void
-  availableBrands: string[]
-  maxPrice: number
+  filters: FilterOptions;
+  onFiltersChangeAction: (filters: FilterOptions) => void;
+  maxPrice: number;
 }
 
-export function ProductFilters({ filters, onFiltersChange, availableBrands, maxPrice }: ProductFiltersProps) {
-  const [localFilters, setLocalFilters] = useState(filters)
+export function ProductFilters({
+  filters,
+  onFiltersChangeAction,
+  maxPrice,
+}: ProductFiltersProps) {
+  const [localFilters, setLocalFilters] = useState(filters);
+
+  const debouncedFilterUpdate = useMemo(
+    () => debounce(onFiltersChangeAction, 1000),
+    [onFiltersChangeAction]
+  );
 
   const handlePriceChange = (value: number[]) => {
-    const newFilters = { ...localFilters, priceRange: [value[0], value[1]] as [number, number] }
-    setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
-  }
+    const newFilters = {
+      ...localFilters,
+      priceRange: [value[0], value[1]] as [number, number],
+    };
+    setLocalFilters(newFilters);
+    debouncedFilterUpdate(newFilters);
+  };
 
   const handleStockChange = (checked: boolean) => {
-    const newFilters = { ...localFilters, inStock: checked }
-    setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
-  }
+    const newFilters = { ...localFilters, inStock: checked };
+    setLocalFilters(newFilters);
+    onFiltersChangeAction(newFilters);
+  };
 
   const handleRatingChange = (rating: number, checked: boolean) => {
-    const newRatings = checked ? [...localFilters.ratings, rating] : localFilters.ratings.filter((r) => r !== rating)
-    const newFilters = { ...localFilters, ratings: newRatings }
-    setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
-  }
-
-  const handleBrandChange = (brand: string, checked: boolean) => {
-    const newBrands = checked ? [...localFilters.brands, brand] : localFilters.brands.filter((b) => b !== brand)
-    const newFilters = { ...localFilters, brands: newBrands }
-    setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
-  }
+    const newRatings = checked
+      ? [...localFilters.ratings, rating]
+      : localFilters.ratings.filter((r) => r !== rating);
+    const newFilters = { ...localFilters, ratings: newRatings };
+    setLocalFilters(newFilters);
+    onFiltersChangeAction(newFilters);
+  };
 
   const clearAllFilters = () => {
     const clearedFilters = {
@@ -58,16 +63,17 @@ export function ProductFilters({ filters, onFiltersChange, availableBrands, maxP
       inStock: false,
       ratings: [],
       brands: [],
-    }
-    setLocalFilters(clearedFilters)
-    onFiltersChange(clearedFilters)
-  }
+    };
+    setLocalFilters(clearedFilters);
+    onFiltersChangeAction(clearedFilters);
+  };
 
   const activeFiltersCount =
     (localFilters.inStock ? 1 : 0) +
     localFilters.ratings.length +
-    localFilters.brands.length +
-    (localFilters.priceRange[0] > 0 || localFilters.priceRange[1] < maxPrice ? 1 : 0)
+    (localFilters.priceRange[0] > 0 || localFilters.priceRange[1] < maxPrice
+      ? 1
+      : 0);
 
   return (
     <div className="space-y-6">
@@ -86,19 +92,23 @@ export function ProductFilters({ filters, onFiltersChange, availableBrands, maxP
           {localFilters.inStock && (
             <Badge variant="secondary" className="flex items-center gap-1">
               In Stock
-              <X className="h-3 w-3 cursor-pointer" onClick={() => handleStockChange(false)} />
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => handleStockChange(false)}
+              />
             </Badge>
           )}
           {localFilters.ratings.map((rating) => (
-            <Badge key={rating} variant="secondary" className="flex items-center gap-1">
+            <Badge
+              key={rating}
+              variant="secondary"
+              className="flex items-center gap-1"
+            >
               {rating}+ Stars
-              <X className="h-3 w-3 cursor-pointer" onClick={() => handleRatingChange(rating, false)} />
-            </Badge>
-          ))}
-          {localFilters.brands.map((brand) => (
-            <Badge key={brand} variant="secondary" className="flex items-center gap-1">
-              {brand}
-              <X className="h-3 w-3 cursor-pointer" onClick={() => handleBrandChange(brand, false)} />
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => handleRatingChange(rating, false)}
+              />
             </Badge>
           ))}
         </div>
@@ -131,7 +141,11 @@ export function ProductFilters({ filters, onFiltersChange, availableBrands, maxP
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2">
-            <Checkbox id="in-stock" checked={localFilters.inStock} onCheckedChange={handleStockChange} />
+            <Checkbox
+              id="in-stock"
+              checked={localFilters.inStock}
+              onCheckedChange={handleStockChange}
+            />
             <Label htmlFor="in-stock">In Stock Only</Label>
           </div>
         </CardContent>
@@ -148,7 +162,9 @@ export function ProductFilters({ filters, onFiltersChange, availableBrands, maxP
               <Checkbox
                 id={`rating-${rating}`}
                 checked={localFilters.ratings.includes(rating)}
-                onCheckedChange={(checked) => handleRatingChange(rating, checked as boolean)}
+                onCheckedChange={(checked) =>
+                  handleRatingChange(rating, checked as boolean)
+                }
               />
               <Label htmlFor={`rating-${rating}`} className="flex items-center">
                 {rating}+ Stars
@@ -157,27 +173,6 @@ export function ProductFilters({ filters, onFiltersChange, availableBrands, maxP
           ))}
         </CardContent>
       </Card>
-
-      {/* Brands */}
-      {availableBrands.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Brands</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {availableBrands.slice(0, 8).map((brand) => (
-              <div key={brand} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`brand-${brand}`}
-                  checked={localFilters.brands.includes(brand)}
-                  onCheckedChange={(checked) => handleBrandChange(brand, checked as boolean)}
-                />
-                <Label htmlFor={`brand-${brand}`}>{brand}</Label>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
-  )
+  );
 }

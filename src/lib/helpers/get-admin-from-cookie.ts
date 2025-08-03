@@ -8,6 +8,7 @@ export interface AdminTokenData {
   name: string;
   email: string;
   roles: string[]; // Ensure roles are strings
+  isActive: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export async function getAdminFromCookie(): Promise<AdminTokenData | null> {
       typeof decoded.id === "string" &&
       typeof decoded.name === "string" &&
       typeof decoded.email === "string" &&
+      typeof decoded.isActive === "boolean" &&
       Array.isArray(decoded.roles) &&
       decoded.roles.every((role) => typeof role === "string");
 

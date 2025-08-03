@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -24,120 +23,135 @@ export function UserOrders({ userId }: { userId: string }) {
   );
 
   return (
-    <main className="min-h-screen w-full p-8">
-      <Card className="bg-card rounded-lg shadow-xs">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl sm:text-2xl font-bold">
-              Order History
-            </CardTitle>
-            <Badge className="bg-primary/10 text-primary text-sm sm:text-base">
-              {orders.length} Orders
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {orders.length > 0 ? (
-            <div className="grid gap-4 sm:gap-6">
-              {orders.map((order) => (
-                <Card key={order._id} className="p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        Order Date:{" "}
-                        <time
-                          dateTime={new Date(order.createdAt).toISOString()}
-                        >
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </time>
-                      </p>
-                      <p className="text-lg font-bold">
-                        Total: {formatNaira(order.totalAmount)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Payment: {order.paymentStatus}
-                      </p>
-                    </div>
+    <main className="min-h-screen w-full py-6">
+      <div className="bg-background rounded-lg shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            Order History
+          </h1>
+          <Badge className="bg-primary/10 text-primary text-sm md:text-base px-3 py-1 rounded-full">
+            {orders.length} Orders
+          </Badge>
+        </div>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground"
-                        >
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/orders/${order._id}`}>
-                            View Details
-                          </Link>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+        <div className="divide-y divide-border">
+          {orders.length > 0 ? (
+            orders.map((order) => (
+              <div
+                key={order._id}
+                className="py-6 px-4 md:px-6 bg-card hover:bg-card/95 transition-colors"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      Order Date:{" "}
+                      <time dateTime={new Date(order.createdAt).toISOString()}>
+                        {new Date(order.createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </time>
+                    </p>
+                    <p className="text-xl font-bold text-foreground">
+                      Total: {formatNaira(order.totalAmount)}
+                    </p>
+                    <Badge
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        order.paymentStatus === "Paid"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      Payment: {order.paymentStatus}
+                    </Badge>
                   </div>
 
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:bg-accent"
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/orders/${order._id}`}>View Details</Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="space-y-4 mt-4">
                   {order.subOrders.map((sub) => (
                     <div
                       key={sub.store._id}
-                      className="border rounded-md p-4 space-y-3"
+                      className="border border-border rounded-lg p-4 bg-background/50 shadow-sm"
                     >
-                      <h3 className="text-base font-semibold">
+                      <h3 className="text-base font-semibold text-foreground mb-3">
                         Store: {sub.store.name}
                       </h3>
 
-                      {sub.products.map((product) => (
-                        <div
-                          key={product._id}
-                          className="flex gap-4 items-center border-t pt-3"
-                        >
-                          <div className="relative w-24 h-24 shrink-0 rounded overflow-hidden border">
-                            <Image
-                              src={
-                                product.Product.images?.[0] ??
-                                "/placeholder.svg"
-                              }
-                              alt={product.Product.name}
-                              fill
-                              className="object-cover"
-                            />
+                      <div className="divide-y divide-border">
+                        {sub.products.map((product) => (
+                          <div
+                            key={product._id}
+                            className="flex gap-4 items-center py-3 first:pt-0"
+                          >
+                            <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border border-border">
+                              <Image
+                                src={
+                                  product.Product.images?.[0] ??
+                                  "/placeholder.svg"
+                                }
+                                alt={product.Product.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <p className="font-medium text-foreground text-base">
+                                {product.Product.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Qty: {product.quantity} &bull;{" "}
+                                {formatNaira(product.price)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <p className="font-medium">
-                              {product.Product.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Qty: {product.quantity} &bull;{" "}
-                              {formatNaira(product.price)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   ))}
-                </Card>
-              ))}
-            </div>
-          ) : (
-            // ... (keep existing empty state)
-            <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed shadow-xs h-[300px]">
-              <div className="flex flex-col items-center gap-1 text-center p-8">
-                <XCircle className="h-10 w-10 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No orders found</h3>
-                <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                  Your recent orders will appear here
-                </p>
-                <Link href="/">
-                  <Button size="sm">Browse Products</Button>
-                </Link>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-card min-h-[300px]">
+              <XCircle className="h-12 w-12 text-soraxi-green mb-4" />
+              <h3 className="mt-4 text-xl font-semibold text-foreground">
+                No orders found
+              </h3>
+              <p className="mb-6 mt-2 text-sm text-muted-foreground">
+                Your recent orders will appear here. Start shopping to see your
+                history!
+              </p>
+              <Link href="/">
+                <Button
+                  size="lg"
+                  className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+                >
+                  Browse Products
+                </Button>
+              </Link>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </main>
   );
 }

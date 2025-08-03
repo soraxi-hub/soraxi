@@ -5,7 +5,6 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import {
   Search,
   Filter,
-  // Download,
   Eye,
   MoreHorizontal,
   Package,
@@ -47,65 +46,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// import { useToast } from "@/hooks/use-toast"
 import Link from "next/link";
-// import { useTRPC } from "@/trpc/client";
-
-/**
- * Interface for Order Summary Information
- *
- * Represents the essential order data displayed in the orders management table.
- * Optimized for list view with key information for quick order identification.
- */
-interface OrderSummary {
-  _id: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  totalAmount: number;
-  paymentStatus: string;
-  paymentMethod: string;
-  createdAt: string;
-  subOrders: {
-    _id: string;
-    deliveryStatus: string;
-    products: {
-      Product: {
-        _id: string;
-        name: string;
-        images: string[];
-      };
-      quantity: number;
-    }[];
-    trackingNumber?: string;
-  }[];
-}
-
-/**
- * Interface for API Response Structure
- *
- * Defines the structure of the API response including pagination
- * metadata and filtering information.
- */
-interface OrdersResponse {
-  success: boolean;
-  orders: OrderSummary[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-    limit: number;
-  };
-  filters: {
-    dateRange: { startDate: string; endDate: string } | null;
-    deliveryStatus: string;
-    searchQuery: string;
-  };
-}
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { PopulatedUser } from "@/types/order";
+import { formatNaira } from "@/lib/utils/naira";
 
 /**
  * Store Orders Management Component
@@ -129,18 +74,7 @@ export default function StoreOrdersManagement({
 }: {
   storeId: string;
 }) {
-  // ==================== State Management ====================
-
-  /**
-   * Orders Data State
-   *
-   * Manages the complete orders dataset including loading states,
-   * error handling, and pagination information.
-   */
-  const [orders, setOrders] = useState<OrderSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // const trpc = useTRPC();
+  const trpc = useTRPC();
 
   /**
    * Pagination State
@@ -162,9 +96,6 @@ export default function StoreOrdersManagement({
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  // Hook for toast notifications
-  // const { toast } = useToast()
 
   // ==================== Utility Functions ====================
 
@@ -210,22 +141,6 @@ export default function StoreOrdersManagement({
           endDate: endOfMonth(now),
         };
     }
-  };
-
-  /**
-   * Format Currency Display
-   *
-   * Formats monetary values in Nigerian Naira with proper formatting
-   * for consistent display across the orders table.
-   *
-   * @param amount - Amount in kobo (smallest currency unit)
-   * @returns Formatted currency string
-   */
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount / 100);
   };
 
   /**
@@ -313,80 +228,31 @@ export default function StoreOrdersManagement({
     );
   };
 
-  // ==================== Data Fetching ====================
+  const dateRange = getDateRange(selectedMonth);
+  const {
+    data,
+    isLoading: loading,
+    refetch: fetchOrders,
+    error,
+  } = useQuery(
+    trpc.storeOrders.getStoreOrders.queryOptions({
+      startDate: dateRange.startDate.toISOString(),
+      endDate: dateRange.endDate.toISOString(),
+      deliveryStatus: selectedStatus,
+      page: currentPage,
+      limit: 20,
+    })
+  );
 
-  /**
-   * Fetch Orders from API
-   *
-   * Retrieves orders from the store orders API with comprehensive
-   * filtering, pagination, and error handling.
-   *
-   * Features:
-   * - Date range filtering based on month selection
-   * - Delivery status filtering
-   * - Search query processing
-   * - Pagination support
-   * - Loading state management
-   * - Error handling with user feedback
-   */
-  const fetchOrders = async (page = 1) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const orders = data?.orders || [];
 
-      // Build query parameters
-      const params = new URLSearchParams();
-
-      // Add date range parameters
-      const dateRange = getDateRange(selectedMonth);
-      params.append("startDate", dateRange.startDate.toISOString());
-      params.append("endDate", dateRange.endDate.toISOString());
-
-      // Add filtering parameters
-      if (selectedStatus !== "all") {
-        params.append("deliveryStatus", selectedStatus);
-      }
-
-      if (searchQuery.trim()) {
-        params.append("search", searchQuery.trim());
-      }
-
-      // Add pagination parameters
-      params.append("page", page.toString());
-      params.append("limit", "20");
-
-      // Execute API request
-      const response = await fetch(`/api/store/orders?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch orders: ${response.statusText}`);
-      }
-
-      const data: OrdersResponse = await response.json();
-
-      if (!data.success) {
-        throw new Error("Failed to fetch orders");
-      }
-
-      // Update state with fetched data
-      setOrders(data.orders);
+  useEffect(() => {
+    if (data) {
       setCurrentPage(data.pagination.currentPage);
       setTotalPages(data.pagination.totalPages);
       setTotalCount(data.pagination.totalCount);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch orders";
-      setError(errorMessage);
-
-      // toast({
-      //   title: "Error",
-      //   description: errorMessage,
-      //   variant: "destructive",
-      // })
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   // ==================== Effect Hooks ====================
 
@@ -397,7 +263,7 @@ export default function StoreOrdersManagement({
    * Resets to page 1 when filters are modified.
    */
   useEffect(() => {
-    fetchOrders(1);
+    fetchOrders();
   }, [selectedMonth, selectedStatus, searchQuery]);
 
   /**
@@ -406,9 +272,7 @@ export default function StoreOrdersManagement({
    * Fetches new page data when pagination controls are used.
    */
   useEffect(() => {
-    if (currentPage > 1) {
-      fetchOrders(currentPage);
-    }
+    fetchOrders();
   }, [currentPage]);
 
   // ==================== Event Handlers ====================
@@ -607,7 +471,7 @@ export default function StoreOrdersManagement({
             Export
           </Button> */}
 
-          <Button variant="outline" onClick={() => fetchOrders(currentPage)}>
+          <Button variant="outline" onClick={() => fetchOrders()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -680,10 +544,8 @@ export default function StoreOrdersManagement({
                   <h3 className="text-lg font-semibold mb-2">
                     Error Loading Orders
                   </h3>
-                  <p className="text-muted-foreground mb-4">{error}</p>
-                  <Button onClick={() => fetchOrders(currentPage)}>
-                    Try Again
-                  </Button>
+                  <p className="text-muted-foreground mb-4">{error.message}</p>
+                  <Button onClick={() => fetchOrders()}>Try Again</Button>
                 </div>
               ) : orders.length === 0 ? (
                 <div className="text-center py-12">
@@ -730,10 +592,14 @@ export default function StoreOrdersManagement({
                               <TableCell>
                                 <div>
                                   <p className="font-medium">
-                                    {order.user.name}
+                                    {`${
+                                      (order.user as PopulatedUser).firstName
+                                    } ${
+                                      (order.user as PopulatedUser).lastName
+                                    }`}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    {order.user.email}
+                                    {(order.user as PopulatedUser).email}
                                   </p>
                                 </div>
                               </TableCell>
@@ -775,16 +641,10 @@ export default function StoreOrdersManagement({
                                     {primaryStatus}
                                   </Badge>
                                 </div>
-                                {order.subOrders[0]?.trackingNumber && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Tracking:{" "}
-                                    {order.subOrders[0].trackingNumber}
-                                  </p>
-                                )}
                               </TableCell>
 
                               <TableCell className="font-medium">
-                                {formatCurrency(order.totalAmount)}
+                                {formatNaira(order.totalAmount)}
                               </TableCell>
 
                               <TableCell>

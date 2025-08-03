@@ -14,9 +14,8 @@ import {
   BriefcaseIcon,
   // Share2Icon,
   ChevronDownIcon,
-  User2,
-  ChevronUp,
   WalletIcon,
+  LogOutIcon,
 } from "lucide-react";
 
 import {
@@ -26,7 +25,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   //   SidebarGroupLabel,
-  SidebarHeader,
+  // SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -37,6 +36,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible } from "@/components/ui/collapsible";
@@ -48,6 +49,9 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { StoreTokenData } from "@/lib/helpers/get-store-from-cookie";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 
 const sidebarItems = (storeId: string) => [
   {
@@ -158,6 +162,13 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
       return error;
     }
   };
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
   return (
     <Sidebar
       variant={`inset`}
@@ -165,13 +176,7 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
       // className="absolute top-[4rem]"
       className="fixed top-[4rem] h-[calc(100vh-4rem)]"
     >
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>Greetings, {store.name}</SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
+      <SidebarContent className="pl-4">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -207,27 +212,51 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton>
-                  <User2 /> {store.name}
-                  <ChevronUp className="ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                className="w-[--radix-popper-anchor-width]"
-              >
-                <DropdownMenuItem onClick={handleLogout}>
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="border-t border-border p-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start p-2">
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-soraxi-green text-white text-xs">
+                    {getInitials(store.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-foreground">
+                    {store.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {store.storeEmail}
+                  </p>
+                </div>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div>
+                <p className="font-medium">{store.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {store.storeEmail}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="flex items-center justify-between gap-2">
+              <span>Theme</span>
+              <ThemeSwitcher page="store" />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-destructive"
+            >
+              <LogOutIcon className="w-4 h-4 mr-2" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );

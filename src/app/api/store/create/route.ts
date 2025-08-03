@@ -82,8 +82,6 @@ export async function POST(request: NextRequest) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // TODO: review this logic from top to bottom
-
     // Create the new store with pending status
     const newStore = new Store({
       name: storeName.trim(),

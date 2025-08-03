@@ -4,6 +4,7 @@ import type {
   PopulatedProduct,
   PopulatedStore,
   PopulatedUser,
+  FormattedOrderForAdmin,
 } from "@/types/order";
 
 /**
@@ -174,6 +175,136 @@ export function formatOrderDocument(
 }
 
 /**
+ * Format Single Order Document For Admin Page(s)
+ *
+ * Transforms a raw MongoDB order document into a properly typed,
+ * client-ready format with all ObjectIds converted to strings.
+ * Provides a simplified view optimized for admin interfaces.
+ *
+ * @param rawOrder - Raw order document from MongoDB
+ * @returns Formatted order with proper typing
+ * @throws Error if required populated data is missing
+ */
+export function formatOrderDocumentForAdmins(
+  rawOrder: RawOrderDocument
+): FormattedOrderForAdmin {
+  // Validate that the order has the required populated data
+  if (!rawOrder.stores || rawOrder.stores.length === 0) {
+    throw new Error(`Order ${rawOrder._id} has no stores`);
+  }
+
+  if (!rawOrder.subOrders || rawOrder.subOrders.length === 0) {
+    throw new Error(`Order ${rawOrder._id} has no sub-orders`);
+  }
+
+  /**
+   * Generate Order Number
+   *
+   * Creates a human-readable order number from the MongoDB ObjectId
+   */
+  const orderNumber = `ORD-${rawOrder._id
+    .toString()
+    .substring(0, 8)
+    .toUpperCase()}`;
+
+  /**
+   * Format Customer Information
+   *
+   * Extracts and formats customer details with fallbacks for missing data
+   */
+  const customer = {
+    id: rawOrder.user?._id?.toString() || "",
+    name: rawOrder.user
+      ? `${(rawOrder.user as PopulatedUser).firstName} ${
+          (rawOrder.user as PopulatedUser).lastName
+        }`
+      : "Unknown Customer",
+    email: (rawOrder.user as PopulatedUser).email || "",
+  };
+
+  /**
+   * Format Store Information
+   *
+   * Extracts primary store details with fallbacks for missing data
+   */
+  const primaryStore =
+    rawOrder.stores && rawOrder.stores.length > 0 ? rawOrder.stores[0] : null;
+  const store = {
+    id: primaryStore?._id?.toString() || "",
+    name: (primaryStore as PopulatedStore)?.name || "Unknown Store",
+    email: (primaryStore as PopulatedStore)?.storeEmail || "",
+  };
+
+  /**
+   * Format Order Items
+   *
+   * Flattens all products from sub-orders into a single items array
+   * with essential product information
+   */
+  const items = rawOrder.subOrders.flatMap((subOrder) =>
+    subOrder.products.map((product) => ({
+      id: product.Product?._id?.toString() || "",
+      name: (product.Product as PopulatedProduct)?.name || "Unknown Product",
+      price: product.price,
+      quantity: product.quantity,
+      image: (product.Product as PopulatedProduct)?.images?.[0],
+    }))
+  );
+
+  /**
+   * Determine Overall Order Status
+   *
+   * Calculates the "worst" status across all sub-orders to represent
+   * the overall order status for admin views
+   */
+  // const statusPriority = {
+  //   Canceled: 1,
+  //   Refunded: 2,
+  //   "Failed Delivery": 3,
+  //   Returned: 4,
+  //   "Order Placed": 5,
+  //   Processing: 6,
+  //   Shipped: 7,
+  //   "Out for Delivery": 8,
+  //   Delivered: 9,
+  // };
+
+  // let overallStatus = "Order Placed";
+  // if (rawOrder.subOrders && rawOrder.subOrders.length > 0) {
+  //   overallStatus = rawOrder.subOrders.reduce((worst, subOrder) => {
+  //     const currentPriority =
+  //       statusPriority[
+  //         subOrder.deliveryStatus as keyof typeof statusPriority
+  //       ] || 5;
+  //     const worstPriority =
+  //       statusPriority[worst as keyof typeof statusPriority] || 5;
+  //     return currentPriority < worstPriority ? subOrder.deliveryStatus : worst;
+  //   }, "Order Placed");
+  // }
+
+  /**
+   * Return Formatted Admin Order
+   *
+   * Constructs the final simplified order format optimized for admin interfaces
+   * with all essential information and proper type safety
+   */
+  return {
+    id: rawOrder._id.toString(),
+    orderNumber,
+    customer,
+    store,
+    items,
+    // status: overallStatus,
+    paymentStatus: rawOrder.paymentStatus || "pending",
+    totalAmount: rawOrder.totalAmount,
+    shippingAddress: rawOrder.shippingAddress,
+    createdAt: rawOrder.createdAt,
+    updatedAt: rawOrder.updatedAt,
+    notes: rawOrder.notes,
+  };
+}
+
+/**
  * Format Multiple Order Documents
  *
  * Efficiently processes an array of raw order documents,
@@ -291,4 +422,19 @@ export function formatStoreOrderDocument(
     updatedAt: rawOrder.updatedAt,
     subOrders: formattedSubOrders,
   };
+}
+
+export function formatOrderDocumentsForAdmins(
+  rawOrders: RawOrderDocument[]
+): FormattedOrderForAdmin[] {
+  return rawOrders.map((order, index) => {
+    try {
+      return formatOrderDocumentForAdmins(order);
+    } catch (error) {
+      console.error(`Failed to format order at index ${index}:`, error);
+      throw new Error(
+        `Order formatting failed for order ${order._id}: ${error}`
+      );
+    }
+  });
 }

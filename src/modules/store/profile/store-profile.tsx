@@ -3,7 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Users, Package, Share2 } from "lucide-react";
 import StoreDescription from "./store-description";
@@ -47,32 +46,6 @@ export default function StoreProfile() {
 
     setTimeout(() => setIsCopied(false), 2000);
   };
-
-  if (!store) {
-    return (
-      <div className="p-8 space-y-6">
-        <Skeleton className="h-[200px] w-full rounded-xl" />
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-[300px]" />
-          <Skeleton className="h-6 w-[200px]" />
-          <div className="flex gap-4">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24" />
-          </div>
-        </div>
-        <Tabs defaultValue="products">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="products">
-              <Skeleton className="h-6 w-24" />
-            </TabsTrigger>
-            <TabsTrigger value="description">
-              <Skeleton className="h-6 w-24" />
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-    );
-  }
 
   const { name, description, products, uniqueId, followers } = store;
 

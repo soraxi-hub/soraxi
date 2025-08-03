@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { CategoryHeader } from "@/modules/category/CategoryHeader";
 import { ProductFilters } from "@/modules/category/ProductFilters";
 import { ProductGrid } from "@/modules/category/ProductGrid";
@@ -10,32 +10,52 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Filter } from "lucide-react";
 import { categories } from "@/constants/constant";
+import { useTRPC } from "@/trpc/client";
+import { useQueryState } from "nuqs";
+import { useQuery } from "@tanstack/react-query";
 
 interface FilterOptions {
   priceRange: [number, number];
   inStock: boolean;
   ratings: number[];
-  brands: string[];
 }
 
 export default function CategoryPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const slugs = params.slug as string[];
 
-  console.log("searchParams", searchParams);
-
-  const [categorySlug, subcategorySlug] = slugs;
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState("relevance");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<
+    "newest" | "price-asc" | "price-desc" | "rating-desc" | undefined
+  >("newest");
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: [0, 1000000],
     inStock: false,
     ratings: [],
-    brands: [],
   });
+
+  const [categorySlug, subcategorySlug] = slugs;
+  const trpc = useTRPC();
+  const [search] = useQueryState("search");
+
+  // Data fetching with tRPC and React Query
+  const {
+    data: publicProductsData,
+    isLoading: productsLoading,
+    refetch: fetchProducts,
+  } = useQuery(
+    trpc.home.getPublicProducts.queryOptions({
+      category: categorySlug !== "all" ? categorySlug : undefined,
+      subCategory: subcategorySlug || undefined,
+      verified: true,
+      search,
+      sort: sortBy,
+      priceMin: filters.priceRange[0],
+      priceMax: filters.priceRange[1],
+      ratings: filters.ratings.length > 0 ? filters.ratings : undefined,
+    })
+  );
+
+  const products = publicProductsData?.products || [];
 
   // Find category and subcategory info
   const category = categories.find((cat) => cat.slug === categorySlug);
@@ -43,63 +63,9 @@ export default function CategoryPage() {
     (sub) => sub.slug === subcategorySlug
   );
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        category: categorySlug,
-        ...(subcategorySlug && { subcategory: subcategorySlug }),
-        sort: sortBy,
-        priceMin: filters.priceRange[0].toString(),
-        priceMax: filters.priceRange[1].toString(),
-        inStock: filters.inStock.toString(),
-        ratings: filters.ratings.join(","),
-        brands: filters.brands.join(","),
-      });
-
-      const response = await fetch(`/api/products/category?${queryParams}`);
-      const data = await response.json();
-      setProducts(data.products || []);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [categorySlug, subcategorySlug, sortBy, filters]);
-
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
-
-  // useEffect(() => {
-  //   fetchProducts();
-  // }, [categorySlug, subcategorySlug, sortBy, filters]);
-
-  // const fetchProducts = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const queryParams = new URLSearchParams({
-  //       category: categorySlug,
-  //       ...(subcategorySlug && { subcategory: subcategorySlug }),
-  //       sort: sortBy,
-  //       priceMin: filters.priceRange[0].toString(),
-  //       priceMax: filters.priceRange[1].toString(),
-  //       inStock: filters.inStock.toString(),
-  //       ratings: filters.ratings.join(","),
-  //       brands: filters.brands.join(","),
-  //     });
-
-  //     const response = await fetch(`/api/products/category?${queryParams}`);
-  //     const data = await response.json();
-  //     setProducts(data.products || []);
-  //   } catch (error) {
-  //     console.error("Error fetching products:", error);
-  //     setProducts([]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  }, [categorySlug, subcategorySlug, sortBy, filters]);
 
   if (!category) {
     return (
@@ -114,10 +80,8 @@ export default function CategoryPage() {
     );
   }
 
-  const availableBrands = ["Apple", "Samsung", "Nike", "Adidas", "Sony"]; // This would come from API
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-6 py-8">
       <div className="space-y-8">
         {/* Header */}
         <CategoryHeader
@@ -132,8 +96,7 @@ export default function CategoryPage() {
           <div className="hidden lg:block w-64 flex-shrink-0">
             <ProductFilters
               filters={filters}
-              onFiltersChange={setFilters}
-              availableBrands={availableBrands}
+              onFiltersChangeAction={setFilters}
               maxPrice={1000000}
             />
           </div>
@@ -141,12 +104,10 @@ export default function CategoryPage() {
           {/* Main Content */}
           <div className="flex-1 space-y-6">
             {/* Sort and View Controls */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full space-x-6">
               <ProductSort
                 sortBy={sortBy}
-                onSortChange={setSortBy}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
+                onSortChangeAction={setSortBy}
                 totalProducts={products.length}
               />
 
@@ -158,11 +119,10 @@ export default function CategoryPage() {
                     Filters
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-80">
+                <SheetContent side="left" className="w-80 p-4">
                   <ProductFilters
                     filters={filters}
-                    onFiltersChange={setFilters}
-                    availableBrands={availableBrands}
+                    onFiltersChangeAction={setFilters}
                     maxPrice={1000000}
                   />
                 </SheetContent>
@@ -170,7 +130,7 @@ export default function CategoryPage() {
             </div>
 
             {/* Products Grid */}
-            <ProductGrid products={products} loading={loading} />
+            <ProductGrid products={products} loading={productsLoading} />
           </div>
         </div>
       </div>

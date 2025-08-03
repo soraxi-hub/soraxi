@@ -243,3 +243,20 @@ export async function updateCartItemQuantity(
 
   return await cart.save();
 }
+
+/**
+ * Clear all items from a user's cart
+ *
+ * @param userId - User's ObjectId
+ * @returns Updated empty cart document or null if cart doesn't exist
+ */
+export async function clearUserCart(userId: string): Promise<ICart | null> {
+  await connectToDatabase();
+  const Cart = await getCartModel();
+
+  return await Cart.findOneAndUpdate<ICart>(
+    { user: userId },
+    { $set: { items: [] } }, // Set items array to empty
+    { new: true } // Return the updated document
+  );
+}

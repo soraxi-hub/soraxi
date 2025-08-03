@@ -5,15 +5,12 @@ import { format } from "date-fns";
 import {
   ArrowLeft,
   Package,
-  Truck,
   MapPin,
   CreditCard,
   User,
   Phone,
   Mail,
   Calendar,
-  Clock,
-  CheckCircle,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,8 +31,9 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { isPopulatedUser } from "@/lib/utils/order-formatter";
+import { getStatusBadge } from "@/lib/utils";
 
 /**
  * Order Detail View Component Props
@@ -82,70 +80,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    */
   const [updating, setUpdating] = useState(false);
 
-  /**
-   * Get Status Badge Configuration
-   *
-   * Returns appropriate styling and icon configuration for different
-   * delivery statuses with enhanced visual indicators.
-   *
-   * @param status - The delivery status to get configuration for
-   * @returns Object containing variant, icon, and color information
-   */
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      "Order Placed": {
-        variant: "secondary" as const,
-        icon: Clock,
-        color: "bg-blue-100 text-blue-800",
-      },
-      Processing: {
-        variant: "default" as const,
-        icon: Package,
-        color: "bg-orange-100 text-orange-800",
-      },
-      Shipped: {
-        variant: "default" as const,
-        icon: Truck,
-        color: "bg-purple-100 text-purple-800",
-      },
-      "Out for Delivery": {
-        variant: "default" as const,
-        icon: Truck,
-        color: "bg-indigo-100 text-indigo-800",
-      },
-      Delivered: {
-        variant: "default" as const,
-        icon: CheckCircle,
-        color: "bg-green-100 text-green-800",
-      },
-      Canceled: {
-        variant: "destructive" as const,
-        icon: AlertCircle,
-        color: "bg-red-100 text-red-800",
-      },
-      Returned: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "bg-yellow-100 text-yellow-800",
-      },
-      "Failed Delivery": {
-        variant: "destructive" as const,
-        icon: AlertCircle,
-        color: "bg-red-100 text-red-800",
-      },
-      Refunded: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "bg-gray-100 text-gray-800",
-      },
-    };
-
-    return (
-      statusConfig[status as keyof typeof statusConfig] ||
-      statusConfig["Order Placed"]
-    );
-  };
-
   // ==================== Data Fetching ====================
 
   /**
@@ -171,6 +105,20 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
   const { order } = data;
 
+  const StatusUpdate = useMutation(
+    trpc.orderStatus.updateStatus.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.message);
+        setUpdating(false);
+        refetchOrder();
+      },
+      onError: (error) => {
+        toast.error(error.message || `Failed to update order status`);
+        setUpdating(false);
+      },
+    })
+  );
+
   // ==================== Event Handlers ====================
 
   /**
@@ -182,34 +130,26 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    * @param subOrderId - The ID of the sub-order to update
    * @param newStatus - The new delivery status to set
    */
-  const handleStatusUpdate = async (subOrderId: string, newStatus: string) => {
-    try {
-      setUpdating(true);
+  const handleStatusUpdate = async (
+    subOrderId: string,
+    newStatus:
+      | "Delivered"
+      | "Order Placed"
+      | "Processing"
+      | "Shipped"
+      | "Out for Delivery"
+      | "Canceled"
+      | "Returned"
+      | "Failed Delivery"
+      | "Refunded"
+  ) => {
+    setUpdating(true);
 
-      const response = await fetch(`/api/store/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subOrderId,
-          deliveryStatus: newStatus,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update order status");
-      }
-
-      // Refresh order details after successful update
-      refetchOrder();
-
-      toast.success(`Order status updated to ${newStatus}`);
-    } catch (err) {
-      toast.error(`Failed to update order status`);
-    } finally {
-      setUpdating(false);
-    }
+    StatusUpdate.mutate({
+      orderId,
+      subOrderId,
+      deliveryStatus: newStatus,
+    });
   };
 
   // ==================== Render Functions ====================
@@ -668,7 +608,19 @@ interface Props {
     deliveryStatus: string;
   };
   updating: boolean;
-  handleStatusUpdateAction: (id: string, value: string) => void;
+  handleStatusUpdateAction: (
+    id: string,
+    value:
+      | "Delivered"
+      | "Order Placed"
+      | "Processing"
+      | "Shipped"
+      | "Out for Delivery"
+      | "Canceled"
+      | "Returned"
+      | "Failed Delivery"
+      | "Refunded"
+  ) => void;
 }
 
 function SellerStatusUpdate({
@@ -691,9 +643,18 @@ function SellerStatusUpdate({
       <Label>Update Status</Label>
       <div className="flex gap-2">
         <Select
-          onValueChange={(value) =>
-            handleStatusUpdateAction(subOrder._id, value)
-          }
+          onValueChange={(
+            value:
+              | "Delivered"
+              | "Order Placed"
+              | "Processing"
+              | "Shipped"
+              | "Out for Delivery"
+              | "Canceled"
+              | "Returned"
+              | "Failed Delivery"
+              | "Refunded"
+          ) => handleStatusUpdateAction(subOrder._id, value)}
           disabled={disableEntireSelect || updating}
         >
           <SelectTrigger className="flex-1">

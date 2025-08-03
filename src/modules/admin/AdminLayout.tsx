@@ -2,7 +2,6 @@
 
 import type React from "react";
 
-import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,14 +36,15 @@ import {
   DollarSign,
   Users,
   FileText,
-  Settings,
   LogOut,
   Shield,
   BarChart3,
   Bell,
-  Search,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import axios from "axios";
+import { toast } from "sonner";
+import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 
 /**
  * Admin Layout Component
@@ -117,14 +117,37 @@ const navigationItems = [
         icon: ShoppingCart,
         permissions: ["view_orders"],
       },
+      {
+        title: "Stale Orders",
+        url: "/admin/orders/stale",
+        icon: ShoppingCart,
+        permissions: ["view_orders"],
+      },
+    ],
+  },
+  {
+    title: "Escrow Management",
+    items: [
+      {
+        title: "Refunds",
+        url: "/admin/escrow/release-queue",
+        icon: DollarSign,
+        permissions: ["view_settlements"],
+      },
     ],
   },
   {
     title: "Finance",
     items: [
       {
-        title: "Payouts",
-        url: "/admin/finance/payouts",
+        title: "withdrawals",
+        url: "/admin/finance/withdrawals",
+        icon: DollarSign,
+        permissions: ["view_settlements"],
+      },
+      {
+        title: "Refunds",
+        url: "/admin/refunds/queue",
         icon: DollarSign,
         permissions: ["view_settlements"],
       },
@@ -164,11 +187,20 @@ const navigationItems = [
 export function AdminLayout({ children, admin }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleLogout = () => {
-    // Implement logout logic
-    router.push("/admin/login");
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post("/api/auth/admin-sign-out");
+      if (response.status === 200) {
+        router.push("/admin/dashboard");
+        router.refresh();
+        toast.success("Logged out successfully");
+        return;
+      }
+      toast.error("Logout failed. Please try again.");
+    } catch (error) {
+      return error;
+    }
   };
 
   const getInitials = (name: string) => {
@@ -273,9 +305,9 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                  <DropdownMenuItem className="flex items-center justify-between gap-2">
+                    <span>Theme</span>
+                    <ThemeSwitcher page="admin" />
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -293,32 +325,7 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
 
         {/* Main Content */}
         <SidebarInset className="flex-1">
-          {/* Top Header */}
-          <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-16 items-center justify-between px-6">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger />
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search stores, products, orders..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-80 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-soraxi-green focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="w-4 h-4" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Button>
-              </div>
-            </div>
-          </header>
-
+          <SidebarTrigger />
           {/* Page Content */}
           <main className="flex-1 p-6">{children}</main>
         </SidebarInset>

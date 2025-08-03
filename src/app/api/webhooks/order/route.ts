@@ -6,6 +6,7 @@ import { getOrderModel } from "@/lib/db/models/order.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { sendMail } from "@/services/mail.service";
 import { calculateEstimatedDeliveryDays } from "@/lib/utils/calculate-est-delivery-days";
+import { clearUserCart } from "@/lib/db/models/cart.model";
 
 interface NotificationItem {
   storeEmail: string;
@@ -136,6 +137,9 @@ export async function POST(request: Request) {
             released: false,
             refunded: false,
           },
+          statusHistory: [
+            { status: "Order Placed", notes: "Initial Order request created." },
+          ], // we generate the status-history this way then letter, we use the push method to add items.
         };
       });
 
@@ -189,9 +193,11 @@ export async function POST(request: Request) {
         });
       }
 
+      // ✅ Step 8: Clear User's Cart
+      await clearUserCart(userID);
+
       return NextResponse.json({
         message: "Order created and notifications sent successfully",
-        order: savedOrder,
       });
     } catch (err) {
       if (session) await session.abortTransaction();

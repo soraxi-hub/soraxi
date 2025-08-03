@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import StoreProfile from "@/modules/store/profile/store-profile";
 import { ErrorFallback } from "@/components/error-fallback";
+import { StoreProfileSkeleton } from "@/modules/skeletons/store-profile-skeleton";
 
 async function Page() {
   const queryClient = getQueryClient();
@@ -13,7 +14,7 @@ async function Page() {
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <ErrorBoundary fallback={<ErrorFallback />}>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<StoreProfileSkeleton />}>
           <StoreProfile />
         </Suspense>
       </ErrorBoundary>

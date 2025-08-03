@@ -7,6 +7,7 @@ import type { Role } from "@/modules/shared/roles";
  * Represents platform administrators with role-based access.
  */
 export interface IAdmin extends Document {
+  _id: mongoose.Schema.Types.ObjectId;
   name: string;
   email: string;
   password: string;

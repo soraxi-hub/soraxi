@@ -27,7 +27,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-// import { useToast } from "@/hooks/use-toast"
 import {
   ChevronRight,
   Loader2,
@@ -42,13 +41,15 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-// import { categories, getSubcategoryNames } from
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary-upload";
 import { categories, getSubcategoryNames } from "@/constants/constant";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+const MIN_IMAGE_NUMBER = 3;
+const MAX_IMAGE_NUMBER = 5;
 
 /**
  * Product Upload Form Schema
@@ -85,7 +86,6 @@ type ProductUploadFormData = z.infer<typeof productUploadSchema>;
 
 interface ProductUploadFormProps {
   storeId: string;
-  // onSuccess?: () => void;
 }
 
 /**
@@ -101,10 +101,7 @@ interface ProductUploadFormProps {
  * - Accessibility features and proper ARIA labels
  * - Progress indicators and loading states
  */
-export function ProductUploadForm({
-  storeId,
-}: // onSuccess,
-ProductUploadFormProps) {
+export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
@@ -239,8 +236,8 @@ ProductUploadFormProps) {
     const fileArray = Array.from(files);
 
     // Validate file count
-    if (fileArray.length > 3) {
-      toast.error("You can only upload up to 3 images");
+    if (fileArray.length > MAX_IMAGE_NUMBER) {
+      toast.error(`You can only upload up to ${MAX_IMAGE_NUMBER} images`);
       return;
     }
 
@@ -317,8 +314,10 @@ ProductUploadFormProps) {
       setUploadProgress(10);
 
       // Validate images
-      if (imageFiles.length === 0) {
-        toast.error("Please select at least one product image");
+      if (imageFiles.length < MIN_IMAGE_NUMBER) {
+        toast.error(
+          `Please select at least ${MIN_IMAGE_NUMBER} product images`
+        );
         return;
       }
 
@@ -750,7 +749,8 @@ ProductUploadFormProps) {
                   <CardTitle className="text-lg">Product Images</CardTitle>
                 </div>
                 <CardDescription>
-                  Upload up to 3 high-quality images of your product.
+                  Upload up to {MAX_IMAGE_NUMBER} high-quality images of your
+                  product.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -814,7 +814,9 @@ ProductUploadFormProps) {
 
                 {/* Upload Status */}
                 <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>{imageFiles.length}/3 images uploaded</span>
+                  <span>
+                    {imageFiles.length}/{MAX_IMAGE_NUMBER} images uploaded
+                  </span>
                   {imageFiles.length > 0 && (
                     <Badge
                       variant="outline"

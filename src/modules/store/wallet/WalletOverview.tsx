@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +8,14 @@ import {
   Wallet,
   TrendingUp,
   Clock,
-  Download,
+  // Download,
   Send,
   Eye,
   EyeOff,
 } from "lucide-react";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { formatNaira } from "@/lib/utils/naira";
 
 /**
  * Wallet Overview Component
@@ -28,72 +31,25 @@ import {
  * - Loading states and error handling
  */
 
-interface WalletData {
-  _id: string;
-  store: string;
-  balance: number;
-  pending: number;
-  totalEarned: number;
-  currency: string;
-  updatedAt: string;
-  createdAt: string;
-}
-
 interface WalletOverviewProps {
-  onWithdrawClick: () => void;
-  onTransactionHistoryClick: () => void;
+  onWithdrawClickAction: (val: number) => void;
+  onTransactionHistoryClickAction: () => void;
 }
 
 export function WalletOverview({
-  onWithdrawClick,
-  onTransactionHistoryClick,
+  onWithdrawClickAction,
+  onTransactionHistoryClickAction,
 }: WalletOverviewProps) {
-  const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const trpc = useTRPC();
   const [balanceVisible, setBalanceVisible] = useState(true);
 
-  useEffect(() => {
-    loadWalletData();
-  }, []);
+  const {
+    data,
+    refetch: loadWalletData,
+    isLoading: loading,
+  } = useQuery(trpc.storeWallet.getWallet.queryOptions());
 
-  /**
-   * Load wallet data from API
-   * Fetches current wallet information including balance, pending, and total earned
-   */
-  const loadWalletData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/store/wallet");
-      const data = await response.json();
-
-      if (response.ok) {
-        setWalletData(data.wallet);
-      } else {
-        throw new Error(data.error || "Failed to load wallet data");
-      }
-    } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: error instanceof Error ? error.message : "Failed to load wallet data",
-      //   variant: "destructive",
-      // })
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Format currency amount from kobo to naira
-   * Converts stored kobo values to user-friendly naira display
-   */
-  const formatCurrency = (amountInKobo: number) => {
-    const amountInNaira = amountInKobo / 100;
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 2,
-    }).format(amountInNaira);
-  };
+  const walletData = data?.wallet || null;
 
   /**
    * Format balance with privacy toggle
@@ -103,44 +59,44 @@ export function WalletOverview({
     if (!balanceVisible) {
       return "₦****.**";
     }
-    return formatCurrency(amount);
+    return formatNaira(amount, { showDecimals: true });
   };
 
   /**
    * Download wallet statement
    * Triggers download of wallet transaction history
    */
-  const handleDownloadStatement = async () => {
-    try {
-      const response = await fetch("/api/store/wallet/statement");
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `wallet-statement-${
-          new Date().toISOString().split("T")[0]
-        }.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+  // const handleDownloadStatement = async () => {
+  //   try {
+  //     const response = await fetch("/api/store/wallet/statement");
+  //     if (response.ok) {
+  //       const blob = await response.blob();
+  //       const url = window.URL.createObjectURL(blob);
+  //       const a = document.createElement("a");
+  //       a.href = url;
+  //       a.download = `wallet-statement-${
+  //         new Date().toISOString().split("T")[0]
+  //       }.pdf`;
+  //       document.body.appendChild(a);
+  //       a.click();
+  //       window.URL.revokeObjectURL(url);
+  //       document.body.removeChild(a);
 
-        // toast({
-        //   title: "Success",
-        //   description: "Wallet statement downloaded successfully",
-        // })
-      } else {
-        throw new Error("Failed to download statement");
-      }
-    } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to download wallet statement",
-      //   variant: "destructive",
-      // })
-    }
-  };
+  //       // toast({
+  //       //   title: "Success",
+  //       //   description: "Wallet statement downloaded successfully",
+  //       // })
+  //     } else {
+  //       throw new Error("Failed to download statement");
+  //     }
+  //   } catch (error) {
+  //     // toast({
+  //     //   title: "Error",
+  //     //   description: "Failed to download wallet statement",
+  //     //   variant: "destructive",
+  //     // })
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -171,7 +127,7 @@ export function WalletOverview({
               Unable to load wallet information
             </p>
           </div>
-          <Button onClick={loadWalletData} variant="outline">
+          <Button onClick={() => loadWalletData()} variant="outline">
             Retry
           </Button>
         </div>
@@ -224,7 +180,7 @@ export function WalletOverview({
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-500">
               {formatBalance(walletData.pending)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -240,7 +196,7 @@ export function WalletOverview({
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-blue-500">
               {formatBalance(walletData.totalEarned)}
             </div>
             <p className="text-xs text-muted-foreground">All-time earnings</p>
@@ -254,9 +210,9 @@ export function WalletOverview({
           <CardTitle className="text-lg">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
-              onClick={onWithdrawClick}
+              onClick={() => onWithdrawClickAction(walletData.balance)}
               className="bg-green-600 hover:bg-green-700"
               disabled={walletData.balance <= 0}
             >
@@ -264,17 +220,17 @@ export function WalletOverview({
               Withdraw Funds
             </Button>
 
-            <Button variant="outline" onClick={onTransactionHistoryClick}>
+            <Button variant="outline" onClick={onTransactionHistoryClickAction}>
               <TrendingUp className="w-4 h-4 mr-2" />
               View Transactions
             </Button>
 
-            <Button variant="outline" onClick={handleDownloadStatement}>
+            {/* <Button variant="outline" onClick={handleDownloadStatement}>
               <Download className="w-4 h-4 mr-2" />
               Download Statement
-            </Button>
+            </Button> */}
 
-            <Button variant="outline" onClick={loadWalletData}>
+            <Button variant="outline" onClick={() => loadWalletData()}>
               Refresh Balance
             </Button>
           </div>

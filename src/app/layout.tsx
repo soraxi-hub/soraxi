@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "next-themes";
-
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { TRPCReactProvider } from "@/trpc/client";
 
 // Configure Geist Sans font with CSS variables
@@ -53,7 +53,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange // Helps prevent flash of unstyled content
           >
-            {children}
+            <NuqsAdapter>{children}</NuqsAdapter>
             <Toaster />
           </ThemeProvider>
         </TRPCReactProvider>

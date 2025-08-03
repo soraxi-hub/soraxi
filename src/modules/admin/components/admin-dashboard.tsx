@@ -19,11 +19,11 @@ function DashboardContent({ admin }: { admin?: Admin }) {
   }
 
   return (
-    <div className="p-6 md:p-10">
+    <div>
       <h1 className="text-3xl font-bold text-soraxi-green mb-2">
         Admin Dashboard
       </h1>
-      <p className="text-gray-700 mb-8 text-lg">Welcome back, {admin.name}!</p>
+      <p className="mb-8 text-lg">Welcome back, {admin.name}!</p>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {admin.roles.includes("product_admin") ||
@@ -31,7 +31,25 @@ function DashboardContent({ admin }: { admin?: Admin }) {
           <DashboardCard
             title="Products"
             description="Manage and verify products"
-            link="/admin/verify-products"
+            link="/admin/products"
+          />
+        ) : null}
+
+        {admin.roles.includes("store_admin") ||
+        admin.roles.includes("super_admin") ? (
+          <DashboardCard
+            title="Stores"
+            description="Manage and verify stores"
+            link="/admin/stores"
+          />
+        ) : null}
+
+        {admin.roles.includes("order_admin") ||
+        admin.roles.includes("super_admin") ? (
+          <DashboardCard
+            title="Orders"
+            description="Manage orders"
+            link="/admin/orders"
           />
         ) : null}
 

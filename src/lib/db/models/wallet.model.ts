@@ -24,7 +24,8 @@ export interface IWalletTransaction extends Document {
   amount: number;
   source: "order" | "withdrawal" | "refund" | "adjustment";
   description?: string;
-  relatedOrderId?: mongoose.Schema.Types.ObjectId;
+  relatedDocumentType?: "Order" | "WithdrawalRequest" | "Refund" | "Adjustment";
+  relatedDocumentId?: mongoose.Schema.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -61,7 +62,14 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
       required: true,
     },
     description: { type: String },
-    relatedOrderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
+    relatedDocumentType: {
+      type: String,
+      enum: ["Order", "WithdrawalRequest", "Refund", "Adjustment"],
+    },
+    relatedDocumentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "relatedDocumentType",
+    },
   },
   { timestamps: true }
 );

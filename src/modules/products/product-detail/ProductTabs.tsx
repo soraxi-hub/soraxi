@@ -3,6 +3,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ProductTabsProps {
   description: string;
@@ -10,39 +13,31 @@ interface ProductTabsProps {
   productId: string;
 }
 
-// Placeholder rating data
-const placeholderReviews = [
-  {
-    id: "1",
-    user: "John D.",
-    rating: 5,
-    comment: "Excellent product! Exactly as described and fast delivery.",
-    date: "2024-01-15",
-    verified: true,
-  },
-  {
-    id: "2",
-    user: "Sarah M.",
-    rating: 4,
-    comment: "Good quality, but shipping took a bit longer than expected.",
-    date: "2024-01-10",
-    verified: true,
-  },
-  {
-    id: "3",
-    user: "Mike R.",
-    rating: 5,
-    comment: "Amazing value for money. Highly recommended!",
-    date: "2024-01-08",
-    verified: false,
-  },
-];
-
 export function ProductTabs({
   description,
   specifications,
-}: // productId,
-ProductTabsProps) {
+  productId,
+}: ProductTabsProps) {
+  const trpc = useTRPC();
+
+  const { data: reviews, isLoading } = useQuery(
+    trpc.productReview.getReviewsByProductId.queryOptions({ productId })
+  );
+
+  const totalReviews = reviews?.length || 0;
+  const averageRating =
+    totalReviews > 0
+      ? (reviews?.reduce((sum, review) => sum + review.rating, 0) || 0) /
+        totalReviews
+      : 0;
+
+  const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  reviews?.forEach((review) => {
+    if (review.rating >= 1 && review.rating <= 5) {
+      ratingCounts[review.rating as keyof typeof ratingCounts]++;
+    }
+  });
+
   const renderRichText = (content: string) => {
     return (
       <div
@@ -71,7 +66,7 @@ ProductTabsProps) {
           value="reviews"
           className="w-fit border-0 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-b-soraxi-green dark:data-[state=active]:border-b-soraxi-green py-3"
         >
-          Reviews (24)
+          Reviews ({totalReviews})
         </TabsTrigger>
       </TabsList>
 
@@ -96,96 +91,145 @@ ProductTabsProps) {
       </TabsContent>
 
       <TabsContent value="reviews" className="mt-6">
-        <div className="space-y-6">
-          {/* Rating Summary */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Customer Reviews</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < 4 ? "text-yellow-400 fill-current" : "text-gray-300"
-                      }`}
-                    />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Rating Summary & Breakdown */}
+          <div className="md:col-span-1">
+            <Card className="p-6">
+              <CardHeader className="p-0 mb-4">
+                <CardTitle className="text-2xl font-bold">
+                  Customer Reviews
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-6 h-6 ${
+                          i < Math.round(averageRating)
+                            ? "text-yellow-400 fill-current"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                    {averageRating.toFixed(1)} out of 5
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  Based on {totalReviews} reviews
+                </p>
+
+                {/* Rating Breakdown */}
+                <div className="space-y-3">
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div
+                      key={rating}
+                      className="flex items-center gap-3 text-sm"
+                    >
+                      <span className="w-4 font-medium text-gray-700 dark:text-gray-300">
+                        {rating}★
+                      </span>
+                      <div className="flex-1 bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className="bg-yellow-400 h-2.5 rounded-full transition-all duration-300 ease-out"
+                          style={{
+                            width: `${
+                              totalReviews > 0
+                                ? (ratingCounts[
+                                    rating as keyof typeof ratingCounts
+                                  ] /
+                                    totalReviews) *
+                                  100
+                                : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                      <span className="w-8 text-right text-gray-600 dark:text-gray-400">
+                        {ratingCounts[rating as keyof typeof ratingCounts]}
+                      </span>
+                    </div>
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">
-                  4.2 out of 5 (24 reviews)
-                </span>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Rating Breakdown */}
-          <div className="space-y-2">
-            {[5, 4, 3, 2, 1].map((rating) => (
-              <div key={rating} className="flex items-center gap-2 text-sm">
-                <span className="w-8">{rating}★</span>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-yellow-400 h-2 rounded-full"
-                    style={{
-                      width: `${
-                        rating === 5
-                          ? 60
-                          : rating === 4
-                          ? 25
-                          : rating === 3
-                          ? 10
-                          : 5
-                      }%`,
-                    }}
-                  />
-                </div>
-                <span className="w-8 text-gray-600">
-                  {rating === 5 ? 15 : rating === 4 ? 6 : rating === 3 ? 2 : 1}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Individual Reviews */}
-          <div className="space-y-4">
-            {placeholderReviews.map((review) => (
-              <>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{review.user}</span>
-                        {review.verified && (
-                          <Badge variant="secondary" className="text-xs">
-                            Verified Purchase
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3 h-3 ${
-                              i < review.rating
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
+          {/* Individual Reviews List */}
+          <div className="md:col-span-2 space-y-6">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="p-6 animate-pulse">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                      <div className="flex-1 space-y-1">
+                        <div className="h-4 bg-gray-200 rounded w-32" />
+                        <div className="h-3 bg-gray-200 rounded w-24" />
                       </div>
                     </div>
+                    <div className="h-3 bg-gray-200 rounded w-16" />
                   </div>
-                  <span className="text-sm text-gray-500">{review.date}</span>
+                  <div className="h-4 bg-gray-200 rounded mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-11/12" />
+                </Card>
+              ))
+            ) : totalReviews === 0 ? (
+              <Card className="p-8 text-center col-span-full">
+                <div className="w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Star className="w-12 h-12 text-soraxi-green" />
                 </div>
-                <p className="text-gray-700 dark:text-gray-300">
-                  {review.comment}
-                </p>
-              </>
-            ))}
+                <h3 className="text-xl font-semibold mb-2">No reviews yet</h3>
+              </Card>
+            ) : (
+              reviews?.map((review) => (
+                <Card key={review.id} className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {review.user}
+                          </span>
+                          {review.verified && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            >
+                              Verified Purchase
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating
+                                  ? "text-yellow-400 fill-current"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {review.date}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {review.comment}
+                  </p>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </TabsContent>

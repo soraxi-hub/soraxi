@@ -31,6 +31,11 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { formatNaira } from "@/lib/utils/naira";
+import type { IWalletTransaction } from "@/lib/db/models/wallet.model";
+import Link from "next/link";
 
 /**
  * Transaction History Component
@@ -48,20 +53,9 @@ import {
  * - Responsive design for all device types
  */
 
-interface WalletTransaction {
-  _id: string;
-  wallet: string;
-  type: "credit" | "debit";
-  amount: number;
-  source: "order" | "withdrawal" | "refund" | "adjustment";
-  description?: string;
-  relatedOrderId?: string;
-  createdAt: string;
-}
-
 interface TransactionFilters {
-  type: string;
-  source: string;
+  type: "credit" | "debit" | "all";
+  source: "order" | "withdrawal" | "refund" | "adjustment" | "all";
   dateRange: string;
   search: string;
 }
@@ -73,10 +67,10 @@ interface PaginationInfo {
   pageSize: number;
 }
 
-export function TransactionHistory() {
-  // const { toast } = useToast()
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+export function TransactionHistory({ storeId }: { storeId: string }) {
+  const trpc = useTRPC();
+  // console.log("storeId", storeId);
+
   const [filters, setFilters] = useState<TransactionFilters>({
     type: "all",
     source: "all",
@@ -90,50 +84,37 @@ export function TransactionHistory() {
     pageSize: 10,
   });
 
+  const {
+    data,
+    refetch: loadTransactions,
+    isLoading: loading,
+  } = useQuery(
+    trpc.storeWalletTransactions.getTransactions.queryOptions({
+      page: pagination.currentPage,
+      limit: pagination.pageSize,
+      type: filters.type !== "all" ? filters.type : undefined,
+      source: filters.source !== "all" ? filters.source : undefined,
+      days: filters.dateRange !== "all" ? Number(filters.dateRange) : undefined,
+      search: filters.search.trim() !== "" ? filters.search : undefined,
+    })
+  );
+
+  const transactions = data?.transactions || [];
+
+  // Update pagination when data changes
+  useEffect(() => {
+    if (data) {
+      setPagination((prev) => ({
+        ...prev,
+        totalPages: data.pagination.totalPages,
+        totalTransactions: data.pagination.totalTransactions,
+      }));
+    }
+  }, [data]);
+
   useEffect(() => {
     loadTransactions();
   }, [filters, pagination.currentPage, pagination.pageSize]);
-
-  /**
-   * Load transactions with current filters and pagination
-   * Fetches transaction data from API with comprehensive filtering options
-   */
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
-
-      const params = new URLSearchParams({
-        page: pagination.currentPage.toString(),
-        limit: pagination.pageSize.toString(),
-        ...(filters.type !== "all" && { type: filters.type }),
-        ...(filters.source !== "all" && { source: filters.source }),
-        ...(filters.dateRange !== "all" && { days: filters.dateRange }),
-        ...(filters.search && { search: filters.search }),
-      });
-
-      const response = await fetch(`/api/store/wallet/transactions?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setTransactions(data.transactions);
-        setPagination((prev) => ({
-          ...prev,
-          totalPages: data.pagination.totalPages,
-          totalTransactions: data.pagination.totalTransactions,
-        }));
-      } else {
-        throw new Error(data.error || "Failed to load transactions");
-      }
-    } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: error instanceof Error ? error.message : "Failed to load transactions",
-      //   variant: "destructive",
-      // })
-    } finally {
-      setLoading(false);
-    }
-  };
 
   /**
    * Handle filter changes
@@ -153,19 +134,6 @@ export function TransactionHistory() {
   };
 
   /**
-   * Format currency amount from kobo to naira
-   * Converts stored kobo values to user-friendly naira display
-   */
-  const formatCurrency = (amountInKobo: number) => {
-    const amountInNaira = amountInKobo / 100;
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 2,
-    }).format(amountInNaira);
-  };
-
-  /**
    * Get transaction type badge with appropriate styling
    * Returns colored badge based on transaction type
    */
@@ -173,7 +141,6 @@ export function TransactionHistory() {
     const isCredit = type === "credit";
     return (
       <Badge
-        variant={isCredit ? "default" : "destructive"}
         className={
           isCredit ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
         }
@@ -214,46 +181,81 @@ export function TransactionHistory() {
    * Export transactions to CSV
    * Downloads filtered transaction data as CSV file
    */
-  const handleExportTransactions = async () => {
-    try {
-      const params = new URLSearchParams({
-        export: "csv",
-        ...(filters.type !== "all" && { type: filters.type }),
-        ...(filters.source !== "all" && { source: filters.source }),
-        ...(filters.dateRange !== "all" && { days: filters.dateRange }),
-        ...(filters.search && { search: filters.search }),
-      });
+  // const handleExportTransactions = async () => {
+  //   try {
+  //     const params = new URLSearchParams({
+  //       export: "csv",
+  //       ...(filters.type !== "all" && { type: filters.type }),
+  //       ...(filters.source !== "all" && { source: filters.source }),
+  //       ...(filters.dateRange !== "all" && { days: filters.dateRange }),
+  //       ...(filters.search && { search: filters.search }),
+  //     });
 
-      const response = await fetch(
-        `/api/store/wallet/transactions/export?${params}`
-      );
+  //     const response = await fetch(
+  //       `/api/store/wallet/transactions/export?${params}`
+  //     );
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `transactions-${
-          new Date().toISOString().split("T")[0]
-        }.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+  //     if (response.ok) {
+  //       const blob = await response.blob();
+  //       const url = window.URL.createObjectURL(blob);
+  //       const a = document.createElement("a");
+  //       a.href = url;
+  //       a.download = `transactions-${
+  //         new Date().toISOString().split("T")[0]
+  //       }.csv`;
+  //       document.body.appendChild(a);
+  //       a.click();
+  //       window.URL.revokeObjectURL(url);
+  //       document.body.removeChild(a);
 
-        // toast({
-        //   title: "Success",
-        //   description: "Transactions exported successfully",
-        // })
-      } else {
-        throw new Error("Failed to export transactions");
-      }
-    } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to export transactions",
-      //   variant: "destructive",
-      // })
+  //       // toast({
+  //       //   title: "Success",
+  //       //   description: "Transactions exported successfully",
+  //       // })
+  //     } else {
+  //       throw new Error("Failed to export transactions");
+  //     }
+  //   } catch (error) {
+  //     // toast({
+  //     //   title: "Error",
+  //     //   description: "Failed to export transactions",
+  //     //   variant: "destructive",
+  //     // })
+  //   }
+  // };
+
+  const getLink = (
+    source: IWalletTransaction["source"],
+    relatedDocumentId: string | null,
+    currentStoreId: string | null
+  ) => {
+    if (!relatedDocumentId || !currentStoreId) {
+      return <span className="text-muted-foreground">-</span>;
+    }
+
+    switch (source) {
+      case "order":
+        return (
+          <Button variant="link" size="sm" className="p-0 h-auto" asChild>
+            <Link href={`/store/${currentStoreId}/orders/${relatedDocumentId}`}>
+              #{relatedDocumentId.slice(-8)}
+            </Link>
+          </Button>
+        );
+
+      case "withdrawal":
+        return (
+          <Button variant="link" size="sm" className="p-0 h-auto" asChild>
+            <Link
+              href={`/store/${currentStoreId}/withdrawals/${relatedDocumentId}`}
+            >
+              #{relatedDocumentId.slice(-8)}
+            </Link>
+          </Button>
+        );
+
+      default:
+        return <span className="text-muted-foreground">-</span>;
     }
   };
 
@@ -346,18 +348,22 @@ export function TransactionHistory() {
 
           <div className="flex justify-between items-center mt-4">
             <div className="flex space-x-2">
-              <Button onClick={loadTransactions} variant="outline" size="sm">
+              <Button
+                onClick={() => loadTransactions()}
+                variant="outline"
+                size="sm"
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
-              <Button
+              {/* <Button
                 onClick={handleExportTransactions}
                 variant="outline"
                 size="sm"
               >
                 <Receipt className="w-4 h-4 mr-2" />
                 Export CSV
-              </Button>
+              </Button> */}
             </div>
             <div className="text-sm text-muted-foreground">
               {pagination.totalTransactions} total transactions
@@ -380,7 +386,7 @@ export function TransactionHistory() {
                 <TableHead>Source</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Order ID</TableHead>
+                <TableHead className="text-center">ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -450,16 +456,16 @@ export function TransactionHistory() {
                         }`}
                       >
                         {transaction.type === "credit" ? "+" : "-"}
-                        {formatCurrency(transaction.amount)}
+                        {formatNaira(transaction.amount, {
+                          showDecimals: true,
+                        })}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {transaction.relatedOrderId ? (
-                        <Button variant="link" size="sm" className="p-0 h-auto">
-                          #{transaction.relatedOrderId.slice(-8)}
-                        </Button>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
+                      {getLink(
+                        transaction.source,
+                        transaction.relatedDocumentId,
+                        storeId // Pass storeId to getLink
                       )}
                     </TableCell>
                   </TableRow>

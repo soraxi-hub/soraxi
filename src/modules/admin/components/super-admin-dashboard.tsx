@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Eye,
 } from "lucide-react";
+import Link from "next/link";
 
 /**
  * Admin Dashboard Page
@@ -228,9 +229,9 @@ export default function SuperAdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full" asChild>
-              <a href="/admin/stores/pending">
+              <Link href="/admin/stores/pending">
                 Review {stats.pendingStores} stores
-              </a>
+              </Link>
             </Button>
           </CardContent>
         </Card>

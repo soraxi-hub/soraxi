@@ -47,7 +47,10 @@ export interface ISubOrder {
     confirmedAt?: Date; // when the customer confirmed
     autoConfirmed: boolean; // true if system auto-confirmed
   };
-
+  settlement?: {
+    amount: number; // Amount after commission has been deducted
+    shippingPrice: number; // Gotten from the selected Shipping method and added to the amount to reflect the total settlement for the store.
+  };
   escrow: {
     held: boolean; // money is currently in escrow
     released: boolean; // money has been paid to seller
@@ -56,6 +59,20 @@ export interface ISubOrder {
     refundReason: string; // optional reason
   };
   returnWindow: Date; // to track deadline for returns before releasing escrow
+  statusHistory: Array<{
+    status:
+      | "Order Placed"
+      | "Processing"
+      | "Shipped"
+      | "Out for Delivery"
+      | "Delivered"
+      | "Canceled"
+      | "Returned"
+      | "Failed Delivery"
+      | "Refunded";
+    timestamp: Date;
+    notes?: string;
+  }>;
 }
 
 /**
@@ -140,6 +157,10 @@ const SubOrderSchema = new Schema<ISubOrder>({
     confirmedAt: { type: Date },
     autoConfirmed: { type: Boolean, default: false },
   },
+  settlement: {
+    amount: { type: Number },
+    shippingPrice: { type: Number },
+  },
   escrow: {
     held: { type: Boolean, default: true }, // money is currently in escrow
     released: { type: Boolean, default: false }, // money has been paid to seller
@@ -148,6 +169,27 @@ const SubOrderSchema = new Schema<ISubOrder>({
     refundReason: { type: String }, // optional reason
   },
   returnWindow: { type: Date }, // set at delivery, e.g., +7 days
+  statusHistory: [
+    {
+      status: {
+        type: String,
+        enum: [
+          "Order Placed",
+          "Processing",
+          "Shipped",
+          "Out for Delivery",
+          "Delivered",
+          "Canceled",
+          "Returned",
+          "Failed Delivery",
+          "Refunded",
+        ],
+        required: true,
+      },
+      timestamp: { type: Date, default: Date.now },
+      notes: String,
+    },
+  ],
 });
 
 /**

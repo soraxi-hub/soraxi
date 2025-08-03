@@ -18,7 +18,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader, LockIcon, Mail } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import axios from "axios";
@@ -28,7 +28,7 @@ function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/"; // Default to Home-page
-
+  const [showPassword, setShowPassword] = useState(false);
   const form = useForm<z.infer<typeof userSignInInfoValidation>>({
     resolver: zodResolver(userSignInInfoValidation),
     defaultValues: {
@@ -110,13 +110,17 @@ function SignIn() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input
-                            className="block w-full px-4 py-2 mt-2 bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
-                            type="email"
-                            placeholder="Email Address"
-                            aria-label="Email Address"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              className="pl-10 w-full bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+                              type="email"
+                              placeholder="Email Address"
+                              aria-label="Email Address"
+                              autoComplete="email"
+                              {...field}
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -130,13 +134,28 @@ function SignIn() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            className="block w-full px-4 py-2 mt-2 bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
-                            type="password"
-                            placeholder="Enter your password"
-                            aria-label="password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Enter your password"
+                              aria-label="password"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              disabled={isLoading}
+                            >
+                              {showPassword ? (
+                                <EyeOffIcon className="w-4 h-4" />
+                              ) : (
+                                <EyeIcon className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -1,5 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Package, Truck, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -29,3 +31,116 @@ export const getStatusClassName = (status: string) => {
       return "bg-muted text-muted-foreground hover:bg-muted/80";
   }
 };
+
+/**
+ * Data Serialization Utility
+ *
+ * Safely serializes complex objects by removing circular references,
+ * converting non-serializable data, and ensuring clean data transfer
+ * between server and client components.
+ *
+ * This prevents "Maximum call stack size exceeded" errors that occur
+ * when Next.js tries to serialize MongoDB documents or other complex objects.
+ *
+ * @param data - The data object to serialize
+ * @returns Clean, serializable version of the data
+ */
+export function serializeData<T>(data: T): T {
+  try {
+    // Use JSON.parse(JSON.stringify()) to remove circular references
+    // and convert non-serializable data like Dates, ObjectIds, etc.
+    return JSON.parse(JSON.stringify(data));
+  } catch (error) {
+    console.error("Data serialization failed:", error);
+    // Return a safe fallback if serialization fails
+    return {} as T;
+  }
+}
+
+/**
+ * Get Status Badge Configuration
+ *
+ * Returns appropriate styling and icon configuration for different
+ * delivery statuses with enhanced visual indicators.
+ *
+ * @param status - The delivery status to get configuration for
+ * @returns Object containing variant, icon, and color information
+ */
+export const getStatusBadge = (status: string) => {
+  const statusConfig = {
+    "Order Placed": {
+      variant: "secondary" as const,
+      icon: Clock,
+      color: "bg-blue-100 text-blue-800",
+    },
+    Processing: {
+      variant: "default" as const,
+      icon: Package,
+      color: "bg-orange-100 text-orange-800",
+    },
+    Shipped: {
+      variant: "default" as const,
+      icon: Truck,
+      color: "bg-purple-100 text-purple-800",
+    },
+    "Out for Delivery": {
+      variant: "default" as const,
+      icon: Truck,
+      color: "bg-indigo-100 text-indigo-800",
+    },
+    Delivered: {
+      variant: "default" as const,
+      icon: CheckCircle,
+      color: "bg-green-100 text-green-800",
+    },
+    Canceled: {
+      variant: "destructive" as const,
+      icon: AlertCircle,
+      color: "bg-red-100 text-red-800",
+    },
+    Returned: {
+      variant: "secondary" as const,
+      icon: AlertCircle,
+      color: "bg-yellow-100 text-yellow-800",
+    },
+    "Failed Delivery": {
+      variant: "destructive" as const,
+      icon: AlertCircle,
+      color: "bg-red-100 text-red-800",
+    },
+    Refunded: {
+      variant: "secondary" as const,
+      icon: AlertCircle,
+      color: "bg-gray-100 text-gray-800",
+    },
+  };
+
+  return (
+    statusConfig[status as keyof typeof statusConfig] ||
+    statusConfig["Order Placed"]
+  );
+};
+
+/**
+ * Generates a unique alphanumeric ID of a specified length.
+ * This function creates a UUID (Universally Unique Identifier), removes hyphens,
+ * and returns the first `length` characters.
+ *
+ * @param {number} length - The desired length of the unique ID (must be ≤ 32, since UUIDs without hyphens are 32 chars long).
+ * @returns {string} A truncated uppercase alphanumeric string from the UUID.
+ *
+ * @example
+ * // Returns something like "3F7A9B2E" (first 8 chars of a UUID without hyphens)
+ * const id = generateUniqueId(8);
+ *
+ * @example
+ * // Can be used to generate request numbers like "WDR-3F7A9B2E"
+ * const requestNumber = `WDR-${generateUniqueId(8).toUpperCase()}`;
+ */
+export function generateUniqueId(length: number) {
+  // Generate a UUID and remove all hyphens
+  const uuid = uuidv4().replace(/-/g, "");
+
+  // Return the first 'length' characters
+  return uuid.substring(0, length);
+}

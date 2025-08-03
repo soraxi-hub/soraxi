@@ -122,7 +122,11 @@ export function TextareaForm({
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+        >
           Submit
         </Button>
       </form>
