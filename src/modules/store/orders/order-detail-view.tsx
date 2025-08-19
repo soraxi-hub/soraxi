@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
+  // ArrowLeft,
   Package,
   MapPin,
   CreditCard,
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
+// import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { formatNaira } from "@/lib/utils/naira";
@@ -163,14 +163,14 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        {/* <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" asChild>
             <Link href="/store/orders">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Orders
             </Link>
           </Button>
-        </div>
+        </div> */}
 
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -189,14 +189,14 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
   if (error || !order) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        {/* <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" asChild>
             <Link href="/store/orders">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Orders
             </Link>
           </Button>
-        </div>
+        </div> */}
 
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -217,12 +217,12 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" asChild>
+          {/* <Button variant="outline" size="sm" asChild>
             <Link href="/store/orders">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Orders
             </Link>
-          </Button>
+          </Button> */}
           <div>
             <h1 className="text-2xl font-bold">
               Order #{order._id.slice(-8).toUpperCase()}

@@ -3,15 +3,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Truck, Shield, RotateCcw } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 
 interface CartSummaryProps {
   subtotal: number;
-  shipping: number;
-  tax: number;
-  discount: number;
+  // shipping: number;
+  // tax: number;
+  // discount: number;
   total: number;
   itemCount: number;
   onCheckoutAction: () => void;
@@ -20,9 +20,9 @@ interface CartSummaryProps {
 
 export function CartSummary({
   subtotal,
-  shipping,
-  tax,
-  discount,
+  // shipping,
+  // tax,
+  // discount,
   total,
   itemCount,
   onCheckoutAction,
@@ -42,7 +42,7 @@ export function CartSummary({
               <span>{formatNaira(subtotal)}</span>
             </div>
 
-            <div className="flex justify-between text-sm">
+            {/* <div className="flex justify-between text-sm">
               <span>Shipping</span>
               <span>
                 {shipping === 0 ? (
@@ -65,7 +65,7 @@ export function CartSummary({
                 <span>Discount</span>
                 <span>-{formatNaira(discount)}</span>
               </div>
-            )}
+            )} */}
           </div>
 
           <Separator />
@@ -76,7 +76,7 @@ export function CartSummary({
           </div>
 
           <Button
-            className="w-full"
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white w-full"
             size="lg"
             onClick={onCheckoutAction}
             disabled={isCheckingOut || itemCount === 0}

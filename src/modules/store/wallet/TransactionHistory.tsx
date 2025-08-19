@@ -292,7 +292,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
                 value={filters.type}
                 onValueChange={(value) => handleFilterChange("type", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -310,7 +310,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
                 value={filters.source}
                 onValueChange={(value) => handleFilterChange("source", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -332,7 +332,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
                   handleFilterChange("dateRange", value)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

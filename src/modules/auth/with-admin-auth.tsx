@@ -4,7 +4,7 @@ import type React from "react";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Permission } from "../shared/permissions";
+import type { Permission } from "../admin/security/permissions";
 import axios from "axios";
 
 interface AdminAuthProps {

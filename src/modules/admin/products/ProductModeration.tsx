@@ -54,6 +54,8 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { IProduct } from "@/lib/db/models/product.model";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 type Status = IProduct["status"];
 
@@ -555,3 +557,7 @@ export function ProductModeration() {
     </div>
   );
 }
+
+export default withAdminAuth(ProductModeration, {
+  requiredPermissions: [PERMISSIONS.VIEW_PRODUCTS],
+});

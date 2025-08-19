@@ -6,6 +6,15 @@ import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import type { Metadata } from "next";
+import { generateUserMetadata } from "@/lib/helpers/generate-user-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return generateUserMetadata(
+    "My Orders",
+    "View and manage your complete order history. Track delivery status, review past purchases, and access invoice details all in one place."
+  );
+}
 
 async function Page() {
   const userId = await getUserFromCookie();
@@ -15,7 +24,7 @@ async function Page() {
   prefetch(trpc.order.getByUserId.queryOptions({ userId: userId.id }));
   return (
     <HydrateClient>
-      <ErrorBoundary fallback={<ErrorFallback />}>
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
         <Suspense fallback={<UserOrdersSkeleton />}>
           <UserOrders userId={userId.id} />
         </Suspense>

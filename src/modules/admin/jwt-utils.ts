@@ -1,7 +1,7 @@
 import * as jose from "jose";
-import { Permission } from "../shared/permissions";
-import { Role, ROLES } from "../shared/roles";
-import { getPermissionsForRoles } from "../shared/access-control";
+import { Permission } from "./security/permissions";
+import { Role, ROLES } from "./security/roles";
+import { getPermissionsForRoles } from "./security/access-control";
 
 export interface AdminTokenPayload {
   id: string;

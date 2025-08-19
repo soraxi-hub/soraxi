@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
         "StoreSuspended"
       );
 
-    // TODO: Uncomment when password hashing is implemented
     const isPasswordValid = await bcrypt.compare(password, store.password);
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 

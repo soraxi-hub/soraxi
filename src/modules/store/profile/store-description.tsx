@@ -185,7 +185,7 @@ export default function StoreDescription({
   return (
     <Card className="relative group">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start group">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               {storeData?.name}
@@ -203,7 +203,7 @@ export default function StoreDescription({
               <Button
                 variant="ghost"
                 size="sm"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="md:opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="Edit store description"
               >
                 <EditIcon className="w-4 h-4 mr-2" />

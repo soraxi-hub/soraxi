@@ -5,6 +5,7 @@ import UserAvatar from "@/components/userAvater";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
+import Image from "next/image";
 
 /**
  * Main header component with responsive design
@@ -26,9 +27,19 @@ export async function StoreHeader() {
           <div className="flex-shrink-0">
             <Link
               href="/"
-              className={`text-2xl sm:text-3xl font-semibold hover:opacity-80 transition-opacity ${playpenSans.className}`}
+              className={`flex items-center space-x-2 hover:opacity-80 transition-opacity ${playpenSans.className}`}
             >
-              {siteConfig.name}
+              <span>
+                <Image
+                  src={siteConfig.logo}
+                  alt={siteConfig.name}
+                  width={32}
+                  height={32}
+                />
+              </span>
+              <span className="text-2xl sm:text-3xl font-semibold text-soraxi-green">
+                {siteConfig.name}
+              </span>
             </Link>
           </div>
 

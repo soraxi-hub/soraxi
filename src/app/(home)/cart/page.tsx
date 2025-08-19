@@ -11,6 +11,54 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ShoppingBag } from "lucide-react";
+import type { Metadata } from "next";
+import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: `Your Shopping Cart | ${siteConfig.siteTitle}`,
+  description:
+    "View and manage the items in your shopping cart. Secure checkout, escrow-protected payments, and fast delivery with Soraxi.",
+  keywords: [
+    "Soraxi cart",
+    "shopping cart",
+    "view cart",
+    "secure checkout",
+    "online shopping",
+    "escrow payments",
+    "Soraxi orders",
+  ],
+  openGraph: {
+    title: "Your Shopping Cart | Soraxi",
+    description:
+      "Review your items and proceed to secure checkout with escrow protection on Soraxi.",
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
+    siteName: "Soraxi",
+    images: [
+      {
+        url: "/og-soraxi.png",
+        width: 1200,
+        height: 630,
+        alt: "Soraxi Shopping Cart",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Your Shopping Cart | Soraxi",
+    description: "Manage your cart and proceed to secure checkout on Soraxi.",
+    images: ["/og-soraxi.png"],
+  },
+  alternates: {
+    canonical: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
+  },
+  robots: {
+    index: false, // ✅ best practice: prevent indexing cart pages
+    follow: true,
+    nocache: true,
+  },
+};
 
 /**
  * Type definition for cart items to ensure type safety
@@ -21,7 +69,7 @@ interface CartItemType {
   name: string;
   slug: string;
   image: string;
-  price: number; // Ensure this is always a number, not undefined
+  price: number;
   quantity: number;
   size?: string;
   inStock: boolean;
@@ -149,15 +197,15 @@ export default async function CartPage() {
       0
     );
     const shipping = subtotal >= 50000 ? 0 : 5000; // Free shipping over ₦50,000
-    const tax = Math.round(subtotal * 0.075); // 7.5% tax rate
-    const discount = 0; // Placeholder for future discount logic
-    const total = subtotal + shipping + tax - discount;
+    // const tax = Math.round(subtotal * 0.075); // 7.5% tax rate
+    // const discount = 0; // Placeholder for future discount logic
+    const total = subtotal;
 
     const orderSummary = {
       subtotal,
       shipping,
-      tax,
-      discount,
+      // tax,
+      // discount,
       total,
       itemCount: hydratedCartItems.length,
     };
@@ -167,7 +215,7 @@ export default async function CartPage() {
       <div className="container mx-auto px-4 py-4">
         {/* Page Header with Breadcrumb */}
         <div className="flex items-center justify-between mb-8">
-          <Breadcrumb>
+          <Breadcrumb className="hidden md:inline-flex">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink href="/">Home</BreadcrumbLink>

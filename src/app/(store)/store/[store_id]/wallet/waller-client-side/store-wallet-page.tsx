@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WalletOverview } from "@/modules/store/wallet/WalletOverview";
 import { TransactionHistory } from "@/modules/store/wallet/TransactionHistory";
 import { WithdrawalRequest } from "@/modules/store/wallet/WithdrawalRequest";
-import { Wallet, TrendingUp, ArrowLeft } from "lucide-react";
+import {
+  Wallet,
+  TrendingUp,
+  // ArrowLeft
+} from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 /**
@@ -63,17 +67,17 @@ export default function StoreWalletPage({ storeId }: { storeId: string }) {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => window.history.back()}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
-              </Button>
+              </Button> */}
               <div>
                 <h1 className="text-3xl font-bold text-foreground flex items-center">
-                  <Wallet className="w-8 h-8 mr-3 text-green-600" />
+                  {/* <Wallet className="w-8 h-8 mr-3 text-green-600" /> */}
                   Wallet Management
                 </h1>
                 <p className="text-muted-foreground">

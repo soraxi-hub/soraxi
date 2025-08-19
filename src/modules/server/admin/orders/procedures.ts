@@ -4,14 +4,14 @@ import { TRPCError } from "@trpc/server";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { checkAdminPermission } from "@/lib/admin/permissions";
+import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import {
   logAdminAction,
   AUDIT_ACTIONS,
   AUDIT_MODULES,
-} from "@/lib/admin/audit-logger";
+} from "@/modules/admin/security/audit-logger";
 import mongoose from "mongoose";
-import { Role } from "@/modules/shared/roles";
+import { Role } from "@/modules/admin/security/roles";
 import { RawOrderDocument } from "@/types/order";
 import { formatOrderDocumentsForAdmins } from "@/lib/utils/order-formatter";
 

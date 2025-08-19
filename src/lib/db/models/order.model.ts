@@ -20,7 +20,7 @@ export interface IOrderProduct {
  * Interface representing a sub-order within an order.
  */
 export interface ISubOrder {
-  _id?: mongoose.Schema.Types.ObjectId;
+  _id: mongoose.Schema.Types.ObjectId;
   store: mongoose.Schema.Types.ObjectId;
   products: IOrderProduct[];
   totalAmount: number;
@@ -59,6 +59,27 @@ export interface ISubOrder {
     refundReason: string; // optional reason
   };
   returnWindow: Date; // to track deadline for returns before releasing escrow
+
+  // <CHANGE> Add returns tracking for individual product returns
+  returns?: {
+    _id: mongoose.Schema.Types.ObjectId; // Optional ID for the return request
+    userId: mongoose.Schema.Types.ObjectId;
+    productId: mongoose.Schema.Types.ObjectId;
+    quantity: number; // How many units being returned
+    reason: string;
+    status:
+      | "Requested"
+      | "Approved"
+      | "Rejected"
+      | "In-Transit"
+      | "Received"
+      | "Refunded";
+    requestedAt: Date;
+    approvedAt?: Date;
+    refundAmount: number;
+    returnShippingCost?: number;
+  }[];
+
   statusHistory: Array<{
     status:
       | "Order Placed"
@@ -67,9 +88,14 @@ export interface ISubOrder {
       | "Out for Delivery"
       | "Delivered"
       | "Canceled"
+      | "Return Requested"
       | "Returned"
       | "Failed Delivery"
-      | "Refunded";
+      | "Approved" // For when the return is approved
+      | "Rejected" // For when the return is rejected
+      | "In-Transit" // For when the return is in transit
+      | "Received" // For when the return is received
+      | "Refunded"; // For when the return is refunded
     timestamp: Date;
     notes?: string;
   }>;
@@ -169,6 +195,38 @@ const SubOrderSchema = new Schema<ISubOrder>({
     refundReason: { type: String }, // optional reason
   },
   returnWindow: { type: Date }, // set at delivery, e.g., +7 days
+  // <CHANGE> Add returns schema for tracking individual product returns
+  returns: [
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      productId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
+      },
+      quantity: { type: Number, required: true },
+      reason: { type: String, required: true },
+      status: {
+        type: String,
+        enum: [
+          "Requested",
+          "Approved",
+          "Rejected",
+          "In-Transit",
+          "Received",
+          "Refunded",
+        ],
+        default: "Requested",
+      },
+      requestedAt: { type: Date, default: Date.now },
+      approvedAt: { type: Date },
+      refundAmount: { type: Number, required: true },
+      returnShippingCost: { type: Number },
+    },
+  ],
   statusHistory: [
     {
       status: {
@@ -180,9 +238,14 @@ const SubOrderSchema = new Schema<ISubOrder>({
           "Out for Delivery",
           "Delivered",
           "Canceled",
+          "Return Requested",
           "Returned",
           "Failed Delivery",
-          "Refunded",
+          "Approved", // For when the return is approved
+          "Rejected", // For when the return is rejected
+          "In-Transit", // For when the return is in transit
+          "Received", // For when the return is received
+          "Refunded", // For when the return is refunded
         ],
         required: true,
       },

@@ -21,7 +21,7 @@ interface CartItemType {
   name: string;
   slug: string;
   image: string;
-  price: number; // Always a number, never undefined
+  price: number;
   quantity: number;
   size?: string;
   inStock: boolean;
@@ -30,9 +30,9 @@ interface CartItemType {
 
 interface OrderSummary {
   subtotal: number;
-  shipping: number;
-  tax: number;
-  discount: number;
+  // shipping: number;
+  // tax: number;
+  // discount: number;
   total: number;
   itemCount: number;
 }
@@ -104,9 +104,9 @@ export function CartPageClient({
 
     return {
       subtotal,
-      shipping,
-      tax,
-      discount,
+      // shipping,
+      // tax,
+      // discount,
       total,
       itemCount: items.length,
     };
@@ -355,9 +355,9 @@ export function CartPageClient({
       <div className="lg:col-span-1 sticky top-8">
         <CartSummary
           subtotal={orderSummary.subtotal}
-          shipping={orderSummary.shipping}
-          tax={orderSummary.tax}
-          discount={orderSummary.discount}
+          // shipping={orderSummary.shipping}
+          // tax={orderSummary.tax}
+          // discount={orderSummary.discount}
           total={orderSummary.total}
           itemCount={orderSummary.itemCount}
           onCheckoutAction={handleCheckout}

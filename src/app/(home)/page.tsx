@@ -5,6 +5,7 @@ import { CartProvider } from "@/modules/cart/cart-provider";
 import { ErrorBoundary } from "react-error-boundary";
 import { Suspense } from "react";
 import { HomePageSkeleton } from "@/modules/skeletons/home-page-skeleton";
+import { ErrorFallback } from "@/components/error-fallback";
 
 /**
  * Home Page
@@ -24,7 +25,7 @@ export default async function Home() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
         <Suspense fallback={<HomePageSkeleton />}>
           {/* 
             CartHydration component handles loading user's cart data

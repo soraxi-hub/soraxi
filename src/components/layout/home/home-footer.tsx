@@ -36,28 +36,25 @@ export function HomeFooter() {
           <div className="space-y-4">
             <Link
               href="/"
-              className={`text-3xl font-semibold text-white ${playpenSans.className}`}
+              className={`flex items-center space-x-2 hover:opacity-90 transition-opacity ${playpenSans.className}`}
             >
-              {siteConfig.name}
+              <span>
+                <Image
+                  src={siteConfig.logo}
+                  alt={siteConfig.name}
+                  width={32}
+                  height={32}
+                />
+              </span>
+              <span className="text-2xl sm:text-3xl font-semibold text-soraxi-green">
+                {siteConfig.name}
+              </span>
             </Link>
             <p className="max-w-sm text-xs">{siteConfig.description}</p>
             <SocialLinks />
           </div>
           <Copyright currentYear={currentYear} />
         </div>
-
-        {/* Useful Links */}
-        <FooterSection title="Useful links">
-          <ul className="space-y-2">
-            {siteConfig.footerLinks.map((link) => (
-              <li key={link.name}>
-                <Link href={link.href} className={linkStyles}>
-                  {link.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </FooterSection>
 
         {/* Company Info */}
         <FooterSection title="Company info">
@@ -66,6 +63,19 @@ export function HomeFooter() {
               <li key={item.name}>
                 <Link href={item.href} className={linkStyles}>
                   {item.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </FooterSection>
+
+        {/* Useful Links */}
+        <FooterSection title="Useful links">
+          <ul className="space-y-2">
+            {siteConfig.footerLinks.map((link) => (
+              <li key={link.name}>
+                <Link href={link.href} className={linkStyles}>
+                  {link.name}
                 </Link>
               </li>
             ))}

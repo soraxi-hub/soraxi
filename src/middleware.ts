@@ -3,8 +3,8 @@ import {
   getAdminPermissions,
   verifyAdminToken,
 } from "./modules/admin/jwt-utils";
-import { ROUTE_PERMISSIONS } from "./modules/shared/route-permissions";
-import { hasPermission } from "./modules/shared/access-control";
+import { ROUTE_PERMISSIONS } from "./modules/admin/security/route-permissions";
+import { hasPermission } from "./modules/admin/security/access-control";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
     "/products/:path*",
     "/forgot-password",
     "/reset-password",
+    "/store/onboarding",
   ];
 
   const isPublicPath = publicPaths.some((path) => {
@@ -62,21 +63,12 @@ export async function middleware(request: NextRequest) {
   }
 
   /**
-   * Protects store onboarding routes with dynamic storeId segments,
-   * such as: /store/onboarding/:storeId/profile
-   *
-   * Since this route doesn't match the ObjectId pattern used in `isStorePath`,
-   * we protect it manually by checking if it starts with a specific base path.
-   */
-  const protectedStoreBasePath = "/store/onboarding";
-
-  /**
    * Determines if the current path is a protected store onboarding route.
    * Use this in your middleware condition alongside `isStorePath()`.
    */
-  const isProtectedStoreOnboardingPath = pathname.startsWith(
-    protectedStoreBasePath
-  );
+  // Match only dynamic onboarding paths like /store/onboarding/:storeId/...
+  const isProtectedStoreOnboardingPath =
+    /^\/store\/onboarding\/[a-f\d]{24}(\/.*)?$/i.test(pathname);
 
   if (
     !storeToken &&

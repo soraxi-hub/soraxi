@@ -1,4 +1,13 @@
-import { ProductUploadForm } from "@/modules/store/components/ProductUploadForm";
+import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
+import { ProductUploadForm } from "@/modules/store/components/product-upload-form";
+import { Metadata } from "next";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return generateStoreMetadata(
+    "Upload Product",
+    "Upload new products to your store by adding images, descriptions, pricing, and inventory details. Create polished listings to showcase your products and attract customers."
+  );
+}
 
 /**
  * Product Upload Page

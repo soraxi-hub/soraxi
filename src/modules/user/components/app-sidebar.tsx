@@ -12,8 +12,9 @@ import {
   // BellIcon,
   // GlobeIcon,
   // HelpCircleIcon,
-  RefreshCwIcon,
-  MailIcon,
+  HelpCircleIcon,
+  // RefreshCwIcon,
+  // MailIcon,
   BuildingIcon,
   UserPlusIcon,
   // Share2Icon,
@@ -27,6 +28,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   //   SidebarGroupLabel,
   // SidebarHeader,
   SidebarMenu,
@@ -86,12 +88,12 @@ const sidebarItems = (user: TokenData) => [
     label: "Help & Support",
     items: [
       // { title: "FAQs", url: "/faqs", icon: HelpCircleIcon },
-      { title: "Returns", url: "/returns", icon: RefreshCwIcon },
-      { title: "Contact", url: "/contact", icon: MailIcon },
+      // { title: "Returns", url: "/returns", icon: RefreshCwIcon },
+      { title: "Support", url: "/support", icon: HelpCircleIcon },
     ],
   },
   {
-    label: `Partner with ${siteConfig.name}`,
+    label: `My Store`,
     items: [
       ...(user?.store
         ? [
@@ -103,8 +105,8 @@ const sidebarItems = (user: TokenData) => [
           ]
         : []),
       {
-        title: "Become a Partner",
-        url: "/become-partner",
+        title: "Create Your Store",
+        url: "/store/onboarding/",
         icon: UserPlusIcon,
       },
       // {
@@ -153,7 +155,19 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
       // className="absolute top-[7rem]"
       className="fixed top-[7rem] h-[calc(100vh-7rem)]"
     >
-      <SidebarContent className="pl-10">
+      <SidebarHeader className="border-b border-border p-4">
+        <div className="flex items-center space-x-2">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Hello {user.firstName}!
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {siteConfig.name} Platform
+            </p>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent className="">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

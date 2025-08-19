@@ -2,14 +2,14 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { getOrderModel } from "@/lib/db/models/order.model";
-import { checkAdminPermission } from "@/lib/admin/permissions";
+import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import {
   logAdminAction,
   AUDIT_ACTIONS,
   AUDIT_MODULES,
-} from "@/lib/admin/audit-logger";
+} from "@/modules/admin/security/audit-logger";
 import mongoose from "mongoose";
-import type { Role } from "@/modules/shared/roles";
+import type { Role } from "@/modules/admin/security/roles";
 import type {
   EscrowReleaseDetailAggregationResult,
   FormattedEscrowReleaseDetail,

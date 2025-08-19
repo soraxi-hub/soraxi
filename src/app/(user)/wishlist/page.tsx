@@ -7,6 +7,16 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
+import type { Metadata } from "next";
+import { generateUserMetadata } from "@/lib/helpers/generate-user-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return generateUserMetadata(
+    "My Wishlist",
+    "Easily access and manage your saved products. Keep track of items you love and get quick access when you're ready to buy."
+  );
+}
+
 async function Page() {
   const userId = await getUserFromCookie();
 

@@ -9,18 +9,18 @@ import {
 } from "@/lib/db/models/wallet.model";
 import { getWithdrawalRequestModel } from "@/lib/db/models/withdrawal-request.model";
 import { getAdminModel } from "@/lib/db/models/admin.model";
-import { checkAdminPermission } from "@/lib/admin/permissions";
+import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import {
   logAdminAction,
   AUDIT_ACTIONS,
   AUDIT_MODULES,
-} from "@/lib/admin/audit-logger";
+} from "@/modules/admin/security/audit-logger";
 import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import { sendMail, wrapWithBrandedTemplate } from "@/services/mail.service";
 import { siteConfig } from "@/config/site";
 import { generateUniqueId } from "@/lib/utils";
-import type { Role } from "@/modules/shared/roles";
-import { PERMISSIONS } from "@/modules/shared/permissions";
+import type { Role } from "@/modules/admin/security/roles";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import type {
   CreateWithdrawalRequestInput,
   CreateWithdrawalRequestResponse,
@@ -290,10 +290,7 @@ export const withdrawalRouter = createTRPCRouter({
       const { admin } = ctx;
       try {
         // Authenticate admin and check permission
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.VIEW_SETTLEMENTS])
-        ) {
+        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Admin authentication required",
@@ -468,7 +465,7 @@ export const withdrawalRouter = createTRPCRouter({
           // Authenticate admin and check permission
           if (
             !admin ||
-            !checkAdminPermission(admin, [PERMISSIONS.VIEW_SETTLEMENTS])
+            !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])
           ) {
             throw new TRPCError({
               code: "UNAUTHORIZED",
@@ -683,7 +680,7 @@ export const withdrawalRouter = createTRPCRouter({
           // Authenticate admin and check permission
           if (
             !admin ||
-            !checkAdminPermission(admin, [PERMISSIONS.PROCESS_SETTLEMENT])
+            !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])
           ) {
             throw new TRPCError({
               code: "UNAUTHORIZED",
@@ -885,7 +882,7 @@ export const withdrawalRouter = createTRPCRouter({
           // Authenticate admin and check permission
           if (
             !admin ||
-            !checkAdminPermission(admin, [PERMISSIONS.PROCESS_SETTLEMENT])
+            !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])
           ) {
             throw new TRPCError({
               code: "UNAUTHORIZED",

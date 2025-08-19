@@ -5,7 +5,7 @@
 
 import mongoose from "mongoose";
 import bcryptjs from "bcryptjs";
-import { ROLES } from "@/modules/shared/roles";
+import { ROLES } from "@/modules/admin/security/roles";
 import dotenv from "dotenv";
 import { getAdminModel } from "@/lib/db/models/admin.model";
 

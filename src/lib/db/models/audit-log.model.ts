@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import type { Role } from "@/modules/shared/roles";
+import type { Role } from "@/modules/admin/security/roles";
 
 /**
  * Interface for Admin Audit Logs

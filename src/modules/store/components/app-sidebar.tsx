@@ -7,7 +7,7 @@ import {
   MapPinIcon,
   CreditCardIcon,
   // StarIcon,
-  LockIcon,
+  // LockIcon,
   // GlobeIcon,
   HelpCircleIcon,
   MailIcon,
@@ -16,6 +16,7 @@ import {
   ChevronDownIcon,
   WalletIcon,
   LogOutIcon,
+  // RefreshCwIcon,
 } from "lucide-react";
 
 import {
@@ -24,6 +25,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   //   SidebarGroupLabel,
   // SidebarHeader,
   SidebarMenu,
@@ -52,13 +54,14 @@ import { StoreTokenData } from "@/lib/helpers/get-store-from-cookie";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
+import { siteConfig } from "@/config/site";
 
 const sidebarItems = (storeId: string) => [
   {
     label: "Store Management",
     items: [
       {
-        title: "Store Dashboard",
+        title: "Dashboard",
         url: `/store/${storeId}/dashboard`,
         icon: BriefcaseIcon,
       },
@@ -72,6 +75,11 @@ const sidebarItems = (storeId: string) => [
         url: `/store/${storeId}/orders`,
         icon: CreditCardIcon,
       },
+      // {
+      //   title: "Returns",
+      //   url: `/store/${storeId}/returns`,
+      //   icon: RefreshCwIcon,
+      // },
       {
         title: "Wallet",
         url: `/store/${storeId}/wallet`,
@@ -134,14 +142,14 @@ const sidebarItems = (storeId: string) => [
       },
       {
         title: "Contact Support",
-        url: `/store/${storeId}/contact`,
+        url: `/support`,
         icon: MailIcon,
       },
-      {
-        title: "Policies",
-        url: `/store/${storeId}/policies`,
-        icon: LockIcon,
-      },
+      // {
+      //   title: "Policies",
+      //   url: `/store/${storeId}/policies`,
+      //   icon: LockIcon,
+      // },
     ],
   },
 ];
@@ -176,7 +184,19 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
       // className="absolute top-[4rem]"
       className="fixed top-[4rem] h-[calc(100vh-4rem)]"
     >
-      <SidebarContent className="pl-4">
+      <SidebarHeader className="border-b border-border p-4">
+        <div className="flex items-center space-x-2">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Welcome back {store.name}!
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {siteConfig.name} Platform
+            </p>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
