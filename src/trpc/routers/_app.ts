@@ -25,6 +25,9 @@ import { productReviewRouter } from "@/modules/server/reviews/products/procedure
 import { orderStatusRouter } from "@/modules/server/store/store-orders/order-status-management/procedures";
 import { adminRefundRouter } from "@/modules/server/admin/admin-refund-management/fetch-eligible-refunds/procedures";
 import { adminRefundDetailRouter } from "@/modules/server/admin/admin-refund-management/refund-details/procedures";
+import { adminManagementRouter } from "@/modules/server/admin/admin-management/procedures";
+import { auditLogRouter } from "@/modules/server/admin/audit-logs/procedures";
+import { storeProductRouter } from "@/modules/server/store/products/procedure";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -53,6 +56,9 @@ export const appRouter = createTRPCRouter({
   orderStatus: orderStatusRouter,
   adminRefund: adminRefundRouter,
   adminRefundDetail: adminRefundDetailRouter,
+  adminManagement: adminManagementRouter,
+  adminAuditLog: auditLogRouter,
+  storeProducts: storeProductRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

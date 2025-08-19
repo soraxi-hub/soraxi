@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Award, Zap, Shield, Truck } from "lucide-react";
 
 import { ProductCard } from "../products/product-detail/product-card";
 import { useQueryState } from "nuqs";
+import { motion } from "framer-motion";
 
 /**
  * HomePage Component
@@ -31,30 +31,24 @@ export function HomePage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <h1 className="text-5xl font-bold leading-tight">
+              <motion.h1
+                className="text-5xl font-bold leading-tight"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
                 Discover Amazing Products from Verified Stores
-              </h1>
-              <p className="text-xl opacity-90">
+              </motion.h1>
+
+              <motion.p
+                className="text-xl opacity-90"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+              >
                 Shop with confidence from our curated marketplace of trusted
                 sellers offering quality products at great prices.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="text-soraxi-green"
-                >
-                  <Search className="w-5 h-5 mr-2" />
-                  Start Shopping
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-soraxi-green"
-                >
-                  Become a Seller
-                </Button>
-              </div>
+              </motion.p>
             </div>
           </div>
         </div>
@@ -206,8 +200,8 @@ export function HomePage() {
           {(publicProductsData?.products || []).length === 0 &&
             !productsLoading && (
               <div className="text-center py-12">
-                <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-12 h-12 text-muted-foreground" />
+                <div className="w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-12 h-12 text-soraxi-green" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">
                   No products found

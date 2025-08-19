@@ -13,10 +13,6 @@ export function HomePageSkeleton() {
             <div className="space-y-6">
               <Skeleton className="h-12 w-3/4 rounded" />
               <Skeleton className="h-6 w-2/3 rounded" />
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Skeleton className="h-12 w-40 rounded" />
-                <Skeleton className="h-12 w-40 rounded" />
-              </div>
             </div>
           </div>
         </div>

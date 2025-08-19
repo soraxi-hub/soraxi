@@ -2,12 +2,26 @@
 
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
+import { Role } from "@/modules/admin/security/roles";
 
 export interface AdminTokenData {
   id: string;
   name: string;
   email: string;
   roles: string[]; // Ensure roles are strings
+  isActive: boolean;
+}
+
+/**
+ * Admin Permission Utilities
+ * Helper functions for checking admin permissions
+ */
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  roles: Role[] | string[];
   isActive: boolean;
 }
 

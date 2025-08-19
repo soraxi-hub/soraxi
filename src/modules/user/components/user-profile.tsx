@@ -54,9 +54,9 @@ const Profile = () => {
   if (isLoading) return <ProfileSkeleton />;
 
   return (
-    <div className="space-y-6 px-4 md:px-3 py-4">
+    <div className="space-y-6 py-6">
       {/* Profile Header */}
-      <section className="bg-card rounded-lg p-6 shadow-xs">
+      <section>
         <div className="flex items-center justify-between mb-6">
           <h1 className="sm:text-2xl font-bold flex items-center gap-2">
             <User className="w-6 h-6" />

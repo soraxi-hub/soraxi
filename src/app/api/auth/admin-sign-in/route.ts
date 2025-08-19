@@ -2,8 +2,8 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
 import * as jose from "jose";
-import type { Role } from "@/modules/shared/roles";
-import { logAdminAction } from "@/lib/admin/audit-logger";
+import type { Role } from "@/modules/admin/security/roles";
+import { logAdminAction } from "@/modules/admin/security/audit-logger";
 import { getAdminByEmail, IAdmin } from "@/lib/db/models/admin.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       id: admin._id.toString(),
       name: admin.name,
       email: admin.email,
-      roles: admin.roles.map((role: Role) => String(role)), // Ensure roles are strings
+      roles: admin.roles as string[],
       isActive: admin.isActive,
     };
 

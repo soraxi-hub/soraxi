@@ -22,6 +22,66 @@ import { EyeIcon, EyeOffIcon, Loader, LockIcon, Mail } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import axios from "axios";
+import { motion, Variants, easeOut } from "framer-motion";
+
+const container: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.4, // delay each line
+    },
+  },
+};
+
+const item: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.8,
+      ease: easeOut, // ✅ easing fn instead of string
+    },
+  },
+};
+
+function SignInLeft() {
+  return (
+    <div className="hidden bg-cover md:block md:w-2/4 bg-[url(https://images.unsplash.com/photo-1616763355603-9755a640a287?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80)]">
+      <div className="flex flex-col items-center justify-center h-full px-8 bg-gray-900/70">
+        {/* Small text shows FIRST */}
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: easeOut }}
+          className="mb-4 text-lg opacity-80 text-white"
+        >
+          Your favorite products, just a click away.
+        </motion.p>
+
+        {/* Tagline appears AFTER (with stagger) */}
+        <motion.h1
+          className={`text-4xl font-bold opacity-95 text-white text-center leading-snug space-y-2 ${playpenSans.className}`}
+          variants={container}
+          initial="hidden"
+          animate="show"
+          transition={{ delay: 0.8 }} // ⏳ waits until <p> finishes
+        >
+          <motion.span variants={item} className="block">
+            Find It...
+          </motion.span>
+          <motion.span variants={item} className="block">
+            Love It...
+          </motion.span>
+          <motion.span variants={item} className="block">
+            Own It...
+          </motion.span>
+        </motion.h1>
+      </div>
+    </div>
+  );
+}
 
 function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,9 +132,7 @@ function SignIn() {
   return (
     <main className="min-h-screen bg-background">
       <div className="flex justify-center h-screen">
-        <div className="hidden bg-cover md:block md:w-2/4 bg-[url(https://images.unsplash.com/photo-1616763355603-9755a640a287?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80)]">
-          <div className="flex items-center h-full px-20 bg-gray-900/70"></div>
-        </div>
+        <SignInLeft />
 
         <div className="flex items-center w-full max-w-md px-6 mx-auto lg:w-2/6">
           <div className="flex-1">
@@ -146,7 +204,7 @@ function SignIn() {
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                               disabled={isLoading}
                             >
                               {showPassword ? (

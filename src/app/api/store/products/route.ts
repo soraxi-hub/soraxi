@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { AppError } from "@/lib/errors/app-error";
+import bcrypt from "bcryptjs";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 /**
  * API Route: Store Product Management
@@ -31,6 +34,7 @@ export async function POST(request: NextRequest) {
       specifications,
       category,
       subCategory,
+      storePassword, // For verification, not stored
     } = body;
 
     // Validate required fields
@@ -40,24 +44,26 @@ export async function POST(request: NextRequest) {
       !specifications ||
       !category ||
       !subCategory ||
-      !images?.length
+      !images?.length ||
+      !storePassword
     ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      throw new AppError("Missing required fields", 400);
     }
 
     // Validate store ownership
     if (storeID !== storeSession.id) {
-      return NextResponse.json(
-        { error: "Unauthorized store access" },
-        { status: 403 }
-      );
+      throw new AppError("Unauthorized store access", 403);
     }
 
     const Product = await getProductModel();
     const Store = await getStoreModel();
+    const store = await Store.findById(storeSession.id).select("password");
+    if (!store) {
+      throw new AppError("Store not found", 404);
+    }
+
+    const isPasswordValid = await bcrypt.compare(storePassword, store.password);
+    if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 
     // Create product data
     const productData = {
@@ -98,9 +104,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating product:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

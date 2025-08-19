@@ -1,6 +1,15 @@
 import { StoreProductsManagementSkeleton } from "@/modules/skeletons/store-products-management-skeleton";
 import { StoreProductsManagement } from "@/modules/store/store-products";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return generateStoreMetadata(
+    "Product Management",
+    "Manage products for your store. Add new items, update details, track inventory, and keep your storefront up to date with ease."
+  );
+}
 
 async function Page(props: { params: Promise<{ store_id: string }> }) {
   const { store_id } = await props.params;

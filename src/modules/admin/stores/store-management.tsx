@@ -55,6 +55,8 @@ import { useQuery } from "@tanstack/react-query";
 import { IStore } from "@/lib/db/models/store.model";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 type Output = inferProcedureOutput<AppRouter["adminStore"]["listStores"]>;
 type StoreData = Output["stores"][number];
@@ -499,3 +501,7 @@ export function StoreManagement() {
     </div>
   );
 }
+
+export default withAdminAuth(StoreManagement, {
+  requiredPermissions: [PERMISSIONS.VIEW_STORES],
+});

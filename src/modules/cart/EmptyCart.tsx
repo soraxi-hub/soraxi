@@ -7,8 +7,8 @@ import { ShoppingCart, ArrowLeft } from "lucide-react";
 export function EmptyCart() {
   return (
     <div className="text-center py-16">
-      <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
-        <ShoppingCart className="h-12 w-12 text-muted-foreground" />
+      <div className="mx-auto w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mb-6">
+        <ShoppingCart className="h-12 w-12 text-soraxi-green" />
       </div>
 
       <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
@@ -18,7 +18,10 @@ export function EmptyCart() {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Button asChild>
+        <Button
+          className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+          asChild
+        >
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Continue Shopping
@@ -34,7 +37,7 @@ export function EmptyCart() {
       <div className="mt-12">
         <h3 className="text-lg font-medium mb-4">Popular Categories</h3>
         <div className="flex flex-wrap justify-center gap-2">
-          {["Electronics", "Fashion", "Home & Garden", "Sports", "Books"].map(
+          {["Electronics", "Fashion", "Furniture", "Clothing", "Toys"].map(
             (category) => (
               <Button key={category} variant="outline" size="sm" asChild>
                 <Link

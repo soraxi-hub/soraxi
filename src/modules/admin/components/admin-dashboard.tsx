@@ -1,7 +1,7 @@
 "use client";
 
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
-import { Role } from "@/modules/shared/roles";
+import { Role } from "@/modules/admin/security/roles";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

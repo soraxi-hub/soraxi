@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import type { Role } from "@/modules/shared/roles";
+import type { Role } from "@/modules/admin/security/roles";
 
 /**
  * Interface for Admin document
@@ -11,7 +11,7 @@ export interface IAdmin extends Document {
   name: string;
   email: string;
   password: string;
-  roles: Role[];
+  roles: Role[] | string[];
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -114,4 +114,18 @@ export async function getAdminById(
   const Admin = await getAdminModel();
 
   return lean ? Admin.findById(id).lean() : Admin.findById(id);
+}
+
+/**
+ * Get all admins
+ * @param lean - Whether to return a lean object
+ * @returns IAdmin document or plain object
+ */
+export async function getAllAdmins(lean = false): Promise<IAdmin[] | null> {
+  await connectToDatabase();
+  const Admin = await getAdminModel();
+
+  return lean
+    ? Admin.find().select("-password").sort({ name: 1 }).lean()
+    : Admin.find();
 }

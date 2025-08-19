@@ -9,6 +9,57 @@ import { CartProvider } from "@/modules/cart/cart-provider";
 import Link from "next/link";
 import { serializeData } from "@/lib/utils";
 
+import type { Metadata } from "next";
+import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: `Checkout | ${siteConfig.siteTitle}`,
+  description:
+    "Securely review your order and complete your purchase on Soraxi. Escrow-protected payments, fast delivery, and a seamless checkout experience.",
+  keywords: [
+    "Soraxi checkout",
+    "secure checkout",
+    "order payment",
+    "escrow payments",
+    "buy online",
+    "shopping checkout",
+    "Soraxi cart",
+    "complete purchase",
+  ],
+  openGraph: {
+    title: "Checkout | Soraxi",
+    description:
+      "Finalize your Soraxi order with secure escrow payments and trusted delivery.",
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout`,
+    siteName: "Soraxi",
+    images: [
+      {
+        url: "/og-soraxi.png", // already in /public
+        width: 1200,
+        height: 630,
+        alt: "Soraxi Checkout",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Checkout | Soraxi",
+    description:
+      "Securely complete your Soraxi order with escrow-protected payments.",
+    images: ["/og-soraxi.png"],
+  },
+  alternates: {
+    canonical: `${process.env.NEXT_PUBLIC_APP_URL}/checkout`,
+  },
+  robots: {
+    index: false, // ✅ best practice: prevent indexing checkout pages
+    follow: true,
+    nocache: true,
+  },
+};
+
 /**
  * Server-Side Checkout Page Component
  *

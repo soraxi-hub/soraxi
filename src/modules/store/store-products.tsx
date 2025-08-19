@@ -214,7 +214,7 @@ export function StoreProductsManagement({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
@@ -296,7 +296,7 @@ export function StoreProductsManagement({
                   )
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -315,7 +315,7 @@ export function StoreProductsManagement({
                   setVisibilityFilter(value as "true" | "false" | "all");
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -348,7 +348,9 @@ export function StoreProductsManagement({
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead className="hidden lg:inline-block">
+                  Category
+                </TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
@@ -401,13 +403,13 @@ export function StoreProductsManagement({
                           <p className="font-medium line-clamp-1">
                             {product.name}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground hidden">
                             ID: {product.id.slice(-8)}
                           </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:inline-block">
                       <div className="space-y-1">
                         {product.category.map((cat, index) => (
                           <Badge
@@ -451,6 +453,7 @@ export function StoreProductsManagement({
                               product.isVisible
                             )
                           }
+                          className="hidden lg:inline-block"
                         />
                       </div>
                     </TableCell>
@@ -480,7 +483,9 @@ export function StoreProductsManagement({
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/store/products/${product.id}/edit`}>
+                            <Link
+                              href={`/store/${store_id}/products/${product.id}/edit`}
+                            >
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Product
                             </Link>

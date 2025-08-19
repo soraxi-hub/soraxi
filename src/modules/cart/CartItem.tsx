@@ -6,7 +6,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Minus, HeartIcon } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  // HeartIcon
+} from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 
 /**
@@ -47,8 +52,8 @@ export function CartItem({
   item,
   onUpdateQuantityAction,
   onRemoveItemAction,
-  onMoveToWishlistAction,
-}: CartItemProps) {
+}: // onMoveToWishlistAction,
+CartItemProps) {
   // Local state for quantity input and loading states
   const [quantity, setQuantity] = useState(item.quantity);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -91,7 +96,7 @@ export function CartItem({
   const subtotal = item.price * quantity;
 
   return (
-    <div className="flex gap-4 py-6 border-b">
+    <div className="flex flex-col sm:flex-row gap-4 py-6 border-b">
       {/* Product Image with Stock Overlay */}
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border">
         <Link href={`/products/${item.slug}`}>
@@ -118,7 +123,7 @@ export function CartItem({
           <div className="flex justify-between">
             <div>
               <Link href={`/products/${item.slug}`}>
-                <h3 className="font-medium hover:text-primary transition-colors line-clamp-2">
+                <h3 className="font-medium hover:text-primary transition-colors line-clamp-2 truncate">
                   {item.name}
                 </h3>
               </Link>
@@ -178,7 +183,7 @@ export function CartItem({
 
             {/* Low Stock Warning */}
             {item.maxQuantity <= 20 && (
-              <p className="text-xs text-orange-600">
+              <p className="text-xs text-orange-600 hidden sm:inline">
                 Only {item.maxQuantity} left
               </p>
             )}
@@ -186,7 +191,7 @@ export function CartItem({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <Button
+            {/* <Button
               variant="ghost"
               size="sm"
               onClick={() => onMoveToWishlistAction(item.id)}
@@ -194,7 +199,7 @@ export function CartItem({
             >
               <HeartIcon className="h-4 w-4 mr-1" />
               Save
-            </Button>
+            </Button> */}
 
             <Button
               variant="ghost"

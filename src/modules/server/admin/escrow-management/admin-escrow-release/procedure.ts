@@ -6,14 +6,14 @@ import {
   getWalletModel,
   getWalletTransactionModel,
 } from "@/lib/db/models/wallet.model";
-import { checkAdminPermission } from "@/lib/admin/permissions";
+import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import {
   logAdminAction,
   AUDIT_ACTIONS,
   AUDIT_MODULES,
-} from "@/lib/admin/audit-logger";
+} from "@/modules/admin/security/audit-logger";
 import mongoose from "mongoose";
-import type { Role } from "@/modules/shared/roles";
+import type { Role } from "@/modules/admin/security/roles";
 import { calculateCommission } from "@/lib/utils/calculate-commission";
 import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import { sendMail, wrapWithBrandedTemplate } from "@/services/mail.service";

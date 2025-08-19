@@ -39,6 +39,8 @@ import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 export function EscrowReleaseQueue() {
   const trpc = useTRPC();
@@ -500,3 +502,7 @@ export function EscrowReleaseQueue() {
     </div>
   );
 }
+
+export default withAdminAuth(EscrowReleaseQueue, {
+  requiredPermissions: [PERMISSIONS.VIEW_ESCROW],
+});

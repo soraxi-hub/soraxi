@@ -51,6 +51,7 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { PopulatedUser } from "@/types/order";
 import { formatNaira } from "@/lib/utils/naira";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Store Orders Management Component
@@ -372,7 +373,7 @@ export default function StoreOrdersManagement({
           value={selectedMonth}
           onValueChange={(value) => handleFilterChange("month", value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -392,7 +393,7 @@ export default function StoreOrdersManagement({
           value={selectedStatus}
           onValueChange={(value) => handleFilterChange("status", value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -456,8 +457,8 @@ export default function StoreOrdersManagement({
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between flex-col md:flex-row w-full space-y-4">
+        <div className="w-full">
           <h1 className="text-2xl font-bold">Orders Management</h1>
           <p className="text-muted-foreground">
             Manage and track your store orders •{" "}
@@ -465,13 +466,16 @@ export default function StoreOrdersManagement({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full md:justify-end">
           {/* <Button variant="outline" onClick={handleExportOrders}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button> */}
 
-          <Button variant="outline" onClick={() => fetchOrders()}>
+          <Button
+            onClick={() => fetchOrders()}
+            className="flex-1 md:flex-0 bg-soraxi-green text-white hover:bg-soraxi-green-hover"
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -479,7 +483,10 @@ export default function StoreOrdersManagement({
           {/* Mobile Filter Sheet */}
           <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" className="md:hidden bg-transparent">
+              <Button
+                variant="outline"
+                className="md:hidden bg-transparent flex-1"
+              >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
@@ -487,8 +494,9 @@ export default function StoreOrdersManagement({
             <SheetContent side="right" className="w-80">
               <SheetHeader>
                 <SheetTitle>Filter Orders</SheetTitle>
+                <Separator />
               </SheetHeader>
-              <div className="mt-6">{renderFilters()}</div>
+              <div className="px-4">{renderFilters()}</div>
             </SheetContent>
           </Sheet>
         </div>

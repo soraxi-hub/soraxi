@@ -83,12 +83,12 @@ const navigationItems = [
         icon: Store,
         permissions: ["view_stores"],
       },
-      {
-        title: "Pending Approvals",
-        url: "/admin/stores/pending",
-        icon: Shield,
-        permissions: ["verify_store"],
-      },
+      // {
+      //   title: "Pending Approvals",
+      //   url: "/admin/stores/pending",
+      //   icon: Shield,
+      //   permissions: ["verify_store"],
+      // },
     ],
   },
   {
@@ -100,12 +100,12 @@ const navigationItems = [
         icon: Package,
         permissions: ["view_products"],
       },
-      {
-        title: "Product Moderation",
-        url: "/admin/products/moderation",
-        icon: Shield,
-        permissions: ["verify_product"],
-      },
+      // {
+      //   title: "Product Moderation",
+      //   url: "/admin/products/moderation",
+      //   icon: Shield,
+      //   permissions: ["verify_product"],
+      // },
     ],
   },
   {
@@ -151,12 +151,12 @@ const navigationItems = [
         icon: DollarSign,
         permissions: ["view_settlements"],
       },
-      {
-        title: "Financial Reports",
-        url: "/admin/finance/reports",
-        icon: BarChart3,
-        permissions: ["view_financial_reports"],
-      },
+      // {
+      //   title: "Financial Reports",
+      //   url: "/admin/finance/reports",
+      //   icon: BarChart3,
+      //   permissions: ["view_financial_reports"],
+      // },
     ],
   },
   {
@@ -164,7 +164,7 @@ const navigationItems = [
     items: [
       {
         title: "Admin Users",
-        url: "/admin/admins",
+        url: "/admin/manage-admins",
         icon: Users,
         permissions: ["manage_admins"],
       },

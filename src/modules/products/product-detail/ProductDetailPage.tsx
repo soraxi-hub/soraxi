@@ -17,6 +17,7 @@ import {
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { slugify } from "@/constants/constant";
 
 type ProductsOutput = inferProcedureOutput<
   AppRouter["home"]["getPublicProductBySlug"]
@@ -118,14 +119,4 @@ export function ProductDetailPage({
       </div>
     </div>
   );
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase() // Convert to lowercase
-    .replace(/'/g, "") // Remove apostrophes
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/[^a-z0-9\-]/g, "") // Remove any other non-url-friendly characters
-    .replace(/-+/g, "-") // Collapse multiple hyphens
-    .replace(/^-|-$/g, ""); // Trim hyphens from start/end
 }

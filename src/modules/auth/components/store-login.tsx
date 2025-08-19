@@ -15,10 +15,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  Loader2,
+  Store,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowLeftIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import AlertUI from "@/modules/shared/alert";
+import Link from "next/link";
 
 /**
  * Store Login Form Schema
@@ -274,13 +283,16 @@ export default function StoreLoginPage() {
 
         {/* Back to Main Site */}
         <div className="text-center">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            ← Back to Main Site
-          </Button>
+          <Link href={`/`}>
+            <Button
+              variant="ghost"
+              className="group text-muted-foreground hover:text-foreground"
+              size={"lg"}
+            >
+              <ArrowLeftIcon className="w-5 h-5 transform transition-transform duration-300 group-hover:-translate-x-1.5" />
+              Back to Main Site
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

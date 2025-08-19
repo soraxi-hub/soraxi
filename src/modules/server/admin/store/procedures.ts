@@ -6,7 +6,7 @@ import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import mongoose from "mongoose";
 import { Product } from "@/types";
 import { koboToNaira } from "@/lib/utils/naira";
-import { checkAdminPermission } from "@/lib/admin/permissions";
+import { checkAdminPermission } from "@/modules/admin/security/access-control";
 
 export const adminStoreRouter = createTRPCRouter({
   listStores: baseProcedure

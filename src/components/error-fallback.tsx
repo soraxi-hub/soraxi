@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Mail } from "lucide-react";
+import Link from "next/link";
 
 interface ErrorFallbackProps {
   error?: Error;
@@ -12,6 +13,10 @@ export function ErrorFallback({
   error,
   resetErrorBoundary,
 }: ErrorFallbackProps) {
+  // Prepare email link with pre-filled error details
+  const supportEmail = "mishaeljoe55@gmail.com";
+  const mailtoLink = `mailto:${supportEmail}`;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
       <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
@@ -19,20 +24,33 @@ export function ErrorFallback({
         <h2 className="text-xl font-semibold text-red-800 mb-2">
           Something went wrong
         </h2>
-        <p className="text-red-600 mb-4">
-          {error?.message ||
-            "An unexpected error occurred while loading your wishlist."}
+        <p className="text-red-600 mb-6">
+          {error?.message || "An unexpected error occurred."}
         </p>
-        {resetErrorBoundary && (
+
+        <div className="flex items-center justify-center gap-3">
+          {resetErrorBoundary && (
+            <Button
+              onClick={() => window.location.reload()}
+              variant="secondary"
+              className="bg-transparent text-red-700 hover:bg-red-100 hover:underline"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          )}
+
           <Button
-            onClick={resetErrorBoundary}
-            variant="outline"
-            className="border-red-300 text-red-700 hover:bg-red-50 bg-transparent"
+            asChild
+            variant="secondary"
+            className="bg-transparent text-red-700 hover:bg-red-100 hover:underline"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
+            <Link href={mailtoLink}>
+              <Mail className="h-4 w-4 mr-2" />
+              Contact Support
+            </Link>
           </Button>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,16 @@ export const dynamic = "force-dynamic";
 
 import StoreWalletPage from "./waller-client-side/store-wallet-page";
 
+import type { Metadata } from "next";
+import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return generateStoreMetadata(
+    "Wallet",
+    "Access and manage your store wallet. View earnings, request withdrawals, track payout history, and stay on top of your store’s finances with ease."
+  );
+}
+
 interface StoreWithdrawalDetailPageProps {
   params: Promise<{
     store_id: string;

@@ -145,13 +145,6 @@ ProductSchema.index(
   }
 );
 
-// ProductSchema.virtual("formattedPrice").get(function (this: IProduct) {
-//   return currency(this.price ?? 0 / 100, {
-//     symbol: "₦",
-//     precision: 2,
-//   }).format();
-// });
-
 ProductSchema.pre("save", async function (next) {
   if (!this.slug) {
     this.slug = slugify(this.name, {
@@ -251,4 +244,10 @@ export async function getProductBySlug(slug: string): Promise<IProduct | null> {
   await connectToDatabase();
   const Product = await getProductModel();
   return Product.findOne({ slug }).lean();
+}
+
+export async function getProductById(id: string): Promise<IProduct | null> {
+  await connectToDatabase();
+  const Product = await getProductModel();
+  return Product.findById(id);
 }

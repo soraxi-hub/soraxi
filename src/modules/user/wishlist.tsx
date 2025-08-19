@@ -42,12 +42,12 @@ export function Wishlist() {
   };
 
   return (
-    <main className="p-8">
+    <main className="py-6">
       {/* Wishlist Header */}
-      <section className="bg-card rounded-lg p-6 shadow-xs">
+      <section>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Heart className="w-6 h-6" />
+            {/* <Heart className="w-6 h-6" /> */}
             My Wishlist
           </h1>
           <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
@@ -57,7 +57,7 @@ export function Wishlist() {
 
         {/* Wishlist Products */}
         {products.length > 0 ? (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:col-span-3 lg:gap-x-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:col-span-3">
             {products.map((product) => {
               return (
                 <div key={product.productId.id} className="relative group">

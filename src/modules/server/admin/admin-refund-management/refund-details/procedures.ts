@@ -7,8 +7,8 @@ import {
   logAdminAction,
   AUDIT_ACTIONS,
   AUDIT_MODULES,
-} from "@/lib/admin/audit-logger";
-import type { Role } from "@/modules/shared/roles";
+} from "@/modules/admin/security/audit-logger";
+import type { Role } from "@/modules/admin/security/roles";
 import { GetRefundItemDetailOutputSchema } from "@/types/admin-refund-types";
 
 export const adminRefundDetailRouter = createTRPCRouter({

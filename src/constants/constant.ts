@@ -143,3 +143,14 @@ export const getSubcategoryNames = (categoryName: string) => {
   const category = categories.find((cat) => cat.name === categoryName);
   return category?.subcategories.map((sub) => sub.name) || [];
 };
+
+// Slugify a string
+export function slugify(text: string): string {
+  return text
+    .toLowerCase() // Convert to lowercase
+    .replace(/'/g, "") // Remove apostrophes
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/[^a-z0-9\-]/g, "") // Remove any other non-url-friendly characters
+    .replace(/-+/g, "-") // Collapse multiple hyphens
+    .replace(/^-|-$/g, ""); // Trim hyphens from start/end
+}
