@@ -1,5 +1,9 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import {
+  normalizePhoneNumber,
+  validateNigerianPhone,
+} from "@/lib/utils/NG-phonenumber-validation";
 
 /**
  * Interface for User document
@@ -68,12 +72,13 @@ const UserSchema = new Schema<IUser>(
       trim: true,
       validate: {
         validator: (phone: string) => {
-          // Support international format (+234...) and local format (0...)
-          const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
-          return phoneRegex.test(phone);
+          return validateNigerianPhone(normalizePhoneNumber(phone));
         },
         message:
-          "Phone number must be a valid Nigerian number (e.g., +2348012345678 or 08012345678)",
+          "Phone number must be a valid Nigerian mobile (e.g., +2348012345678 or 08012345678)",
+      },
+      set: (v: string) => {
+        return normalizePhoneNumber(v);
       },
     },
     address: {

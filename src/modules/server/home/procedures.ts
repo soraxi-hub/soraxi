@@ -14,12 +14,12 @@ import { TRPCError } from "@trpc/server";
 export const homeRouter = createTRPCRouter({
   /**
    * Procedure: getPublicProducts
-   * Fetches cursor-based paginated, filtered public product listings (no store data).
+   * Fetches paginated, filtered public product listings (no store data).
    */
   getPublicProducts: baseProcedure
     .input(
       z.object({
-        cursor: z.string().optional(), // Product ID to start from
+        page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(20),
         category: z.string().optional(),
         subCategory: z.string().optional(),
@@ -35,7 +35,7 @@ export const homeRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       const {
-        cursor,
+        page,
         limit,
         category,
         subCategory,
@@ -49,8 +49,8 @@ export const homeRouter = createTRPCRouter({
 
       const products = await getProducts({
         visibleOnly: true,
-        limit: limit + 1, // Fetch one extra to determine if there are more
-        cursor, // Pass cursor instead of skip
+        limit,
+        skip: (page - 1) * limit,
         category: category !== "all" ? category : undefined,
         subCategory,
         verified,
@@ -61,15 +61,7 @@ export const homeRouter = createTRPCRouter({
         ratings,
       });
 
-      const hasMore = products.length > limit;
-      const productsToReturn = hasMore ? products.slice(0, limit) : products;
-      const nextCursor = hasMore
-        ? (
-            productsToReturn[productsToReturn.length - 1]._id as string
-          ).toString()
-        : undefined;
-
-      const formattedProducts = productsToReturn.map((product) => ({
+      const formattedProducts = products.map((product) => ({
         id: (product._id as string).toString(),
         name: product.name,
         price: product.price,
@@ -85,7 +77,11 @@ export const homeRouter = createTRPCRouter({
       return {
         success: true,
         products: formattedProducts,
-        nextCursor,
+        pagination: {
+          page,
+          limit,
+          total: formattedProducts.length,
+        },
       };
     }),
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,11 +10,6 @@ import { Search, Award, Zap, Shield, Truck } from "lucide-react";
 import { ProductCard } from "../products/product-detail/product-card";
 import { useQueryState } from "nuqs";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useCallback } from "react";
-import { inferProcedureOutput } from "@trpc/server";
-import { AppRouter } from "@/trpc/routers/_app";
-
-type Output = inferProcedureOutput<AppRouter["home"]["getPublicProducts"]>;
 
 /**
  * HomePage Component
@@ -24,51 +19,17 @@ export function HomePage() {
   const trpc = useTRPC();
   const [search] = useQueryState("search");
 
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  const {
-    data,
-    isLoading: productsLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery<Output>({
-    ...trpc.home.getPublicProducts.infiniteQueryOptions({
+  // Data fetching with tRPC and React Query
+  const { data: publicProductsData, isLoading: productsLoading } = useQuery(
+    trpc.home.getPublicProducts.queryOptions({
       verified: true,
       search,
-    }),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage: { nextCursor: string | undefined }) =>
-      lastPage.nextCursor,
-  });
-
-  const allProducts = data?.pages.flatMap((page) => page.products) || [];
-
-  const handleIntersection = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [entry] = entries;
-      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    [fetchNextPage, hasNextPage, isFetchingNextPage]
+      page: 1,
+      limit: 50,
+    })
   );
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(handleIntersection, {
-      threshold: 0.1,
-    });
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [handleIntersection]);
+  const allProducts = publicProductsData?.products || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -241,23 +202,6 @@ export function HomePage() {
                   </Link>
                 ))}
               </div>
-
-              {isFetchingNextPage && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Card key={i} className="animate-pulse p-0">
-                      <div className="h-48 bg-muted rounded-t-lg" />
-                      <CardContent className="p-4 space-y-2">
-                        <div className="h-4 bg-muted rounded" />
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                        <div className="h-6 bg-muted rounded w-1/2" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              <div ref={loadMoreRef} className="h-10 w-full" />
             </>
           )}
 
