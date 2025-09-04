@@ -212,7 +212,7 @@ export default function OrderDetailsPage(props: {
   );
 
   return (
-    <main className="space-y-6">
+    <main className="space-y-">
       <OrderHeader orderId={orderDetails._id} />
 
       <OrderSummary orderDetails={orderDetails} />

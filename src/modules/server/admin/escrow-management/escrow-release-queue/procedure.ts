@@ -11,7 +11,7 @@ import {
 import mongoose from "mongoose";
 import type { Role } from "@/modules/admin/security/roles";
 import type { EscrowReleaseAggregationResult } from "@/types/escrow-aggregation";
-import { currencyOperations } from "@/lib/utils/naira";
+// import { currencyOperations } from "@/lib/utils/naira";
 
 /**
  * Admin Escrow Release TRPC Router
@@ -230,33 +230,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
         });
 
         /**
-         * Stage 7: Populate product data
-         *
-         * Joins with the products collection to get product information
-         * for all products in the sub-order. This helps admins understand
-         * what items are involved in each escrow release.
-         */
-        basePipeline.push({
-          $lookup: {
-            from: "products",
-            localField: "subOrders.products.Product",
-            foreignField: "_id",
-            as: "productDetails",
-            pipeline: [
-              {
-                $project: {
-                  _id: 1,
-                  name: 1,
-                  images: 1,
-                  price: 1,
-                },
-              },
-            ],
-          },
-        });
-
-        /**
-         * Stage 8: Add computed fields
+         * Stage 7: Add computed fields
          *
          * Transforms the populated arrays into single objects for easier access
          * and calculates the number of days since the return window expired.
@@ -277,7 +251,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
         });
 
         /**
-         * Stage 9: Apply search filter (if provided)
+         * Stage 8: Apply search filter (if provided)
          *
          * Enables text search across customer names, emails, and store information.
          * Uses case-insensitive regex matching for flexible search functionality.
@@ -322,7 +296,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
         }
 
         /**
-         * Stage 10: Sort results
+         * Stage 9: Sort results
          *
          * Orders results by return window date (oldest first) to prioritize
          * the most overdue escrow releases for admin attention.
@@ -375,14 +349,16 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
          */
         const formattedSubOrders = results.map((result) => {
           // Generate readable IDs for better admin UX
-          const orderNumber = `ORD-${(result._id as { toString(): string })
-            .toString()
-            .substring(0, 8)
-            .toUpperCase()}`;
-          const subOrderNumber = `SUB-${result.subOrders._id
-            ?.toString()
-            .substring(0, 8)
-            .toUpperCase()}`;
+          // const orderNumber = `ORD-${(result._id as { toString(): string })
+          //   .toString()
+          //   .substring(0, 8)
+          //   .toUpperCase()}`;
+          // const subOrderNumber = `SUB-${result.subOrders._id
+          //   ?.toString()
+          //   .substring(0, 8)
+          //   .toUpperCase()}`;
+          const orderNumber = (result._id as { toString(): string }).toString();
+          const subOrderNumber = result.subOrders._id?.toString();
 
           /**
            * Format customer information
@@ -410,11 +386,16 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
             logo: result.storeDetails.logoUrl || null,
           };
 
+          // // Calculate escrow amount (sub-order total)
+          // const escrowAmount = currencyOperations.add(
+          //   result.subOrders.totalAmount,
+          //   result.subOrders.shippingMethod?.price ?? 0
+          // );
           // Calculate escrow amount (sub-order total)
-          const escrowAmount = currencyOperations.add(
-            result.subOrders.totalAmount,
-            result.subOrders.shippingMethod?.price ?? 0
-          );
+          const escrowAmount = {
+            totalCost: result.subOrders.totalAmount,
+            shippingCost: result.subOrders.shippingMethod?.price ?? 0,
+          };
 
           /**
            * Format delivery information
@@ -437,19 +418,16 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
           /**
            * Format product information
            *
-           * Maps through the sub-order products and matches them with
-           * the populated product details for complete product information.
+           * Maps through the sub-order products and uses the stored productSnapshot
+           * data for consistent product information at the time of order.
            */
           const products = result.subOrders.products.map((product) => {
-            const productDetail = result.productDetails.find(
-              (p) => p._id.toString() === product.Product.toString()
-            );
             return {
               id: product.Product.toString(),
-              name: productDetail?.name || "Unknown Product",
-              quantity: product.quantity,
-              price: product.price,
-              image: productDetail?.images?.[0] || null,
+              name: product.productSnapshot?.name || "Unknown Product",
+              quantity: product.productSnapshot?.quantity || 0,
+              price: product.productSnapshot.price,
+              image: product.productSnapshot?.images?.[0] || null,
             };
           });
 
@@ -475,9 +453,10 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
          *
          * Provides overview statistics for the admin dashboard to help
          * administrators understand the scope of pending escrow releases.
+         * We don't include shipping costs in the total escrow amount.
          */
         const totalEscrowAmount = formattedSubOrders.reduce(
-          (sum, subOrder) => sum + subOrder.escrowAmount,
+          (sum, subOrder) => sum + subOrder.escrowAmount.totalCost,
           0
         );
 

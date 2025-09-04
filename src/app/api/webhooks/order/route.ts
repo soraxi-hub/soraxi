@@ -86,16 +86,28 @@ export async function POST(request: Request) {
           const base = {
             Product: item.product._id,
             store: item.storeID,
-            quantity: Number(item.quantity),
-            price: Number(item.selectedSize?.price || item.product.price),
+            productSnapshot: {
+              _id: item.product._id,
+              name: item.product.name,
+              images: item.product.images,
+              quantity: Number(item.quantity),
+              price: Number(item.selectedSize?.price || item.product.price),
+            },
+            storeSnapshot: {
+              _id: store.storeID,
+              name: store.storeName,
+            },
           };
 
           if (item.selectedSize) {
             return {
               ...base,
-              selectedSize: {
-                size: item.selectedSize.size,
-                price: Number(item.selectedSize.price),
+              productSnapshot: {
+                ...base.productSnapshot,
+                selectedSize: {
+                  size: item.selectedSize.size,
+                  price: Number(item.selectedSize.price),
+                },
               },
             };
           }
@@ -104,7 +116,8 @@ export async function POST(request: Request) {
         });
 
         const storeTotal = products.reduce(
-          (sum, item) => sum + item.price * item.quantity,
+          (sum, item) =>
+            sum + item.productSnapshot.price * item.productSnapshot.quantity,
           0
         );
 

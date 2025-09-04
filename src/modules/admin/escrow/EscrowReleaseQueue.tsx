@@ -27,6 +27,7 @@ import {
   RefreshCw,
   TrendingUp,
   AlertCircle,
+  Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -38,9 +39,14 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { formatNaira } from "@/lib/utils/naira";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function EscrowReleaseQueue() {
   const trpc = useTRPC();
@@ -320,7 +326,21 @@ export function EscrowReleaseQueue() {
                 <TableHead>Sub-Order</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Store</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <span className="flex items-center gap-x-1">
+                        <Info width={16} height={16} /> Amount
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="w-full">
+                        The total amount held in escrow for this sub-order.
+                        Consist of Total Order Amount and Shipping Cost.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Delivered</TableHead>
                 <TableHead>Actions</TableHead>
@@ -397,7 +417,28 @@ export function EscrowReleaseQueue() {
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         <span className="font-medium">
-                          {formatNaira(subOrder.escrowAmount)}
+                          <Tooltip>
+                            <TooltipTrigger>
+                              {formatNaira(
+                                currencyOperations.add(
+                                  subOrder.escrowAmount.totalCost,
+                                  subOrder.escrowAmount.shippingCost
+                                )
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Total Order Value:{" "}
+                                {formatNaira(subOrder.escrowAmount.totalCost)}
+                              </p>
+                              <p>
+                                Shipping Cost:{" "}
+                                {formatNaira(
+                                  subOrder.escrowAmount.shippingCost
+                                )}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </span>
                       </div>
                     </TableCell>

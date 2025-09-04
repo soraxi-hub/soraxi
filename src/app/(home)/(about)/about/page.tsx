@@ -25,6 +25,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AnimatedCounter } from "@/modules/store/components/animated-counter";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 export default function AboutPage() {
   const stats = [
@@ -39,25 +40,25 @@ export default function AboutPage() {
       icon: Shield,
       title: "Trust & Security",
       description:
-        "We prioritize the safety and security of every transaction with our advanced escrow system and verification processes.",
+        "We are committed to safeguarding every transaction on our platform, giving both buyers and sellers the confidence to trade without fear.",
     },
     {
       icon: Handshake,
       title: "Empowerment",
       description:
-        "We believe in empowering entrepreneurs and small businesses to reach their full potential through our platform.",
+        "Our platform is designed to unlock opportunities for entrepreneurs, helping small and growing businesses succeed in the digital economy.",
     },
     {
       icon: Heart,
       title: "Customer First",
       description:
-        "Every decision we make is centered around creating the best possible experience for our customers and sellers.",
+        "We place people at the center of everything we do, building solutions that serve the real needs of our customers and partners.",
     },
     {
       icon: Lightbulb,
       title: "Innovation",
       description:
-        "We continuously innovate to provide cutting-edge solutions that make online commerce simple and accessible.",
+        "We are constantly improving, introducing smarter tools and features that make online commerce easier, safer, and more rewarding.",
     },
   ];
 
@@ -131,17 +132,16 @@ export default function AboutPage() {
       <section className="relative py-10 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <div className="px-4 mx-auto max-w-6xl">
           <div className="text-center space-y-6">
-            {/* <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
-              About Our Platform
-            </Badge> */}
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-              Empowering Commerce,
-              <span className="text-primary block">Building Communities</span>
+              Redefining Campus Commerce,
+              <span className="text-primary block">Starting with UNICAL</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              We're on a mission to democratize e-commerce in Nigeria by
-              providing entrepreneurs and businesses with the tools, security,
-              and support they need to thrive in the digital economy.
+              At <strong>{siteConfig.name}</strong>, we are building a trusted
+              marketplace that connects students, entrepreneurs, and small
+              businesses within the university community. Our goal is simple:
+              make it easier for students to buy the things they need, and
+              empower vendors with the digital tools to grow their businesses.
             </p>
           </div>
         </div>
@@ -186,43 +186,47 @@ export default function AboutPage() {
                   Our Story
                 </Badge>
                 <h2 className="text-3xl md:text-4xl font-bold">
-                  Built by Entrepreneurs,
-                  <span className="text-primary block">For Entrepreneurs</span>
+                  Born on Campus,
+                  <span className="text-primary block">
+                    Built for the Future
+                  </span>
                 </h2>
               </div>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  Our journey began in 2020 when our founders, frustrated by the
-                  barriers facing small businesses in Nigeria's digital economy,
-                  decided to build a platform that would level the playing
-                  field.
+                  <strong>{siteConfig.name}</strong> started as a simple idea
+                  within the University of Calabar: how can students buy and
+                  sell the things they need without stress, overpricing, or lack
+                  of trust?
                 </p>
                 <p>
-                  We recognized that while e-commerce was booming globally, many
-                  Nigerian entrepreneurs lacked access to the tools, security,
-                  and support systems needed to compete effectively online.
-                  Traditional platforms were either too complex, too expensive,
-                  or didn't understand the unique challenges of the Nigerian
-                  market.
+                  What began as a campus-based marketplace has grown into a
+                  platform designed to empower entrepreneurs, student vendors,
+                  and small businesses. We believe that everyone — from the
+                  first-time seller to the growing brand — deserves access to
+                  digital tools that make commerce easier, safer, and more
+                  rewarding.
                 </p>
                 <p>
-                  Today, we're proud to be one of Nigeria's fastest-growing
-                  e-commerce platforms, serving thousands of businesses and
-                  millions of customers across the country. But our mission
-                  remains the same: to make online commerce accessible, secure,
-                  and profitable for everyone.
+                  While our roots are in UNICAL, our vision extends far beyond
+                  one campus. We are building the foundation for a marketplace
+                  that will scale across Nigeria — connecting communities,
+                  creating opportunities, and making online trade accessible to
+                  all.
                 </p>
               </div>
               <div className="flex items-center gap-4 pt-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-soraxi-green" />
                   <span className="text-sm font-medium">
-                    Verified Secure Platform
+                    Trusted by Students
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-500" />
-                  <span className="text-sm font-medium">4.8/5 User Rating</span>
+                  <span className="text-sm font-medium">
+                    Community-First Approach
+                  </span>
                 </div>
               </div>
             </div>
@@ -242,9 +246,11 @@ export default function AboutPage() {
                     <TrendingUp className="h-5 w-5 text-soraxi-green" />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">Growing Fast</div>
+                    <div className="font-semibold text-sm">
+                      Expanding Vision
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      +150% YoY Growth
+                      From UNICAL → Across Nigeria
                     </div>
                   </div>
                 </div>
@@ -407,6 +413,7 @@ export default function AboutPage() {
       <section className="py-10 px-4">
         <div className="px-4 mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-12">
+            {/* Mission */}
             <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
               <CardContent className="p-8 space-y-6">
                 <div className="space-y-4">
@@ -416,32 +423,37 @@ export default function AboutPage() {
                   <h3 className="text-2xl font-bold">Our Mission</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  To democratize e-commerce in Nigeria by providing
-                  entrepreneurs and businesses with a secure, user-friendly
-                  platform that enables them to reach customers nationwide, grow
-                  their revenue, and build sustainable online businesses.
+                  To revolutionize e-commerce within Nigerian universities by
+                  providing students, entrepreneurs, and small businesses a
+                  secure, user-friendly platform to buy and sell with
+                  confidence. We aim to make commerce within campuses seamless,
+                  affordable, and trustworthy while still being accessible to
+                  the wider Nigerian public.
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-soraxi-green" />
                     <span className="text-sm">
-                      Accessible to all business sizes
+                      Tailored for campus communities
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-soraxi-green" />
-                    <span className="text-sm">Secure payment processing</span>
+                    <span className="text-sm">
+                      Secure and reliable payment processing
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-soraxi-green" />
                     <span className="text-sm">
-                      Comprehensive seller support
+                      Supporting students and small businesses
                     </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Vision */}
             <Card className="border-0 shadow-sm bg-gradient-to-br from-secondary/5 to-secondary/10">
               <CardContent className="p-8 space-y-6">
                 <div className="space-y-4">
@@ -451,25 +463,30 @@ export default function AboutPage() {
                   <h3 className="text-2xl font-bold">Our Vision</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  To become Africa's leading e-commerce ecosystem, where every
-                  entrepreneur has the opportunity to build a thriving online
-                  business, and every customer can access quality products with
-                  confidence and convenience.
+                  To become the leading university-centered e-commerce platform
+                  in Nigeria—where students and entrepreneurs thrive, and where
+                  the public can confidently connect with campus-driven
+                  businesses and innovations.
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Award className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm">Market leadership in Africa</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-yellow-500" />
                     <span className="text-sm">
-                      Innovation in e-commerce technology
+                      Leadership in Nigeria’s university commerce space
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Award className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm">Sustainable economic impact</span>
+                    <span className="text-sm">
+                      Driving innovation in student and youth entrepreneurship
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm">
+                      Creating sustainable economic opportunities for the next
+                      generation
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -483,12 +500,13 @@ export default function AboutPage() {
         <div className="px-4 mx-auto max-w-4xl text-center">
           <div className="space-y-6 dark:text-white">
             <h2 className="text-3xl md:text-4xl font-bold">
-              Ready to Join Our Community?
+              Ready to Be Part of the {siteConfig.name} Community?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Whether you're looking to start your first online store or expand
-              your existing business, we're here to support your journey every
-              step of the way.
+              Whether you’re a student launching your first campus store, a
+              small business owner reaching a wider audience, or a shopper
+              looking for trustworthy deals — {siteConfig.name} is here to make
+              commerce simple and secure.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
               <Link href="/">

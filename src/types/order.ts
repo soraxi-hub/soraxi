@@ -44,13 +44,26 @@ export interface PopulatedStore {
  */
 export interface OrderProduct {
   _id: string;
-  Product: PopulatedProduct;
+  // Product: PopulatedProduct; // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
   store: string;
-  quantity: number;
-  price: number;
-  selectedSize?: {
-    size: string;
+  productSnapshot: {
+    _id: string;
+    name: string;
+    images: string[];
+    quantity: number;
     price: number;
+    category?: string;
+    subCategory?: string;
+    selectedSize?: {
+      size: string;
+      price: number;
+    };
+  };
+  storeSnapshot: {
+    _id: string;
+    name: string;
+    logo?: string;
+    email?: string;
   };
 }
 
@@ -95,6 +108,33 @@ export interface SubOrder {
     refundReason?: string;
   };
   returnWindow?: Date;
+  settlement?: {
+    amount: number;
+    shippingPrice: number;
+    commission: number;
+    appliedPercentageFee: number;
+    appliedFlatFee: number;
+    notes: string;
+  };
+  statusHistory: Array<{
+    status:
+      | "Order Placed"
+      | "Processing"
+      | "Shipped"
+      | "Out for Delivery"
+      | "Delivered"
+      | "Canceled"
+      | "Return Requested"
+      | "Returned"
+      | "Failed Delivery"
+      | "Approved" // For when the return is approved
+      | "Rejected" // For when the return is rejected
+      | "In-Transit" // For when the return is in transit
+      | "Received" // For when the return is received
+      | "Refunded"; // For when the return is refunded
+    timestamp: Date;
+    notes?: string;
+  }>;
 }
 
 export interface PopulatedUser {
@@ -149,10 +189,29 @@ export interface FormattedOrderForAdmin {
   };
   items: Array<{
     id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    image?: string;
+    productSnapshot: {
+      _id: string;
+      name: string;
+      images: string[];
+      quantity: number;
+      price: number;
+      category?: string;
+      subCategory?: string;
+      selectedSize?: {
+        size: string;
+        price: number;
+      };
+    };
+    storeSnapshot: {
+      _id: string;
+      name: string;
+      logo?: string;
+      email?: string;
+    };
+    // name: string;
+    // price: number;
+    // quantity: number;
+    // image?: string;
   }>;
   // status:
   //   | "Order Placed"
@@ -203,11 +262,24 @@ export interface RawOrderDocument {
       _id: mongoose.Types.ObjectId;
       Product: PopulatedProduct | mongoose.Types.ObjectId;
       store: mongoose.Types.ObjectId;
-      quantity: number;
-      price: number;
-      selectedSize?: {
-        size: string;
+      productSnapshot: {
+        _id: mongoose.Schema.Types.ObjectId;
+        name: string;
+        images: string[];
+        quantity: number;
         price: number;
+        category?: string;
+        subCategory?: string;
+        selectedSize?: {
+          size: string;
+          price: number;
+        };
+      };
+      storeSnapshot: {
+        _id: mongoose.Schema.Types.ObjectId;
+        name: string;
+        logo?: string;
+        email?: string;
       };
     }>;
     totalAmount: number;
@@ -232,30 +304,70 @@ export interface RawOrderDocument {
       refundReason?: string;
     };
     returnWindow?: Date;
+    settlement?: {
+      amount: number;
+      shippingPrice: number;
+      commission: number;
+      appliedPercentageFee: number;
+      appliedFlatFee: number;
+      notes: string;
+    };
+    statusHistory: Array<{
+      status:
+        | "Order Placed"
+        | "Processing"
+        | "Shipped"
+        | "Out for Delivery"
+        | "Delivered"
+        | "Canceled"
+        | "Return Requested"
+        | "Returned"
+        | "Failed Delivery"
+        | "Approved" // For when the return is approved
+        | "Rejected" // For when the return is rejected
+        | "In-Transit" // For when the return is in transit
+        | "Received" // For when the return is received
+        | "Refunded"; // For when the return is refunded
+      timestamp: Date;
+      notes?: string;
+    }>;
   }>;
 }
 
 // Zod schema for a product within a sub-order after population and formatting
 export const FormattedOrderProductSchema = z.object({
   _id: z.string(),
-  Product: z.object({
+  // Product: z.object({
+  //   _id: z.string(),
+  //   name: z.string(),
+  //   images: z.array(z.string()),
+  //   price: z.number(), // Assuming this is already converted to Naira (koboToNaira)
+  //   productType: z.string(),
+  //   category: z.array(z.string()),
+  //   subCategory: z.array(z.string()),
+  // }),
+  // store: z.string(), // This is the store ObjectId as string, but it's populated in subOrder.store
+  productSnapshot: z.object({
     _id: z.string(),
     name: z.string(),
     images: z.array(z.string()),
-    price: z.number(), // Assuming this is already converted to Naira (koboToNaira)
-    productType: z.string(),
-    category: z.array(z.string()),
-    subCategory: z.array(z.string()),
+    quantity: z.number(),
+    price: z.number(),
+    category: z.array(z.string()).optional(),
+    subCategory: z.array(z.string()).optional(),
+    selectedSize: z
+      .object({
+        size: z.string(),
+        price: z.number(),
+      })
+      .optional(),
   }),
-  store: z.string(), // This is the store ObjectId as string, but it's populated in subOrder.store
-  quantity: z.number(),
-  price: z.number(), // Price per item, assuming converted to Naira
-  selectedSize: z
-    .object({
-      size: z.string(),
-      price: z.number(),
-    })
-    .optional(),
+  storeSnapshot: z.object({
+    _id: z.string(),
+    name: z.string(),
+    logo: z.string().optional(),
+    email: z.string().optional(),
+  }),
 });
 
 // Zod schema for a populated store within a sub-order
@@ -311,6 +423,28 @@ export const FormattedSubOrderSchema = z.object({
     refundReason: z.string().optional(),
   }),
   returnWindow: z.string().datetime().optional(),
+  statusHistory: z.array(
+    z.object({
+      status: z.enum([
+        "Order Placed",
+        "Processing",
+        "Shipped",
+        "Out for Delivery",
+        "Delivered",
+        "Canceled",
+        "Return Requested",
+        "Returned",
+        "Failed Delivery",
+        "Approved", // For when the return is approved
+        "Rejected", // For when the return is rejected
+        "In-Transit", // For when the return is in transit
+        "Received", // For when the return is received
+        "Refunded", // For when the return is refunded
+      ]),
+      timestamp: z.string().datetime(),
+      notes: z.string().optional(),
+    })
+  ),
 });
 
 // Zod schema for a populated user

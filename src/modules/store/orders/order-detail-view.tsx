@@ -12,6 +12,7 @@ import {
   Mail,
   Calendar,
   AlertCircle,
+  InfoIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,11 +30,17 @@ import {
 // import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { formatNaira } from "@/lib/utils/naira";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { isPopulatedUser } from "@/lib/utils/order-formatter";
 import { getStatusBadge } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 /**
  * Order Detail View Component Props
@@ -239,7 +246,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         {/* Main Order Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* Order Status and Actions */}
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -250,7 +257,11 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               {order.subOrders.map((subOrder, index) => {
                 const statusConfig = getStatusBadge(subOrder.deliveryStatus);
                 const StatusIcon = statusConfig.icon;
-
+                const returnWindowExpiration = subOrder.returnWindow
+                  ? new Date(subOrder.returnWindow)
+                  : null;
+                const returnWindowActive =
+                  returnWindowExpiration && returnWindowExpiration > new Date();
                 return (
                   <div key={index} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
@@ -339,8 +350,55 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                               {subOrder.escrow.released ? "Yes" : "No"}
                             </span>
                           </div>
+                          {subOrder.returnWindow && (
+                            <div>
+                              <span className="text-muted-foreground">
+                                <Tooltip>
+                                  <TooltipTrigger className="inline-flex items-center">
+                                    <InfoIcon
+                                      width={12}
+                                      height={12}
+                                      className="mr-1"
+                                    />
+                                    Return Window:{" "}
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">
+                                      Escrow would be released once the return
+                                      window expires on{" "}
+                                      {format(
+                                        new Date(subOrder.returnWindow),
+                                        "MMM dd, yyyy"
+                                      )}
+                                      .
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </span>
+                              <span className="ml-2">
+                                {returnWindowActive ? "Active" : "Expired"}
+                              </span>
+                            </div>
+                          )}
+                          {subOrder.returnWindow && (
+                            <div>
+                              <span className="text-muted-foreground">
+                                {returnWindowActive
+                                  ? "Expires on:"
+                                  : "Expired on:"}
+                              </span>
+                              <span className="ml-2">
+                                {returnWindowExpiration
+                                  ? format(
+                                      new Date(subOrder.returnWindow),
+                                      "MMM dd, yyyy"
+                                    )
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          )}
                           {subOrder.escrow.releasedAt && (
-                            <div className="col-span-2">
+                            <div className="">
                               <span className="text-muted-foreground">
                                 Released At:
                               </span>
@@ -349,6 +407,66 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                                   new Date(subOrder.escrow.releasedAt),
                                   "MMM dd, yyyy"
                                 )}
+                              </span>
+                            </div>
+                          )}
+                          {subOrder.settlement && (
+                            <div className="">
+                              <span className="text-muted-foreground">
+                                Settlement Amount:
+                              </span>
+                              <span className="ml-2">
+                                {formatNaira(subOrder.settlement.amount)}
+                              </span>
+                            </div>
+                          )}
+                          {subOrder.settlement && (
+                            <div className="">
+                              <span className="text-muted-foreground">
+                                Shipping Cost:
+                              </span>
+                              <span className="ml-2">
+                                {formatNaira(subOrder.settlement.shippingPrice)}
+                              </span>
+                            </div>
+                          )}
+                          {subOrder.settlement && (
+                            <div className="">
+                              <span className="text-muted-foreground">
+                                <Tooltip>
+                                  <TooltipTrigger className="inline-flex items-center">
+                                    <InfoIcon
+                                      width={12}
+                                      height={12}
+                                      className="mr-1"
+                                    />
+                                    Total:{" "}
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">
+                                      Total = Settlement Amount - Shipping Cost
+                                      .
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </span>
+                              <span className="ml-2">
+                                {formatNaira(
+                                  currencyOperations.add(
+                                    subOrder.settlement.amount,
+                                    subOrder.settlement.shippingPrice
+                                  )
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {subOrder.settlement && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">
+                                Notes:
+                              </span>
+                              <span className="ml-2">
+                                {subOrder.settlement.notes}
                               </span>
                             </div>
                           )}
@@ -362,7 +480,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Products in Order */}
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle>Order Items</CardTitle>
             </CardHeader>
@@ -387,10 +505,10 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                         <div className="relative w-16 h-16 flex-shrink-0">
                           <Image
                             src={
-                              item.Product.images[0] ||
+                              item.productSnapshot.images[0] ||
                               "/placeholder.svg?height=64&width=64"
                             }
-                            alt={item.Product.name}
+                            alt={item.productSnapshot.name}
                             fill
                             className="object-cover rounded-md"
                           />
@@ -398,20 +516,27 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium truncate">
-                            {item.Product.name}
+                            {item.productSnapshot.name}
                           </h4>
                           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                            <span>Qty: {item.quantity}</span>
-                            {item.selectedSize && (
-                              <span>Size: {item.selectedSize.size}</span>
+                            <span>Qty: {item.productSnapshot.quantity}</span>
+                            {item.productSnapshot.selectedSize && (
+                              <span>
+                                Size: {item.productSnapshot.selectedSize.size}
+                              </span>
                             )}
-                            <span>Price: {formatNaira(item.price)}</span>
+                            <span>
+                              Price: {formatNaira(item.productSnapshot.price)}
+                            </span>
                           </div>
                         </div>
 
                         <div className="text-right">
                           <p className="font-medium">
-                            {formatNaira(item.price * item.quantity)}
+                            {formatNaira(
+                              item.productSnapshot.price *
+                                item.productSnapshot.quantity
+                            )}
                           </p>
                         </div>
                       </div>
@@ -426,7 +551,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         {/* Sidebar Information */}
         <div className="space-y-6">
           {/* Customer Information */}
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -460,7 +585,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Shipping Information */}
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -504,7 +629,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Payment Information */}
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -515,7 +640,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Method:</span>
-                  <span className="font-medium">{order.paymentMethod}</span>
+                  <span className="font-medium">
+                    {order.paymentMethod?.toUpperCase()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Status:</span>
@@ -541,7 +668,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Order Timeline */}
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
@@ -550,30 +677,45 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <div>
-                    <p className="font-medium">Order Placed</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(
-                        new Date(order.createdAt),
-                        "MMM dd, yyyy 'at' h:mm a"
+                <ScrollArea className="h-48 pr-2">
+                  {order.subOrders.map((subOrder, index) => (
+                    <div key={index} className="flex flex-col gap-3">
+                      {subOrder.statusHistory &&
+                      subOrder.statusHistory.length > 0 ? (
+                        subOrder.statusHistory.map(
+                          (statusItem, statusIndex) => (
+                            <div
+                              key={statusIndex}
+                              className="flex items-center gap-3"
+                            >
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                              <div>
+                                <p className="font-medium">
+                                  {statusItem.status}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(
+                                    new Date(statusItem.timestamp),
+                                    "MMM dd, yyyy 'at' h:mm a"
+                                  )}
+                                </p>
+                                {statusItem.notes && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Notes: {statusItem.notes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        )
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No status history available
+                        </p>
                       )}
-                    </p>
-                  </div>
-                </div>
-
-                {order.subOrders.map((subOrder, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-muted rounded-full"></div>
-                    <div>
-                      <p className="font-medium">{subOrder.deliveryStatus}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Sub-order {index + 1}
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </ScrollArea>
               </div>
             </CardContent>
           </Card>

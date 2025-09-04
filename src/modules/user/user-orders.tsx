@@ -105,21 +105,21 @@ export function UserOrders({ userId }: { userId: string }) {
                             <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border border-border">
                               <Image
                                 src={
-                                  product.Product.images?.[0] ??
+                                  product.productSnapshot.images?.[0] ??
                                   "/placeholder.svg"
                                 }
-                                alt={product.Product.name}
+                                alt={product.productSnapshot.name}
                                 fill
                                 className="object-cover"
                               />
                             </div>
                             <div className="flex-1 space-y-1">
                               <p className="font-medium text-foreground text-base">
-                                {product.Product.name}
+                                {product.productSnapshot.name}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                Qty: {product.quantity} &bull;{" "}
-                                {formatNaira(product.price)}
+                                Qty: {product.productSnapshot.quantity} &bull;{" "}
+                                {formatNaira(product.productSnapshot.price)}
                               </p>
                             </div>
                           </div>

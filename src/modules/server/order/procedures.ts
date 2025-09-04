@@ -63,11 +63,11 @@ export const orderRouter = createTRPCRouter({
          * ensuring all necessary data is available for formatting.
          */
         const rawOrders = await Order.find({ user: input.userId })
-          .populate({
-            path: "subOrders.products.Product",
-            model: "Product",
-            select: "_id name images price productType storeID",
-          })
+          // .populate({
+          //   path: "subOrders.products.Product",
+          //   model: "Product",
+          //   select: "_id name images price productType storeID",
+          // }) // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
           .populate({
             path: "subOrders.store",
             model: "Store",

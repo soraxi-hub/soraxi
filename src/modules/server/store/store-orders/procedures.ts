@@ -42,11 +42,11 @@ export const storeOrdersRouter = createTRPCRouter({
           model: "User",
           select: "_id firstName lastName email phoneNumber",
         })
-        .populate({
-          path: "subOrders.products.Product",
-          model: "Product",
-          select: "_id name images price productType storeID",
-        })
+        // .populate({
+        //   path: "subOrders.products.Product",
+        //   model: "Product",
+        //   select: "_id name images price productType storeID",
+        // })
         .populate({
           path: "subOrders.store",
           model: "Store",
@@ -98,7 +98,7 @@ export const storeOrdersRouter = createTRPCRouter({
 
       const formattedOrder = formatStoreOrderDocument(filteredOrder, store.id);
 
-      console.log(`Successfully retrieved order ${orderId}`);
+      // console.log(`Successfully retrieved order ${orderId}`);
 
       return {
         success: true,

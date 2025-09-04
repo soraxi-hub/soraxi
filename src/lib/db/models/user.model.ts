@@ -66,6 +66,15 @@ const UserSchema = new Schema<IUser>(
       required: [true, "Phone number is required"],
       unique: true,
       trim: true,
+      validate: {
+        validator: (phone: string) => {
+          // Support international format (+234...) and local format (0...)
+          const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
+          return phoneRegex.test(phone);
+        },
+        message:
+          "Phone number must be a valid Nigerian number (e.g., +2348012345678 or 08012345678)",
+      },
     },
     address: {
       type: String,
@@ -145,7 +154,7 @@ export async function getUserModel(): Promise<Model<IUser>> {
  */
 export async function getUserByEmail(
   email: string,
-  lean: boolean = false
+  lean = false
 ): Promise<IUser | null> {
   await connectToDatabase();
   const User = await getUserModel();
@@ -161,7 +170,7 @@ export async function getUserByEmail(
  */
 export async function getUserById(
   id: string,
-  lean: boolean = false
+  lean = false
 ): Promise<IUser | null> {
   await connectToDatabase();
   const User = await getUserModel();

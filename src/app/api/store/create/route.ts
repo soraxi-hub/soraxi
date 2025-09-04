@@ -59,6 +59,17 @@ export async function POST(request: NextRequest) {
 
     // Get store model
     const Store = await getStoreModel();
+    const User = await getUserModel();
+
+    // Check if user already has a store
+    const existingUserStore = await User.findOne({
+      _id: userData.id,
+      "stores.storeId": { $exists: true },
+    });
+
+    if (existingUserStore) {
+      throw new AppError("Cannot create multiple stores", 400);
+    }
 
     // Check if store email already exists
     const existingStoreEmail = await Store.findOne({
@@ -133,7 +144,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the user's stores array
-    const User = await getUserModel();
     await User.findByIdAndUpdate(userData.id, {
       $push: { stores: { storeId: savedStore._id } },
     });
@@ -159,27 +169,6 @@ export async function POST(request: NextRequest) {
     console.error("Error creating store:", error);
 
     return handleApiError(error);
-
-    // Handle MongoDB duplicate key errors
-    // if (error instanceof Error && error.message.includes("duplicate key")) {
-    //   if (error.message.includes("storeEmail")) {
-    //     return NextResponse.json(
-    //       { error: "Store email already exists" },
-    //       { status: 400 }
-    //     );
-    //   }
-    //   if (error.message.includes("uniqueId")) {
-    //     return NextResponse.json(
-    //       { error: "Store name already exists" },
-    //       { status: 400 }
-    //     );
-    //   }
-    // }
-
-    // return NextResponse.json(
-    //   { error: "Internal server error. Please try again." },
-    //   { status: 500 }
-    // );
   }
 }
 

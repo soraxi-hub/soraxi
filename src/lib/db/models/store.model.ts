@@ -273,6 +273,19 @@ const StoreSchema = new Schema<IStore>(
     wallet: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
+      validate: {
+        validator: async (walletId: mongoose.Schema.Types.ObjectId) => {
+          if (!walletId) return true; // Allow null/undefined wallets
+
+          // Check if wallet exists in database
+          const Wallet = mongoose.models.Wallet;
+          if (!Wallet) return true; // Skip validation if Wallet model not available
+
+          const wallet = await Wallet.findById(walletId);
+          return !!wallet;
+        },
+        message: "Referenced wallet does not exist",
+      },
     },
 
     // ✅ Shipping
@@ -319,6 +332,20 @@ const StoreSchema = new Schema<IStore>(
   },
   { timestamps: true }
 );
+
+StoreSchema.pre("save", function (next) {
+  if (this.shippingMethods && this.shippingMethods.length > 0) {
+    const hasActiveShipping = this.shippingMethods.some(
+      (method) => method.isActive !== false
+    );
+    if (!hasActiveShipping) {
+      return next(
+        new Error("Store must have at least one active shipping method")
+      );
+    }
+  }
+  next();
+});
 
 /**
  * Get the Store model

@@ -131,6 +131,7 @@ export default function StoreWalletPage({ storeId }: { storeId: string }) {
             availableBalance={walletBalance}
             onWithdrawalSuccessAction={handleWithdrawalSuccess}
             onCloseAction={() => setShowWithdrawal(false)}
+            storeId={storeId}
           />
         </DialogContent>
       </Dialog>

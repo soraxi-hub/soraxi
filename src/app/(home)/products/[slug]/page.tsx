@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProductDetailPage } from "@/modules/products/product-detail/ProductDetailPage";
 import { caller } from "@/trpc/server";
+import { siteConfig } from "@/config/site";
 
 interface ProductPageProps {
   params: Promise<{
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: ProductPageProps) {
   const { product } = await caller.home.getPublicProductBySlug({ slug });
 
   return {
-    title: `${product.name} | Your Store`,
+    title: `${product.name} | ${siteConfig.siteTitle}`,
     description:
       product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
       `Buy ${product.name} online`,

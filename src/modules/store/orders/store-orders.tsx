@@ -253,7 +253,7 @@ export default function StoreOrdersManagement({
       setTotalPages(data.pagination.totalPages);
       setTotalCount(data.pagination.totalCount);
     }
-  }, []);
+  }, [orders]);
 
   // ==================== Effect Hooks ====================
 
@@ -440,7 +440,7 @@ export default function StoreOrdersManagement({
           </div>
         </div>
 
-        <Card>
+        <Card className="bg-muted/50">
           <CardContent className="p-6">
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -505,7 +505,7 @@ export default function StoreOrdersManagement({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Desktop Filters Sidebar */}
         <div className="hidden md:block">
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Filter className="h-5 w-5" />
@@ -518,7 +518,7 @@ export default function StoreOrdersManagement({
 
         {/* Orders Table */}
         <div className="lg:col-span-3">
-          <Card>
+          <Card className="bg-muted/50">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>
@@ -623,8 +623,8 @@ export default function StoreOrdersManagement({
                                             key={productIndex}
                                             className="truncate max-w-[200px]"
                                           >
-                                            {product.Product.name} (×
-                                            {product.quantity})
+                                            {product.productSnapshot.name} (×
+                                            {product.productSnapshot.quantity})
                                           </p>
                                         ))}
                                       {subOrder.products.length > 2 && (

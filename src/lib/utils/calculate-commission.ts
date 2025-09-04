@@ -3,53 +3,60 @@ import { currencyOperations } from "./naira";
 /**
  * Calculates transaction commission and settlement amount based on Soraxi's fee structure.
  *
- * This function implements the following fee structure:
- * - Base fee: 10% of transaction amount
- * - Flat fee: ₦200 (20000 kobo) for transactions ≥ ₦2500 (250000 kobo)
- * - Maximum fee cap: ₦3000 (300000 kobo)
+ * Fee structure (all amounts are in Naira, converted to Kobo internally):
+ * - ₦1 – ₦2,499 → 5% of transaction amount + ₦100 flat fee
+ * - ₦2,500 – ₦4,999 → 5% of transaction amount only
+ * - ₦5,000+ → 5% of transaction amount + ₦200 flat fee
  *
- * All monetary values are in kobo (1 Naira = 100 kobo) to avoid floating-point errors.
+ * Notes:
+ * - All monetary values are handled in Kobo (1 Naira = 100 Kobo)
+ *   to avoid floating-point precision errors.
  *
- * @param amountInKobo - The transaction amount in kobo
- * @returns An object containing the commission amount and settlement amount in kobo
+ * @param amountInKobo - The transaction amount in Kobo
+ * @returns An object containing the commission amount and settlement amount in Kobo
  */
 export const calculateCommission = (amountInKobo: number) => {
-  // Fee constants (converted to kobo)
-  const FEE_PERCENTAGE = 10 / 100;
-  const FLAT_FEE_KOBO = 20000; // ₦200 in kobo
-  //   const FEE_CAP_KOBO = 300000; // ₦3000 in kobo
-  const FLAT_FEE_THRESHOLD_KOBO = 250000; // ₦2500 in kobo
+  // Convert Naira thresholds and flat fees into Kobo for accuracy
+  const LOWER_THRESHOLD_KOBO = 250000; // ₦2,500 in Kobo
+  const UPPER_THRESHOLD_KOBO = 500000; // ₦5,000 in Kobo
+  const FLAT_FEE_LOW_KOBO = 10000; // ₦100 in Kobo
+  const FLAT_FEE_HIGH_KOBO = 20000; // ₦200 in Kobo
 
-  // Calculate the percentage-based fee component
+  // Commission percentage (5%)
+  const FEE_PERCENTAGE = 5;
+
+  // Calculate the percentage-based fee
   const percentageFee = currencyOperations.percentage(
     amountInKobo,
     FEE_PERCENTAGE
   );
 
-  // Determine if the flat fee should be applied
-  // The flat fee is waived for transactions less than ₦2500 (250000 kobo)
-  const shouldApplyFlatFee = amountInKobo >= FLAT_FEE_THRESHOLD_KOBO;
+  // Initialize commission with percentage fee
+  let commission = percentageFee;
+  let flatFeeApplied = 0;
 
-  // Calculate the total transaction fee (percentage fee + flat fee if applicable)
-  const transactionFee = shouldApplyFlatFee
-    ? currencyOperations.add(percentageFee, FLAT_FEE_KOBO)
-    : percentageFee;
+  // Apply Soraxi’s tiered flat fee rules based on thresholds
+  if (amountInKobo < LOWER_THRESHOLD_KOBO) {
+    // Case 1: Transactions below ₦2,500 → 5% + ₦100 flat fee
+    commission = currencyOperations.add(percentageFee, FLAT_FEE_LOW_KOBO);
+    flatFeeApplied = FLAT_FEE_LOW_KOBO;
+  } else if (amountInKobo >= UPPER_THRESHOLD_KOBO) {
+    // Case 3: Transactions ₦5,000 and above → 5% + ₦200 flat fee
+    commission = currencyOperations.add(percentageFee, FLAT_FEE_HIGH_KOBO);
+    flatFeeApplied = FLAT_FEE_HIGH_KOBO;
+  }
+  // Case 2: Between ₦2,500 and ₦4,999 → 5% only (no flat fee)
 
-  // Apply the fee cap - commission cannot exceed ₦3000 (300000 kobo)
-  //   const commission = Math.min(transactionFee, FEE_CAP_KOBO);
-  const commission = transactionFee;
-
-  // Calculate the final settlement amount (original amount minus commission)
+  // Calculate the settlement amount (vendor receives this after commission deduction)
   const settleAmount = amountInKobo - commission;
 
+  // Return detailed breakdown for transparency
   return {
-    commission,
-    settleAmount,
-    // Include additional details for transparency and debugging
+    commission, // Total commission deducted in Kobo
+    settleAmount, // Final settlement to vendor in Kobo
     details: {
-      percentageFee,
-      flatFeeApplied: shouldApplyFlatFee ? FLAT_FEE_KOBO : 0,
-      //   feeCapApplied: transactionFee > FEE_CAP_KOBO,
+      percentageFee, // The raw 5% fee portion
+      flatFeeApplied, // The flat fee applied (0, ₦100, or ₦200 in Kobo)
     },
   };
 };

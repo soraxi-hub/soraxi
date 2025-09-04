@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -29,6 +28,7 @@ import type { AppRouter } from "@/trpc/routers/_app";
 import { cn } from "@/lib/utils";
 import { formatNaira } from "@/lib/utils/naira";
 import { toast } from "sonner";
+import Link from "next/link";
 
 /**
  * Type definitions for the component
@@ -42,6 +42,7 @@ interface WithdrawalRequestProps {
   availableBalance: number;
   onWithdrawalSuccessAction: () => void;
   onCloseAction: () => void;
+  storeId: string;
 }
 
 interface WithdrawalForm {
@@ -64,6 +65,7 @@ export function WithdrawalRequest({
   availableBalance,
   onWithdrawalSuccessAction,
   onCloseAction,
+  storeId,
 }: WithdrawalRequestProps) {
   const trpc = useTRPC();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -278,8 +280,10 @@ export function WithdrawalRequest({
                   <p className="text-sm text-muted-foreground">
                     No verified bank accounts found
                   </p>
-                  <Button variant="link" size="sm" className="mt-2">
-                    Add Bank Account
+                  <Button variant="link" size="sm" className="mt-2" asChild>
+                    <Link href={`/store/${storeId}/payment-setup`}>
+                      Add Bank Account
+                    </Link>
                   </Button>
                 </div>
               ) : (
@@ -312,7 +316,7 @@ export function WithdrawalRequest({
             </div>
 
             {/* Optional Description */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
                 id="description"
@@ -323,7 +327,7 @@ export function WithdrawalRequest({
                 }
                 rows={3}
               />
-            </div>
+            </div> */}
 
             {/* Fee Breakdown */}
             {fees && amountInKobo >= MINIMUM_WITHDRAWAL && (
@@ -367,7 +371,7 @@ export function WithdrawalRequest({
             <div className="flex space-x-3">
               <Button
                 type="submit"
-                className="flex-1"
+                className="flex-1 bg-soraxi-green text-white hover:bg-soraxi-green-hover"
                 disabled={
                   loading || bankAccounts.length === 0 || isLoadingAccounts
                 }
@@ -444,9 +448,10 @@ export function WithdrawalRequest({
               {/* Processing Notice */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> Withdrawal processing typically takes
-                  1-3 business days. You will receive a confirmation email once
-                  the transfer is completed.
+                  <strong>Note:</strong> Withdrawals are processed weekly
+                  between Friday and Sunday after a request is made. You will
+                  receive a confirmation email once your payout has been
+                  completed.
                 </p>
               </div>
             </div>
@@ -460,7 +465,11 @@ export function WithdrawalRequest({
             >
               Cancel
             </Button>
-            <Button onClick={processWithdrawal} disabled={loading}>
+            <Button
+              onClick={processWithdrawal}
+              className="bg-soraxi-green text-white hover:bg-soraxi-green-hover"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <Clock className="w-4 h-4 mr-2 animate-spin" />

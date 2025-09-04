@@ -14,7 +14,8 @@ export function ErrorFallback({
   resetErrorBoundary,
 }: ErrorFallbackProps) {
   // Prepare email link with pre-filled error details
-  const supportEmail = "mishaeljoe55@gmail.com";
+  const supportEmail =
+    process.env.NEXT_PUBLIC_SORAXI_SUPPORT_EMAIL || "mishaeljoe55@gmail.com";
   const mailtoLink = `mailto:${supportEmail}`;
 
   return (

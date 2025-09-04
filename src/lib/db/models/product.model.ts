@@ -172,13 +172,117 @@ export async function getProductModel(): Promise<Model<IProduct>> {
   );
 }
 
+// export async function getProducts(
+//   options: {
+//     visibleOnly?: boolean;
+//     category?: string;
+//     subCategory?: string;
+//     limit?: number;
+//     skip?: number;
+//     minRating?: number;
+//     search?: string | null;
+//     verified?: boolean;
+//     sort?: "newest" | "price-asc" | "price-desc" | "rating-desc";
+//     priceMin?: number;
+//     priceMax?: number;
+//     ratings?: number[];
+//     cursor?: string;
+//   } = {}
+// ): Promise<IProduct[]> {
+//   await connectToDatabase();
+//   const Product = await getProductModel();
+
+//   const query: { [key: string]: any } = {};
+
+//   if (options.visibleOnly) query.isVisible = true;
+//   if (options.category) query.category = options.category;
+//   if (options.subCategory) {
+//     query.subCategory = {
+//       $elemMatch: { $regex: `^${options.subCategory}$`, $options: "i" },
+//     };
+//   }
+//   if (options.minRating !== undefined)
+//     query.rating = { $gte: options.minRating };
+//   if (options.verified === true) query.isVerifiedProduct = true;
+//   if (options.search) query.$text = { $search: options.search };
+//   if (options.priceMin !== undefined || options.priceMax !== undefined) {
+//     query.price = {};
+//     if (options.priceMin !== undefined)
+//       query.price.$gte = nairaToKobo(options.priceMin);
+//     if (options.priceMax !== undefined)
+//       query.price.$lte = nairaToKobo(options.priceMax);
+//   }
+//   if (options.ratings && options.ratings.length > 0) {
+//     query.rating = { $in: options.ratings.map((r) => Number(r)) };
+//   }
+
+//   // Build sort logic
+//   let sortQuery: { [key: string]: 1 | -1 } = { createdAt: -1 }; // default sort: newest
+//   switch (options.sort) {
+//     case "price-asc":
+//       sortQuery = { price: 1 };
+//       break;
+//     case "price-desc":
+//       sortQuery = { price: -1 };
+//       break;
+//     case "rating-desc":
+//       sortQuery = { rating: -1 };
+//       break;
+//     // You can add more sort cases if needed
+//   }
+
+//   let productQuery = Product.find<IProduct>(query).sort(sortQuery);
+
+//   if (options.skip !== undefined)
+//     productQuery = productQuery.skip(options.skip);
+//   if (options.limit !== undefined)
+//     productQuery = productQuery.limit(options.limit);
+
+//   return productQuery;
+// }
+
+/**
+ * Fetch products with optional filters and cursor-based pagination.
+ *
+ * @function getProducts
+ * @async
+ *
+ * @param {Object} [options={}] - Options to filter and paginate products.
+ * @param {boolean} [options.visibleOnly] - If true, only return products marked as visible.
+ * @param {string} [options.category] - Filter by category name.
+ * @param {string} [options.subCategory] - Filter by subCategory name.
+ * @param {number} [options.limit] - Number of products to fetch (default is 20).
+ * @param {string} [options.cursor] - The last seen product's `_id` (used for cursor-based pagination).
+ * @param {number} [options.minRating] - Minimum rating threshold for filtering.
+ * @param {string|null} [options.search] - Full-text search query.
+ * @param {boolean} [options.verified] - If true, only verified products are returned.
+ * @param {"newest"|"price-asc"|"price-desc"|"rating-desc"} [options.sort="newest"] - Sorting option.
+ * @param {number} [options.priceMin] - Minimum product price.
+ * @param {number} [options.priceMax] - Maximum product price.
+ * @param {number[]} [options.ratings] - Array of specific rating values to filter by.
+ *
+ * @returns {Promise<IProduct[]>} A promise resolving to an array of products matching filters and pagination.
+ *
+ * @description
+ * Supports infinite scroll via **cursor-based pagination**.
+ * - Sort field depends on `options.sort` (e.g., `createdAt`, `price`, `rating`).
+ * - Cursor is applied using `$lt` or `$gt` depending on the sort order.
+ *
+ * @example
+ * // Fetch 10 newest products
+ * const products = await getProducts({ limit: 10, sort: "newest" });
+ *
+ * @example
+ * // Fetch next page of products using cursor
+ * const moreProducts = await getProducts({ limit: 10, cursor: lastProductId });
+ */
 export async function getProducts(
   options: {
     visibleOnly?: boolean;
     category?: string;
     subCategory?: string;
     limit?: number;
-    skip?: number;
+    cursor?: string; // now supports cursor-based pagination
     minRating?: number;
     search?: string | null;
     verified?: boolean;
@@ -215,27 +319,54 @@ export async function getProducts(
     query.rating = { $in: options.ratings.map((r) => Number(r)) };
   }
 
-  // Build sort logic
-  let sortQuery: { [key: string]: 1 | -1 } = { createdAt: -1 }; // default sort: newest
+  // ---------------------------
+  // Sorting logic + cursor filter
+  // ---------------------------
+  let sortField: string = "createdAt";
+  let sortOrder: 1 | -1 = -1; // default newest (descending)
+
   switch (options.sort) {
     case "price-asc":
-      sortQuery = { price: 1 };
+      sortField = "price";
+      sortOrder = 1;
       break;
     case "price-desc":
-      sortQuery = { price: -1 };
+      sortField = "price";
+      sortOrder = -1;
       break;
     case "rating-desc":
-      sortQuery = { rating: -1 };
+      sortField = "rating";
+      sortOrder = -1;
       break;
-    // You can add more sort cases if needed
+    default:
+      sortField = "createdAt";
+      sortOrder = -1;
+      break;
   }
 
-  let productQuery = Product.find<IProduct>(query).sort(sortQuery);
+  // Apply cursor-based pagination
+  if (options.cursor) {
+    const cursorProduct = await Product.findById(options.cursor).lean();
+    if (cursorProduct) {
+      // Apply range filter depending on sort order
+      if (sortOrder === -1) {
+        query[sortField] = {
+          ...(query[sortField] || {}),
+          $lt: (cursorProduct as Record<string, any>)[sortField],
+        };
+      } else {
+        query[sortField] = {
+          ...(query[sortField] || {}),
+          $gt: (cursorProduct as Record<string, any>)[sortField],
+        };
+      }
+    }
+  }
 
-  if (options.skip !== undefined)
-    productQuery = productQuery.skip(options.skip);
-  if (options.limit !== undefined)
-    productQuery = productQuery.limit(options.limit);
+  // Build query
+  const productQuery = Product.find<IProduct>(query)
+    .sort({ [sortField]: sortOrder })
+    .limit(options.limit ?? 20);
 
   return productQuery;
 }

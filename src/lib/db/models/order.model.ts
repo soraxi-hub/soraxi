@@ -2,17 +2,30 @@ import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 
 /**
- * Interface representing a product in an order.
+ * Interface representing a product snapshot in an order.
  * All monetary values are stored in kobo to avoid floating-point errors.
  */
 export interface IOrderProduct {
   Product: mongoose.Schema.Types.ObjectId;
   store: mongoose.Schema.Types.ObjectId;
-  quantity: number;
-  price: number;
-  selectedSize?: {
-    size: string;
+  productSnapshot: {
+    _id: mongoose.Schema.Types.ObjectId;
+    name: string;
+    images: string[];
+    quantity: number;
     price: number;
+    category?: string;
+    subCategory?: string;
+    selectedSize?: {
+      size: string;
+      price: number;
+    };
+  };
+  storeSnapshot: {
+    _id: mongoose.Schema.Types.ObjectId;
+    name: string;
+    logo?: string;
+    email?: string;
   };
 }
 
@@ -50,6 +63,10 @@ export interface ISubOrder {
   settlement?: {
     amount: number; // Amount after commission has been deducted
     shippingPrice: number; // Gotten from the selected Shipping method and added to the amount to reflect the total settlement for the store.
+    commission: number; // Total commission amount deducted
+    appliedPercentageFee: number;
+    appliedFlatFee: number;
+    notes: string;
   };
   escrow: {
     held: boolean; // money is currently in escrow
@@ -129,18 +146,54 @@ const OrderProductSchema = new Schema<IOrderProduct>({
   Product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
-    required: true,
+    required: [true, "ProductId is required for reference"],
   },
   store: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Store",
-    required: true,
+    required: [true, "StoreId is required for reference"],
   },
-  quantity: { type: Number, required: true },
-  price: { type: Number, required: true },
-  selectedSize: {
-    size: { type: String },
-    price: { type: Number },
+  productSnapshot: {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Product snapshot ID is required"],
+    },
+    name: {
+      type: String,
+      required: [true, "Product name is required for product snapshot"],
+    },
+    images: [
+      {
+        type: String,
+        required: [true, "Product images are required for product snapshot"],
+      },
+    ],
+    quantity: {
+      type: Number,
+      required: [true, "Quantity is required for product snapshot"],
+    },
+    price: {
+      type: Number,
+      required: [true, "Price is required for product snapshot"],
+    },
+    category: { type: String },
+    subCategory: { type: String },
+    selectedSize: {
+      size: { type: String },
+      price: { type: Number },
+    },
+  },
+  storeSnapshot: {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Store snapshot ID is required"],
+    },
+    name: {
+      type: String,
+      required: [true, "Store name is required for store snapshot"],
+    },
+    logo: { type: String },
+    email: { type: String },
   },
 });
 
@@ -151,10 +204,10 @@ const SubOrderSchema = new Schema<ISubOrder>({
   store: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Store",
-    required: true,
+    required: [true, "StoreId is required for reference"],
   },
   products: [OrderProductSchema],
-  totalAmount: { type: Number, required: true },
+  totalAmount: { type: Number, required: [true, "Total amount is required"] },
   shippingMethod: {
     name: { type: String },
     price: { type: Number },
@@ -186,6 +239,10 @@ const SubOrderSchema = new Schema<ISubOrder>({
   settlement: {
     amount: { type: Number },
     shippingPrice: { type: Number },
+    commission: { type: Number },
+    appliedPercentageFee: { type: Number },
+    appliedFlatFee: { type: Number },
+    notes: { type: String },
   },
   escrow: {
     held: { type: Boolean, default: true }, // money is currently in escrow
@@ -205,10 +262,16 @@ const SubOrderSchema = new Schema<ISubOrder>({
       productId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
-        required: true,
+        required: [true, "ProductId is required for return"],
       },
-      quantity: { type: Number, required: true },
-      reason: { type: String, required: true },
+      quantity: {
+        type: Number,
+        required: [true, "Quantity is required for return"],
+      },
+      reason: {
+        type: String,
+        required: [true, "Reason is required for return"],
+      },
       status: {
         type: String,
         enum: [
@@ -263,20 +326,20 @@ const OrderSchema = new Schema<IOrder>(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: [true, "UserId is required for reference"],
     },
     stores: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Store",
-        required: true,
+        required: [true, "StoreId is required for reference"],
       },
     ],
     subOrders: [SubOrderSchema],
-    totalAmount: { type: Number, required: true },
+    totalAmount: { type: Number, required: [true, "Total amount is required"] },
     shippingAddress: {
-      postalCode: { type: String, required: true },
-      address: { type: String, required: true },
+      postalCode: { type: String, required: [true, "Postal code is required"] },
+      address: { type: String, required: [true, "Address is required"] },
     },
     paymentMethod: { type: String },
     paymentStatus: { type: String },

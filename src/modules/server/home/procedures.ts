@@ -14,12 +14,12 @@ import { TRPCError } from "@trpc/server";
 export const homeRouter = createTRPCRouter({
   /**
    * Procedure: getPublicProducts
-   * Fetches paginated, filtered public product listings (no store data).
+   * Fetches cursor-based paginated, filtered public product listings (no store data).
    */
   getPublicProducts: baseProcedure
     .input(
       z.object({
-        page: z.number().min(1).default(1),
+        cursor: z.string().optional(), // Product ID to start from
         limit: z.number().min(1).max(100).default(20),
         category: z.string().optional(),
         subCategory: z.string().optional(),
@@ -35,7 +35,7 @@ export const homeRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       const {
-        page,
+        cursor,
         limit,
         category,
         subCategory,
@@ -49,8 +49,8 @@ export const homeRouter = createTRPCRouter({
 
       const products = await getProducts({
         visibleOnly: true,
-        limit,
-        skip: (page - 1) * limit,
+        limit: limit + 1, // Fetch one extra to determine if there are more
+        cursor, // Pass cursor instead of skip
         category: category !== "all" ? category : undefined,
         subCategory,
         verified,
@@ -61,7 +61,15 @@ export const homeRouter = createTRPCRouter({
         ratings,
       });
 
-      const formattedProducts = products.map((product) => ({
+      const hasMore = products.length > limit;
+      const productsToReturn = hasMore ? products.slice(0, limit) : products;
+      const nextCursor = hasMore
+        ? (
+            productsToReturn[productsToReturn.length - 1]._id as string
+          ).toString()
+        : undefined;
+
+      const formattedProducts = productsToReturn.map((product) => ({
         id: (product._id as string).toString(),
         name: product.name,
         price: product.price,
@@ -77,14 +85,14 @@ export const homeRouter = createTRPCRouter({
       return {
         success: true,
         products: formattedProducts,
-        pagination: {
-          page,
-          limit,
-          total: formattedProducts.length,
-        },
+        nextCursor,
       };
     }),
 
+  /**
+   * Procedure: getPublicProductBySlug
+   * Fetches a public product by its slug.
+   */
   getPublicProductBySlug: baseProcedure
     .input(
       z.object({
@@ -129,6 +137,10 @@ export const homeRouter = createTRPCRouter({
       };
     }),
 
+  /**
+   * Procedure: getRelatedProducts
+   * Fetches related products based on the slug of the current product.
+   */
   getRelatedProducts: baseProcedure
     .input(
       z.object({

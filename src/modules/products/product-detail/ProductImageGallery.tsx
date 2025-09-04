@@ -95,9 +95,9 @@ export function ProductImageGallery({
               key={index}
               onClick={() => setCurrentImageIndex(index)}
               className={cn(
-                "relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors",
+                "relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors cursor-pointer",
                 currentImageIndex === index
-                  ? "border-primary"
+                  ? "border-soraxi-green"
                   : "border-gray-200 hover:border-gray-300"
               )}
             >

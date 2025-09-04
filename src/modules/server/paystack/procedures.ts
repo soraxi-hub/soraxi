@@ -24,7 +24,7 @@ const paystackInputSchema = z.object({
           description: z.string().optional(),
           estimatedDeliveryDays: z.number().optional(),
         })
-        .optional(), // optional because a store may not have any shipping methods yet. fixe it before you go live
+        .optional(), // optional because a store may not have any shipping methods yet. fix it before you go live
       storeID: z.string(),
       storeName: z.string(),
       products: z.array(
@@ -62,14 +62,14 @@ const paystackInputSchema = z.object({
           storeID: z.string(),
         })
       ),
-      shippingMethods: z.array(
-        z.object({
-          name: z.string(),
-          price: z.number(),
-          description: z.string().optional(),
-          estimatedDeliveryDays: z.number().optional(),
-        })
-      ),
+      // shippingMethods: z.array(
+      //   z.object({
+      //     name: z.string(),
+      //     price: z.number(),
+      //     description: z.string().optional(),
+      //     estimatedDeliveryDays: z.number().optional(),
+      //   })
+      // ),
     })
   ),
   customer: z.object({

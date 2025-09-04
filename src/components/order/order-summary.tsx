@@ -19,19 +19,13 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNaira } from "@/lib/utils/naira";
+import type { AppRouter } from "@/trpc/routers/_app";
+import type { inferProcedureOutput } from "@trpc/server";
+
+type Output = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
 interface OrderSummaryProps {
-  orderDetails: {
-    createdAt: Date;
-    totalAmount: number;
-    paymentMethod?: string;
-    paymentStatus?: string;
-    shippingAddress?: {
-      address?: string;
-      postalCode?: string;
-    };
-    stores: any[];
-  };
+  orderDetails: Output;
 }
 
 /**
@@ -61,7 +55,7 @@ const DetailItem = ({
 
 export function OrderSummary({ orderDetails }: OrderSummaryProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <Card className="bg-muted/50">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">

@@ -6,11 +6,18 @@ import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { TRPCReactProvider } from "@/trpc/client";
 import { siteConfig } from "@/config/site";
+import { Montserrat } from "next/font/google";
+
+const montserrat = Montserrat({
+  weight: ["400", "600", "700"],
+  subsets: ["latin"],
+});
 
 // Configure Geist Sans font with CSS variables
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 // Configure Geist Mono font with CSS variables
@@ -92,7 +99,7 @@ export default function RootLayout({
     // This is necessary because the theme provider modifies the HTML on client-side
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.className} antialiased`}
         suppressHydrationWarning
       >
         {/*
