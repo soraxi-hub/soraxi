@@ -352,9 +352,9 @@ export const FormattedOrderProductSchema = z.object({
     name: z.string(),
     images: z.array(z.string()),
     quantity: z.number(),
-    price: z.number(),
-    category: z.array(z.string()).optional(),
-    subCategory: z.array(z.string()).optional(),
+    price: z.number(), // Already in Kobo
+    category: z.string().optional(),
+    subCategory: z.string().optional(),
     selectedSize: z
       .object({
         size: z.string(),
