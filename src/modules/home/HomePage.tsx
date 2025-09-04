@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,19 +10,65 @@ import { Search, Award, Zap, Shield, Truck } from "lucide-react";
 import { ProductCard } from "../products/product-detail/product-card";
 import { useQueryState } from "nuqs";
 import { motion } from "framer-motion";
+import { useEffect, useRef, useCallback } from "react";
+import { inferProcedureOutput } from "@trpc/server";
+import { AppRouter } from "@/trpc/routers/_app";
+
+type Output = inferProcedureOutput<AppRouter["home"]["getPublicProducts"]>;
 
 /**
  * HomePage Component
- * Fully migrated to use tRPC for all product and category data
+ * Updated to use cursor-based pagination with infinite scroll
  */
 export function HomePage() {
   const trpc = useTRPC();
   const [search] = useQueryState("search");
 
-  // Data fetching with tRPC and React Query
-  const { data: publicProductsData, isLoading: productsLoading } = useQuery(
-    trpc.home.getPublicProducts.queryOptions({ verified: true, search })
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data,
+    isLoading: productsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<Output>({
+    ...trpc.home.getPublicProducts.infiniteQueryOptions({
+      verified: true,
+      search,
+    }),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage: { nextCursor: string | undefined }) =>
+      lastPage.nextCursor,
+  });
+
+  const allProducts = data?.pages.flatMap((page) => page.products) || [];
+
+  const handleIntersection = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage]
   );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleIntersection, {
+      threshold: 0.1,
+    });
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [handleIntersection]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,7 +123,7 @@ export function HomePage() {
                   {
                     [
                       "All our sellers are verified and trusted",
-                      "Quick and reliable shipping nationwide",
+                      "Quick and reliable shipping within Campus",
                       "Premium products with quality assurance",
                       "Round-the-clock customer support",
                     ][i]
@@ -185,32 +231,48 @@ export function HomePage() {
               ))}
             </div>
           ) : (
-            <div
-              className={`grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}
-            >
-              {(publicProductsData?.products || []).map((product) => (
-                <Link key={product.id} href={`/products/${product.slug}`}>
-                  <ProductCard product={product} />
-                </Link>
-              ))}
-            </div>
+            <>
+              <div
+                className={`grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}
+              >
+                {allProducts.map((product) => (
+                  <Link key={product.id} href={`/products/${product.slug}`}>
+                    <ProductCard product={product} />
+                  </Link>
+                ))}
+              </div>
+
+              {isFetchingNextPage && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Card key={i} className="animate-pulse p-0">
+                      <div className="h-48 bg-muted rounded-t-lg" />
+                      <CardContent className="p-4 space-y-2">
+                        <div className="h-4 bg-muted rounded" />
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                        <div className="h-6 bg-muted rounded w-1/2" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              <div ref={loadMoreRef} className="h-10 w-full" />
+            </>
           )}
 
           {/* Empty State */}
-          {(publicProductsData?.products || []).length === 0 &&
-            !productsLoading && (
-              <div className="text-center py-12">
-                <div className="w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-12 h-12 text-soraxi-green" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  No products found
-                </h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filters
-                </p>
+          {allProducts.length === 0 && !productsLoading && (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-12 h-12 text-soraxi-green" />
               </div>
-            )}
+              <h3 className="text-xl font-semibold mb-2">No products found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filters
+              </p>
+            </div>
+          )}
         </div>
       </section>
     </div>

@@ -53,7 +53,7 @@ const ProductReviewSchema = new Schema<IProductReview>(
 );
 
 // Ensure unique review per product per buyer
-ProductReviewSchema.index({ product: 1, buyer: 1 }, { unique: true });
+ProductReviewSchema.index({ productId: 1, customerId: 1 }, { unique: true });
 
 /**
  * Model getter for ProductReview

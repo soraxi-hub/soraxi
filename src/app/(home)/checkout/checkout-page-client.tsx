@@ -278,10 +278,13 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
        * - Order metadata
        */
       const paymentData = {
-        cartItemsWithShippingMethod: cartData.groupedCart.map((group) => ({
-          ...group,
-          selectedShippingMethod: selectedShippingMethods[group.storeID],
-        })),
+        // Map cart items to include selected shipping methods while excluding unselected ones
+        cartItemsWithShippingMethod: cartData.groupedCart.map(
+          ({ shippingMethods, ...group }) => ({
+            ...group,
+            selectedShippingMethod: selectedShippingMethods[group.storeID],
+          })
+        ),
         amount: currencyOperations.add(cartData.totalPrice, totalShippingCost),
         customer: {
           name: `${userData.firstName} ${userData.lastName}`,

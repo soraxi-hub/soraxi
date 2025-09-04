@@ -82,7 +82,7 @@ export function StoreAccordion({
   submitting,
 }: StoreAccordionProps) {
   return (
-    <Card className="bg-card rounded-lg shadow-xs">
+    <Card className="bg-muted/50 rounded-lg shadow-xs mb-6">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <ShoppingBag className="h-5 w-5 text-primary" />

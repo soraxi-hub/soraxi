@@ -162,9 +162,9 @@ export interface FormattedEscrowReleaseDetail {
       size: string;
       price: number;
     } | null;
-    category: string[];
-    subCategory: string[];
-    productType: string;
+    // category: string[];
+    // subCategory: string[];
+    // productType: string;
     totalPrice: number;
   }>;
   escrowInfo: {
@@ -173,7 +173,15 @@ export interface FormattedEscrowReleaseDetail {
     releasedAt: Date | null;
     refunded: boolean;
     refundReason: string | null;
-    amount: number;
+    settlementDetails: {
+      settleAmount: number;
+      releaseAmount: number;
+      commission: number;
+      appliedPercentageFee: number;
+      appliedFlatFee: number;
+      totalAmount: number;
+      totalOrderValue: number;
+    };
   };
   deliveryInfo: {
     status: string;

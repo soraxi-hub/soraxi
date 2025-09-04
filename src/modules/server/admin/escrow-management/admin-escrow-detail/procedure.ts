@@ -15,6 +15,7 @@ import type {
   FormattedEscrowReleaseDetail,
 } from "@/types/escrow-detail-aggregation";
 import { currencyOperations } from "@/lib/utils/naira";
+import { calculateCommission } from "@/lib/utils/calculate-commission";
 
 /**
  * Admin Escrow Release Detail TRPC Router
@@ -121,8 +122,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
          * 3. Verifies escrow release eligibility criteria
          * 4. Populates user data with essential customer information
          * 5. Populates store data with verification and business details
-         * 6. Populates product data with comprehensive product information
-         * 7. Adds computed fields for enhanced admin insights
+         * 6. Adds computed fields for enhanced admin insights
          *
          * The result is typed as EscrowReleaseDetailAggregationResult for full type safety.
          */
@@ -224,36 +224,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
           },
 
           /**
-           * Stage 6: Populate product data
-           *
-           * Joins with the products collection to get detailed product information.
-           * Includes category and product type data that helps admins understand
-           * the nature of the items involved in the escrow release.
-           */
-          {
-            $lookup: {
-              from: "products",
-              localField: "subOrders.products.Product",
-              foreignField: "_id",
-              as: "productDetails",
-              pipeline: [
-                {
-                  $project: {
-                    _id: 1,
-                    name: 1,
-                    images: 1,
-                    price: 1,
-                    category: 1,
-                    subCategory: 1,
-                    productType: 1,
-                  },
-                },
-              ],
-            },
-          },
-
-          /**
-           * Stage 7: Add computed fields
+           * Stage 6: Add computed fields
            *
            * Transforms the populated arrays into single objects for easier access
            * and calculates the number of days since the return window expired.
@@ -369,27 +340,57 @@ export const adminEscrowDetailRouter = createTRPCRouter({
         /**
          * Format product information with comprehensive details
          *
-         * Maps through the sub-order products and matches them with
-         * the populated product details. Includes category information
-         * and calculates total prices for better admin understanding.
+         * Maps through the sub-order products and uses the stored productSnapshot
+         * data for consistent product information at the time of order.
+         * Using productSnapshot instead of live product lookup for data consistency
          */
         const products = result.subOrders.products.map((product) => {
-          const productDetail = result.productDetails.find(
-            (p) => p._id.toString() === product.Product.toString()
-          );
           return {
             id: product.Product.toString(),
-            name: productDetail?.name || "Unknown Product",
-            images: productDetail?.images || [],
-            quantity: product.quantity,
-            price: product.price,
-            selectedSize: product.selectedSize || null,
-            category: productDetail?.category || [],
-            subCategory: productDetail?.subCategory || [],
-            productType: productDetail?.productType || "Product",
-            totalPrice: product.quantity * product.price,
+            name: product.productSnapshot?.name || "Unknown Product",
+            images: product.productSnapshot?.images || [],
+            quantity: product.productSnapshot.quantity,
+            price: product.productSnapshot.price,
+            selectedSize: product.productSnapshot.selectedSize || null,
+            // category: product.productSnapshot?.category || [],
+            // subCategory: product.productSnapshot?.subCategory || [],
+            // productType: product.productSnapshot?.productType || "Product",
+            totalPrice: currencyOperations.multiply(
+              product.productSnapshot.quantity,
+              product.productSnapshot.price
+            ),
           };
         });
+
+        /**
+         * Calculate Escrow Release Amount
+         *
+         * Determines the exact amount to be released to the seller after
+         * platform commission deduction. The settlement amount plus shipping
+         * costs (if applicable) will be credited to the seller's wallet.
+         */
+        const commissionResult = calculateCommission(
+          result.subOrders.totalAmount
+        );
+        console.log("Commission Result:", commissionResult);
+
+        const settlementDetails = {
+          // Settlement after commission
+          settleAmount: commissionResult.settleAmount,
+          // Release amount = settlement + shipping fee (if any)
+          releaseAmount: currencyOperations.add(
+            commissionResult.settleAmount,
+            result.subOrders.shippingMethod?.price ?? 0
+          ),
+          commission: commissionResult.commission,
+          appliedPercentageFee: commissionResult.details.percentageFee,
+          appliedFlatFee: commissionResult.details.flatFeeApplied,
+          totalAmount: currencyOperations.add(
+            result.subOrders.totalAmount,
+            result.subOrders.shippingMethod?.price ?? 0
+          ),
+          totalOrderValue: result.subOrders.totalAmount,
+        };
 
         /**
          * Format escrow information
@@ -403,10 +404,8 @@ export const adminEscrowDetailRouter = createTRPCRouter({
           releasedAt: result.subOrders.escrow.releasedAt || null,
           refunded: result.subOrders.escrow.refunded,
           refundReason: result.subOrders.escrow.refundReason || null,
-          amount: currencyOperations.add(
-            result.subOrders.totalAmount,
-            result.subOrders.shippingMethod?.price ?? 0
-          ),
+
+          settlementDetails: settlementDetails,
         };
 
         /**
@@ -499,7 +498,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
             subOrderId,
             subOrderNumber,
             orderNumber,
-            escrowAmount: escrowInfo.amount,
+            escrowAmount: escrowInfo.settlementDetails.totalAmount,
             daysSinceReturnWindow: deliveryInfo.daysSinceReturnWindow,
             storeId: store.id,
             customerId: customer.id,

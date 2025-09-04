@@ -97,10 +97,11 @@ export function CartPageClient({
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const shipping = subtotal >= 50000 ? 0 : 5000;
-    const tax = Math.round(subtotal * 0.075);
-    const discount = 0;
-    const total = subtotal + shipping + tax - discount;
+    // const shipping = subtotal >= 50000 ? 0 : 5000;
+    // const tax = Math.round(subtotal * 0.075);
+    // const discount = 0;
+    // const total = subtotal + shipping + tax - discount;
+    const total = subtotal;
 
     return {
       subtotal,

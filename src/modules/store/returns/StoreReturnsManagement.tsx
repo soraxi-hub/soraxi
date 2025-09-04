@@ -1,44 +1,74 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Package, Search, Filter, Eye, Clock, CheckCircle, XCircle, Truck, RefreshCw } from "lucide-react"
-import { toast } from "sonner"
-import Link from "next/link"
-import { formatDistanceToNow } from "date-fns"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Package,
+  Search,
+  Filter,
+  Eye,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Truck,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import Image from "next/image";
 
 interface ReturnRequest {
-  _id: string
-  orderId: string
-  subOrderId: string
+  _id: string;
+  orderId: string;
+  subOrderId: string;
   userId: {
-    _id: string
-    firstName: string
-    lastName: string
-    email: string
-  }
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   productId: {
-    _id: string
-    name: string
-    images: string[]
-    price: number
-  }
-  quantity: number
-  reason: string
-  status: "Requested" | "Approved" | "Rejected" | "In-Transit" | "Received" | "Refunded"
-  requestedAt: string
-  refundAmount: number
-  images?: string[]
+    _id: string;
+    name: string;
+    images: string[];
+    price: number;
+  };
+  quantity: number;
+  reason: string;
+  status:
+    | "Requested"
+    | "Approved"
+    | "Rejected"
+    | "In-Transit"
+    | "Received"
+    | "Refunded";
+  requestedAt: string;
+  refundAmount: number;
+  images?: string[];
 }
 
 interface StoreReturnsManagementProps {
-  storeId: string
+  storeId: string;
 }
 
 const statusColors = {
@@ -48,7 +78,7 @@ const statusColors = {
   "In-Transit": "bg-blue-100 text-blue-800 border-blue-200",
   Received: "bg-purple-100 text-purple-800 border-purple-200",
   Refunded: "bg-emerald-100 text-emerald-800 border-emerald-200",
-}
+};
 
 const statusIcons = {
   Requested: Clock,
@@ -57,64 +87,72 @@ const statusIcons = {
   "In-Transit": Truck,
   Received: Package,
   Refunded: CheckCircle,
-}
+};
 
-export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps) {
-  const [returns, setReturns] = useState<ReturnRequest[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+export function StoreReturnsManagement({
+  storeId,
+}: StoreReturnsManagementProps) {
+  const [returns, setReturns] = useState<ReturnRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
     approved: 0,
     completed: 0,
-  })
+  });
 
   const fetchReturns = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/store/returns?storeId=${storeId}&status=${statusFilter}&search=${searchTerm}`)
+      setLoading(true);
+      const response = await fetch(
+        `/api/store/returns?storeId=${storeId}&status=${statusFilter}&search=${searchTerm}`
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch returns")
+        throw new Error("Failed to fetch returns");
       }
 
-      const data = await response.json()
-      setReturns(data.returns)
-      setStats(data.stats)
+      const data = await response.json();
+      setReturns(data.returns);
+      setStats(data.stats);
     } catch (error) {
-      console.error("Error fetching returns:", error)
-      toast.error("Failed to load returns")
+      console.error("Error fetching returns:", error);
+      toast.error("Failed to load returns");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchReturns()
-  }, [storeId, statusFilter])
+    fetchReturns();
+  }, [storeId, statusFilter]);
 
   const handleSearch = () => {
-    fetchReturns()
-  }
+    fetchReturns();
+  };
 
   const filteredReturns = returns.filter((returnItem) => {
     const matchesSearch =
       searchTerm === "" ||
-      returnItem.productId.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      returnItem.userId.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      returnItem.orderId.toLowerCase().includes(searchTerm.toLowerCase())
+      returnItem.productId.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      returnItem.userId.email
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      returnItem.orderId.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch
-  })
+    return matchesSearch;
+  });
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
       </div>
-    )
+    );
   }
 
   return (
@@ -126,8 +164,12 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
             <div className="flex items-center">
               <Package className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Returns</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Returns
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.total}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -139,7 +181,9 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
               <Clock className="h-8 w-8 text-yellow-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.pending}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -151,7 +195,9 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Approved</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.approved}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -163,7 +209,9 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
               <RefreshCw className="h-8 w-8 text-purple-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.completed}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -241,7 +289,7 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
                 </TableHeader>
                 <TableBody>
                   {filteredReturns.map((returnItem) => {
-                    const StatusIcon = statusIcons[returnItem.status]
+                    const StatusIcon = statusIcons[returnItem.status];
                     return (
                       <TableRow key={returnItem._id}>
                         <TableCell>
@@ -254,23 +302,36 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
                             </Avatar>
                             <div>
                               <p className="font-medium">
-                                {returnItem.userId.firstName} {returnItem.userId.lastName}
+                                {returnItem.userId.firstName}{" "}
+                                {returnItem.userId.lastName}
                               </p>
-                              <p className="text-sm text-gray-500">{returnItem.userId.email}</p>
+                              <p className="text-sm text-gray-500">
+                                {returnItem.userId.email}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <img
-                              src={returnItem.productId.images[0] || "/placeholder.svg"}
+                            <Image
+                              height={40}
+                              width={40}
+                              src={
+                                returnItem.productId.images[0] ||
+                                "/placeholder.svg"
+                              }
                               alt={returnItem.productId.name}
                               className="h-10 w-10 rounded object-cover"
                             />
                             <div>
-                              <p className="font-medium">{returnItem.productId.name}</p>
+                              <p className="font-medium">
+                                {returnItem.productId.name}
+                              </p>
                               <p className="text-sm text-gray-500">
-                                ₦{(returnItem.productId.price / 100).toLocaleString()}
+                                ₦
+                                {(
+                                  returnItem.productId.price / 100
+                                ).toLocaleString()}
                               </p>
                             </div>
                           </div>
@@ -279,7 +340,9 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
                           <p className="text-sm">{returnItem.reason}</p>
                         </TableCell>
                         <TableCell>{returnItem.quantity}</TableCell>
-                        <TableCell>₦{(returnItem.refundAmount / 100).toLocaleString()}</TableCell>
+                        <TableCell>
+                          ₦{(returnItem.refundAmount / 100).toLocaleString()}
+                        </TableCell>
                         <TableCell>
                           <Badge className={statusColors[returnItem.status]}>
                             <StatusIcon className="h-3 w-3 mr-1" />
@@ -288,11 +351,16 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
                         </TableCell>
                         <TableCell>
                           <p className="text-sm">
-                            {formatDistanceToNow(new Date(returnItem.requestedAt), { addSuffix: true })}
+                            {formatDistanceToNow(
+                              new Date(returnItem.requestedAt),
+                              { addSuffix: true }
+                            )}
                           </p>
                         </TableCell>
                         <TableCell>
-                          <Link href={`/store/${storeId}/returns/${returnItem._id}`}>
+                          <Link
+                            href={`/store/${storeId}/returns/${returnItem._id}`}
+                          >
                             <Button variant="outline" size="sm">
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -300,7 +368,7 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
                           </Link>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
@@ -309,5 +377,5 @@ export function StoreReturnsManagement({ storeId }: StoreReturnsManagementProps)
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate quantity (can't return more than ordered)
-    if (quantity > orderItem.quantity) {
+    if (quantity > orderItem.productSnapshot.quantity) {
       return NextResponse.json(
         { error: "Cannot return more items than ordered" },
         { status: 400 }
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate refund amount (product price * quantity)
-    const refundAmount = orderItem.price * quantity;
+    const refundAmount = orderItem.productSnapshot.price * quantity;
 
     // Create return request object
     const returnRequest = {
@@ -308,7 +308,7 @@ export async function PUT(request: NextRequest) {
         .reduce((sum: number, ret) => sum + ret.quantity, 0);
 
       const totalOrderedQuantity = subOrder.products.reduce(
-        (sum: number, product) => sum + product.quantity,
+        (sum: number, product) => sum + product.productSnapshot.quantity,
         0
       );
 

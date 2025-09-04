@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       id: admin._id.toString(),
       name: admin.name,
       email: admin.email,
-      roles: admin.roles as string[],
+      roles: admin.roles.map((role) => String(role)),
       isActive: admin.isActive,
     };
 

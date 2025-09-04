@@ -42,7 +42,7 @@ interface StoreCart {
   storeID: string; // Store ID associated with the items
   storeName: string; // Name of the store
   products: CartItem[];
-  shippingMethods: ShippingMethod[];
+  // shippingMethods: ShippingMethod[];
   selectedShippingMethod: ShippingMethod;
 }
 

@@ -53,6 +53,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
 import { currencyOperations, formatNaira } from "@/lib/utils/naira";
+import Image from "next/image";
 
 /**
  * Order Monitoring Component
@@ -557,10 +558,15 @@ export function OrderMonitoring() {
                         className="flex items-center space-x-4 p-3 border border-border rounded-lg"
                       >
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          {item.image ? (
-                            <img
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.name}
+                          {item.productSnapshot.images ? (
+                            <Image
+                              src={
+                                item.productSnapshot.images[0] ||
+                                "/placeholder.svg"
+                              }
+                              alt={item.productSnapshot.name}
+                              width={48}
+                              height={48}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -568,17 +574,20 @@ export function OrderMonitoring() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium">{item.name}</p>
+                          <p className="font-medium">
+                            {item.productSnapshot.name}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            Quantity: {item.quantity} ×{formatNaira(item.price)}
+                            Quantity: {item.productSnapshot.quantity} ×
+                            {formatNaira(item.productSnapshot.price)}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">
                             {formatNaira(
                               currencyOperations.multiply(
-                                item.price,
-                                item.quantity
+                                item.productSnapshot.price,
+                                item.productSnapshot.quantity
                               )
                             )}
                           </p>

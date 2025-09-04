@@ -84,8 +84,7 @@ export async function getWishlistByUserId(
   const wishlist = await Wishlist.findOne<IWishlist>({ user: userId }).populate(
     {
       path: "products.productId",
-      select:
-        "name price sizes images productType slug category formattedPrice",
+      select: "name price sizes images productType slug category rating",
     }
   );
   // .lean();

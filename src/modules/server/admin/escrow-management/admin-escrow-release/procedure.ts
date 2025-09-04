@@ -270,13 +270,20 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * platform commission deduction. The settlement amount plus shipping
          * costs (if applicable) will be credited to the seller's wallet.
          */
-        const settleAmount = calculateCommission(
-          subOrder.totalAmount
-        ).settleAmount;
-        const releaseAmount = currencyOperations.add(
-          settleAmount,
-          subOrder.shippingMethod?.price ?? 0
-        );
+        const commissionResult = calculateCommission(subOrder.totalAmount);
+
+        const settlementDetails = {
+          // Settlement after commission
+          settleAmount: commissionResult.settleAmount,
+          // Release amount = settlement + shipping fee (if any)
+          releaseAmount: currencyOperations.add(
+            commissionResult.settleAmount,
+            subOrder.shippingMethod?.price ?? 0
+          ),
+          commission: commissionResult.commission,
+          appliedPercentageFee: commissionResult.details.percentageFee,
+          appliedFlatFee: commissionResult.details.flatFeeApplied,
+        };
 
         // ==================== Update Settlement Information ====================
 
@@ -287,9 +294,24 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * in the sub-order for future reference and reporting.
          */
         if (subOrder.settlement) {
-          subOrder.settlement.amount = settleAmount;
+          subOrder.settlement.amount = settlementDetails.settleAmount;
+
           subOrder.settlement.shippingPrice =
             subOrder.shippingMethod?.price ?? 0;
+
+          subOrder.settlement.commission = settlementDetails.commission;
+
+          subOrder.settlement.appliedPercentageFee =
+            settlementDetails.appliedPercentageFee;
+
+          subOrder.settlement.appliedFlatFee = settlementDetails.appliedFlatFee;
+
+          subOrder.settlement.notes = `Escrow released for order ${(
+            orderWithSubOrder._id as mongoose.Types.ObjectId
+          )
+            .toString()
+            .substring(0, 8)
+            .toUpperCase()}`;
         }
 
         // ==================== Update Escrow Status ====================
@@ -314,8 +336,8 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * Adds the calculated release amount to the seller's available balance
          * and updates their total earnings for reporting and analytics.
          */
-        sellerWallet.balance += releaseAmount;
-        sellerWallet.totalEarned += releaseAmount;
+        sellerWallet.balance += settlementDetails.releaseAmount;
+        sellerWallet.totalEarned += settlementDetails.releaseAmount;
         await sellerWallet.save({ session });
 
         // ==================== Create Wallet Transaction ====================
@@ -329,7 +351,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
         const walletTransactionData: WalletTransactionData = {
           wallet: sellerWallet._id as unknown as mongoose.Schema.Types.ObjectId,
           type: "credit",
-          amount: releaseAmount,
+          amount: settlementDetails.releaseAmount,
           source: "order",
           description: `Escrow release for order ${(
             orderWithSubOrder._id as mongoose.Types.ObjectId
@@ -378,7 +400,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
                     .substring(0, 8)
                     .toUpperCase()}</strong> have been released.</p>
                   <p><strong>Amount Released:</strong> ${formatNaira(
-                    releaseAmount
+                    settlementDetails.releaseAmount
                   )}</p>
                   <p><strong>New Wallet Balance:</strong> ${formatNaira(
                     sellerWallet.balance
@@ -440,7 +462,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
               ?.toString()
               .substring(0, 8)
               .toUpperCase()}`,
-            amount: releaseAmount,
+            amount: settlementDetails.releaseAmount,
             currency: "NGN",
             releasedAt:
               subOrder.escrow.releasedAt?.toISOString() ||
@@ -477,7 +499,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
           orderId: (
             orderWithSubOrder._id as mongoose.Types.ObjectId
           ).toString(),
-          amount: releaseAmount,
+          amount: settlementDetails.releaseAmount,
           sellerId: populatedStore._id?.toString() || "",
           sellerName: populatedStore.name || "Unknown Store",
           customerEmail: populatedUser?.email || "N/A",

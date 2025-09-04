@@ -33,7 +33,11 @@ import {
   Store,
   Package,
   ShoppingCart,
-  DollarSign,
+  ShoppingBag,
+  // DollarSign,
+  Wallet,
+  CreditCard,
+  RefreshCcw,
   Users,
   FileText,
   LogOut,
@@ -120,7 +124,7 @@ const navigationItems = [
       {
         title: "Stale Orders",
         url: "/admin/orders/stale",
-        icon: ShoppingCart,
+        icon: ShoppingBag,
         permissions: ["view_orders"],
       },
     ],
@@ -129,9 +133,9 @@ const navigationItems = [
     title: "Escrow Management",
     items: [
       {
-        title: "Refunds",
+        title: "Escrow Release Queue",
         url: "/admin/escrow/release-queue",
-        icon: DollarSign,
+        icon: Wallet,
         permissions: ["view_settlements"],
       },
     ],
@@ -142,13 +146,13 @@ const navigationItems = [
       {
         title: "withdrawals",
         url: "/admin/finance/withdrawals",
-        icon: DollarSign,
+        icon: CreditCard,
         permissions: ["view_settlements"],
       },
       {
         title: "Refunds",
         url: "/admin/refunds/queue",
-        icon: DollarSign,
+        icon: RefreshCcw,
         permissions: ["view_settlements"],
       },
       // {

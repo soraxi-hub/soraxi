@@ -10,7 +10,11 @@ function CartCount() {
 
   return (
     <Link href="/cart">
-      <Button size="sm" variant="ghost" className="flex gap-x-1.5">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="flex gap-x-1.5 hover:bg-transparent hover:text-soraxi-green"
+      >
         <ShoppingBag className="h-5 w-5" />
         <span className="text-sm font-bold">{totalQuantity}</span>
         <span className="sr-only">Cart</span>

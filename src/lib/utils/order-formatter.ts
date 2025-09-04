@@ -1,7 +1,6 @@
 import type {
   RawOrderDocument,
   FormattedOrder,
-  PopulatedProduct,
   PopulatedStore,
   PopulatedUser,
   FormattedOrderForAdmin,
@@ -32,23 +31,23 @@ function isPopulatedStore(store: any): store is PopulatedStore {
   );
 }
 
-/**
- * Type Guard: Check if product is populated
- *
- * Determines whether a product field contains a populated document
- * or just an ObjectId reference.
- *
- * @param product - Product field from MongoDB document
- * @returns True if product is populated with document data
- */
-function isPopulatedProduct(product: any): product is PopulatedProduct {
-  return (
-    product &&
-    typeof product === "object" &&
-    "name" in product &&
-    "price" in product
-  );
-}
+// /**
+//  * Type Guard: Check if product is populated
+//  *
+//  * Determines whether a product field contains a populated document
+//  * or just an ObjectId reference.
+//  *
+//  * @param product - Product field from MongoDB document
+//  * @returns True if product is populated with document data
+//  */
+// function isPopulatedProduct(product: any): product is PopulatedProduct {
+//   return (
+//     product &&
+//     typeof product === "object" &&
+//     "name" in product &&
+//     "price" in product
+//   );
+// }
 
 /**
  * Type Guard: Checks if a user field is populated
@@ -107,28 +106,41 @@ export function formatOrderDocument(
 
     // Format products with validation
     const formattedProducts = subOrder.products.map(
-      (productItem, productIndex) => {
+      (productItem, _productIndex) => {
         // Validate product population
-        if (!isPopulatedProduct(productItem.Product)) {
-          throw new Error(
-            `Product ${productIndex} in sub-order ${index} of order ${rawOrder._id} has unpopulated Product`
-          );
-        }
+        // if (!isPopulatedProduct(productItem.Product)) {
+        //   throw new Error(
+        //     `Product ${productIndex} in sub-order ${index} of order ${rawOrder._id} has unpopulated Product`
+        //   );
+        // }
 
         return {
           _id: productItem._id.toString(),
-          Product: {
-            _id: productItem.Product._id,
-            name: productItem.Product.name,
-            images: productItem.Product.images,
-            price: productItem.Product.price,
-            productType: productItem.Product.productType,
-            storeID: productItem.Product.storeID,
-          },
+          // Product: {
+          //   _id: productItem.Product._id,
+          //   name: productItem.Product.name,
+          //   images: productItem.Product.images,
+          //   price: productItem.Product.price,
+          //   productType: productItem.Product.productType,
+          //   storeID: productItem.Product.storeID,
+          // }, // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
           store: productItem.store.toString(),
-          quantity: productItem.quantity,
-          price: productItem.price,
-          selectedSize: productItem.selectedSize,
+          productSnapshot: {
+            _id: productItem.productSnapshot._id.toString(),
+            name: productItem.productSnapshot.name,
+            images: productItem.productSnapshot.images,
+            quantity: productItem.productSnapshot.quantity,
+            price: productItem.productSnapshot.price,
+            category: productItem.productSnapshot.category,
+            subCategory: productItem.productSnapshot.subCategory,
+            selectedSize: productItem.productSnapshot.selectedSize,
+          },
+          storeSnapshot: {
+            _id: productItem.storeSnapshot._id.toString(),
+            name: productItem.storeSnapshot.name,
+            logo: productItem.storeSnapshot.logo,
+            email: productItem.storeSnapshot.email,
+          },
         };
       }
     );
@@ -150,6 +162,11 @@ export function formatOrderDocument(
       customerConfirmedDelivery: subOrder.customerConfirmedDelivery,
       escrow: subOrder.escrow,
       returnWindow: subOrder.returnWindow,
+      statusHistory: subOrder.statusHistory.map((statusItem) => ({
+        status: statusItem.status,
+        timestamp: statusItem.timestamp,
+        notes: statusItem.notes,
+      })),
     };
   });
 
@@ -244,10 +261,26 @@ export function formatOrderDocumentForAdmins(
   const items = rawOrder.subOrders.flatMap((subOrder) =>
     subOrder.products.map((product) => ({
       id: product.Product?._id?.toString() || "",
-      name: (product.Product as PopulatedProduct)?.name || "Unknown Product",
-      price: product.price,
-      quantity: product.quantity,
-      image: (product.Product as PopulatedProduct)?.images?.[0],
+      productSnapshot: {
+        _id: product.productSnapshot._id.toString(),
+        name: product.productSnapshot.name,
+        images: product.productSnapshot.images,
+        quantity: product.productSnapshot.quantity,
+        price: product.productSnapshot.price,
+        category: product.productSnapshot.category,
+        subCategory: product.productSnapshot.subCategory,
+        selectedSize: product.productSnapshot.selectedSize,
+      },
+      storeSnapshot: {
+        _id: product.storeSnapshot._id.toString(),
+        name: product.storeSnapshot.name,
+        logo: product.storeSnapshot.logo,
+        email: product.storeSnapshot.email,
+      },
+      // name: (product.Product as PopulatedProduct)?.name || "Unknown Product",
+      // price: product.price,
+      // quantity: product.quantity,
+      // image: (product.Product as PopulatedProduct)?.images?.[0],
     }))
   );
 
@@ -350,27 +383,40 @@ export function formatStoreOrderDocument(
     }
 
     const formattedProducts = subOrder.products.map(
-      (productItem, productIndex) => {
-        if (!isPopulatedProduct(productItem.Product)) {
-          throw new Error(
-            `Product ${productIndex} in sub-order ${index} of order ${rawOrder._id} has unpopulated Product`
-          );
-        }
+      (productItem, _productIndex) => {
+        // if (!isPopulatedProduct(productItem.Product)) {
+        //   throw new Error(
+        //     `Product ${productIndex} in sub-order ${index} of order ${rawOrder._id} has unpopulated Product`
+        //   );
+        // }
 
         return {
           _id: productItem._id.toString(),
-          Product: {
-            _id: productItem.Product._id,
-            name: productItem.Product.name,
-            images: productItem.Product.images,
-            price: productItem.Product.price,
-            productType: productItem.Product.productType,
-            storeID: productItem.Product.storeID,
-          },
+          // Product: {
+          //   _id: productItem.Product._id,
+          //   name: productItem.Product.name,
+          //   images: productItem.Product.images,
+          //   price: productItem.Product.price,
+          //   productType: productItem.Product.productType,
+          //   storeID: productItem.Product.storeID,
+          // },
           store: productItem.store.toString(),
-          quantity: productItem.quantity,
-          price: productItem.price,
-          selectedSize: productItem.selectedSize,
+          productSnapshot: {
+            _id: productItem.productSnapshot._id.toString(),
+            name: productItem.productSnapshot.name,
+            images: productItem.productSnapshot.images,
+            quantity: productItem.productSnapshot.quantity,
+            price: productItem.productSnapshot.price,
+            category: productItem.productSnapshot.category,
+            subCategory: productItem.productSnapshot.subCategory,
+            selectedSize: productItem.productSnapshot.selectedSize,
+          },
+          storeSnapshot: {
+            _id: productItem.storeSnapshot._id.toString(),
+            name: productItem.storeSnapshot.name,
+            logo: productItem.storeSnapshot.logo,
+            email: productItem.storeSnapshot.email,
+          },
         };
       }
     );
@@ -392,6 +438,12 @@ export function formatStoreOrderDocument(
       customerConfirmedDelivery: subOrder.customerConfirmedDelivery,
       escrow: subOrder.escrow,
       returnWindow: subOrder.returnWindow,
+      settlement: subOrder.settlement,
+      statusHistory: subOrder.statusHistory.map((statusItem) => ({
+        status: statusItem.status,
+        timestamp: statusItem.timestamp,
+        notes: statusItem.notes,
+      })),
     };
   });
 

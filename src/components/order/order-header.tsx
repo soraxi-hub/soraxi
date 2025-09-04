@@ -5,9 +5,9 @@
  * for the order details page.
  */
 
-import Link from "next/link"
-import { Package } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import Link from "next/link";
+import { Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,15 +15,15 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from "@/components/ui/breadcrumb";
 
 interface OrderHeaderProps {
-  orderId: string
+  orderId: string;
 }
 
 export function OrderHeader({ orderId }: OrderHeaderProps) {
   return (
-    <div className="bg-card rounded-lg shadow-xs p-6">
+    <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Package className="h-6 w-6 text-primary" />
@@ -47,5 +47,5 @@ export function OrderHeader({ orderId }: OrderHeaderProps) {
         </Breadcrumb>
       </div>
     </div>
-  )
+  );
 }

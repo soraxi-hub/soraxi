@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  ArrowLeft,
+  // ArrowLeft,
   User,
   Store,
   Package,
@@ -21,7 +21,7 @@ import {
   Mail,
 } from "lucide-react";
 import { format } from "date-fns";
-import Link from "next/link";
+// import Link from "next/link";
 import Image from "next/image";
 import {
   Dialog,
@@ -34,7 +34,7 @@ import {
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { formatNaira } from "@/lib/utils/naira";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 
 interface EscrowReleaseDetailProps {
   subOrderId: string;
@@ -46,7 +46,7 @@ export default function EscrowReleaseDetail({
   const trpc = useTRPC();
   const [releasing, setReleasing] = useState(false);
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
-  const [releaseNotes, setReleaseNotes] = useState("");
+  // const [releaseNotes, setReleaseNotes] = useState("");
 
   const {
     data,
@@ -91,7 +91,7 @@ export default function EscrowReleaseDetail({
 
     releaseEscrow.mutate({
       subOrderId,
-      notes: releaseNotes,
+      // notes: releaseNotes,
     });
   };
 
@@ -156,12 +156,12 @@ export default function EscrowReleaseDetail({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" asChild>
+          {/* <Button variant="outline" size="sm" asChild>
             <Link href="/admin/escrow/release-queue">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Queue
             </Link>
-          </Button>
+          </Button> */}
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               Escrow Release Details
@@ -177,7 +177,11 @@ export default function EscrowReleaseDetail({
                 onClick={() => setShowReleaseDialog(true)}
                 className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
               >
-                Release Funds ({formatNaira(subOrder.escrowInfo.amount)})
+                Release Funds (
+                {formatNaira(
+                  subOrder.escrowInfo.settlementDetails.releaseAmount
+                )}
+                )
               </Button>
             )}
         </div>
@@ -262,7 +266,9 @@ export default function EscrowReleaseDetail({
                     Sub-Order Total
                   </Label>
                   <p className="font-medium">
-                    {formatNaira(subOrder.escrowInfo.amount)}
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.totalAmount
+                    )}
                   </p>
                 </div>
                 <div>
@@ -327,8 +333,6 @@ export default function EscrowReleaseDetail({
                     <div className="flex-1">
                       <h4 className="font-medium">{product.name}</h4>
                       <div className="text-sm text-muted-foreground space-y-1">
-                        <p>Category: {product.category.join(" > ")}</p>
-                        <p>Type: {product.productType}</p>
                         {product.selectedSize && (
                           <p>
                             Size: {product.selectedSize.size} (+
@@ -608,7 +612,9 @@ export default function EscrowReleaseDetail({
                 </Label>
                 <div className="flex items-center space-x-2">
                   <p className="text-lg font-bold text-soraxi-green">
-                    {formatNaira(subOrder.escrowInfo.amount)}
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.totalAmount
+                    )}
                   </p>
                 </div>
               </div>
@@ -694,7 +700,8 @@ export default function EscrowReleaseDetail({
               Confirm Escrow Release
             </DialogTitle>
             <DialogDescription>
-              You are about to release {formatNaira(subOrder.escrowInfo.amount)}{" "}
+              You are about to release{" "}
+              {formatNaira(subOrder.escrowInfo.settlementDetails.releaseAmount)}{" "}
               to {subOrder.store.name}. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -707,9 +714,11 @@ export default function EscrowReleaseDetail({
                   <p className="font-medium">{subOrder.subOrderNumber}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="text-muted-foreground">Total Amount:</span>
                   <p className="font-medium">
-                    {formatNaira(subOrder.escrowInfo.amount)}
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.totalAmount
+                    )}
                   </p>
                 </div>
                 <div>
@@ -720,10 +729,91 @@ export default function EscrowReleaseDetail({
                   <span className="text-muted-foreground">Customer:</span>
                   <p className="font-medium">{subOrder.customer.name}</p>
                 </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Total Order Value:
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.totalOrderValue
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Shipping Cost:</span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.deliveryInfo.shippingMethod?.price || 0
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Settlement Amount:
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.settleAmount
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Settlement Amount + Shipping Cost:
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      currencyOperations.add(
+                        subOrder.escrowInfo.settlementDetails.settleAmount,
+                        subOrder.deliveryInfo.shippingMethod?.price || 0
+                      )
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Platform Commission (Seller Deduction):
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.commission
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Applied Flat Fee:
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.appliedFlatFee
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Applied Flat Fee:
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.appliedFlatFee
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Applied Percentage Fee:
+                  </span>
+                  <p className="font-medium">
+                    {formatNaira(
+                      subOrder.escrowInfo.settlementDetails.appliedPercentageFee
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div>
+            {/* <div>
               <Label htmlFor="release-notes">Release Notes (Optional)</Label>
               <Textarea
                 id="release-notes"
@@ -732,7 +822,7 @@ export default function EscrowReleaseDetail({
                 onChange={(e) => setReleaseNotes(e.target.value)}
                 className="mt-3"
               />
-            </div>
+            </div> */}
           </div>
 
           <DialogFooter>

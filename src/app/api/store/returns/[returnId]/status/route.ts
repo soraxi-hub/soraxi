@@ -140,7 +140,7 @@ export async function PUT(
               .reduce((sum: number, ret) => sum + ret.quantity, 0) || 0;
 
           const totalOrderedQuantity = subOrder.products.reduce(
-            (sum: number, product) => sum + product.quantity,
+            (sum: number, product) => sum + product.productSnapshot.quantity,
             0
           );
 

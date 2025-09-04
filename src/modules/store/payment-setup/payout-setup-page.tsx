@@ -23,7 +23,6 @@ import {
   Loader2,
   // Banknote,
   CreditCard,
-  ShieldIcon,
   EyeOff,
   Eye,
   UserIcon,
@@ -142,14 +141,6 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
 
   return (
     <div className="mx-auto px-10 py-6 space-y-8">
-      {/* Security Notice */}
-      <Alert>
-        <ShieldIcon className="h-4 w-4" />
-        <AlertDescription>
-          Your banking information is encrypted and stored securely. We use
-          industry-standard security measures to protect your financial data.
-        </AlertDescription>
-      </Alert>
       {/* Existing Accounts Section */}
       <section className="space-y-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -321,13 +312,14 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>
-                  • Payouts are processed automatically every week on Fridays
+                  • Payouts are processed weekly between Friday and Sunday once
+                  a withdrawal request is made.
                 </li>
-                <li>• Minimum payout amount is $10.00</li>
-                <li>• Platform fee of 3.5% is deducted from each sale</li>
-                <li>• Bank transfer fees may apply depending on your bank</li>
+                <li>• Minimum payout amount is ₦1,000.00</li>
+                <li>• Bank transfer fees may apply depending on your bank.</li>
                 <li>
-                  • You can track all payouts in your dashboard after setup
+                  • You can track all payouts in your wallet dashboard after
+                  setup.
                 </li>
               </ul>
             </div>

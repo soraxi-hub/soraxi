@@ -78,7 +78,7 @@ export const wishlistRouter = createTRPCRouter({
             sizes: product.sizes,
             images: product.images,
             category: product.category,
-            formattedPrice: product.formattedPrice,
+            rating: product.rating,
             productType: product.productType,
           },
           productType: p.productType,

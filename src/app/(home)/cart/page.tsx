@@ -196,14 +196,14 @@ export default async function CartPage() {
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const shipping = subtotal >= 50000 ? 0 : 5000; // Free shipping over ₦50,000
+    // const shipping = subtotal >= 50000 ? 0 : 5000; // Free shipping over ₦50,000
     // const tax = Math.round(subtotal * 0.075); // 7.5% tax rate
     // const discount = 0; // Placeholder for future discount logic
     const total = subtotal;
 
     const orderSummary = {
       subtotal,
-      shipping,
+      // shipping,
       // tax,
       // discount,
       total,

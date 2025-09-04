@@ -50,3 +50,7 @@ subOrder.escrow.refunded = true;
 ---
 
 ### 4. Use PascalCase for Mongoose model and schema names
+
+### 5. Resolve this issue: https://f63c812ac2b5.ngrok-free.app/checkout/success?trxref=Soraxi3735a119-69e9-4550-9a41-0d0c8807176d&reference=Soraxi3735a119-69e9-4550-9a41-0d0c8807176d
+
+- why the is no status attached to the url thereby, making the succes page to malfunction
