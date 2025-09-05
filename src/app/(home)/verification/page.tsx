@@ -121,7 +121,7 @@ export default function VerificationPage() {
               onClick={handleVerification}
               disabled={isVerifying || otp.length !== 6}
               size="lg"
-              className="w-full"
+              className="w-full bg-soraxi-green hover:bg-soraxi-green-hover"
             >
               {isVerifying ? <>Verifying...</> : "Verify Account"}
             </Button>

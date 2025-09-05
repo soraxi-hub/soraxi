@@ -1,14 +1,10 @@
 import type React from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Mail,
-  Phone,
-  MapPin,
+  // Phone,
+  // MapPin,
   HelpCircle,
   ShoppingCart,
   Store,
@@ -18,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
+import ContactForm from "@/components/forms/contact-form";
 
 export const metadata: Metadata = {
   title: `Help & Support | ${siteConfig.siteTitle}`,
@@ -200,38 +197,7 @@ export default function HelpPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <form className="space-y-4">
-                  <LabeledInput
-                    id="name"
-                    label="Your Name"
-                    placeholder="John Doe"
-                  />
-                  <LabeledInput
-                    id="email"
-                    type="email"
-                    label="Your Email"
-                    placeholder="you@example.com"
-                  />
-                  <LabeledInput
-                    id="subject"
-                    label="Subject"
-                    placeholder="Regarding my store setup..."
-                  />
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Describe your issue..."
-                      rows={5}
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-soraxi-green hover:bg-soraxi-green-hover text-white border border-soraxi-green"
-                  >
-                    Submit
-                  </Button>
-                </form>
+                <ContactForm />
               </CardContent>
             </Card>
 
@@ -244,12 +210,16 @@ export default function HelpPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ContactItem icon={Mail} text="support@platform.com" />
-                <ContactItem icon={Phone} text="+1 (555) 123-4567" />
                 <ContactItem
+                  icon={Mail}
+                  text={process.env.NEXT_PUBLIC_SORAXI_SUPPORT_EMAIL!}
+                  type={`email`}
+                />
+                {/* <ContactItem icon={Phone} text="+1 (555) 123-4567" /> */}
+                {/* <ContactItem
                   icon={MapPin}
                   text="123 Marketplace Blvd, Suite 100, City, Country"
-                />
+                /> */}
                 <div className="pt-4">
                   <h3 className="font-semibold">Support Hours:</h3>
                   <p className="text-sm text-muted-foreground">
@@ -321,32 +291,28 @@ function SectionHeading({
   );
 }
 
-function LabeledInput({
-  id,
-  label,
-  placeholder,
-  type = "text",
-}: {
-  id: string;
-  label: string;
-  placeholder: string;
-  type?: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} type={type} placeholder={placeholder} />
-    </div>
-  );
-}
-
 function ContactItem({
   icon: Icon,
   text,
+  type,
 }: {
   icon: React.ElementType;
   text: string;
+  type?: "email" | "phone" | "text";
 }) {
+  if (type === "email") {
+    return (
+      <div className="flex items-center space-x-3">
+        <Icon className="h-5 w-5 text-soraxi-green" />
+        <Link
+          href={`mailto:${process.env.NEXT_PUBLIC_SORAXI_SUPPORT_EMAIL}`}
+          className="underline"
+        >
+          <p className="text-sm">{text}</p>
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="flex items-center space-x-3">
       <Icon className="h-5 w-5 text-soraxi-green" />

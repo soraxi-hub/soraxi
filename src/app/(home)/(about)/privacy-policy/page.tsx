@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -648,7 +649,12 @@ export default function PrivacyPolicyPage() {
               <p className="text-muted-foreground">
                 If you have any questions, concerns, or requests regarding this
                 Privacy Policy or our privacy practices, please contact us via{" "}
-                <strong>privacy@yourplatform.com</strong>
+                <Link
+                  href={`mailto:${process.env.NEXT_PUBLIC_SORAXI_INFO_EMAIL}`}
+                  className="underline"
+                >
+                  <strong>{process.env.NEXT_PUBLIC_SORAXI_INFO_EMAIL}</strong>
+                </Link>
               </p>
 
               {/* <div className="bg-muted/50 rounded-lg p-4">

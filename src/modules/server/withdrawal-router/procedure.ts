@@ -182,7 +182,8 @@ export const withdrawalRouter = createTRPCRouter({
           // Send confirmation email to store
           await sendMail({
             email: storeDoc.storeEmail,
-            emailType: "storeOrderNotification", // Reusing template type
+            emailType: "noreply",
+            fromAddress: "noreply@soraxihub.com",
             subject: `Withdrawal Request Received: ${requestNumber}`,
             html: wrapWithBrandedTemplate({
               title: "Withdrawal Request Received",
@@ -785,7 +786,8 @@ export const withdrawalRouter = createTRPCRouter({
           // Send approval email to store
           await sendMail({
             email: storeDoc.storeEmail,
-            emailType: "storeOrderNotification", // Reusing template type
+            emailType: "noreply",
+            fromAddress: "noreply@soraxihub.com",
             subject: `Withdrawal Request Approved: ${withdrawalRequest.requestNumber}`,
             html: wrapWithBrandedTemplate({
               title: "Withdrawal Request Approved",
@@ -988,7 +990,8 @@ export const withdrawalRouter = createTRPCRouter({
           // Send rejection email to store
           await sendMail({
             email: storeDoc.storeEmail,
-            emailType: "storeOrderNotification", // Reusing template type
+            emailType: "noreply",
+            fromAddress: "noreply@soraxihub.com",
             subject: `Withdrawal Request Rejected: ${withdrawalRequest.requestNumber}`,
             html: wrapWithBrandedTemplate({
               title: "Withdrawal Request Rejected",

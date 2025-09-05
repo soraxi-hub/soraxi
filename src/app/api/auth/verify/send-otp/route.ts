@@ -6,6 +6,7 @@ import { getUserById, IUser } from "@/lib/db/models/user.model";
 import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { siteConfig } from "@/config/site";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,8 @@ export async function POST(request: NextRequest) {
     const response = await sendMail({
       email: userEmail,
       emailType: "emailVerification",
+      subject: `Complete your sign up – Verify your email for ${siteConfig.name}`,
+      fromAddress: "noreply@soraxihub.com",
       userId: userId,
     });
 

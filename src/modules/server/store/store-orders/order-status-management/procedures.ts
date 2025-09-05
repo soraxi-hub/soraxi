@@ -180,13 +180,14 @@ export const orderStatusRouter = createTRPCRouter({
             await sendMail({
               email: customerEmail,
               emailType: "storeOrderNotification",
+              fromAddress: "orders@soraxihub.com",
               subject: statusSubject,
               html: statusHtml,
               text: `Your order status has been updated to: ${input.deliveryStatus}`,
             });
 
             if (isOrderFailedOrCanceled) {
-              const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL!;
+              const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL!;
               const adminHtml = generateAdminOrderFailureHtml({
                 deliveryStatus: input.deliveryStatus,
                 orderId: input.orderId,
@@ -198,6 +199,7 @@ export const orderStatusRouter = createTRPCRouter({
               await sendMail({
                 email: adminEmail,
                 emailType: "storeOrderNotification",
+                fromAddress: "orders@soraxihub.com",
                 subject: `Order ${input.deliveryStatus} - ${input.subOrderId}`,
                 html: adminHtml,
                 text: `Order ${input.subOrderId} for store "${storeSession.name}" was marked as ${input.deliveryStatus}.`,
