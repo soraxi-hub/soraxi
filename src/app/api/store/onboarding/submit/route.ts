@@ -214,13 +214,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Send notification email to admins about new store submission
-    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL!;
+    const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL!;
     const storeEmail = store.storeEmail;
 
     // Admin notification
     await sendMail({
       email: adminEmail,
       emailType: "storeOrderNotification",
+      fromAddress: "admin@soraxihub.com",
       subject: `New Store Submission: ${updatedStore.name}`,
       html: generateAdminNotificationHtml({
         storeName: updatedStore.name,
@@ -233,6 +234,7 @@ export async function POST(request: NextRequest) {
     await sendMail({
       email: storeEmail,
       emailType: "orderConfirmation",
+      fromAddress: "noreply@soraxihub.com",
       subject: `Your store "${updatedStore.name}" was submitted for review`,
       html: generateStoreOwnerConfirmationHtml(updatedStore.name, storeEmail),
     });

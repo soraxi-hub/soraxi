@@ -28,7 +28,7 @@ const geistMono = Geist_Mono({
 
 // Global Metadata for the application
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url), // ensures relative OG/Twitter URLs resolve correctly
+  metadataBase: new URL(siteConfig.url!), // ensures relative OG/Twitter URLs resolve correctly
   title: {
     default: siteConfig.siteTitle,
     template: `%s | ${siteConfig.siteTitle}`,

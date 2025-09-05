@@ -8,30 +8,78 @@ type EmailTypes =
   | "emailVerification"
   | "passwordReset"
   | "orderConfirmation"
-  | "storeOrderNotification";
+  | "storeOrderNotification"
+  | "supportNotification"
+  | "noreply";
+
+type FromAddress =
+  | "support@soraxihub.com"
+  | "noreply@soraxihub.com"
+  | "info@soraxihub.com"
+  | "orders@soraxihub.com"
+  | "admin@soraxihub.com";
 
 type SendMail = {
   email: string;
   emailType: EmailTypes;
+  fromAddress: FromAddress;
+  subject: string;
   userId?: string;
-  subject?: string;
   html?: string;
   text?: string;
 };
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.zoho.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.ZOHO_MAIL_USERNAME,
-    pass: process.env.NEXT_SECRET_APP_SPECIFIED_KEY,
+// Define SMTP credentials for each domain email
+const emailAccounts = {
+  noreply: {
+    user: process.env.SORAXI_NOREPLY_EMAIL,
+    pass: process.env.SORAXI_NOREPLY_APP_PASSWORD,
   },
-});
+  admin: {
+    user: process.env.SORAXI_ADMIN_EMAIL,
+    pass: process.env.SORAXI_ADMIN_APP_PASSWORD,
+  },
+};
+
+// Function to create transporter dynamically
+const createTransporter = (
+  emailType: keyof typeof emailAccounts | EmailTypes
+) => {
+  let select: "noreply" | "admin";
+
+  switch (emailType) {
+    case "admin":
+    case "supportNotification":
+    case "orderConfirmation":
+    case "storeOrderNotification":
+      select = "admin";
+      break;
+    case "noreply":
+    case "passwordReset":
+    case "emailVerification":
+      select = "noreply";
+      break;
+    default:
+      select = "admin";
+      break;
+  }
+  const account = emailAccounts[select];
+
+  return nodemailer.createTransport({
+    host: "smtp.zoho.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: account.user,
+      pass: account.pass,
+    },
+  });
+};
 
 export const sendMail = async ({
   email,
   emailType,
+  fromAddress,
   userId,
   subject,
   html,
@@ -44,6 +92,7 @@ export const sendMail = async ({
     let finalSubject = subject || "";
     let finalHtml = html || "";
     const finalText = text || "";
+    const transporter = createTransporter(emailType);
 
     if (emailType === "emailVerification") {
       if (!userId) throw new Error("User ID required for email verification");
@@ -66,8 +115,12 @@ export const sendMail = async ({
       finalHtml = html;
     }
 
+    if (emailType === "supportNotification" && html) {
+      finalHtml = html;
+    }
+
     const mailOptions = {
-      from: process.env.ZOHO_MAIL_USERNAME,
+      from: fromAddress,
       to: email,
       subject: finalSubject,
       text: finalText || undefined,

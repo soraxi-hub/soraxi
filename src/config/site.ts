@@ -2,7 +2,7 @@ export const siteConfig = {
   siteTitle: "Soraxi | Unique Online Store | Spend Less. Smile More",
   name: "Soraxi",
   logo: `/svg/soraxi.svg`,
-  url: process.env.NEXT_PUBLIC_APP_URL || "https://soraxi.com",
+  url: process.env.NEXT_PUBLIC_APP_URL,
   description:
     "An innovative online E-commerce marketplace uniting buyers and sellers",
   keywords: [

@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default function TermsAndConditionsPage() {
   return (
@@ -406,7 +407,13 @@ export default function TermsAndConditionsPage() {
             <CardContent>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 If you have any questions about these Terms and Conditions,
-                please contact us via <strong>privacy@yourplatform.com</strong>
+                please contact us via{" "}
+                <Link
+                  href={`mailto:${process.env.NEXT_PUBLIC_SORAXI_INFO_EMAIL}`}
+                  className="underline"
+                >
+                  <strong>{process.env.NEXT_PUBLIC_SORAXI_INFO_EMAIL}</strong>
+                </Link>
               </p>
               {/* <div className="bg-muted/50 rounded-lg p-4">
                 <ul className="space-y-2 text-sm">

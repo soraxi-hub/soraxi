@@ -384,7 +384,8 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
           try {
             await sendMail({
               email: populatedStore.storeEmail,
-              emailType: "storeOrderNotification",
+              emailType: "noreply",
+              fromAddress: "noreply@soraxihub.com",
               subject: `Escrow Released for Order ${(
                 orderWithSubOrder._id as mongoose.Types.ObjectId
               )

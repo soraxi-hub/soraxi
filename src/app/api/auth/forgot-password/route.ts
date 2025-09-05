@@ -146,6 +146,7 @@ If you didn't request this, please ignore this email.`;
       await sendMail({
         email: email,
         emailType: "passwordReset",
+        fromAddress: "noreply@soraxihub.com",
         userId: user._id.toString(),
         subject: subject,
         html: html,
@@ -268,7 +269,7 @@ If you didn't request this, please ignore this email.`;
       await sendMail({
         email: email,
         emailType: "passwordReset",
-        userId: undefined,
+        fromAddress: "noreply@soraxihub.com",
         subject: subject,
         html: html,
         text: text,

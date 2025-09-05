@@ -195,6 +195,7 @@ export async function POST(request: Request) {
         await sendMail({
           email: storeEmail,
           emailType: "storeOrderNotification",
+          fromAddress: "orders@soraxihub.com",
           subject: `New Order Received (Order ID: ${orderId})`,
           html: `
                   <p>Hello,</p>
