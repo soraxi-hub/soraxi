@@ -28,7 +28,7 @@ export default function ContactForm() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [message, setMessage] = useState("");
-  const [ticketId, setTicketId] = useState<string | null>(null);
+  // const [ticketId, setTicketId] = useState<string | null>(null);
 
   // Handle input changes
   const handleChange = (
@@ -68,10 +68,10 @@ export default function ContactForm() {
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
 
-      setTicketId(data.ticketId);
+      // setTicketId(data.ticketId);
       setStatus("success");
       setMessage(
-        `Thanks for reaching out! Your request has been received and our support team will contact you shortly. Please keep your ticket ID (${ticketId}) for reference.`
+        `Thanks for reaching out! Your request has been received and our support team will contact you shortly. Please keep your ticket ID (${data.ticketId}) for reference.`
       );
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch {

@@ -7,6 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { TRPCReactProvider } from "@/trpc/client";
 import { siteConfig } from "@/config/site";
 import { Montserrat } from "next/font/google";
+import Script from "next/script";
 
 const montserrat = Montserrat({
   weight: ["400", "600", "700"],
@@ -98,6 +99,21 @@ export default function RootLayout({
     // Suppress hydration warnings to prevent mismatch errors
     // This is necessary because the theme provider modifies the HTML on client-side
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-C9SQ30DW93"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-C9SQ30DW93');
+          `}
+        </Script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${montserrat.className} antialiased`}
         suppressHydrationWarning
