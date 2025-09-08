@@ -13,6 +13,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import Autoplay from "embla-carousel-autoplay";
 import { siteConfig } from "@/config/site";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const testimonials = [
   {
@@ -51,6 +53,7 @@ export default function SellerTestimonials() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
+  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     if (!api) return;
@@ -69,7 +72,7 @@ export default function SellerTestimonials() {
         Hear from Our Sellers
       </h2>
 
-      <div className="mx-auto w-full max-w-xl">
+      <div className={cn("mx-auto w-full max-w-xl")}>
         <Carousel
           plugins={[
             Autoplay({
@@ -77,9 +80,10 @@ export default function SellerTestimonials() {
             }),
           ]}
           setApi={setApi}
-          className="w-full"
+          className={cn("w-ful", isMobile && `my-16`)}
+          orientation={isMobile ? `vertical` : `horizontal`}
         >
-          <CarouselContent>
+          <CarouselContent className={isMobile ? `h-62` : ``}>
             {testimonials.map((t, index) => (
               <CarouselItem key={index}>
                 <Card className="text-center shadow-lg p-4">

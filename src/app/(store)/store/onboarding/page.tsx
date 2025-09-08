@@ -59,13 +59,14 @@ export default function StoreOnboardingLandingPage() {
       {/* Hero Section */}
       <section className="text-center py-10">
         <h1 className="text-4xl font-extrabold sm:text-5xl md:text-6xl">
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-green-400">
-            {`Start Selling on Campus with ${siteConfig.name}`}
+          <span className="bg-clip-text text-soraxi-green">
+            {`Start Selling on and off Campus with ${siteConfig.name}`}
           </span>
         </h1>
         <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
-          {siteConfig.name} helps students launch and manage online storefronts,
-          reach more buyers, and grow their hustle — on and off campus.
+          {siteConfig.name} helps students, entrepreneurs, and small business
+          owners launch and manage online storefronts, reach more buyers, and
+          grow their hustle — on and off campus.
         </p>
         <div className="mt-8">
           <Button
@@ -182,13 +183,13 @@ export default function StoreOnboardingLandingPage() {
                 </TableCell>
                 <TableCell>DIY Only</TableCell>
               </TableRow>
-              <TableRow>
+              {/* <TableRow>
                 <TableCell>Order Tracking</TableCell>
                 <TableCell className="font-medium text-soraxi-green">
                   Built-in
                 </TableCell>
                 <TableCell>Manual via DM</TableCell>
-              </TableRow>
+              </TableRow> */}
             </TableBody>
           </Table>
         </div>
@@ -260,8 +261,8 @@ export default function StoreOnboardingLandingPage() {
               How long does it take to get paid?
             </AccordionTrigger>
             <AccordionContent>
-              Payouts are processed within 24–48 hours after product delivery is
-              confirmed.
+              Payouts are processed weekly between Friday and Sunday once a
+              withdrawal request is made.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-2">

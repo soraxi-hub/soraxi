@@ -137,11 +137,11 @@ export default function AboutPage() {
               <span className="text-primary block">Starting with UNICAL</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              At <strong>{siteConfig.name}</strong>, we are building a trusted
+              At <strong>{siteConfig.name}</strong>, we are creating a trusted
               marketplace that connects students, entrepreneurs, and small
               businesses within the university community. Our goal is simple:
-              make it easier for students to buy the things they need, and
-              empower vendors with the digital tools to grow their businesses.
+              make it easier for students to access they need while equipping
+              vendors with the digital tools to grow their businesses.
             </p>
           </div>
         </div>
@@ -196,8 +196,8 @@ export default function AboutPage() {
                 <p>
                   <strong>{siteConfig.name}</strong> started as a simple idea
                   within the University of Calabar: how can students buy and
-                  sell the things they need without stress, overpricing, or lack
-                  of trust?
+                  sell the things they need without stress, inflated prices, or
+                  trust issues?
                 </p>
                 <p>
                   What began as a campus-based marketplace has grown into a
@@ -209,7 +209,7 @@ export default function AboutPage() {
                 </p>
                 <p>
                   While our roots are in UNICAL, our vision extends far beyond
-                  one campus. We are building the foundation for a marketplace
+                  one campus. We're building the foundation for a marketplace
                   that will scale across Nigeria — connecting communities,
                   creating opportunities, and making online trade accessible to
                   all.
@@ -423,7 +423,7 @@ export default function AboutPage() {
                   <h3 className="text-2xl font-bold">Our Mission</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  To revolutionize e-commerce within Nigerian universities by
+                  To transform campus commerce within Nigerian universities by
                   providing students, entrepreneurs, and small businesses a
                   secure, user-friendly platform to buy and sell with
                   confidence. We aim to make commerce within campuses seamless,
@@ -463,10 +463,10 @@ export default function AboutPage() {
                   <h3 className="text-2xl font-bold">Our Vision</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  To become the leading university-centered e-commerce platform
-                  in Nigeria—where students and entrepreneurs thrive, and where
-                  the public can confidently connect with campus-driven
-                  businesses and innovations.
+                  To emerge as the leading university-centered e-commerce
+                  platform in Nigeria—where students and entrepreneurs thrive,
+                  and where the public can confidently connect with
+                  campus-driven businesses and innovations.
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">

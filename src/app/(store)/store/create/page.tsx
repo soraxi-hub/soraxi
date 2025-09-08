@@ -19,7 +19,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
-import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import AlertUI from "@/modules/shared/alert";
 
 /**
@@ -125,7 +124,9 @@ export default function CreateStorePage() {
           return;
         }
 
-        const { message } = await parseErrorFromResponse(response);
+        const {
+          error: { message },
+        } = result;
         setResError(message);
 
         throw new Error(result.error || "Failed to create store");
@@ -165,7 +166,7 @@ export default function CreateStorePage() {
         {resError && <AlertUI message={resError} variant={"destructive"} />}
 
         {/* Store Creation Form */}
-        <Card>
+        <Card className="dark:bg-muted/50">
           <CardHeader>
             <CardTitle>Store Information</CardTitle>
             <CardDescription>
@@ -322,24 +323,13 @@ export default function CreateStorePage() {
         </Card>
 
         {/* Additional Info */}
-        <Alert>
+        <Alert className="dark:bg-muted/50">
           <AlertDescription>
             After creating your store, you&apos;ll be guided through a setup
             process to configure your store profile, business information, and
             shipping methods.
           </AlertDescription>
         </Alert>
-
-        {/* Back to Dashboard Link */}
-        <div className="text-center">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/dashboard")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            ← Back to Dashboard
-          </Button>
-        </div>
       </div>
     </div>
   );

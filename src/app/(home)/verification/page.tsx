@@ -13,6 +13,13 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -85,31 +92,30 @@ export default function VerificationPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-background shadow-primary/10 rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Header Section */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-soraxi-darkmode-success">
+      <Card className="w-full max-w-md border-soraxi-green/20 rounded-2xl dark:bg-muted/50">
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-2xl font-bold text-soraxi-darkmode-success">
             Verify Your Account
-          </h1>
-          <p className="text-primary">
+          </CardTitle>
+          <CardDescription className="text-primary">
             Enter the 6-digit code sent to your email address
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
 
-        {/* OTP Input Section */}
-        <div className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* OTP Input Section */}
           <InputOTP
             maxLength={6}
             value={otp}
             onChange={setOtp}
             className="justify-center"
           >
-            <InputOTPGroup className="gap-2">
+            <InputOTPGroup className="grid grid-cols-6 gap-2 w-full">
               {[...Array(6)].map((_, index) => (
                 <InputOTPSlot
                   key={index}
                   index={index}
-                  className="w-12 h-12 text-lg border-2 border-slate-200 hover:border-blue-300 rounded-lg transition-colors"
+                  className="aspect-square text-lg border-2 rounded-lg transition-colors"
                 />
               ))}
             </InputOTPGroup>
@@ -121,7 +127,7 @@ export default function VerificationPage() {
               onClick={handleVerification}
               disabled={isVerifying || otp.length !== 6}
               size="lg"
-              className="w-full bg-soraxi-green hover:bg-soraxi-green-hover"
+              className="w-full bg-soraxi-green hover:bg-soraxi-green-hover text-white"
             >
               {isVerifying ? <>Verifying...</> : "Verify Account"}
             </Button>
@@ -138,8 +144,8 @@ export default function VerificationPage() {
               </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
