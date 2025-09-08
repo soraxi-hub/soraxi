@@ -47,7 +47,7 @@ function UserAvatar({ userName }: { userName?: string }) {
             <User2Icon className="hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!" />
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent className="dark:bg-muted/90">
           {userName ? (
             <>
               <DropdownMenuLabel>My Account</DropdownMenuLabel>

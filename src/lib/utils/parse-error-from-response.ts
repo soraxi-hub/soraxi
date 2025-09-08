@@ -14,6 +14,7 @@ export async function parseErrorFromResponse(
 ): Promise<ParsedApiError> {
   try {
     const data = await response.json();
+    console.log("data", data);
 
     return {
       message: data?.error?.message || "An unknown error occurred.",

@@ -26,6 +26,12 @@ export async function generateMetadata({ params }: ProductPageProps) {
         alt: product.name,
       })),
     },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description: product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
+      images: product.images,
+    },
   };
 }
 
