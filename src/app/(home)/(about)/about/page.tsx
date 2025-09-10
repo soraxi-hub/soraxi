@@ -140,7 +140,7 @@ export default function AboutPage() {
               At <strong>{siteConfig.name}</strong>, we are creating a trusted
               marketplace that connects students, entrepreneurs, and small
               businesses within the university community. Our goal is simple:
-              make it easier for students to access they need while equipping
+              make it easier for students to access what they need while equipping
               vendors with the digital tools to grow their businesses.
             </p>
           </div>
