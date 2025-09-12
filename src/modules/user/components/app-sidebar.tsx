@@ -8,7 +8,7 @@ import {
   // MapPinIcon,
   // CreditCardIcon,
   // StarIcon,
-  LockIcon,
+  // LockIcon,
   // BellIcon,
   // GlobeIcon,
   // HelpCircleIcon,
@@ -78,7 +78,7 @@ const sidebarItems = (user: TokenData) => [
   {
     label: "Settings",
     items: [
-      { title: "Security", url: "/security", icon: LockIcon },
+      // { title: "Security", url: "/security", icon: LockIcon },
       { title: "Edit Profile", url: "/edit-profile", icon: EditIcon },
       // { title: "Notifications", url: "/notifications", icon: BellIcon },
       // { title: "Language", url: "/language", icon: GlobeIcon },

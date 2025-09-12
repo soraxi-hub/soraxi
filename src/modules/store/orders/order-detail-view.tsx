@@ -246,7 +246,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         {/* Main Order Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* Order Status and Actions */}
-          <Card className="bg-muted/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -480,7 +480,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Products in Order */}
-          <Card className="bg-muted/50">
+          <Card>
             <CardHeader>
               <CardTitle>Order Items</CardTitle>
             </CardHeader>
@@ -551,7 +551,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         {/* Sidebar Information */}
         <div className="space-y-6">
           {/* Customer Information */}
-          <Card className="bg-muted/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -585,7 +585,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Shipping Information */}
-          <Card className="bg-muted/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -629,7 +629,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Payment Information */}
-          <Card className="bg-muted/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -668,7 +668,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
 
           {/* Order Timeline */}
-          <Card className="bg-muted/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />

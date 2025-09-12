@@ -9,15 +9,16 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { redirect } from "next/navigation";
-import { siteConfig } from "@/config/site";
 
-// Metadata for the application
 export const metadata: Metadata = {
-  title: siteConfig.siteTitle,
-  description: siteConfig.description,
-  keywords: siteConfig.keywords,
-  icons: {
-    icon: "/favicon.ico",
+  robots: {
+    index: false, // ✅ best practice: prevent indexing cart pages
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
   },
 };
 

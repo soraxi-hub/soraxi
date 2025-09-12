@@ -39,7 +39,7 @@ export function UserOrders({ userId }: { userId: string }) {
             orders.map((order) => (
               <div
                 key={order._id}
-                className="py-6 px-4 md:px-6 bg-card hover:bg-card/95 transition-colors"
+                className="py-6 px-4 md:px-6 bg-card dark:bg-muted/50 hover:bg-card/95 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
                   <div className="space-y-1">

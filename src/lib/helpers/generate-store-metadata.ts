@@ -32,6 +32,14 @@ export async function generateStoreMetadata(
       store.name
     )} | ${siteConfig.name}`,
     description,
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+      },
+    },
   };
 }
 
