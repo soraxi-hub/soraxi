@@ -180,6 +180,8 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
 
+    const hostname = request.nextUrl.hostname;
+
     // Set the token in an HTTP-only cookie
     response.cookies.set("store", token, {
       httpOnly: true,
@@ -187,8 +189,7 @@ export async function POST(request: NextRequest) {
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
       sameSite: "lax",
-      domain:
-        process.env.NODE_ENV === "production" ? ".soraxihub.com" : undefined,
+      domain: hostname.endsWith("soraxihub.com") ? ".soraxihub.com" : undefined,
     });
 
     // Optional: reissue userToken with storeId
@@ -210,8 +211,7 @@ export async function POST(request: NextRequest) {
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
       sameSite: "lax",
-      domain:
-        process.env.NODE_ENV === "production" ? ".soraxihub.com" : undefined,
+      domain: hostname.endsWith("soraxihub.com") ? ".soraxihub.com" : undefined,
     });
 
     // Return success response with store information

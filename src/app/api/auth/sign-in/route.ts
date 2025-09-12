@@ -61,14 +61,15 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
+    const hostname = request.nextUrl.hostname;
+
     response.cookies.set("user", token, {
       httpOnly: true,
       maxAge: oneDayInSeconds,
-      path: "/", // optional
-      secure: process.env.NODE_ENV === "production", // secure only in production
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      domain:
-        process.env.NODE_ENV === "production" ? ".soraxihub.com" : undefined,
+      domain: hostname.endsWith("soraxihub.com") ? ".soraxihub.com" : undefined,
     });
 
     return response;
