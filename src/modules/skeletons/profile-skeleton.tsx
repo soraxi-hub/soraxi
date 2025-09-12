@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const ProfileSkeleton = () => (
-  <div className="p-8">
+  <div className="py-8">
     <div className="space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <Skeleton className="h-10 w-32" />

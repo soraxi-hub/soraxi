@@ -124,20 +124,42 @@ export default function StoreProfile() {
               <CardTitle className="text-2xl">Product Inventory</CardTitle>
             </CardHeader>
             <CardContent>
-              <div
-                className={`grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
-              >
-                {products.map((product) => (
-                  <Link key={product._id} href={`/products/${product.slug}`}>
-                    <ProductCard
-                      product={{
-                        ...product,
-                        id: product._id,
-                      }}
-                    />
-                  </Link>
-                ))}
-              </div>
+              {products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-24 h-24 rounded-full flex justify-center items-center bg-soraxi-green/10">
+                    <Package className="h-12 w-12 text-soraxi-green" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 mt-8">
+                    You haven’t added any products yet
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6 max-w-md">
+                    Start building your store by uploading your first product.
+                    Products you add will appear here and be visible to your
+                    customers.
+                  </p>
+                  <Button
+                    asChild
+                    className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+                  >
+                    <Link href={`/store/${store._id}/products/upload`}>
+                      Add Your First Product
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {products.map((product) => (
+                    <Link key={product._id} href={`/products/${product.slug}`}>
+                      <ProductCard
+                        product={{
+                          ...product,
+                          id: product._id,
+                        }}
+                      />
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

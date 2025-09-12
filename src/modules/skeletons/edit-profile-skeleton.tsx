@@ -4,7 +4,7 @@ import { User, MapPin } from "lucide-react";
 
 export default function EditProfileSkeleton() {
   return (
-    <main className="p-8">
+    <main className="py-8">
       {/* Page Title Skeleton */}
       <div className="flex items-center gap-4 mb-6">
         <h1 className="sm:text-2xl font-bold flex items-center gap-2">

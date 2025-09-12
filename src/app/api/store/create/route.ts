@@ -8,6 +8,8 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import mongoose from "mongoose";
+import { StoreTokenPayload } from "@/lib/helpers/get-store-data-from-token";
+import jwt from "jsonwebtoken";
 
 /**
  * API Route: Create New Store
@@ -62,12 +64,9 @@ export async function POST(request: NextRequest) {
     const User = await getUserModel();
 
     // Check if user already has a store
-    const existingUserStore = await User.findOne({
-      _id: userData.id,
-      "stores.storeId": { $exists: true },
-    });
+    const existingUserStore = await User.findById(userData.id).select("stores");
 
-    if (existingUserStore) {
+    if (existingUserStore && existingUserStore.stores.length > 0) {
       throw new AppError("Cannot create multiple stores", 400);
     }
 
@@ -148,8 +147,23 @@ export async function POST(request: NextRequest) {
       $push: { stores: { storeId: savedStore._id } },
     });
 
-    // Return success response with store information
-    return NextResponse.json(
+    // Build token payload
+    const tokenData: StoreTokenPayload = {
+      id: savedStore._id.toString(),
+      name: savedStore.name,
+      storeEmail: savedStore.storeEmail,
+      status: savedStore.status,
+    };
+
+    // One Day in seconds
+    const oneDayInSeconds = 24 * 60 * 60;
+
+    // Sign JWT
+    const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
+      expiresIn: oneDayInSeconds,
+    });
+
+    const response = NextResponse.json(
       {
         success: true,
         message: "Store created successfully",
@@ -165,6 +179,43 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+
+    const hostname = request.nextUrl.hostname;
+
+    // Set the token in an HTTP-only cookie
+    response.cookies.set("store", token, {
+      httpOnly: true,
+      maxAge: oneDayInSeconds,
+      path: "/", // optional
+      secure: process.env.NODE_ENV === "production", // secure only in production
+      sameSite: "lax",
+      domain: hostname.endsWith("soraxihub.com") ? ".soraxihub.com" : undefined,
+    });
+
+    // Optional: reissue userToken with storeId
+    const userPayload = {
+      id: userData.id,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      store: savedStore._id.toString(),
+    };
+
+    const newUserToken = jwt.sign(userPayload, process.env.JWT_SECRET_KEY!, {
+      expiresIn: oneDayInSeconds,
+    });
+
+    response.cookies.set("user", newUserToken, {
+      httpOnly: true,
+      maxAge: oneDayInSeconds,
+      path: "/", // optional
+      secure: process.env.NODE_ENV === "production", // secure only in production
+      sameSite: "lax",
+      domain: hostname.endsWith("soraxihub.com") ? ".soraxihub.com" : undefined,
+    });
+
+    // Return success response with store information
+    return response;
   } catch (error) {
     console.error("Error creating store:", error);
 

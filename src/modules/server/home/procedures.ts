@@ -98,39 +98,60 @@ export const homeRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const { slug } = input;
 
-      const product = await getProductBySlug(slug);
+      try {
+        const product = await getProductBySlug(slug);
 
-      if (!product) {
+        if (!product) {
+          throw new TRPCError({
+            message: "Product not found",
+            code: "NOT_FOUND",
+          });
+        }
+
+        const formattedProduct = {
+          id: (product._id as string).toString(),
+          storeID: product.storeID.toString(),
+          productType: product.productType,
+          name: product.name,
+          description: product.description,
+          specifications: product.specifications,
+          productQuantity: product.productQuantity,
+          sizes: product.sizes,
+          price: product.price,
+          images: product.images,
+          category: product.category,
+          subCategory: product.subCategory,
+          rating: product.rating || 0,
+          slug: product.slug,
+          isVerifiedProduct: product.isVerifiedProduct,
+          formattedPrice: product.formattedPrice,
+        };
+
+        return {
+          success: true,
+          product: formattedProduct,
+        };
+      } catch (err: any) {
+        // 🔹 Detect network-related issues
+        if (
+          err?.code === "ENOTFOUND" ||
+          err?.name === "MongoNetworkError" ||
+          err?.message?.includes("getaddrinfo")
+        ) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "NETWORK_ERROR", // <- client can detect this
+            cause: err,
+          });
+        }
+
+        // 🔹 Fallback: any other server error
         throw new TRPCError({
-          message: "Product not Found",
-          code: "NOT_FOUND",
-          cause: "Product not Found",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch product. Please try again later.",
+          cause: err,
         });
       }
-
-      const formattedProduct = {
-        id: (product._id as string).toString(),
-        storeID: product.storeID.toString(),
-        productType: product.productType,
-        name: product.name,
-        description: product.description,
-        specifications: product.specifications,
-        productQuantity: product.productQuantity,
-        sizes: product.sizes,
-        price: product.price,
-        images: product.images,
-        category: product.category,
-        subCategory: product.subCategory,
-        rating: product.rating || 0,
-        slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
-        formattedPrice: product.formattedPrice,
-      };
-
-      return {
-        success: true,
-        product: formattedProduct,
-      };
     }),
 
   /**

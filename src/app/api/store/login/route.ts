@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       message: "Login successful",
       tokenData, // optional, if frontend needs access to token info
       store: {
-        id: store._id,
+        id: store._id.toString(),
         name: store.name,
         storeEmail: store.storeEmail,
         status: store.status,
@@ -100,12 +100,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const hostname = request.nextUrl.hostname;
+
     // Set the token in an HTTP-only cookie
     response.cookies.set("store", token, {
       httpOnly: true,
       maxAge: oneDayInSeconds,
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
+      sameSite: "lax",
+      domain: hostname.endsWith("soraxihub.com") ? ".soraxihub.com" : undefined,
     });
 
     return response;

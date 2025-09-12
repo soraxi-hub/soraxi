@@ -42,7 +42,7 @@ export function Wishlist() {
   };
 
   return (
-    <main className="py-6">
+    <main className="py-8">
       {/* Wishlist Header */}
       <section>
         <div className="flex items-center justify-between mb-6">
