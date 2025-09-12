@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
 
   const hostname = request.nextUrl.hostname;
 
-  response.cookies.set("admin", "", {
+  response.cookies.set("adminToken", "", {
     httpOnly: true,
     maxAge: 0,
     path: "/",

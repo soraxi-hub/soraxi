@@ -24,5 +24,13 @@ export async function generateUserMetadata(
   return {
     title: `${page} | ${siteConfig.name}`,
     description,
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+      },
+    },
   };
 }

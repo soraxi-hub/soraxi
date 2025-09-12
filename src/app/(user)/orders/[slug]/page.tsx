@@ -22,11 +22,11 @@ import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
-import { OrderHeader } from "@/components/order/order-header";
-import { OrderSummary } from "@/components/order/order-summary";
-import { StoreAccordion } from "@/components/order/store-accordion";
-import { ReviewDialog } from "@/components/order/review-dialog";
-import { ReturnsDialog } from "@/components/order/returns-dialog";
+import { OrderHeader } from "@/modules/user/order/order-header";
+import { OrderSummary } from "@/modules/user/order/order-summary";
+import { StoreAccordion } from "@/modules/user/order/store-accordion";
+import { ReviewDialog } from "@/modules/user/order/review-dialog";
+import { ReturnsDialog } from "@/modules/user/order/returns-dialog";
 
 interface PageParams {
   slug: string;

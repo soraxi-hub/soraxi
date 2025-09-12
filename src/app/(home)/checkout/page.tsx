@@ -57,6 +57,10 @@ export const metadata: Metadata = {
     index: false, // ✅ best practice: prevent indexing checkout pages
     follow: true,
     nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
   },
 };
 

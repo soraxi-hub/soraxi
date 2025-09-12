@@ -31,6 +31,7 @@ import { getStatusBadge } from "@/lib/utils";
 import { ProductItem } from "./product-item";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
+import { OrderTimeline } from "./order-timeline";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -104,7 +105,7 @@ export function StoreAccordion({
                   className="border rounded-lg"
                 >
                   <AccordionTrigger className="px-4 hover:no-underline">
-                    <div className="flex items-center justify-between w-full pr-4">
+                    <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-4">
                         <Store className="w-5 h-5 text-primary" />
                         <span className="font-medium">
@@ -128,7 +129,7 @@ export function StoreAccordion({
                   </AccordionTrigger>
 
                   <AccordionContent className="px-4 pt-4">
-                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div className="grid md:grid-cols-2 gap-6 mb-2">
                       <div className="space-y-2">
                         <DetailItem
                           icon={
@@ -137,6 +138,7 @@ export function StoreAccordion({
                           label="Shipping Method"
                           value={subOrder.shippingMethod?.name || "N/A"}
                         />
+
                         <DetailItem
                           icon={
                             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -241,13 +243,15 @@ export function StoreAccordion({
                             value={"Auto Confirmed"}
                           />
                         )}
+
+                        <OrderTimeline subOrder={subOrder} />
                       </div>
                     </div>
 
                     <Separator className="mb-6" />
 
                     {/* Products Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subOrder.products.map(
                         (product: any, productIndex: number) => (
                           <ProductItem

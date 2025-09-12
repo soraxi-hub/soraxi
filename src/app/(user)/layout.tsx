@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "../globals.css";
 
-import { siteConfig } from "@/config/site";
 import {
   SidebarInset,
   SidebarProvider,
@@ -14,11 +13,14 @@ import { HomeHeader } from "@/components/layout/home/home-nav";
 import { Fragment } from "react";
 
 export const metadata: Metadata = {
-  title: siteConfig.siteTitle,
-  description: siteConfig.description,
-  keywords: siteConfig.keywords,
-  icons: {
-    icon: "/favicon.ico",
+  robots: {
+    index: false, // ✅ best practice: prevent indexing cart pages
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
   },
 };
 

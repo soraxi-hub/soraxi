@@ -26,6 +26,7 @@ export async function middleware(request: NextRequest) {
     "/cart",
     "/admin-sign-in",
     "/products/:path*",
+    "/category/:path*",
     "/forgot-password",
     "/reset-password",
     "/store/onboarding",
