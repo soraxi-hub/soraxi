@@ -64,6 +64,11 @@ export async function POST(request: NextRequest) {
     response.cookies.set("user", token, {
       httpOnly: true,
       maxAge: oneDayInSeconds,
+      path: "/", // optional
+      secure: process.env.NODE_ENV === "production", // secure only in production
+      sameSite: "lax",
+      domain:
+        process.env.NODE_ENV === "production" ? ".soraxihub.com" : undefined,
     });
 
     return response;

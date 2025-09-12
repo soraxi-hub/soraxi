@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import CartCount from "@/components/cart-count";
-import UserAvatar from "@/components/userAvater";
+import UserAvatar from "@/components/user-avater";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";

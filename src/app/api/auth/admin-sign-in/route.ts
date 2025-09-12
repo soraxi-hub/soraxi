@@ -118,6 +118,8 @@ export async function POST(request: NextRequest) {
       path: "/",
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
+      domain:
+        process.env.NODE_ENV === "production" ? ".soraxihub.com" : undefined,
     });
 
     return response;

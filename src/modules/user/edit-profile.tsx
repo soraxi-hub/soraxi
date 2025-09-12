@@ -81,7 +81,7 @@ const EditProfile = () => {
   };
 
   return (
-    <main className="p-8">
+    <main className="py-8">
       <div className="flex items-center gap-4 mb-6">
         <h1 className="sm:text-2xl font-bold flex items-center gap-2">
           <User className="w-6 h-6" />

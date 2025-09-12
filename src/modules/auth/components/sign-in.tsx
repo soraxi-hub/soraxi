@@ -118,6 +118,7 @@ function SignIn() {
       if (response.data.success === true || response.status === 200) {
         toast.success(`You have Successfully signed In.`);
         router.push(redirect);
+        router.refresh();
       } else {
         toast.error("Sign In Failed. Please try again.");
       }

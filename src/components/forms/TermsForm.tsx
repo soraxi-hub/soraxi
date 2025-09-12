@@ -214,7 +214,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-32 w-full border border-border rounded-lg p-4 mb-4">
+            <ScrollArea className="h-52 w-full border border-border rounded-lg p-4 mb-4">
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
                   <strong>1. Acceptance of Terms</strong>
@@ -239,15 +239,15 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
                   You may not sell illegal items, counterfeit goods, hazardous
                   materials, or items that violate intellectual property rights.
                 </p>
-                <p>
+                {/* <p>
                   <strong>4. Platform Fees</strong>
                 </p>
                 <p>
                   We charge a 3.5% platform fee on each successful sale. Payment
                   processing fees may also apply.
-                </p>
+                </p> */}
                 <p>
-                  <strong>5. Account Suspension</strong>
+                  <strong>4. Account Suspension</strong>
                 </p>
                 <p>
                   We reserve the right to suspend or terminate accounts that
@@ -284,7 +284,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-32 w-full border border-border rounded-lg p-4 mb-4">
+            <ScrollArea className="h-52 w-full border border-border rounded-lg p-4 mb-4">
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
                   <strong>1. Information Collection</strong>
@@ -354,7 +354,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-32 w-full border border-border rounded-lg p-4 mb-4">
+            <ScrollArea className="h-52 w-full border border-border rounded-lg p-4 mb-4">
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
                   <strong>1. Product Quality</strong>
@@ -416,7 +416,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
 
         {/* Information Confirmation */}
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="confirmInformation"

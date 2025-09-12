@@ -9,7 +9,7 @@ import {
   // StarIcon,
   // LockIcon,
   // GlobeIcon,
-  HelpCircleIcon,
+  // HelpCircleIcon,
   MailIcon,
   BriefcaseIcon,
   // Share2Icon,
@@ -135,11 +135,11 @@ const sidebarItems = (storeId: string) => [
   {
     label: "Support",
     items: [
-      {
-        title: "Store Help",
-        url: `/store/${storeId}/help`,
-        icon: HelpCircleIcon,
-      },
+      // {
+      //   title: "Store Help",
+      //   url: `/store/${storeId}/help`,
+      //   icon: HelpCircleIcon,
+      // },
       {
         title: "Contact Support",
         url: `/support`,
@@ -187,7 +187,7 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center space-x-2">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-foreground truncate w-56">
               Welcome back {store.name}!
             </h2>
             <p className="text-xs text-muted-foreground">

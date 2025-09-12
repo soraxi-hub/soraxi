@@ -131,7 +131,7 @@ export function UserOrders({ userId }: { userId: string }) {
               </div>
             ))
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-card min-h-[300px]">
+            <div className="flex flex-col items-center justify-center rounded-lg mt-4 py-12 text-center bg-card dark:bg-muted/50 min-h-[300px]">
               <XCircle className="h-12 w-12 text-soraxi-green mb-4" />
               <h3 className="mt-4 text-xl font-semibold text-foreground">
                 No orders found

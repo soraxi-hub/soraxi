@@ -57,9 +57,17 @@ export async function POST(request: NextRequest) {
 
     const Product = await getProductModel();
     const Store = await getStoreModel();
-    const store = await Store.findById(storeSession.id).select("password");
+    const store = await Store.findById(storeSession.id).select(
+      "password status verification"
+    );
     if (!store) {
       throw new AppError("Store not found", 404);
+    }
+
+    // Check if store is active and verified
+    // if (store.status !== "active" || !store.verification?.isVerified) {
+    if (store.status !== "active") {
+      throw new AppError("Store is not verified or active.", 403);
     }
 
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);

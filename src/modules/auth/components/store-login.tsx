@@ -28,6 +28,31 @@ import { toast } from "sonner";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import AlertUI from "@/modules/shared/alert";
 import Link from "next/link";
+import { StoreTokenPayload } from "@/lib/helpers/get-store-data-from-token";
+import { IStore } from "@/lib/db/models/store.model";
+
+type ApiResponse = {
+  success: boolean;
+  message: string;
+  tokenData: StoreTokenPayload;
+  store: {
+    id: string;
+    name: string;
+    storeEmail: string;
+    status: IStore["status"];
+    verification: IStore["verification"];
+    onboarding: {
+      isComplete: boolean;
+      completedSteps: number;
+      totalSteps: number;
+      percentage: number;
+      profileComplete: boolean;
+      businessInfoComplete: boolean;
+      shippingComplete: boolean;
+      termsComplete: boolean;
+    };
+  };
+};
 
 /**
  * Store Login Form Schema
@@ -96,7 +121,7 @@ export default function StoreLoginPage() {
         return;
       }
 
-      const result = await response.json();
+      const result: ApiResponse = await response.json();
 
       // Success toast
       toast.success(`Welcome back to ${result.store.name}!`);
@@ -107,8 +132,10 @@ export default function StoreLoginPage() {
       ) {
         const nextStep = determineOnboardingStep(result.store.onboarding);
         router.push(`/store/onboarding/${result.store.id}/${nextStep}`);
+        router.refresh();
       } else {
         router.push(redirectTo);
+        router.refresh();
       }
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -129,15 +156,13 @@ export default function StoreLoginPage() {
     profileComplete: boolean;
     businessInfoComplete: boolean;
     shippingComplete: boolean;
-    payoutComplete: boolean;
     termsComplete: boolean;
-  }): string => {
+  }): "profile" | "business-info" | "shipping" | "terms" => {
     if (!onboarding) return "profile";
 
     if (!onboarding.profileComplete) return "profile";
     if (!onboarding.businessInfoComplete) return "business-info";
     if (!onboarding.shippingComplete) return "shipping";
-    if (!onboarding.payoutComplete) return "payout";
     if (!onboarding.termsComplete) return "terms";
 
     return "profile"; // fallback

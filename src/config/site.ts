@@ -1,13 +1,28 @@
 export const siteConfig = {
-  siteTitle: "Soraxi | Unique Online Store | Spend Less. Smile More",
+  siteTitle: "SORAXI | Campus Marketplace for Students & Vendors",
+  description:
+    "SORAXI is a student-centered e-commerce platform designed for Nigerian universities. We connect students with trusted campus vendors, making it easier to buy fashion, gadgets, school supplies, food, and personal care products at affordable prices.",
+  keywords: [
+    "SORAXI",
+    "Campus marketplace",
+    "Student e-commerce platform",
+    "University online shopping",
+    "Buy and sell on campus",
+    "Affordable student shopping",
+    "Secure campus transactions",
+    "UNICAL online marketplace",
+    "Student vendors platform",
+    "Digital campus store",
+    "Local vendor visibility",
+    "Fashion and gadgets for students",
+    "School supplies online",
+    "Groceries on campus",
+    "Trusted student marketplace",
+    "E-commerce for Nigerian universities",
+  ],
   name: "Soraxi",
   logo: `/svg/soraxi.svg`,
   url: process.env.NEXT_PUBLIC_APP_URL,
-  description:
-    "An innovative online E-commerce marketplace uniting buyers and sellers",
-  keywords: [
-    "Online marketplace, E-commerce platform, Buy and sell online, Innovative shopping, Unique online store, Digital marketplace, Shopping hub, Alfa-Mercado marketplace, Secure online transactions, Quality products online, Easy online shopping, Seller collaboration, Diverse product range, Digital storefront, Virtual shopping experience, User-friendly marketplace, Exclusive deals, Reliable e-commerce, Virtual storefront, Seamless online shopping",
-  ],
   footer: [
     { name: "About us", href: "/about" },
     { name: "Terms & Conditions", href: "/terms-conditions" },
