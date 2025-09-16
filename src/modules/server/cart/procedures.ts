@@ -5,43 +5,48 @@ import {
   addItemToCart,
   removeItemFromCart,
   updateCartItemQuantity,
+  addIdempotencyKeyToCart,
 } from "@/lib/db/models/cart.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel } from "@/lib/db/models/product.model";
+import { generateUniqueId } from "@/lib/utils";
 
 export const cartRouter = createTRPCRouter({
   // ✅ Get cart by user ID
-  getByUserId: baseProcedure
-    .input(
-      z.object({
-        userId: z.string(),
-      })
-    )
-    .query(async ({ input }) => {
-      const cart = await getCartByUserId(input.userId);
-      if (!cart) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Cart for user ${input.userId} not found.`,
-        });
-      }
+  getByUserId: baseProcedure.query(async ({ ctx }) => {
+    const { user } = ctx;
 
-      const formatedCart = {
-        user: cart.user,
-        items: cart.items.map((item) => ({
-          product: item.product,
-          storeID: item.storeID,
-          quantity: item.quantity,
-          productType: item.productType,
-          selectedSize: item.selectedSize,
-        })),
-        createdAt: cart.createdAt,
-        updatedAt: cart.updatedAt,
-      };
+    if (!user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
+    }
 
-      return formatedCart;
-    }),
+    const cart = await getCartByUserId(user.id);
+    if (!cart) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Cart for user ${user.id} not found.`,
+      });
+    }
+
+    const formatedCart = {
+      user: cart.user,
+      items: cart.items.map((item) => ({
+        product: item.product,
+        storeID: item.storeID,
+        quantity: item.quantity,
+        productType: item.productType,
+        selectedSize: item.selectedSize,
+      })),
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt,
+    };
+
+    return formatedCart;
+  }),
 
   // ✅ Add item to cart
   addItem: baseProcedure
@@ -77,14 +82,22 @@ export const cartRouter = createTRPCRouter({
   removeItem: baseProcedure
     .input(
       z.object({
-        userId: z.string(),
         productId: z.string(),
         size: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const { user } = ctx;
+
+      if (!user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
       const updatedCart = await removeItemFromCart(
-        input.userId,
+        user.id,
         input.productId,
         input.size
       );
@@ -101,20 +114,28 @@ export const cartRouter = createTRPCRouter({
   updateQuantity: baseProcedure
     .input(
       z.object({
-        userId: z.string(),
         productId: z.string(),
         quantity: z.number().min(0), // 0 means remove
         size: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // console.log("userid", input.userId);
       // console.log("productid", input.productId);
       // console.log("qty", input.quantity);
       // console.log("size", input.size);
+      const { user } = ctx;
+
+      if (!user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
       if (input.quantity === 0) {
         const removed = await removeItemFromCart(
-          input.userId,
+          user.id,
           input.productId,
           input.size
         );
@@ -122,7 +143,7 @@ export const cartRouter = createTRPCRouter({
       }
 
       const updatedCart = await updateCartItemQuantity(
-        input.userId,
+        user.id,
         input.productId,
         input.quantity,
         input.size
@@ -150,7 +171,7 @@ export const cartRouter = createTRPCRouter({
         id: p._id.toString(),
         name: p.name,
         slug: p.slug,
-        image: p.images[0] ?? "/placeholder.png",
+        image: p.images[0],
         price: p.price,
         // originalPrice: p.originalPrice,
         inStock: p.productQuantity > 0 ? true : false,
@@ -159,4 +180,43 @@ export const cartRouter = createTRPCRouter({
         productType: p.productType,
       }));
     }),
+
+  /**
+   * Procedure for adding idempotency key to cart
+   * This can help prevent duplicate charges during checkout
+   */
+  addIdempotencyKey: baseProcedure.mutation(async ({ ctx }) => {
+    const { user } = ctx;
+
+    try {
+      if (!user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User must be logged in to add idempotency key",
+        });
+      }
+
+      const idempotencyKey = `IDK-${generateUniqueId(12).toUpperCase()}`;
+
+      const updatedCart = await addIdempotencyKeyToCart(
+        user.id,
+        idempotencyKey
+      );
+
+      if (!updatedCart) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Cart not found",
+        });
+      }
+
+      return updatedCart;
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to add idempotency key",
+        cause: error,
+      });
+    }
+  }),
 });

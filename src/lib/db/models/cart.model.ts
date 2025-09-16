@@ -26,6 +26,7 @@ export interface ICart extends Document {
   items: ICartItem[];
   createdAt: Date;
   updatedAt: Date;
+  idempotencyKey?: string;
 }
 
 /**
@@ -76,6 +77,9 @@ const CartSchema = new Schema<ICart>(
       unique: true,
     },
     items: [CartItemSchema],
+    idempotencyKey: {
+      type: String,
+    },
   },
   {
     timestamps: true,
@@ -258,5 +262,24 @@ export async function clearUserCart(userId: string): Promise<ICart | null> {
     { user: userId },
     { $set: { items: [] } }, // Set items array to empty
     { new: true } // Return the updated document
+  );
+}
+
+/**
+ * Add idempotency key to a user's cart
+ *
+ * This key can be used to prevent duplicate operations (e.g., during checkout).
+ */
+export async function addIdempotencyKeyToCart(
+  userId: string,
+  idempotencyKey: string
+): Promise<ICart | null> {
+  await connectToDatabase();
+  const Cart = await getCartModel();
+
+  return await Cart.findOneAndUpdate<ICart>(
+    { user: userId },
+    { $set: { idempotencyKey } },
+    { new: true }
   );
 }

@@ -6,14 +6,14 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: `Payment Successful | ${siteConfig.siteTitle}`,
+  title: `Payment Successful`,
   description:
     "Your payment was successful! Thank you for shopping with Soraxi. Your order is being processed and you’ll receive updates soon.",
   openGraph: {
     title: `Payment Successful | ${siteConfig.siteTitle}`,
     description:
       "Your payment has been confirmed. Soraxi is processing your order and will update you shortly.",
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success`,
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-status`,
     siteName: `${siteConfig.siteTitle}`,
     images: [
       {
@@ -49,7 +49,10 @@ export const dynamic = "force-dynamic";
 interface Props {
   searchParams: Promise<{
     status?: string;
-    trxref?: string;
+    trxref?: string; // PayStack gateways use trxref
+    tx_ref?: string; // Flutterwave gateways use trx_ref
+    transaction_id?: string; // Flutterwave gateways use transaction_id
+    [key: string]: string | undefined;
   }>;
 }
 

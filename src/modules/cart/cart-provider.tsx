@@ -39,7 +39,7 @@ export async function CartProvider() {
      * This ensures the cart data is available immediately when
      * the page renders on the client.
      */
-    const cart = await caller.cart.getByUserId({ userId: user.id });
+    const cart = await caller.cart.getByUserId();
 
     // Transform server data to client format
     // Same transformation logic as client-side version for consistency

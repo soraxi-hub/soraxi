@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { categories } from "@/constants/constant";
 
 export function EmptyCart() {
   return (
@@ -17,7 +18,7 @@ export function EmptyCart() {
         shopping to fill it up!
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <Button
           className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
           asChild
@@ -27,29 +28,17 @@ export function EmptyCart() {
             Continue Shopping
           </Link>
         </Button>
-
-        <Button variant="outline" asChild>
-          <Link href="/categories">Browse Categories</Link>
-        </Button>
       </div>
 
       {/* Popular Categories */}
       <div className="mt-12">
         <h3 className="text-lg font-medium mb-4">Popular Categories</h3>
         <div className="flex flex-wrap justify-center gap-2">
-          {["Electronics", "Fashion", "Furniture", "Clothing", "Toys"].map(
-            (category) => (
-              <Button key={category} variant="outline" size="sm" asChild>
-                <Link
-                  href={`/category/${category
-                    .toLowerCase()
-                    .replace(" & ", "-")}`}
-                >
-                  {category}
-                </Link>
-              </Button>
-            )
-          )}
+          {categories.slice(0, 5).map((category) => (
+            <Button key={category.name} variant="outline" size="sm" asChild>
+              <Link href={`/category/${category.slug}`}>{category.name}</Link>
+            </Button>
+          ))}
         </div>
       </div>
     </div>

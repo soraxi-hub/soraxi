@@ -21,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNaira } from "@/lib/utils/naira";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
+import { DeliveryType } from "@/enums";
+import { campusLocations } from "@/modules/checkout/order-summary";
 
 type Output = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -110,7 +112,11 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
             icon={<MapPin className="h-4 w-4 text-muted-foreground" />}
             label="Shipping Address"
             value={
-              orderDetails.shippingAddress?.address ?? "No address provided"
+              orderDetails.shippingAddress?.deliveryType === DeliveryType.Campus
+                ? `Campus Delivery (${campusLocations
+                    .slice(0, 2)
+                    .join(", ")}...)`
+                : orderDetails.shippingAddress?.address ?? "No address provided"
             }
           />
           <DetailItem

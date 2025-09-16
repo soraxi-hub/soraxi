@@ -1,3 +1,4 @@
+import { DeliveryStatus, DeliveryType, StatusHistory } from "@/enums";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -78,16 +79,7 @@ export interface SubOrder {
   store: PopulatedStore;
   products: OrderProduct[];
   totalAmount: number;
-  deliveryStatus:
-    | "Order Placed"
-    | "Processing"
-    | "Shipped"
-    | "Out for Delivery"
-    | "Delivered"
-    | "Canceled"
-    | "Returned"
-    | "Failed Delivery"
-    | "Refunded";
+  deliveryStatus: DeliveryStatus;
   shippingMethod?: {
     name: string;
     price: number;
@@ -117,21 +109,7 @@ export interface SubOrder {
     notes: string;
   };
   statusHistory: Array<{
-    status:
-      | "Order Placed"
-      | "Processing"
-      | "Shipped"
-      | "Out for Delivery"
-      | "Delivered"
-      | "Canceled"
-      | "Return Requested"
-      | "Returned"
-      | "Failed Delivery"
-      | "Approved" // For when the return is approved
-      | "Rejected" // For when the return is rejected
-      | "In-Transit" // For when the return is in transit
-      | "Received" // For when the return is received
-      | "Refunded"; // For when the return is refunded
+    status: StatusHistory;
     timestamp: Date;
     notes?: string;
   }>;
@@ -161,6 +139,7 @@ export interface FormattedOrder {
   shippingAddress?: {
     postalCode: string;
     address: string;
+    deliveryType: DeliveryType;
   };
   notes?: string;
   createdAt: Date;
@@ -229,6 +208,7 @@ export interface FormattedOrderForAdmin {
   shippingAddress?: {
     postalCode: string;
     address: string;
+    deliveryType: DeliveryType;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -251,6 +231,7 @@ export interface RawOrderDocument {
   shippingAddress?: {
     postalCode: string;
     address: string;
+    deliveryType: DeliveryType;
   };
   notes?: string;
   createdAt: Date;
@@ -283,7 +264,7 @@ export interface RawOrderDocument {
       };
     }>;
     totalAmount: number;
-    deliveryStatus: string;
+    deliveryStatus: DeliveryStatus;
     shippingMethod?: {
       name: string;
       price: number;
@@ -313,21 +294,7 @@ export interface RawOrderDocument {
       notes: string;
     };
     statusHistory: Array<{
-      status:
-        | "Order Placed"
-        | "Processing"
-        | "Shipped"
-        | "Out for Delivery"
-        | "Delivered"
-        | "Canceled"
-        | "Return Requested"
-        | "Returned"
-        | "Failed Delivery"
-        | "Approved" // For when the return is approved
-        | "Rejected" // For when the return is rejected
-        | "In-Transit" // For when the return is in transit
-        | "Received" // For when the return is received
-        | "Refunded"; // For when the return is refunded
+      status: StatusHistory;
       timestamp: Date;
       notes?: string;
     }>;
@@ -393,17 +360,7 @@ export const FormattedSubOrderSchema = z.object({
     })
     .optional(),
   deliveryDate: z.string().datetime().optional(), // ISO string
-  deliveryStatus: z.enum([
-    "Order Placed",
-    "Processing",
-    "Shipped",
-    "Out for Delivery",
-    "Delivered",
-    "Canceled",
-    "Returned",
-    "Failed Delivery",
-    "Refunded",
-  ]),
+  deliveryStatus: z.nativeEnum(DeliveryStatus),
   customerConfirmedDelivery: z.object({
     confirmed: z.boolean(),
     confirmedAt: z.string().datetime().optional(),
@@ -425,22 +382,7 @@ export const FormattedSubOrderSchema = z.object({
   returnWindow: z.string().datetime().optional(),
   statusHistory: z.array(
     z.object({
-      status: z.enum([
-        "Order Placed",
-        "Processing",
-        "Shipped",
-        "Out for Delivery",
-        "Delivered",
-        "Canceled",
-        "Return Requested",
-        "Returned",
-        "Failed Delivery",
-        "Approved", // For when the return is approved
-        "Rejected", // For when the return is rejected
-        "In-Transit", // For when the return is in transit
-        "Received", // For when the return is received
-        "Refunded", // For when the return is refunded
-      ]),
+      status: z.nativeEnum(StatusHistory),
       timestamp: z.string().datetime(),
       notes: z.string().optional(),
     })

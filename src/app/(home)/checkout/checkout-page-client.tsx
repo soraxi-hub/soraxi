@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 // import axios from "axios";
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { currencyOperations } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
-import { siteConfig } from "@/config/site";
+// import { siteConfig } from "@/config/site";
 
 import StoreCartGroup from "@/modules/checkout/store-cart-group";
 import OrderSummary from "@/modules/checkout/order-summary";
@@ -17,6 +17,7 @@ import OrderSummary from "@/modules/checkout/order-summary";
 import type { ShippingMethod } from "@/types/index";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { DeliveryType } from "@/enums";
 
 /**
  * Type definitions for checkout data structures
@@ -30,7 +31,6 @@ interface CheckoutPageClientProps {
   initialState: {
     cartData: CheckoutOutput;
     userData: UserOutput;
-    userId: string;
     validationErrors: string[];
     storesRequiringShipping: number;
     hasValidationErrors: boolean;
@@ -64,10 +64,22 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
     initialState.validationErrors
   );
   const [error, setError] = useState<string | null>(null);
+  const [deliveryType, setDeliveryType] = useState<DeliveryType>(
+    DeliveryType.Campus
+  );
 
   // Loading states for different operations
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleDeliveryTypeChange = (val: DeliveryType) => {
+    setDeliveryType(val);
+    toast.success(
+      `Status updated to: ${
+        val === DeliveryType.Campus ? "Within Campus" : "Outside Campus"
+      }`
+    );
+  };
 
   /**
    * Shipping Method Management
@@ -153,9 +165,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
       setValidationErrors([]);
       setError(null);
 
-      const result = await validateCartMutation.mutateAsync({
-        userId: initialState.userId,
-      });
+      const result = await validateCartMutation.mutateAsync();
 
       return result.isValid;
     } catch (err: any) {
@@ -175,14 +185,14 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
   };
 
   const initializePayment = useMutation(
-    trpc.paystack.initializePayment.mutationOptions({
+    trpc.flutterwave.initializePayment.mutationOptions({
       onSuccess: (response) => {
-        if (response.status && response.data?.authorization_url) {
+        if (response.status && response.data?.link) {
           toast.success("Redirecting to payment...");
-          window.location.href = response.data.authorization_url;
+          window.location.href = response.data.link;
         } else {
           const errorMessage =
-            response.message || "Failed to initialize payment with Paystack";
+            response.message || "Failed to initialize payment with Flutterwave";
           toast.error(errorMessage);
           setError(errorMessage);
         }
@@ -289,7 +299,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
         customer: {
           name: `${userData.firstName} ${userData.lastName}`,
           email: userData.email,
-          uniqueRef: siteConfig.name + uuidv4(),
+          // uniqueRef: siteConfig.name + uuidv4(),
           phone_number: userData.phoneNumber,
         },
         meta: {
@@ -298,6 +308,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
           address: userData.address,
           postal_code: userData.postalCode || "",
           userID: userData._id,
+          deliveryType: deliveryType,
         },
       };
 
@@ -386,7 +397,10 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
     <>
       {/* Validation Errors Alert */}
       {hasValidationErrors && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert
+          variant="destructive"
+          className="mb-6 dark:bg-muted/50 border-soraxi-green/15"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Cart Validation Issues</AlertTitle>
           <AlertDescription>
@@ -406,7 +420,10 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
 
       {/* General Error Alert */}
       {error && !hasValidationErrors && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert
+          variant="destructive"
+          className="mb-6 dark:bg-muted/50 border-soraxi-green/15"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Checkout Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -441,6 +458,8 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
             isProcessing={isProcessing}
             userData={userData}
             isComplete={isCheckoutComplete && !hasValidationErrors}
+            deliveryType={deliveryType}
+            handleDeliveryTypeChangeAction={handleDeliveryTypeChange}
           />
         </div>
       </div>

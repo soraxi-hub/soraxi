@@ -27,6 +27,7 @@ import { OrderSummary } from "@/modules/user/order/order-summary";
 import { StoreAccordion } from "@/modules/user/order/store-accordion";
 import { ReviewDialog } from "@/modules/user/order/review-dialog";
 import { ReturnsDialog } from "@/modules/user/order/returns-dialog";
+import { DeliveryStatus } from "@/enums";
 
 interface PageParams {
   slug: string;
@@ -99,7 +100,7 @@ export default function OrderDetailsPage(props: {
     customerConfirmedDelivery.mutate({
       mainOrderId: orderDetails._id,
       subOrderId: subOrderId,
-      deliveryStatus: "Delivered",
+      deliveryStatus: DeliveryStatus.Delivered,
     });
   };
 

@@ -12,10 +12,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ShoppingBag } from "lucide-react";
 import type { Metadata } from "next";
-import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: `Your Shopping Cart | ${siteConfig.siteTitle}`,
+  title: `Your Shopping Cart`,
   description:
     "View and manage the items in your shopping cart. Secure checkout, escrow-protected payments, and fast delivery with Soraxi.",
   keywords: [
@@ -122,7 +121,7 @@ export default async function CartPage() {
      * - Reduced client-side JavaScript execution
      * - Elimination of hydration mismatches
      */
-    const cartData = await caller.cart.getByUserId({ userId: user.id });
+    const cartData = await caller.cart.getByUserId();
 
     // Handle empty cart case
     if (!cartData || cartData.items.length === 0) {
@@ -169,7 +168,7 @@ export default async function CartPage() {
           productId: cartItem.product.toString(),
           name: product.name,
           slug: product.slug,
-          image: product.image || "/placeholder.svg",
+          image: product.image,
           price: product.price, // Now guaranteed to be a number
           quantity: cartItem.quantity,
           size: cartItem.selectedSize?.size,
@@ -245,7 +244,6 @@ export default async function CartPage() {
         <CartPageClient
           initialCartItems={hydratedCartItems}
           initialOrderSummary={orderSummary}
-          userId={user.id}
         />
       </div>
     );

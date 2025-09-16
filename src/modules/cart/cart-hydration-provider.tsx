@@ -81,7 +81,7 @@ export function CartHydration() {
    */
   const { data: cart, error } = useQuery({
     // Spread tRPC query options for type safety and consistency
-    ...trpc.cart.getByUserId.queryOptions({ userId: userId! }),
+    ...trpc.cart.getByUserId.queryOptions(),
 
     // Conditional execution: only fetch when we have a valid user ID
     // The non-null assertion (!) is safe here because enabled ensures userId exists

@@ -1,5 +1,12 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import {
+  DeliveryStatus,
+  DeliveryType,
+  PaymentGateway,
+  PaymentStatus,
+  StatusHistory,
+} from "@/enums";
 
 /**
  * Interface representing a product snapshot in an order.
@@ -45,16 +52,7 @@ export interface ISubOrder {
   };
   // trackingNumber?: string; // For the start and our MVP, we don't need it
   deliveryDate?: Date; // The date the product was delivered
-  deliveryStatus:
-    | "Order Placed"
-    | "Processing"
-    | "Shipped"
-    | "Out for Delivery"
-    | "Delivered"
-    | "Canceled"
-    | "Returned"
-    | "Failed Delivery"
-    | "Refunded";
+  deliveryStatus: DeliveryStatus;
   customerConfirmedDelivery: {
     confirmed: boolean; // true if customer manually confirmed delivery
     confirmedAt?: Date; // when the customer confirmed
@@ -98,21 +96,7 @@ export interface ISubOrder {
   }[];
 
   statusHistory: Array<{
-    status:
-      | "Order Placed"
-      | "Processing"
-      | "Shipped"
-      | "Out for Delivery"
-      | "Delivered"
-      | "Canceled"
-      | "Return Requested"
-      | "Returned"
-      | "Failed Delivery"
-      | "Approved" // For when the return is approved
-      | "Rejected" // For when the return is rejected
-      | "In-Transit" // For when the return is in transit
-      | "Received" // For when the return is received
-      | "Refunded"; // For when the return is refunded
+    status: StatusHistory;
     timestamp: Date;
     notes?: string;
   }>;
@@ -126,12 +110,18 @@ export interface IOrder extends Document {
   stores: mongoose.Schema.Types.ObjectId[];
   subOrders: ISubOrder[];
   totalAmount: number;
-  shippingAddress?: {
+  shippingAddress: {
     postalCode: string;
     address: string;
+    // New fields for delivery type
+    deliveryType: DeliveryType;
+    campusName?: string;
+    campusLocation?: string;
   };
+  paymentStatus: PaymentStatus;
+  idempotencyKey: string;
   paymentMethod?: string;
-  paymentStatus?: string;
+  paymentGateway?: PaymentGateway;
   notes?: string;
   discount?: number;
   taxAmount?: number;
@@ -218,18 +208,8 @@ const SubOrderSchema = new Schema<ISubOrder>({
   deliveryDate: { type: Date },
   deliveryStatus: {
     type: String,
-    enum: [
-      "Order Placed",
-      "Processing",
-      "Shipped",
-      "Out for Delivery",
-      "Delivered",
-      "Canceled",
-      "Returned",
-      "Failed Delivery",
-      "Refunded",
-    ],
-    default: "Order Placed",
+    enum: Object.values(DeliveryStatus),
+    default: DeliveryStatus.OrderPlaced,
   },
   customerConfirmedDelivery: {
     confirmed: { type: Boolean, default: false },
@@ -294,22 +274,7 @@ const SubOrderSchema = new Schema<ISubOrder>({
     {
       status: {
         type: String,
-        enum: [
-          "Order Placed",
-          "Processing",
-          "Shipped",
-          "Out for Delivery",
-          "Delivered",
-          "Canceled",
-          "Return Requested",
-          "Returned",
-          "Failed Delivery",
-          "Approved", // For when the return is approved
-          "Rejected", // For when the return is rejected
-          "In-Transit", // For when the return is in transit
-          "Received", // For when the return is received
-          "Refunded", // For when the return is refunded
-        ],
+        enum: Object.values(StatusHistory),
         required: true,
       },
       timestamp: { type: Date, default: Date.now },
@@ -340,9 +305,33 @@ const OrderSchema = new Schema<IOrder>(
     shippingAddress: {
       postalCode: { type: String, required: [true, "Postal code is required"] },
       address: { type: String, required: [true, "Address is required"] },
+      // New fields for delivery type
+      deliveryType: {
+        type: String,
+        enum: Object.values(DeliveryType),
+        required: [true, "Delivery type is required"],
+      },
+      campusName: { type: String },
+      campusLocation: { type: String },
     },
     paymentMethod: { type: String },
-    paymentStatus: { type: String },
+    paymentStatus: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.Pending,
+      required: true,
+    },
+    paymentGateway: {
+      type: String,
+      enum: Object.values(PaymentGateway),
+    },
+    idempotencyKey: {
+      type: String,
+      required: true,
+      unique: true,
+      immutable: true,
+      sparse: true,
+    }, // Only set at creation, cannot be changed even if the order is updated. Sparse to allow multiple nulls for old orders without the field
     notes: { type: String },
     discount: { type: Number },
     taxAmount: { type: Number },

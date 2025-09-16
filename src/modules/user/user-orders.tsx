@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { PaymentStatus } from "@/enums";
 
 export function UserOrders({ userId }: { userId: string }) {
   const trpc = useTRPC();
@@ -58,12 +59,12 @@ export function UserOrders({ userId }: { userId: string }) {
                     </p>
                     <Badge
                       className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        order.paymentStatus === "Paid"
+                        order.paymentStatus === PaymentStatus.Paid
                           ? "bg-green-100 text-green-800"
                           : "bg-yellow-100 text-yellow-800"
                       }`}
                     >
-                      Payment: {order.paymentStatus}
+                      Payment: {order.paymentStatus?.toUpperCase()}
                     </Badge>
                   </div>
 

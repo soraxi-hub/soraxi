@@ -54,6 +54,8 @@ import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
 import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import Image from "next/image";
+import { DeliveryType } from "@/enums";
+import { campusLocations } from "@/modules/checkout/order-summary";
 
 /**
  * Order Monitoring Component
@@ -605,10 +607,15 @@ export function OrderMonitoring() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm">
-                    <p>{selectedOrder.shippingAddress?.address || "unKnown"}</p>
+                    <p>
+                      {selectedOrder.shippingAddress?.deliveryType ===
+                      DeliveryType.Campus
+                        ? `Campus Delivery (${campusLocations.join(", ")})`
+                        : selectedOrder.shippingAddress?.address ?? "Unknown"}
+                    </p>
                     <p>
                       Postal Code:{" "}
-                      {selectedOrder.shippingAddress?.postalCode || "unKnown"}
+                      {selectedOrder.shippingAddress?.postalCode || "Unknown"}
                     </p>
                   </div>
                 </CardContent>

@@ -28,6 +28,7 @@ import { adminRefundDetailRouter } from "@/modules/server/admin/admin-refund-man
 import { adminManagementRouter } from "@/modules/server/admin/admin-management/procedures";
 import { auditLogRouter } from "@/modules/server/admin/audit-logs/procedures";
 import { storeProductRouter } from "@/modules/server/store/products/procedure";
+import { flutterwaveRouter } from "@/modules/server/flutterwave/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -38,6 +39,7 @@ export const appRouter = createTRPCRouter({
   wishlist: wishlistRouter,
   checkout: checkoutRouter,
   paystack: paystackRouter,
+  flutterwave: flutterwaveRouter,
   order: orderRouter,
   storeOrders: storeOrdersRouter,
   payment: paymentRouter,

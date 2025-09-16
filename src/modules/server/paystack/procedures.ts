@@ -76,7 +76,7 @@ const paystackInputSchema = z.object({
     email: z.string().email(),
     phone_number: z.string(),
     name: z.string(),
-    uniqueRef: z.string(),
+    // uniqueRef: z.string(),
   }),
   meta: z.object({
     address: z.string(),
@@ -94,7 +94,8 @@ export const paystackRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         const { amount, cartItemsWithShippingMethod, customer, meta } = input;
-        const { email, phone_number, name, uniqueRef } = customer;
+        // const { email, phone_number, name, uniqueRef } = customer;
+        const { email, phone_number, name } = customer;
         const {
           address,
           secondary_phone_number,
@@ -109,7 +110,7 @@ export const paystackRouter = createTRPCRouter({
         const fields = {
           email,
           amount,
-          reference: uniqueRef,
+          // reference: uniqueRef,
           customer: {
             first_name: name,
             phone: phone_number,

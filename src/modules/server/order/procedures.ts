@@ -9,6 +9,7 @@ import {
   formatOrderDocuments,
 } from "@/lib/utils/order-formatter";
 import type { RawOrderDocument } from "@/types/order";
+import { DeliveryStatus, StatusHistory } from "@/enums";
 
 /**
  * Order Router with Type-Safe Procedures
@@ -216,7 +217,7 @@ export const orderRouter = createTRPCRouter({
       z.object({
         mainOrderId: z.string(),
         subOrderId: z.string(),
-        deliveryStatus: z.enum(["Delivered"]),
+        deliveryStatus: z.enum([DeliveryStatus.Delivered]),
       })
     )
     .mutation(async ({ input }) => {
@@ -256,10 +257,10 @@ export const orderRouter = createTRPCRouter({
         (sub) => sub._id?.toString() === subOrderId
       );
 
-      if (deliveryStatus !== "Delivered") {
+      if (deliveryStatus !== DeliveryStatus.Delivered) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `BAD REQUEST: DELIVERY STATUS MUST BE MARKED AS "Delivered" and not "${deliveryStatus}".`,
+          message: `BAD REQUEST: DELIVERY STATUS MUST BE MARKED AS "${DeliveryStatus.Delivered}" and not "${deliveryStatus}".`,
         });
       }
 
@@ -271,8 +272,8 @@ export const orderRouter = createTRPCRouter({
       }
 
       if (
-        subOrder.deliveryStatus !== "Out for Delivery" &&
-        subOrder.deliveryStatus !== "Delivered"
+        subOrder.deliveryStatus !== DeliveryStatus.OutForDelivery &&
+        subOrder.deliveryStatus !== DeliveryStatus.Delivered
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -291,17 +292,17 @@ export const orderRouter = createTRPCRouter({
       // Update sub-order fields
       subOrder.deliveryStatus = deliveryStatus;
       subOrder.statusHistory.push({
-        status: deliveryStatus,
+        status: StatusHistory.Delivered,
         timestamp: currentDate,
         notes: `Delivery Confirmed by customer.`,
       }); // Here we push in this confirmation action.
 
-      if (previousStatus === "Out for Delivery") {
+      if (previousStatus === DeliveryStatus.OutForDelivery) {
         // Set delivery date and calculate return window
         subOrder.deliveryDate = currentDate;
         subOrder.returnWindow = new Date(
           currentDate.getTime() + 7 * 24 * 60 * 60 * 1000
-        ); // 7 days
+        ); // 7 days in milliseconds
       }
 
       await order.save();

@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/models/wallet.model";
 import mongoose from "mongoose";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
+import { DeliveryStatus } from "@/enums";
 
 export async function PUT(
   request: NextRequest,
@@ -145,7 +146,7 @@ export async function PUT(
           );
 
           if (totalReturnedQuantity >= totalOrderedQuantity) {
-            subOrder.deliveryStatus = "Refunded";
+            subOrder.deliveryStatus = DeliveryStatus.Refunded;
           }
         }
 

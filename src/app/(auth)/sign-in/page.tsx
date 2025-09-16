@@ -2,10 +2,9 @@ import { Suspense } from "react";
 import SignIn from "@/modules/auth/components/sign-in";
 import SignInSkeleton from "@/modules/skeletons/sign-in-skeleton";
 import type { Metadata } from "next";
-import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: `Sign In | ${siteConfig.siteTitle}`,
+  title: `Sign In`,
   description:
     "Sign in to your account to manage your profile, track orders, and enjoy a personalized shopping experience.",
   robots: {

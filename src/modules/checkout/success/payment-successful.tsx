@@ -10,13 +10,17 @@ import { Button } from "@/components/ui/button";
 interface Props {
   searchParams: {
     status?: string;
-    trxref?: string;
+    trxref?: string; // PayStack gateways use trxref
+    tx_ref?: string; // Flutterwave gateways use trx_ref
+    transaction_id?: string; // Flutterwave gateways use transaction_id
+    [key: string]: string | undefined;
   };
 }
 
 export default function PaymentSuccess({ searchParams }: Props) {
   const status = searchParams.status;
-  const transaction_reference = searchParams.trxref;
+  const transaction_reference =
+    searchParams.trxref || searchParams.tx_ref || searchParams.transaction_id;
 
   if (!status) {
     return (
@@ -60,7 +64,7 @@ export default function PaymentSuccess({ searchParams }: Props) {
     );
   }
 
-  if (status === "cancelled") {
+  if (status.toLowerCase() === "cancelled") {
     return (
       <main className="grid min-h-full place-items-center px-6 py-10 lg:px-8">
         <div className="text-center">
@@ -98,7 +102,7 @@ export default function PaymentSuccess({ searchParams }: Props) {
     );
   }
 
-  if (status === "failed") {
+  if (status.toLowerCase() === "failed") {
     return (
       <main className="grid min-h-full place-items-center px-6 py-10 lg:px-8">
         <div className="text-center">

@@ -80,7 +80,7 @@ export default function SellerTestimonials() {
             }),
           ]}
           setApi={setApi}
-          className={cn("w-ful", isMobile && `my-16`)}
+          className={cn("w-full", isMobile && `my-16`)}
           orientation={isMobile ? `vertical` : `horizontal`}
         >
           <CarouselContent className={isMobile ? `h-62` : ``}>

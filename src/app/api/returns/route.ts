@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { getOrderModel, ISubOrder } from "@/lib/db/models/order.model";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
+import { DeliveryStatus, StatusHistory } from "@/enums";
 
 /**
  * @fileoverview API routes for handling product returns in e-commerce orders
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     // }
 
     // Validate delivery status (can only return delivered items)
-    if (subOrder.deliveryStatus !== "Delivered") {
+    if (subOrder.deliveryStatus !== DeliveryStatus.Delivered) {
       return NextResponse.json(
         { error: "Can only return delivered items" },
         { status: 400 }
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     // Add status history entry
     subOrder.statusHistory.push({
-      status: "Return Requested",
+      status: StatusHistory.ReturnRequested,
       timestamp: new Date(),
       notes: `Return requested for ${quantity} unit(s) of product. Reason: ${reason}`,
     });
@@ -222,7 +223,7 @@ export async function PUT(request: NextRequest) {
       status,
       refundAmount,
       returnShippingCost,
-      notes,
+      // notes,
     } = body;
 
     // Validate required fields
@@ -313,28 +314,28 @@ export async function PUT(request: NextRequest) {
       );
 
       if (totalReturnedQuantity === totalOrderedQuantity) {
-        subOrder.deliveryStatus = "Refunded";
+        subOrder.deliveryStatus = DeliveryStatus.Refunded;
       }
     }
 
     // Add status history entry
-    const statusMessages = {
-      Approved: "Return request approved",
-      Rejected: "Return request rejected",
-      "In-Transit": "Return package in transit to store",
-      Received: "Return package received by store",
-      Refunded: "Refund processed successfully",
-    };
+    // const statusMessages = {
+    //   Approved: "Return request approved",
+    //   Rejected: "Return request rejected",
+    //   "In-Transit": "Return package in transit to store",
+    //   Received: "Return package received by store",
+    //   Refunded: "Refund processed successfully",
+    // };
 
-    subOrder.statusHistory.push({
-      status: status,
-      timestamp: new Date(),
-      notes:
-        notes ||
-        `${
-          statusMessages[status as keyof typeof statusMessages]
-        }. Return status updated to ${status}`,
-    });
+    // subOrder.statusHistory.push({
+    //   status: status,
+    //   timestamp: new Date(),
+    //   notes:
+    //     notes ||
+    //     `${
+    //       statusMessages[status as keyof typeof statusMessages]
+    //     }. Return status updated to ${status}`,
+    // });
 
     // Save the updated order
     await order.save();
@@ -422,7 +423,7 @@ export async function GET(request: NextRequest) {
         deliveryStatus: subOrder.deliveryStatus,
         canReturn:
           new Date() <= subOrder.returnWindow &&
-          subOrder.deliveryStatus === "Delivered",
+          subOrder.deliveryStatus === DeliveryStatus.Delivered,
         products: subOrder.products, // Include items for reference
       },
     });
