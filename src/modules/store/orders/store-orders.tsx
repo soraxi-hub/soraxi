@@ -8,9 +8,6 @@ import {
   Eye,
   MoreHorizontal,
   Package,
-  Truck,
-  CheckCircle,
-  Clock,
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
@@ -52,6 +49,8 @@ import { useQuery } from "@tanstack/react-query";
 import { PopulatedUser } from "@/types/order";
 import { formatNaira } from "@/lib/utils/naira";
 import { Separator } from "@/components/ui/separator";
+import { getStatusBadge } from "@/lib/utils";
+import { deliveryStatusLabel } from "@/enums";
 
 /**
  * Store Orders Management Component
@@ -142,70 +141,6 @@ export default function StoreOrdersManagement({
           endDate: endOfMonth(now),
         };
     }
-  };
-
-  /**
-   * Get Status Badge Configuration
-   *
-   * Returns appropriate styling and icon configuration for different
-   * delivery statuses with enhanced visual indicators.
-   *
-   * @param status - The delivery status to get configuration for
-   * @returns Object containing variant, icon, and color information
-   */
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      "Order Placed": {
-        variant: "secondary" as const,
-        icon: Clock,
-        color: "bg-blue-100 text-blue-800",
-      },
-      Processing: {
-        variant: "default" as const,
-        icon: Package,
-        color: "bg-orange-100 text-orange-800",
-      },
-      Shipped: {
-        variant: "default" as const,
-        icon: Truck,
-        color: "bg-purple-100 text-purple-800",
-      },
-      "Out for Delivery": {
-        variant: "default" as const,
-        icon: Truck,
-        color: "bg-indigo-100 text-indigo-800",
-      },
-      Delivered: {
-        variant: "default" as const,
-        icon: CheckCircle,
-        color: "bg-green-100 text-green-800",
-      },
-      Canceled: {
-        variant: "destructive" as const,
-        icon: AlertCircle,
-        color: "bg-red-100 text-red-800",
-      },
-      Returned: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "bg-yellow-100 text-yellow-800",
-      },
-      "Failed Delivery": {
-        variant: "destructive" as const,
-        icon: AlertCircle,
-        color: "bg-red-100 text-red-800",
-      },
-      Refunded: {
-        variant: "secondary" as const,
-        icon: AlertCircle,
-        color: "bg-gray-100 text-gray-800",
-      },
-    };
-
-    return (
-      statusConfig[status as keyof typeof statusConfig] ||
-      statusConfig["Order Placed"]
-    );
   };
 
   /**
@@ -646,7 +581,7 @@ export default function StoreOrdersManagement({
                                     <StatusIcon className="h-3 w-3" />
                                   </div>
                                   <Badge variant={statusConfig.variant}>
-                                    {primaryStatus}
+                                    {deliveryStatusLabel(primaryStatus)}
                                   </Badge>
                                 </div>
                               </TableCell>

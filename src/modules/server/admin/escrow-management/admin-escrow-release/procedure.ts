@@ -27,6 +27,7 @@ import type {
   PopulatedStoreForRelease,
   PopulatedUserForRelease,
 } from "@/types/escrow-release-types";
+import { DeliveryStatus } from "@/enums";
 
 /**
  * Admin Escrow Release TRPC Router
@@ -209,7 +210,8 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
           checks: {
             escrowHeld: subOrder.escrow.held,
             notAlreadyReleased: !subOrder.escrow.released,
-            deliveryConfirmed: subOrder.deliveryStatus === "Delivered",
+            deliveryConfirmed:
+              subOrder.deliveryStatus === DeliveryStatus.Delivered,
             returnWindowPassed: new Date() > subOrder.returnWindow,
           },
         };

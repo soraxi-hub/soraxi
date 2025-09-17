@@ -11,6 +11,7 @@ import {
 import mongoose from "mongoose";
 import type { Role } from "@/modules/admin/security/roles";
 import type { EscrowReleaseAggregationResult } from "@/types/escrow-aggregation";
+import { DeliveryStatus } from "@/enums";
 // import { currencyOperations } from "@/lib/utils/naira";
 
 /**
@@ -140,7 +141,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
             $match: {
               "subOrders.escrow.held": true,
               "subOrders.escrow.released": false,
-              "subOrders.deliveryStatus": "Delivered",
+              "subOrders.deliveryStatus": DeliveryStatus.Delivered,
               "subOrders.returnWindow": { $lt: new Date() }, // Return window has passed
             },
           },

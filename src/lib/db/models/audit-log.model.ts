@@ -20,6 +20,7 @@ export interface IAuditLog extends Document {
   userAgent?: string;
   createdAt: Date;
   updatedAt: Date;
+  expireAt: Date;
 }
 
 /**
@@ -72,6 +73,11 @@ const AuditLogSchema = new Schema<IAuditLog>(
     userAgent: {
       type: String,
     },
+    expireAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 31 * 24 * 60 * 60 * 1000),
+      index: { expires: 0 },
+    }, // TTL of 31 days, i.e., 1 month
   },
   {
     timestamps: true,

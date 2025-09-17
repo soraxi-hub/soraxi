@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -14,6 +16,7 @@ import {
 import { Calendar } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { statusHistoryLabel } from "@/enums";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -63,7 +66,9 @@ export function OrderTimeline({ subOrder }: OrderTimelineProps) {
                       >
                         <div className="w-2 h-2 bg-primary rounded-full"></div>
                         <div>
-                          <p className="font-medium">{statusItem.status}</p>
+                          <p className="font-medium">
+                            {statusHistoryLabel(statusItem.status)}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {format(
                               new Date(statusItem.timestamp),

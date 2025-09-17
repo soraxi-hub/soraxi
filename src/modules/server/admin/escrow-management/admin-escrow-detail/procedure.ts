@@ -16,6 +16,7 @@ import type {
 } from "@/types/escrow-detail-aggregation";
 import { currencyOperations } from "@/lib/utils/naira";
 import { calculateCommission } from "@/lib/utils/calculate-commission";
+import { DeliveryStatus } from "@/enums";
 
 /**
  * Admin Escrow Release Detail TRPC Router
@@ -164,7 +165,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
             $match: {
               "subOrders.escrow.held": true,
               "subOrders.escrow.released": false,
-              "subOrders.deliveryStatus": "Delivered",
+              "subOrders.deliveryStatus": DeliveryStatus.Delivered,
               "subOrders.returnWindow": { $lt: new Date() },
             },
           },

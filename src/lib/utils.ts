@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Package, Truck, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { DeliveryStatus } from "@/enums";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -66,49 +67,49 @@ export function serializeData<T>(data: T): T {
  * @param status - The delivery status to get configuration for
  * @returns Object containing variant, icon, and color information
  */
-export const getStatusBadge = (status: string) => {
+export const getStatusBadge = (status: DeliveryStatus) => {
   const statusConfig = {
-    "Order Placed": {
+    [DeliveryStatus.OrderPlaced]: {
       variant: "secondary" as const,
       icon: Clock,
       color: "bg-blue-100 text-blue-800",
     },
-    Processing: {
+    [DeliveryStatus.Processing]: {
       variant: "default" as const,
       icon: Package,
       color: "bg-orange-100 text-orange-800",
     },
-    Shipped: {
+    [DeliveryStatus.Shipped]: {
       variant: "default" as const,
       icon: Truck,
       color: "bg-purple-100 text-purple-800",
     },
-    "Out for Delivery": {
+    [DeliveryStatus.OutForDelivery]: {
       variant: "default" as const,
       icon: Truck,
       color: "bg-indigo-100 text-indigo-800",
     },
-    Delivered: {
+    [DeliveryStatus.Delivered]: {
       variant: "default" as const,
       icon: CheckCircle,
       color: "bg-green-100 text-green-800",
     },
-    Canceled: {
+    [DeliveryStatus.Canceled]: {
       variant: "destructive" as const,
       icon: AlertCircle,
       color: "bg-red-100 text-red-800",
     },
-    Returned: {
+    [DeliveryStatus.Returned]: {
       variant: "secondary" as const,
       icon: AlertCircle,
       color: "bg-yellow-100 text-yellow-800",
     },
-    "Failed Delivery": {
+    [DeliveryStatus.FailedDelivery]: {
       variant: "destructive" as const,
       icon: AlertCircle,
       color: "bg-red-100 text-red-800",
     },
-    Refunded: {
+    [DeliveryStatus.Refunded]: {
       variant: "secondary" as const,
       icon: AlertCircle,
       color: "bg-gray-100 text-gray-800",
@@ -117,7 +118,7 @@ export const getStatusBadge = (status: string) => {
 
   return (
     statusConfig[status as keyof typeof statusConfig] ||
-    statusConfig["Order Placed"]
+    statusConfig[DeliveryStatus.OrderPlaced]
   );
 };
 

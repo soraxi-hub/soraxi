@@ -9,6 +9,7 @@ import {
   generateOrderStatusHtml,
   sendMail,
 } from "@/services/mail.service";
+import { DeliveryStatus, deliveryStatusLabel, StatusHistory } from "@/enums";
 
 export const orderStatusRouter = createTRPCRouter({
   /**
@@ -22,17 +23,7 @@ export const orderStatusRouter = createTRPCRouter({
       z.object({
         orderId: z.string().min(1, "Order ID is required"),
         subOrderId: z.string().min(1, "Sub-order ID is required"),
-        deliveryStatus: z.enum([
-          "Order Placed",
-          "Processing",
-          "Shipped",
-          "Out for Delivery",
-          "Delivered",
-          "Canceled",
-          "Returned",
-          "Failed Delivery",
-          "Refunded",
-        ]),
+        deliveryStatus: z.nativeEnum(DeliveryStatus),
         notes: z.string().optional(),
       })
     )
@@ -102,9 +93,11 @@ export const orderStatusRouter = createTRPCRouter({
         subOrder.deliveryStatus = input.deliveryStatus;
         // Prepare the status history update
         const statusUpdate = {
-          status: input.deliveryStatus,
+          status: input.deliveryStatus as unknown as StatusHistory,
           timestamp: new Date(),
-          notes: `Delivery updated to ${input.deliveryStatus} by the store.`,
+          notes: `Delivery updated to "${deliveryStatusLabel(
+            input.deliveryStatus
+          )}" by the store.`,
         };
         subOrder.statusHistory.push(statusUpdate);
 
@@ -112,7 +105,7 @@ export const orderStatusRouter = createTRPCRouter({
         const currentDate = new Date();
 
         switch (input.deliveryStatus) {
-          case "Delivered":
+          case DeliveryStatus.Delivered:
             // Set delivery date and calculate return window
             subOrder.deliveryDate = currentDate;
             subOrder.returnWindow = new Date(
@@ -120,17 +113,20 @@ export const orderStatusRouter = createTRPCRouter({
             ); // 7 days
             break;
 
-          case "Canceled":
-          case "Returned":
-          case "Failed Delivery":
+          case DeliveryStatus.Canceled:
+          case DeliveryStatus.Returned:
+          case DeliveryStatus.FailedDelivery:
             // Mark for review — admin must manually trigger refund later
             if (subOrder.escrow) {
               subOrder.escrow.refundReason =
-                input.notes || `Marked for review: ${input.deliveryStatus}`;
+                input.notes ||
+                `Marked for review: ${deliveryStatusLabel(
+                  input.deliveryStatus
+                )}`;
             }
             break;
 
-          case "Refunded":
+          case DeliveryStatus.Refunded:
             // Complete refund — this is the only place refund actually happens
             if (subOrder.escrow) {
               subOrder.escrow.held = false;
@@ -163,15 +159,17 @@ export const orderStatusRouter = createTRPCRouter({
             console.log("Failed to fetch order or user ID");
           } else {
             const isOrderFailedOrCanceled =
-              input.deliveryStatus === "Canceled" ||
-              input.deliveryStatus === "Failed Delivery";
+              input.deliveryStatus === DeliveryStatus.Canceled ||
+              input.deliveryStatus === DeliveryStatus.FailedDelivery;
 
             const statusSubject = isOrderFailedOrCanceled
               ? `Issue with your order "${input.subOrderId}"`
-              : `Your order is now "${input.deliveryStatus}"`;
+              : `Your order is now "${deliveryStatusLabel(
+                  input.deliveryStatus
+                )}"`;
 
             const statusHtml = generateOrderStatusHtml({
-              status: input.deliveryStatus,
+              status: deliveryStatusLabel(input.deliveryStatus),
               orderId: input.orderId,
               subOrderId: input.subOrderId,
               storeName: storeSession.name.toUpperCase(),
@@ -183,13 +181,15 @@ export const orderStatusRouter = createTRPCRouter({
               fromAddress: "orders@soraxihub.com",
               subject: statusSubject,
               html: statusHtml,
-              text: `Your order status has been updated to: ${input.deliveryStatus}`,
+              text: `Your order status has been updated to: ${deliveryStatusLabel(
+                input.deliveryStatus
+              )}`,
             });
 
             if (isOrderFailedOrCanceled) {
               const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL!;
               const adminHtml = generateAdminOrderFailureHtml({
-                deliveryStatus: input.deliveryStatus,
+                deliveryStatus: deliveryStatusLabel(input.deliveryStatus),
                 orderId: input.orderId,
                 subOrderId: input.subOrderId,
                 storeName: storeSession.name,
@@ -200,12 +200,20 @@ export const orderStatusRouter = createTRPCRouter({
                 email: adminEmail,
                 emailType: "storeOrderNotification",
                 fromAddress: "orders@soraxihub.com",
-                subject: `Order ${input.deliveryStatus} - ${input.subOrderId}`,
+                subject: `Order ${deliveryStatusLabel(
+                  input.deliveryStatus
+                )} - ${input.subOrderId}`,
                 html: adminHtml,
-                text: `Order ${input.subOrderId} for store "${storeSession.name}" was marked as ${input.deliveryStatus}.`,
+                text: `Order ${input.subOrderId} for store "${
+                  storeSession.name
+                }" was marked as ${deliveryStatusLabel(input.deliveryStatus)}.`,
               });
 
-              console.log(`Admin notified for ${input.deliveryStatus} case`);
+              console.log(
+                `Admin notified for ${deliveryStatusLabel(
+                  input.deliveryStatus
+                )} case`
+              );
             }
           }
         } catch (mailErr) {
@@ -214,12 +222,14 @@ export const orderStatusRouter = createTRPCRouter({
 
         return {
           success: true,
-          message: `Order status updated to ${input.deliveryStatus}`,
+          message: `Order status updated to ${deliveryStatusLabel(
+            input.deliveryStatus
+          )}`,
           updates: {
             orderId: input.orderId,
             subOrderId: input.subOrderId,
             previousStatus,
-            newStatus: input.deliveryStatus,
+            newStatus: deliveryStatusLabel(input.deliveryStatus),
             deliveryDate: subOrder.deliveryDate?.toISOString() || null,
             updatedAt: currentDate.toISOString(),
           },

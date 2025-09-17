@@ -18,9 +18,29 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { formatNaira } from "@/lib/utils/naira";
 import { Loader2, MapPin, AlertTriangle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { InfoIcon } from "lucide-react";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { DeliveryType } from "@/enums";
+
+export const campusLocations = [
+  "Main Gate",
+  "Unical Library (E-Library)",
+  "Hostel Area",
+];
 
 /**
  * Type definitions for checkout data structures
@@ -37,6 +57,8 @@ interface OrderSummaryProps {
   isComplete: boolean;
   isValidating: boolean;
   isProcessing: boolean;
+  deliveryType: DeliveryType;
+  handleDeliveryTypeChangeAction: (val: DeliveryType) => void;
 }
 
 /**
@@ -70,6 +92,7 @@ interface OrderSummaryProps {
  * @param isComplete - Whether all required selections have been made
  * @param isValidating - Whether cart validation is in progress
  * @param isProcessing - Whether payment processing is in progress
+ * @param deliveryType - Either Campus or Off-Campus
  */
 export default function OrderSummary({
   subtotal,
@@ -80,6 +103,8 @@ export default function OrderSummary({
   isComplete,
   isValidating,
   isProcessing,
+  deliveryType,
+  handleDeliveryTypeChangeAction,
 }: OrderSummaryProps) {
   /**
    * Order Total Calculation
@@ -140,6 +165,48 @@ export default function OrderSummary({
               <div className="space-y-4">
                 {hasCompleteShippingInfo ? (
                   <>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">
+                          Where should we deliver?
+                        </label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <InfoIcon className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                          </PopoverTrigger>
+                          <PopoverContent className="max-w-xs text-sm dark:bg-muted">
+                            <p>
+                              Choose where you’d like your order delivered.{" "}
+                              <br />
+                              <strong>Campus/Within Campus:</strong> Delivered
+                              to a location within your school campus. (e.g.,
+                              Main Gate, Unical E-Library) <br />
+                              {/* <strong>Off-Campus/Outside Campus:</strong>{" "}
+                              Delivered outside the campus (e.g., your home
+                              address). */}
+                            </p>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <Select
+                        defaultValue={deliveryType}
+                        value={deliveryType}
+                        onValueChange={(value: DeliveryType) =>
+                          handleDeliveryTypeChangeAction(value)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choose where you’d like your order delivered" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="campus">Within Campus</SelectItem>
+                          {/* <SelectItem value="off-campus">
+                            Outside Campus
+                          </SelectItem> */}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     {/* Customer Name */}
                     <div className="flex items-center space-x-3">
                       <svg
@@ -178,14 +245,29 @@ export default function OrderSummary({
                     <div className="flex items-start space-x-3">
                       <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="text-foreground leading-relaxed">
-                          {userData.address}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {userData.cityOfResidence},{" "}
-                          {userData.stateOfResidence}
-                          {userData.postalCode && ` ${userData.postalCode}`}
-                        </p>
+                        {deliveryType === "off-campus" ? (
+                          <>
+                            <p className="text-foreground leading-relaxed">
+                              {userData.address}
+                            </p>
+                            <p className="text-muted-foreground text-sm">
+                              {userData.cityOfResidence},{" "}
+                              {userData.stateOfResidence}
+                              {userData.postalCode && ` ${userData.postalCode}`}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            {/* <p className="text-foreground leading-relaxed font-medium">
+                              Choose a campus delivery spot:
+                            </p> */}
+                            <ul className="text-muted-foreground text-sm list-disc ml-5">
+                              {campusLocations.map((location) => (
+                                <li key={location}>{location}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
                       </div>
                     </div>
                   </>
@@ -310,7 +392,7 @@ export default function OrderSummary({
               clipRule="evenodd"
             />
           </svg>
-          Secure checkout powered by Paystack
+          Secure checkout powered by Flutterwave
         </div>
       </CardFooter>
     </Card>

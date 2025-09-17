@@ -458,7 +458,7 @@ export function formatStoreOrderDocument(
     firstName: rawOrder.user.firstName,
     lastName: rawOrder.user.lastName,
     email: rawOrder.user.email,
-    phoneNumber: rawOrder.user.phoneNumber || "unknown",
+    phoneNumber: rawOrder.user.phoneNumber || "Unknown",
   };
 
   return {

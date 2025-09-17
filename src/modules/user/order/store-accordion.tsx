@@ -32,6 +32,7 @@ import { ProductItem } from "./product-item";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { OrderTimeline } from "./order-timeline";
+import { DeliveryStatus } from "@/enums";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -187,8 +188,10 @@ export function StoreAccordion({
 
                         {!subOrder.customerConfirmedDelivery.confirmed &&
                           !subOrder.customerConfirmedDelivery.autoConfirmed &&
-                          (subOrder.deliveryStatus === "Delivered" ||
-                            subOrder.deliveryStatus === "Out for Delivery") && (
+                          (subOrder.deliveryStatus ===
+                            DeliveryStatus.Delivered ||
+                            subOrder.deliveryStatus ===
+                              DeliveryStatus.OutForDelivery) && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

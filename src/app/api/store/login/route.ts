@@ -51,12 +51,12 @@ export async function POST(request: NextRequest) {
       status: store.status,
     };
 
-    // One Day in seconds
-    const oneDayInSeconds = 24 * 60 * 60;
+    // One Week in seconds
+    const oneWeekInSeconds = 7 * 24 * 60 * 60;
 
     // Sign JWT
     const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
-      expiresIn: oneDayInSeconds,
+      expiresIn: oneWeekInSeconds,
     });
 
     // Calculate onboarding status
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     // Set the token in an HTTP-only cookie
     response.cookies.set("store", token, {
       httpOnly: true,
-      maxAge: oneDayInSeconds,
+      maxAge: oneWeekInSeconds,
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
       sameSite: "lax",

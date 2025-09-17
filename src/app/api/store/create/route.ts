@@ -155,12 +155,15 @@ export async function POST(request: NextRequest) {
       status: savedStore.status,
     };
 
-    // One Day in seconds
-    const oneDayInSeconds = 24 * 60 * 60;
+    // One Week in seconds
+    const oneWeekInSeconds = 7 * 24 * 60 * 60;
+
+    // Two Weeks in seconds
+    const twoWeeksInSeconds = 2 * oneWeekInSeconds;
 
     // Sign JWT
     const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
-      expiresIn: oneDayInSeconds,
+      expiresIn: oneWeekInSeconds,
     });
 
     const response = NextResponse.json(
@@ -185,7 +188,7 @@ export async function POST(request: NextRequest) {
     // Set the token in an HTTP-only cookie
     response.cookies.set("store", token, {
       httpOnly: true,
-      maxAge: oneDayInSeconds,
+      maxAge: oneWeekInSeconds,
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
       sameSite: "lax",
@@ -202,12 +205,12 @@ export async function POST(request: NextRequest) {
     };
 
     const newUserToken = jwt.sign(userPayload, process.env.JWT_SECRET_KEY!, {
-      expiresIn: oneDayInSeconds,
+      expiresIn: twoWeeksInSeconds,
     });
 
     response.cookies.set("user", newUserToken, {
       httpOnly: true,
-      maxAge: oneDayInSeconds,
+      maxAge: twoWeeksInSeconds,
       path: "/", // optional
       secure: process.env.NODE_ENV === "production", // secure only in production
       sameSite: "lax",

@@ -18,7 +18,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import AlertUI from "@/modules/shared/alert";
 
 /**
@@ -82,13 +81,6 @@ export function CreateStorePage() {
    * Creates new store with pending status and redirects to onboarding
    */
   const onSubmit = async (data: CreateStoreFormData) => {
-    const user = await getUserFromCookie();
-    if (!user) {
-      toast.error(`Please sign in to create a store.`);
-      router.push("/sign-in");
-      return;
-    }
-
     setIsLoading(true);
 
     try {

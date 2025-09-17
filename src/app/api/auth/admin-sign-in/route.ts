@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
       isActive: admin.isActive,
     };
 
-    // One Day in seconds
-    const oneDayInSeconds = 24 * 60 * 60;
+    // Three Days in seconds
+    const threeDaysInSeconds = 3 * 24 * 60 * 60;
 
     // Check if JWT_SECRET_KEY exists
     if (!process.env.JWT_SECRET_KEY) {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const token = await new jose.SignJWT({ ...adminTokenData }) // Spread the data to ensure it's a plain object
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime(`${oneDayInSeconds}s`)
+      .setExpirationTime(`${threeDaysInSeconds}s`)
       .sign(secret);
 
     // Update last login time
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set("adminToken", token, {
       httpOnly: true,
-      maxAge: oneDayInSeconds,
+      maxAge: threeDaysInSeconds,
       path: "/",
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",

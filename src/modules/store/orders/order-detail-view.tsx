@@ -41,6 +41,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { campusLocations } from "@/modules/checkout/order-summary";
+import {
+  DeliveryStatus,
+  DeliveryStatusLabel,
+  deliveryStatusLabel,
+  DeliveryType,
+  statusHistoryLabel,
+} from "@/enums";
 
 /**
  * Order Detail View Component Props
@@ -139,16 +147,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    */
   const handleStatusUpdate = async (
     subOrderId: string,
-    newStatus:
-      | "Delivered"
-      | "Order Placed"
-      | "Processing"
-      | "Shipped"
-      | "Out for Delivery"
-      | "Canceled"
-      | "Returned"
-      | "Failed Delivery"
-      | "Refunded"
+    newStatus: DeliveryStatus
   ) => {
     setUpdating(true);
 
@@ -211,7 +210,12 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           <p className="text-muted-foreground mb-4">
             {error?.message || "Order not found"}
           </p>
-          <Button onClick={() => refetchOrder}>Try Again</Button>
+          <Button
+            className="bg-soraxi-green text-white hover:bg-soraxi-green-hover"
+            onClick={() => refetchOrder()}
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
@@ -273,15 +277,12 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                         </div>
                         <div>
                           <p className="font-medium">
-                            {subOrder.deliveryStatus}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Sub-order {index + 1} of {order.subOrders.length}
+                            {deliveryStatusLabel(subOrder.deliveryStatus)}
                           </p>
                         </div>
                       </div>
                       <Badge variant={statusConfig.variant}>
-                        {subOrder.deliveryStatus}
+                        {deliveryStatusLabel(subOrder.deliveryStatus)}
                       </Badge>
                     </div>
 
@@ -596,7 +597,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               <div>
                 <h4 className="font-medium mb-2">Delivery Address</h4>
                 <p className="text-sm text-muted-foreground">
-                  {order.shippingAddress?.address || "Unknown"}
+                  {order.shippingAddress?.deliveryType === DeliveryType.Campus
+                    ? `Campus Delivery (${campusLocations.join(", ")})`
+                    : order.shippingAddress?.address ?? "Unknown"}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Postal Code: {order.shippingAddress?.postalCode || "Unknown"}
@@ -691,7 +694,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                               <div className="w-2 h-2 bg-primary rounded-full"></div>
                               <div>
                                 <p className="font-medium">
-                                  {statusItem.status}
+                                  {statusHistoryLabel(statusItem.status)}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   {format(
@@ -727,42 +730,39 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
 // All possible delivery statuses
 const allStatuses = [
-  "Processing",
-  "Shipped",
-  "Out for Delivery",
-  "Delivered",
-  "Canceled",
-  "Failed Delivery",
+  DeliveryStatus.Processing,
+  DeliveryStatus.Shipped,
+  DeliveryStatus.OutForDelivery,
+  DeliveryStatus.Delivered,
+  DeliveryStatus.Canceled,
+  DeliveryStatus.FailedDelivery,
 ];
 
 // Valid transitions from each current status
-const allowedNextStatuses: Record<string, string[]> = {
-  "Order Placed": ["Processing", "Canceled"],
-  Processing: ["Shipped", "Canceled"],
-  Shipped: ["Out for Delivery"],
-  "Out for Delivery": ["Delivered", "Failed Delivery"],
-  "Failed Delivery": ["Delivered"], // if seller reattempts delivery
+const allowedNextStatuses: Record<DeliveryStatusLabel, DeliveryStatus[]> = {
+  [DeliveryStatus.OrderPlaced]: [
+    DeliveryStatus.Processing,
+    DeliveryStatus.Canceled,
+  ],
+  [DeliveryStatus.Processing]: [
+    DeliveryStatus.Shipped,
+    DeliveryStatus.Canceled,
+  ],
+  [DeliveryStatus.Shipped]: [DeliveryStatus.OutForDelivery],
+  [DeliveryStatus.OutForDelivery]: [
+    DeliveryStatus.Delivered,
+    DeliveryStatus.FailedDelivery,
+  ],
+  [DeliveryStatus.FailedDelivery]: [DeliveryStatus.Delivered], // if seller reattempts delivery
 };
 
 interface Props {
   subOrder: {
     _id: string;
-    deliveryStatus: string;
+    deliveryStatus: DeliveryStatus;
   };
   updating: boolean;
-  handleStatusUpdateAction: (
-    id: string,
-    value:
-      | "Delivered"
-      | "Order Placed"
-      | "Processing"
-      | "Shipped"
-      | "Out for Delivery"
-      | "Canceled"
-      | "Returned"
-      | "Failed Delivery"
-      | "Refunded"
-  ) => void;
+  handleStatusUpdateAction: (id: string, value: DeliveryStatus) => void;
 }
 
 function SellerStatusUpdate({
@@ -773,11 +773,16 @@ function SellerStatusUpdate({
   const currentStatus = subOrder.deliveryStatus;
   const validStatuses = allowedNextStatuses[currentStatus] ?? [];
 
-  const disableEntireSelect = ["Delivered", "Canceled"].includes(currentStatus);
+  const disableEntireSelect = [
+    DeliveryStatus.Delivered,
+    DeliveryStatus.Canceled,
+  ].includes(currentStatus);
 
   // Explanation message
   const explanationMessage = disableEntireSelect
-    ? `This order is already marked as "${currentStatus}". Further updates are disabled.`
+    ? `This order is already marked as "${deliveryStatusLabel(
+        currentStatus
+      )}". Further updates are disabled.`
     : "Only valid status transitions are enabled based on the current order state.";
 
   return (
@@ -785,18 +790,9 @@ function SellerStatusUpdate({
       <Label>Update Status</Label>
       <div className="flex gap-2">
         <Select
-          onValueChange={(
-            value:
-              | "Delivered"
-              | "Order Placed"
-              | "Processing"
-              | "Shipped"
-              | "Out for Delivery"
-              | "Canceled"
-              | "Returned"
-              | "Failed Delivery"
-              | "Refunded"
-          ) => handleStatusUpdateAction(subOrder._id, value)}
+          onValueChange={(value: DeliveryStatus) =>
+            handleStatusUpdateAction(subOrder._id, value)
+          }
           disabled={disableEntireSelect || updating}
         >
           <SelectTrigger className="flex-1">
@@ -809,7 +805,7 @@ function SellerStatusUpdate({
                 value={status}
                 disabled={!validStatuses.includes(status)}
               >
-                {status}
+                {deliveryStatusLabel(status)}
               </SelectItem>
             ))}
           </SelectContent>

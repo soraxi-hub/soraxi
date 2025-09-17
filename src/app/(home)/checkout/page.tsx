@@ -1,4 +1,3 @@
-import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { caller } from "@/trpc/server";
 import { CheckoutPageClient } from "./checkout-page-client";
 import { Button } from "@/components/ui/button";
@@ -10,10 +9,9 @@ import Link from "next/link";
 import { serializeData } from "@/lib/utils";
 
 import type { Metadata } from "next";
-import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: `Checkout | ${siteConfig.siteTitle}`,
+  title: `Checkout`,
   description:
     "Securely review your order and complete your purchase on Soraxi. Escrow-protected payments, fast delivery, and a seamless checkout experience.",
   keywords: [
@@ -92,12 +90,6 @@ export default async function CheckoutPage() {
      * This approach is more secure than client-side cookie handling
      * and eliminates the need for client-side authentication checks.
      */
-    const user = await getUserFromCookie();
-
-    // Handle unauthenticated users - redirect to login
-    if (!user) {
-      redirect("/sign-in?redirect=/checkout");
-    }
 
     /**
      * Parallel Data Fetching
@@ -108,7 +100,7 @@ export default async function CheckoutPage() {
      */
     const [rawCartData, rawUserData] = await Promise.all([
       // Fetch grouped cart data with store information and shipping methods
-      caller.checkout.getGroupedCart({ userId: user.id }),
+      caller.checkout.getGroupedCart(),
 
       // Fetch complete user profile for shipping information
       caller.user.getById(),
@@ -133,9 +125,7 @@ export default async function CheckoutPage() {
      */
     let initialValidationErrors: string[] = [];
     try {
-      const validationResult = await caller.checkout.validateUserCart({
-        userId: user.id,
-      });
+      const validationResult = await caller.checkout.validateUserCart();
       if (!validationResult.isValid) {
         initialValidationErrors = validationResult.validationErrors;
       }
@@ -219,7 +209,6 @@ export default async function CheckoutPage() {
     const initialCheckoutState = {
       cartData: cartData,
       userData: userData,
-      userId: user.id,
       validationErrors: initialValidationErrors,
       storesRequiringShipping: storesRequiringShipping.length,
       hasValidationErrors: initialValidationErrors.length > 0,
@@ -273,7 +262,10 @@ export default async function CheckoutPage() {
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Alert variant="destructive" className="max-w-md">
+        <Alert
+          variant="destructive"
+          className="max-w-md dark:bg-muted/50 border-soraxi-green/15"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>
             {isNetworkError

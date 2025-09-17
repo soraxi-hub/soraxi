@@ -42,8 +42,6 @@ interface CartPageClientProps {
   initialCartItems: CartItemType[];
   /** Pre-calculated order summary from server */
   initialOrderSummary: OrderSummary;
-  /** Authenticated user ID */
-  userId: string;
 }
 
 /**
@@ -66,7 +64,6 @@ interface CartPageClientProps {
 export function CartPageClient({
   initialCartItems,
   initialOrderSummary,
-  userId,
 }: CartPageClientProps) {
   // Initialize client state with server-provided data
   const [cartItems, setCartItems] = useState<CartItemType[]>(initialCartItems);
@@ -128,7 +125,7 @@ export function CartPageClient({
     onSuccess: () => {
       // Invalidate relevant queries to ensure data consistency
       queryClient.invalidateQueries({
-        queryKey: trpc.cart.getByUserId.queryKey({ userId }),
+        queryKey: trpc.cart.getByUserId.queryKey(),
       });
     },
   });
@@ -146,9 +143,26 @@ export function CartPageClient({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: trpc.cart.getByUserId.queryKey({ userId }),
+        queryKey: trpc.cart.getByUserId.queryKey(),
       });
       router.refresh();
+    },
+  });
+
+  /**
+   * Server mutation for adding idempotency key to cart
+   *
+   * Handles idempotency key addition with proper error handling.
+   */
+  const addIdempotencyKeyToCart = useMutation({
+    ...trpc.cart.addIdempotencyKey.mutationOptions(),
+    onError: (error) => {
+      console.error("Failed to add idempotency key:", error);
+      toast.error("Failed to add idempotency key. Please try again.");
+    },
+    onSuccess: () => {
+      console.log("Idempotency key added successfully");
+      // toast.success("Idempotency key added successfully");
     },
   });
 
@@ -204,7 +218,6 @@ export function CartPageClient({
     try {
       // Sync with server
       await updateQuantityMutation.mutateAsync({
-        userId,
         productId,
         quantity: newQuantity,
         size,
@@ -262,7 +275,6 @@ export function CartPageClient({
     try {
       // Server synchronization (set quantity to 0 to remove)
       await removeItemMutation.mutateAsync({
-        userId,
         productId,
         quantity: 0,
         size,
@@ -317,6 +329,9 @@ export function CartPageClient({
         toast.error("Some items in your cart are out of stock");
         return;
       }
+
+      // Add idempotency key to cart to prevent duplicate orders
+      await addIdempotencyKeyToCart.mutateAsync();
 
       toast.success("Redirecting to checkout...");
 

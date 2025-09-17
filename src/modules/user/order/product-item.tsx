@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
+import { DeliveryStatus } from "@/enums";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -72,7 +73,7 @@ export function ProductItem({
 
           {/* Action Buttons */}
           <div className="space-y-2">
-            {deliveryStatus === "Delivered" && (
+            {deliveryStatus === DeliveryStatus.Delivered && (
               <Button
                 className="mt-2 bg-soraxi-green hover:bg-soraxi-green-hover text-white w-full text-sm flex items-center gap-2"
                 onClick={() => onReviewInitAction(product.productSnapshot._id)}
@@ -104,11 +105,12 @@ export function ProductItem({
               </Button>
             )} */}
 
-            {deliveryStatus === "Delivered" && !isReturnWindowValid && (
-              <p className="text-xs text-muted-foreground text-center">
-                Return window expired
-              </p>
-            )}
+            {deliveryStatus === DeliveryStatus.Delivered &&
+              !isReturnWindowValid && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Return window expired
+                </p>
+              )}
           </div>
         </div>
       </CardContent>

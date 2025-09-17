@@ -159,7 +159,10 @@ function SignUp() {
     try {
       setIsLoading(true);
       const response = await axios.post(`/api/auth/sign-up`, values);
-      if (response.status === 200 || response.data.success === true) {
+      if (
+        (response.status >= 200 && response.status < 300) ||
+        response.data?.success === true
+      ) {
         toast.success("Sign Up Successful");
         router.push("/sign-in");
         return;

@@ -1,3 +1,4 @@
+import { DeliveryStatus } from "@/enums";
 import { z } from "zod";
 
 /**
@@ -67,7 +68,11 @@ export const RefundQueueItemSchema = z.object({
   store: RefundStoreSchema,
   products: z.array(RefundProductSchema),
   totalAmount: z.number(), // Total amount of the sub-order
-  deliveryStatus: z.enum(["Canceled", "Returned", "Failed Delivery"]),
+  deliveryStatus: z.enum([
+    DeliveryStatus.Delivered,
+    DeliveryStatus.Returned,
+    DeliveryStatus.FailedDelivery,
+  ]),
   escrow: RefundEscrowSchema,
   shippingMethod: RefundShippingMethodSchema,
   refundRequestDate: z.string().datetime(), // Date when the order was marked for refund
@@ -179,17 +184,7 @@ export const RefundItemDetailSchema = z.object({
   orderTotalAmount: z.number(),
   discount: z.number(),
   taxAmount: z.number(),
-  deliveryStatus: z.enum([
-    "Order Placed",
-    "Processing",
-    "Shipped",
-    "Out for Delivery",
-    "Delivered",
-    "Canceled",
-    "Returned",
-    "Failed Delivery",
-    "Refunded",
-  ]),
+  deliveryStatus: z.nativeEnum(DeliveryStatus),
   deliveryDate: z.string().datetime().optional().nullable(),
   customerConfirmedDelivery: z.object({
     confirmed: z.boolean(),
