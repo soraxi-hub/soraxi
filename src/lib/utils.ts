@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge";
 import { Package, Truck, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { DeliveryStatus } from "@/enums";
+import bcryptjs from "bcryptjs";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -144,4 +145,17 @@ export function generateUniqueId(length: number) {
 
   // Return the first 'length' characters
   return uuid.substring(0, length);
+}
+
+export class PasswordService {
+  static async hashPassword(password: string): Promise<string> {
+    const salt = await bcryptjs.genSalt(10);
+    return await bcryptjs.hash(password, salt);
+  }
+  static async validatePassword(
+    password: string,
+    dbPassword: string
+  ): Promise<boolean> {
+    return await bcryptjs.compare(dbPassword, password);
+  }
 }

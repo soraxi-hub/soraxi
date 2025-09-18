@@ -1,4 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { AlertCircleIcon } from "lucide-react";
 import React from "react";
 
@@ -24,7 +25,10 @@ function AlertUI({ message, variant, type }: AlertUIProps) {
     }
   };
   return (
-    <Alert variant={variant} className={getTypeStyles(type)}>
+    <Alert
+      variant={variant}
+      className={cn(getTypeStyles(type), `dark:bg-muted`)}
+    >
       <AlertCircleIcon className="h-4 w-4" />
       <AlertDescription>{message}</AlertDescription>
     </Alert>

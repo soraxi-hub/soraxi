@@ -12,6 +12,7 @@ import { User, Mail, Phone, MapPin, ShieldCheck } from "lucide-react";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 
 const Profile = () => {
   // State management
@@ -54,69 +55,71 @@ const Profile = () => {
   if (isLoading) return <ProfileSkeleton />;
 
   return (
-    <div className="space-y-6 py-6">
-      {/* Profile Header */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="sm:text-2xl font-bold flex items-center gap-2">
-            <User className="w-6 h-6" />
-            Greetings, {user.firstName}!
-          </h1>
-          {user.isVerified && (
-            <Badge className="bg-green-100 text-green-800 hover:bg-inherit">
-              <ShieldCheck className="w-4 h-4 mr-1" />
-              Verified Account
-            </Badge>
-          )}
-        </div>
+    <FeedbackWrapper page={`user`} delay={5000}>
+      <div className="space-y-6 py-6">
+        {/* Profile Header */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="sm:text-2xl font-bold flex items-center gap-2">
+              <User className="w-6 h-6" />
+              Greetings, {user.firstName}!
+            </h1>
+            {user.isVerified && (
+              <Badge className="bg-green-100 text-green-800 hover:bg-inherit">
+                <ShieldCheck className="w-4 h-4 mr-1" />
+                Verified Account
+              </Badge>
+            )}
+          </div>
 
-        {/* Profile Details Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <DetailSection
-            icon={<User className="w-5 h-5" />}
-            title="Personal Information"
-            items={[
-              {
-                label: "Full Name",
-                value: `${user.firstName} ${user.otherNames} ${user.lastName}`,
-              },
-              {
-                label: "Email",
-                value: user.email,
-                icon: <Mail className="w-4 h-4" />,
-              },
-              {
-                label: "Phone",
-                value: user.phoneNumber,
-                icon: <Phone className="w-4 h-4" />,
-              },
-            ]}
-          />
+          {/* Profile Details Grid */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <DetailSection
+              icon={<User className="w-5 h-5" />}
+              title="Personal Information"
+              items={[
+                {
+                  label: "Full Name",
+                  value: `${user.firstName} ${user.otherNames} ${user.lastName}`,
+                },
+                {
+                  label: "Email",
+                  value: user.email,
+                  icon: <Mail className="w-4 h-4" />,
+                },
+                {
+                  label: "Phone",
+                  value: user.phoneNumber,
+                  icon: <Phone className="w-4 h-4" />,
+                },
+              ]}
+            />
 
-          <DetailSection
-            icon={<MapPin className="w-5 h-5" />}
-            title="Shipping Address"
-            items={[
-              { label: "Address", value: user.address },
-              { label: "City", value: user.cityOfResidence },
-              { label: "State", value: user.stateOfResidence },
-              { label: "Postal Code", value: user.postalCode },
-            ]}
-          />
-        </div>
-      </section>
+            <DetailSection
+              icon={<MapPin className="w-5 h-5" />}
+              title="Shipping Address"
+              items={[
+                { label: "Address", value: user.address },
+                { label: "City", value: user.cityOfResidence },
+                { label: "State", value: user.stateOfResidence },
+                { label: "Postal Code", value: user.postalCode },
+              ]}
+            />
+          </div>
+        </section>
 
-      {/* Verification Section */}
-      {!user.isVerified && <VerificationSection />}
+        {/* Verification Section */}
+        {!user.isVerified && <VerificationSection />}
 
-      {/* Recently Viewed Products */}
-      {/* {recentProducts.length > 0 && (
+        {/* Recently Viewed Products */}
+        {/* {recentProducts.length > 0 && (
             <RecentProductsSection
               products={recentProducts}
               blurData={blurData}
             />
           )} */}
-    </div>
+      </div>
+    </FeedbackWrapper>
   );
 };
 

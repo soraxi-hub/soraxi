@@ -23,6 +23,7 @@ import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import axios from "axios";
 import { motion, Variants, easeOut } from "framer-motion";
+import AlertUI from "@/modules/shared/alert";
 
 const container: Variants = {
   hidden: { opacity: 0 },
@@ -89,6 +90,7 @@ function SignIn() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/"; // Default to Home-page
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const form = useForm<z.infer<typeof userSignInInfoValidation>>({
     resolver: zodResolver(userSignInInfoValidation),
     defaultValues: {
@@ -98,6 +100,7 @@ function SignIn() {
   });
 
   const onSubmit = async (values: z.infer<typeof userSignInInfoValidation>) => {
+    setError(null);
     const userInput = {
       email: values.email,
       password: values.password,
@@ -122,9 +125,16 @@ function SignIn() {
       } else {
         toast.error("Sign In Failed. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Sign In Failed. Please try again.");
-      console.error("Sign In Error:", error);
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.error.message || "Something went wrong";
+        console.error("AppError:", message);
+        setError(message);
+      } else {
+        console.error("Unexpected Error:", error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +156,8 @@ function SignIn() {
                   {siteConfig.name}
                 </Link>
               </div>
+
+              {error && <AlertUI message={error} variant={"destructive"} />}
 
               <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-200">
                 Welcome Back

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { getUserModel, IUser } from "@/lib/db/models/user.model";
-import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { AuthService } from "@/services/auth.service";
 
 interface userData {
   id: string;
@@ -23,29 +21,15 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
 
-    // Check if the user exist
-    const User = await getUserModel();
-    const user = (await User.findOne({ email }).select(
-      "firstName lastName email password stores"
-    )) as IUser | null;
-    if (!user) {
-      throw new AppError("User not found", 404);
-    }
-
-    // check it password is correct
-    const validatePassword = await bcryptjs.compare(password, user.password);
-
-    if (!validatePassword) {
-      throw new AppError("Invalid password", 401);
-    }
+    const user = await AuthService.userLogin(email, password);
 
     // create tokenData
     const tokenData: userData = {
-      id: user._id.toString(),
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      store: user.stores?.[0] ? user.stores[0].storeId.toString() : undefined,
+      id: user.getId(),
+      firstName: user.getFirstName(),
+      lastName: user.getLastName(),
+      email: user.getEmail(),
+      store: user.getStore(),
     };
 
     // Two weeks in seconds
@@ -57,7 +41,7 @@ export async function POST(request: NextRequest) {
     });
 
     const response = NextResponse.json(
-      { message: "Login successful", success: true, tokenData },
+      { message: "Login successful", success: true },
       { status: 200 }
     );
 
