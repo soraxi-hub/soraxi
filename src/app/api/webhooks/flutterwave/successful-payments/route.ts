@@ -90,6 +90,7 @@ export async function POST(request: Request) {
     );
   }
 
+  await connectToDatabase();
   let session: mongoose.ClientSession | null = null;
   session = await mongoose.startSession();
   session.startTransaction();
@@ -117,8 +118,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    await connectToDatabase();
 
     // Step 3: Process the order based on transactionData
     const transactionData = verifiedTransaction.data;
