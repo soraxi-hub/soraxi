@@ -2,6 +2,7 @@ import { PaymentStatus } from "@/enums";
 import { clearUserCart } from "@/lib/db/models/cart.model";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { connectToDatabase } from "@/lib/db/mongoose";
 import { sendMail } from "@/services/mail.service";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
@@ -116,6 +117,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    await connectToDatabase();
 
     // Step 3: Process the order based on transactionData
     const transactionData = verifiedTransaction.data;

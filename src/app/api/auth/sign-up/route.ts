@@ -1,9 +1,9 @@
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
-import bcryptjs from "bcryptjs";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { UserFactory } from "@/domain/users/UserFactory";
+import { UserRepository } from "@/repositories/user-repo";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -18,48 +18,60 @@ export async function POST(request: NextRequest) {
     cityOfResidence,
     stateOfResidence,
     postalCode,
-  } = requestBody;
+  } = requestBody as {
+    id: string;
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    otherNames: string;
+    phoneNumber: string;
+    address: string;
+    cityOfResidence: string;
+    stateOfResidence: string;
+    postalCode: string;
+    isVerified: boolean;
+  };
 
   try {
-    await connectToDatabase();
-    // Check if the user already exist
-
-    const User = await getUserModel();
-    const userAlreadyExists = (await User.findOne({ email })) as IUser | null;
-    if (userAlreadyExists) {
-      throw new AppError("Email already exist", 401);
-    }
-
-    // Check if the user already exist
-    const phoneNumberAlreadyExists = (await User.findOne({
-      phoneNumber,
-    })) as IUser | null;
-    if (phoneNumberAlreadyExists) {
-      throw new AppError("Phone Number already exist", 401);
-    }
-
-    // hash the password
-    const salt = await bcryptjs.genSalt(10);
-    const hashedPassword = await bcryptjs.hash(password, salt);
-
-    // create a new user in the database
-    const newUser = new User({
+    const props = {
+      email,
+      password,
       firstName,
       lastName,
       otherNames,
-      email,
-      password: hashedPassword,
-      address,
       phoneNumber,
+      address,
       cityOfResidence,
       stateOfResidence,
       postalCode,
-    });
+      isVerified: false,
+    };
+    await connectToDatabase();
 
-    const savedUser = await newUser.save();
+    // Check if the user already exist
+    const emailAlreadyExist = await UserRepository.isExistingUser(email);
+    if (emailAlreadyExist) {
+      throw new AppError("Email already exist", 401);
+    }
+
+    const phoneNumberAlreadyExist = await UserRepository.isExistingPhoneNumber(
+      phoneNumber
+    );
+    if (phoneNumberAlreadyExist) {
+      throw new AppError("Phone Number already exist", 401);
+    }
+
+    // If it gets to this point, then create the user because this is a new user
+    const user = await UserFactory.createPublicUser(props);
+
+    // Always hash the password before saving the user to the Database
+    await user.hashPassword();
+
+    await UserRepository.saveUser(user);
 
     return NextResponse.json(
-      { message: `User created successfully`, success: true, savedUser },
+      { message: `User created successfully`, success: true },
       { status: 201 }
     );
   } catch (error) {

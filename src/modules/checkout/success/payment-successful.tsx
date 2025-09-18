@@ -6,6 +6,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 
 interface Props {
   searchParams: {
@@ -142,43 +143,45 @@ export default function PaymentSuccess({ searchParams }: Props) {
   }
 
   return (
-    <main className="grid min-h-full place-items-center px-6 py-10 lg:px-8">
-      <div className="text-center">
-        <CheckCheck className="mx-auto h-10 w-10 text-soraxi-green" />
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-soraxi-green sm:text-5xl">
-          Order Successful!
-        </h1>
-        <h3 className="mt-8 text-2xl leading-7">Thank you</h3>
-        <p className="mt-8">
-          Check your purchase email{" "}
-          <span className="mx-1 font-extrabold text-soraxi-green">
-            for your invoice.
-          </span>
-        </p>
+    <FeedbackWrapper page={`payment-success`} delay={3000}>
+      <main className="grid min-h-full place-items-center px-6 py-10 lg:px-8">
+        <div className="text-center">
+          <CheckCheck className="mx-auto h-10 w-10 text-soraxi-green" />
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-soraxi-green sm:text-5xl">
+            Order Successful!
+          </h1>
+          <h3 className="mt-8 text-2xl leading-7">Thank you</h3>
+          <p className="mt-8">
+            Check your purchase email{" "}
+            <span className="mx-1 font-extrabold text-soraxi-green">
+              for your invoice.
+            </span>
+          </p>
 
-        <p className="mt-6 text-sm text-gray-600 dark:text-gray-400">
-          Your transaction reference:{" "}
-          <span className="font-semibold">
-            {transaction_reference || "N/A"}
-          </span>
-        </p>
+          <p className="mt-6 text-sm text-gray-600 dark:text-gray-400">
+            Your transaction reference:{" "}
+            <span className="font-semibold">
+              {transaction_reference || "N/A"}
+            </span>
+          </p>
 
-        <div className="mt-6 flex items-center justify-center gap-x-6">
-          <Button size="lg" asChild variant={`link`}>
-            <Link href="/" className="text-sm font-semibold group">
-              <ArrowLeftIcon className="w-5 h-5 transform transition-transform duration-300 group-hover:-translate-x-1.5" />
-              Go back home{" "}
-            </Link>
-          </Button>
+          <div className="mt-6 flex items-center justify-center gap-x-6">
+            <Button size="lg" asChild variant={`link`}>
+              <Link href="/" className="text-sm font-semibold group">
+                <ArrowLeftIcon className="w-5 h-5 transform transition-transform duration-300 group-hover:-translate-x-1.5" />
+                Go back home{" "}
+              </Link>
+            </Button>
 
-          <Button size="lg" asChild variant={`link`}>
-            <Link href="/orders" className="text-sm font-semibold group">
-              My Orders{" "}
-              <ArrowRightIcon className="w-5 h-5 transform transition-transform duration-300 group-hover:translate-x-1.5" />
-            </Link>
-          </Button>
+            <Button size="lg" asChild variant={`link`}>
+              <Link href="/orders" className="text-sm font-semibold group">
+                My Orders{" "}
+                <ArrowRightIcon className="w-5 h-5 transform transition-transform duration-300 group-hover:translate-x-1.5" />
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </FeedbackWrapper>
   );
 }
