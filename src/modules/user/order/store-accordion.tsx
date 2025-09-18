@@ -32,7 +32,7 @@ import { ProductItem } from "./product-item";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { OrderTimeline } from "./order-timeline";
-import { DeliveryStatus } from "@/enums";
+import { DeliveryStatus, deliveryStatusLabel } from "@/enums";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -103,9 +103,9 @@ export function StoreAccordion({
                 <AccordionItem
                   key={index}
                   value={`store-${index}`}
-                  className="border rounded-lg"
+                  className="sm:border rounded-lg"
                 >
-                  <AccordionTrigger className="px-4 hover:no-underline">
+                  <AccordionTrigger className="sm:px-4 hover:no-underline">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-4">
                         <Store className="w-5 h-5 text-primary" />
@@ -123,13 +123,13 @@ export function StoreAccordion({
                           <StatusIcon className="h-4 w-4" />
                         </div>
                         <Badge className={statusConfig.color}>
-                          {subOrder.deliveryStatus}
+                          {deliveryStatusLabel(subOrder.deliveryStatus)}
                         </Badge>
                       </div>
                     </div>
                   </AccordionTrigger>
 
-                  <AccordionContent className="px-4 pt-4">
+                  <AccordionContent className="sm:px-4 sm:pt-4">
                     <div className="grid md:grid-cols-2 gap-6 mb-2">
                       <div className="space-y-2">
                         <DetailItem

@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: `Payment Successful`,
+  title: `Payment Status`,
   description:
     "Your payment was successful! Thank you for shopping with Soraxi. Your order is being processed and you’ll receive updates soon.",
   openGraph: {

@@ -46,8 +46,8 @@ const DetailItem = ({
 }) => (
   <div className="flex justify-between items-center py-2 border-b">
     <span className="text-sm text-muted-foreground flex items-center gap-2">
-      {icon}
-      {label}
+      <span className="hidden sm:inline-flex">{icon}</span>
+      <span>{label}</span>
     </span>
     <span className={`text-sm font-medium ${valueClassName || ""}`}>
       {value || "N/A"}
@@ -90,7 +90,10 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
           <DetailItem
             icon={<CreditCard className="h-4 w-4 text-muted-foreground" />}
             label="Payment Method"
-            value={orderDetails.paymentMethod?.toUpperCase() || "N/A"}
+            value={
+              orderDetails.paymentMethod?.toUpperCase().replace("_", " ") ||
+              "N/A"
+            }
           />
           <DetailItem
             icon={<CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
@@ -119,14 +122,15 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
                 : orderDetails.shippingAddress?.address ?? "No address provided"
             }
           />
-          <DetailItem
+          {/* Postal code is hidden since delivery is only within UNICAL */}
+          {/* <DetailItem
             icon={<MapPin className="h-4 w-4 text-muted-foreground" />}
             label="Postal Code"
             value={
               orderDetails.shippingAddress?.postalCode ??
               "No postal code provided"
             }
-          />
+          /> */}
           <DetailItem
             icon={<Store className="h-4 w-4 text-muted-foreground" />}
             label="Stores"
