@@ -601,9 +601,10 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                     ? `Campus Delivery (${campusLocations.join(", ")})`
                     : order.shippingAddress?.address ?? "Unknown"}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                {/* Postal code is hidden since delivery is only within UNICAL */}
+                {/* <p className="text-sm text-muted-foreground">
                   Postal Code: {order.shippingAddress?.postalCode || "Unknown"}
-                </p>
+                </p> */}
               </div>
 
               {order.subOrders[0]?.shippingMethod && (
@@ -651,10 +652,12 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                   <span className="text-muted-foreground">Payment Status:</span>
                   <Badge
                     variant={
-                      order.paymentStatus === "Paid" ? "default" : "secondary"
+                      order.paymentStatus?.toLowerCase() === "paid"
+                        ? "default"
+                        : "secondary"
                     }
                   >
-                    {order.paymentStatus}
+                    {order.paymentStatus?.toUpperCase()}
                   </Badge>
                 </div>
               </div>
