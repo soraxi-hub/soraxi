@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
-import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
+import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 
 export async function POST(request: NextRequest) {
   try {

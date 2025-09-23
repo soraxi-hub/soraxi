@@ -66,8 +66,8 @@ export async function POST(request: Request) {
 
     // ✅ Step 3: Bulk fetch stores
     const Store = await getStoreModel();
-    const storeIDs = [...new Set(cartItems.map((s) => s.storeID))];
-    const storeDocs = await Store.find({ _id: { $in: storeIDs } }).lean();
+    const storeIds = [...new Set(cartItems.map((s) => s.storeId))];
+    const storeDocs = await Store.find({ _id: { $in: storeIds } }).lean();
     const storeMap = new Map(
       storeDocs.map((s) => [s._id.toString(), s.storeEmail])
     );
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
         const products = store.products.map((item) => {
           const base = {
             Product: item.product._id,
-            store: item.storeID,
+            store: item.storeId,
             productSnapshot: {
               _id: item.product._id,
               name: item.product.name,
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
               price: Number(item.selectedSize?.price || item.product.price),
             },
             storeSnapshot: {
-              _id: store.storeID,
+              _id: store.storeId,
               name: store.storeName,
             },
           };
@@ -127,13 +127,13 @@ export async function POST(request: Request) {
           quantity: Number(item.quantity),
         }));
 
-        notifications[store.storeID] = {
-          storeEmail: storeMap.get(store.storeID) ?? "",
+        notifications[store.storeId] = {
+          storeEmail: storeMap.get(store.storeId) ?? "",
           products: productSummaries,
         };
 
         return {
-          store: store.storeID,
+          store: store.storeId,
           products,
           totalAmount: storeTotal,
           deliveryStatus: "Order Placed",
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
       // ✅ Step 5: Create and save main order
       const orderDoc = new Order({
         user: userID,
-        stores: storeIDs,
+        stores: storeIds,
         subOrders,
         totalAmount: amount,
         shippingAddress: {
@@ -178,10 +178,10 @@ export async function POST(request: Request) {
       await session.commitTransaction();
 
       // ✅ Step 7: Send email notifications
-      for (const storeID in notifications) {
-        const { storeEmail, products } = notifications[storeID];
+      for (const storeId in notifications) {
+        const { storeEmail, products } = notifications[storeId];
         const orderId = savedOrder._id.toString();
-        notifications[storeID].orderId = orderId;
+        notifications[storeId].orderId = orderId;
 
         if (!storeEmail) continue;
 

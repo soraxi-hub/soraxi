@@ -174,7 +174,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
         if (storeId && mongoose.Types.ObjectId.isValid(storeId)) {
           basePipeline.push({
             $match: {
-              "subOrders.store": new mongoose.Types.ObjectId(storeId),
+              "subOrders.storeId": new mongoose.Types.ObjectId(storeId),
             },
           });
         }
@@ -188,7 +188,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
         basePipeline.push({
           $lookup: {
             from: "users",
-            localField: "user",
+            localField: "userId",
             foreignField: "_id",
             as: "userDetails",
             pipeline: [
@@ -214,7 +214,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
         basePipeline.push({
           $lookup: {
             from: "stores",
-            localField: "subOrders.store",
+            localField: "subOrders.storeId",
             foreignField: "_id",
             as: "storeDetails",
             pipeline: [
@@ -424,7 +424,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
            */
           const products = result.subOrders.products.map((product) => {
             return {
-              id: product.Product.toString(),
+              id: product.productId.toString(),
               name: product.productSnapshot?.name || "Unknown Product",
               quantity: product.productSnapshot?.quantity || 0,
               price: product.productSnapshot.price,

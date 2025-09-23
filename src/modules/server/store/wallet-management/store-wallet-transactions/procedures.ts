@@ -4,6 +4,9 @@ import { TRPCError } from "@trpc/server";
 import {
   getWalletModel,
   getWalletTransactionModel,
+  WalletTransactionRelatedDocumentType,
+  WalletTransactionSource,
+  WalletTransactionType,
 } from "@/lib/db/models/wallet.model";
 import mongoose from "mongoose";
 import type {
@@ -69,14 +72,12 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
         /**
          * Transaction type filter with enum validation
          */
-        type: z.enum(["credit", "debit"]).optional(),
+        type: z.nativeEnum(WalletTransactionType).optional(),
 
         /**
          * Transaction source filter with enum validation
          */
-        source: z
-          .enum(["order", "withdrawal", "refund", "adjustment"])
-          .optional(),
+        source: z.nativeEnum(WalletTransactionSource).optional(),
 
         /**
          * Date range filter in days with positive number validation
@@ -143,7 +144,9 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
          * Finds the wallet associated with the authenticated store.
          * Only the wallet ID is selected for performance optimization.
          */
-        const wallet = await Wallet.findOne({ store: store.id }).select("_id");
+        const wallet = await Wallet.findOne({ storeId: store.id }).select(
+          "_id"
+        );
 
         if (!wallet) {
           throw new TRPCError({
@@ -173,7 +176,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
            * Filters transactions to only include those belonging to the
            * authenticated store's wallet.
            */
-          { $match: { wallet: wallet._id } },
+          { $match: { walletId: wallet._id } },
         ];
 
         /**
@@ -421,7 +424,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
 
             return {
               _id: transaction._id.toString(),
-              wallet: transaction.wallet.toString(),
+              walletId: transaction.walletId.toString(),
               type: transaction.type,
               amount: transaction.amount,
               source: transaction.source,
@@ -499,7 +502,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
         /**
          * Transaction type validation with enum constraint
          */
-        type: z.enum(["credit", "debit"], {
+        type: z.nativeEnum(WalletTransactionType, {
           required_error: "Transaction type is required",
           invalid_type_error:
             "Transaction type must be either 'credit' or 'debit'",
@@ -516,7 +519,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
         /**
          * Source validation with enum constraint
          */
-        source: z.enum(["order", "withdrawal", "refund", "adjustment"], {
+        source: z.nativeEnum(WalletTransactionSource, {
           required_error: "Transaction source is required",
           invalid_type_error: "Invalid transaction source",
         }),
@@ -540,7 +543,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
          * Optional type of the related document
          */
         relatedDocumentType: z
-          .enum(["Order", "WithdrawalRequest", "Refund", "Adjustment"])
+          .nativeEnum(WalletTransactionRelatedDocumentType)
           .optional(), // New field
       })
     )
@@ -599,7 +602,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
            * Finds the complete wallet document for the authenticated store
            * to enable balance updates during transaction creation.
            */
-          const wallet = await Wallet.findOne({ store: store.id });
+          const wallet = await Wallet.findOne({ storeId: store.id });
 
           if (!wallet) {
             throw new TRPCError({
@@ -617,7 +620,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
            * and proper data validation.
            */
           const transaction = new WalletTransaction({
-            wallet: wallet._id,
+            walletId: wallet._id,
             type: transactionInput.type,
             amount: transactionInput.amount,
             source: transactionInput.source,
@@ -639,7 +642,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
            * - Credit transactions increase balance and total earned
            * - Debit transactions decrease balance only
            */
-          if (transactionInput.type === "credit") {
+          if (transactionInput.type === WalletTransactionType.Credit) {
             wallet.balance += transactionInput.amount;
             wallet.totalEarned += transactionInput.amount;
           } else {
@@ -658,7 +661,7 @@ export const storeWalletTransactionsRouter = createTRPCRouter({
            */
           const formattedTransaction: FormattedWalletTransaction = {
             _id: savedTransaction._id.toString(),
-            wallet: savedTransaction.wallet.toString(),
+            walletId: savedTransaction.walletId.toString(),
             type: savedTransaction.type,
             amount: savedTransaction.amount,
             source: savedTransaction.source,

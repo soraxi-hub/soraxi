@@ -384,7 +384,7 @@ export function ProductEditForm({
       // Prepare product data for update
       const productData = {
         ...data,
-        storeID: storeId,
+        storeId,
         description,
         specifications,
         images: finalImageUrls,

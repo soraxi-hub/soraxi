@@ -12,6 +12,7 @@ import {
 } from "@/modules/admin/security/audit-logger";
 import mongoose from "mongoose";
 import { Role } from "@/modules/admin/security/roles";
+import { DeliveryStatus } from "@/enums";
 
 // ==================== Response Formatting ====================
 
@@ -158,7 +159,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
          */
         const Order = await getOrderModel();
         const baseMatch: any = {
-          "subOrders.deliveryStatus": "Delivered",
+          "subOrders.deliveryStatus": DeliveryStatus.Delivered,
           "subOrders.customerConfirmedDelivery.confirmed": false,
           "subOrders.customerConfirmedDelivery.autoConfirmed": false,
           "subOrders.deliveryDate": { $lte: twoDaysAgo },
@@ -206,7 +207,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
           // Apply sub-order specific filters
           {
             $match: {
-              "subOrders.deliveryStatus": "Delivered",
+              "subOrders.deliveryStatus": DeliveryStatus.Delivered,
               "subOrders.customerConfirmedDelivery.confirmed": false,
               "subOrders.customerConfirmedDelivery.autoConfirmed": false,
               "subOrders.deliveryDate": { $lte: twoDaysAgo },
@@ -218,7 +219,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
           {
             $lookup: {
               from: "users",
-              localField: "user",
+              localField: "userId",
               foreignField: "_id",
               as: "userData",
             },
@@ -228,7 +229,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
           {
             $lookup: {
               from: "stores",
-              localField: "subOrders.store",
+              localField: "subOrders.storeId",
               foreignField: "_id",
               as: "storeData",
             },
@@ -418,7 +419,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
 
         // Prepare the status history update
         const statusUpdate = {
-          status: "Delivered",
+          status: DeliveryStatus.Delivered,
           timestamp: now,
           notes: "Delivery auto-confirmed by System.",
         };
@@ -426,7 +427,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
         const result = await Order.findOneAndUpdate(
           {
             "subOrders._id": new mongoose.Types.ObjectId(subOrderId),
-            "subOrders.deliveryStatus": "Delivered",
+            "subOrders.deliveryStatus": DeliveryStatus.Delivered,
             "subOrders.customerConfirmedDelivery.confirmed": false,
             "subOrders.$.customerConfirmedDelivery.autoConfirmed": false,
           },

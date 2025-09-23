@@ -5,6 +5,9 @@ import { getOrderModel } from "@/lib/db/models/order.model";
 import {
   getWalletModel,
   getWalletTransactionModel,
+  WalletTransactionRelatedDocumentType,
+  WalletTransactionSource,
+  WalletTransactionType,
 } from "@/lib/db/models/wallet.model";
 import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import {
@@ -162,12 +165,12 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
           "subOrders._id": new mongoose.Types.ObjectId(subOrderId),
         })
           .populate({
-            path: "user",
+            path: "userId",
             select: "firstName lastName email",
           })
           .populate({
-            path: "subOrders.store",
-            select: "name storeEmail wallet",
+            path: "subOrders.storeId",
+            select: "name storeEmail walletId",
           })
           .session(session);
 
@@ -253,13 +256,13 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * The wallet must exist as it should have been created during store setup.
          */
         const sellerWallet = await Wallet.findOne({
-          store: subOrder.store,
+          storeId: subOrder.storeId,
         }).session(session);
 
         if (!sellerWallet) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: `Store wallet not found for store ID: ${subOrder.store}`,
+            message: `Store wallet not found for store ID: ${subOrder.storeId}`,
           });
         }
 
@@ -351,10 +354,11 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * linking it to the original order for complete audit trail.
          */
         const walletTransactionData: WalletTransactionData = {
-          wallet: sellerWallet._id as unknown as mongoose.Schema.Types.ObjectId,
-          type: "credit",
+          walletId:
+            sellerWallet._id as unknown as mongoose.Schema.Types.ObjectId,
+          type: WalletTransactionType.Credit,
           amount: settlementDetails.releaseAmount,
-          source: "order",
+          source: WalletTransactionSource.Order,
           description: `Escrow release for order ${(
             orderWithSubOrder._id as mongoose.Types.ObjectId
           )
@@ -363,7 +367,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
             .toUpperCase()}`,
           relatedDocumentId:
             orderWithSubOrder._id as unknown as mongoose.Schema.Types.ObjectId,
-          relatedDocumentType: "Order",
+          relatedDocumentType: WalletTransactionRelatedDocumentType.Order,
         };
 
         const walletTransaction = new WalletTransaction(walletTransactionData);
@@ -381,7 +385,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * access to populated store data.
          */
         const populatedStore =
-          subOrder.store as unknown as PopulatedStoreForRelease;
+          subOrder.storeId as unknown as PopulatedStoreForRelease;
         if (populatedStore?.storeEmail) {
           try {
             await sendMail({
@@ -445,7 +449,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * with proper TypeScript typing throughout.
          */
         const populatedUser =
-          orderWithSubOrder.user as unknown as PopulatedUserForRelease;
+          orderWithSubOrder.userId as unknown as PopulatedUserForRelease;
 
         const responseData: EscrowReleaseResponse = {
           success: true,

@@ -12,7 +12,7 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   robots: {
-    index: false, // ✅ best practice: prevent indexing cart pages
+    index: false,
     follow: true,
     nocache: true,
     googleBot: {

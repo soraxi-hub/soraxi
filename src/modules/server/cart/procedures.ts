@@ -33,10 +33,10 @@ export const cartRouter = createTRPCRouter({
     }
 
     const formatedCart = {
-      user: cart.user,
+      userId: cart.userId.toString(),
       items: cart.items.map((item) => ({
-        product: item.product,
-        storeID: item.storeID,
+        productId: item.productId.toString(),
+        storeId: item.storeId.toString(),
         quantity: item.quantity,
         productType: item.productType,
         selectedSize: item.selectedSize,
@@ -53,8 +53,8 @@ export const cartRouter = createTRPCRouter({
     .input(
       z.object({
         userId: z.string(),
-        product: z.string(),
-        storeID: z.string(),
+        productId: z.string(),
+        storeId: z.string(),
         quantity: z.number().min(1),
         productType: z.enum(["Product", "digitalproducts"]),
         selectedSize: z
@@ -68,8 +68,8 @@ export const cartRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const updatedCart = await addItemToCart(input.userId, {
-        product: new mongoose.Types.ObjectId(input.product),
-        storeID: new mongoose.Types.ObjectId(input.storeID),
+        productId: new mongoose.Types.ObjectId(input.productId),
+        storeId: new mongoose.Types.ObjectId(input.storeId),
         quantity: input.quantity,
         productType: input.productType,
         selectedSize: input.selectedSize,

@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Profile from "@/modules/user/components/user-profile";
-import { redirect } from "next/navigation";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
@@ -15,24 +14,19 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!user) {
     return {
-      title: `Sign In | ${siteConfig.name}`,
+      title: `Sign In`,
       description:
         "Sign in to your account to track orders, manage your profile, and enjoy a personalized shopping experience.",
     };
   }
 
   return {
-    title: `${user.firstName}'s Profile | ${siteConfig.name}`,
+    title: `${user.firstName}'s Profile`,
     description: `View and manage ${user.firstName}'s profile on ${siteConfig.name}. Track orders, update personal details, manage saved items, and enjoy a seamless shopping experience tailored to you.`,
   };
 }
 
 async function Page() {
-  const user = await getUserFromCookie();
-
-  if (!user) {
-    return redirect(`/sign-in`);
-  }
   prefetch(trpc.user.getById.queryOptions());
 
   return (

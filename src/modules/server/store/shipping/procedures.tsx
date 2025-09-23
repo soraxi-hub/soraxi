@@ -4,7 +4,6 @@ import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { MAX_METHODS } from "@/modules/store/shipping/shipping-methods";
-import { nairaToKobo } from "@/lib/utils/naira";
 
 export const storeShippingRouter = createTRPCRouter({
   // Fetch Store Profile Data. This is used for private store profiles.
@@ -105,7 +104,7 @@ export const storeShippingRouter = createTRPCRouter({
         });
       }
 
-      console.log("Input for Shipping Method Update:", input);
+      // console.log("Input for Shipping Method Update:", input);
 
       if (store.shippingMethods.length >= MAX_METHODS) {
         throw new TRPCError({
@@ -130,14 +129,14 @@ export const storeShippingRouter = createTRPCRouter({
         store.shippingMethods[methodIndex] = {
           ...store.shippingMethods[methodIndex],
           ...input,
-          price: nairaToKobo(input.price),
+          price: input.price,
           _id: new mongoose.Types.ObjectId(input.id),
         };
       } else {
         // Add new shipping method
         store.shippingMethods.push({
           ...input,
-          price: nairaToKobo(input.price),
+          price: input.price,
         });
       }
 

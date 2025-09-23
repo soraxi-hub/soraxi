@@ -58,8 +58,6 @@ export const paymentRouter = createTRPCRouter({
           bankCode: acc.bankDetails.bankCode,
           bankId: acc.bankDetails.bankId,
         },
-        totalEarnings: acc.totalEarnings,
-        lastPayoutDate: acc.lastPayoutDate,
       };
     });
 
@@ -187,8 +185,6 @@ export const paymentRouter = createTRPCRouter({
         store.payoutAccounts.push({
           payoutMethod: "Bank Transfer",
           bankDetails,
-          totalEarnings: 0,
-          lastPayoutDate: null,
         });
       }
 

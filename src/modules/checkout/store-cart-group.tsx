@@ -85,7 +85,7 @@ export default function StoreCartGroup({
       onShippingMethodChangeAction(selectedMethod);
     } else {
       console.warn(
-        `Shipping method "${methodName}" not found for store ${storeGroup.storeID}`
+        `Shipping method "${methodName}" not found for store ${storeGroup.storeId}`
       );
     }
   };
@@ -124,7 +124,7 @@ export default function StoreCartGroup({
           aria-label={`Products from ${storeGroup.storeName}`}
         >
           {storeGroup.products.map((item, index) => (
-            <div key={`${item.storeID}-${index}`} role="listitem">
+            <div key={`${item.storeId}-${index}`} role="listitem">
               <ProductItem item={item} />
             </div>
           ))}
@@ -143,7 +143,7 @@ export default function StoreCartGroup({
               <AccordionItem value="shipping-methods" className="border-none">
                 <AccordionTrigger className="py-2 hover:no-underline hover:bg-muted/50 rounded-md px-2 transition-colors">
                   <div className="flex items-center gap-3">
-                    <Truck className="h-4 w-4 text-soraxi-green" />
+                    <Truck className="h-4 w-4 text-soraxi-green hidden sm:inline-flex" />
                     <span className="font-medium">Shipping Options</span>
                     {selectedShippingMethod && (
                       <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
@@ -172,11 +172,11 @@ export default function StoreCartGroup({
                         >
                           <RadioGroupItem
                             value={method.name}
-                            id={`shipping-${storeGroup.storeID}-${method.name}`}
+                            id={`shipping-${storeGroup.storeId}-${method.name}`}
                             className="text-soraxi-green"
                           />
                           <Label
-                            htmlFor={`shipping-${storeGroup.storeID}-${method.name}`}
+                            htmlFor={`shipping-${storeGroup.storeId}-${method.name}`}
                             className="flex flex-1 justify-between cursor-pointer"
                           >
                             <div className="space-y-1">

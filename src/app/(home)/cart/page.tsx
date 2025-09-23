@@ -1,7 +1,7 @@
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { caller } from "@/trpc/server";
 import { CartPageClient } from "@/modules/cart/cart-page-client";
-import { EmptyCart } from "@/modules/cart/EmptyCart";
+import { EmptyCart } from "@/modules/cart/empty-cart";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -133,7 +133,7 @@ export default async function CartPage() {
     }
 
     // Extract product IDs from cart items
-    const productIds = cartData.items.map((item) => item.product.toString());
+    const productIds = cartData.items.map((item) => item.productId.toString());
 
     // Fetch detailed product information for all cart items
     const products = await caller.cart.getManyByIds({ ids: productIds });
@@ -151,21 +151,23 @@ export default async function CartPage() {
     const hydratedCartItems: CartItemType[] = cartData.items
       .map((cartItem) => {
         const product = products?.find(
-          (p) => p.id === cartItem.product.toString()
+          (p) => p.id === cartItem.productId.toString()
         );
 
         // Skip items where product is not found or essential data is missing
         if (!product || typeof product.price !== "number") {
           console.warn(
-            `Product not found or invalid data for cart item: ${cartItem.product}`
+            `Product not found or invalid data for cart item: ${cartItem.productId}`
           );
           return null;
         }
 
         // Create properly typed cart item
         const cartItemData: CartItemType = {
-          id: `${cartItem.product}-${cartItem.selectedSize?.size ?? "nosize"}`,
-          productId: cartItem.product.toString(),
+          id: `${cartItem.productId}-${
+            cartItem.selectedSize?.size ?? "nosize"
+          }`,
+          productId: cartItem.productId.toString(),
           name: product.name,
           slug: product.slug,
           image: product.image,

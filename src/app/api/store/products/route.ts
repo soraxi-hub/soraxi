@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
-import { getStoreModel } from "@/lib/db/models/store.model";
+import { getStoreModel, StoreStatus } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
 import bcrypt from "bcryptjs";
 import { handleApiError } from "@/lib/utils/handle-api-error";
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
-      storeID,
+      storeId,
       productType,
       name,
       price,
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate store ownership
-    if (storeID !== storeSession.id) {
+    if (storeId !== storeSession.id) {
       throw new AppError("Unauthorized store access", 403);
     }
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Check if store is active and verified
     // if (store.status !== "active" || !store.verification?.isVerified) {
-    if (store.status !== "active") {
+    if (store.status !== StoreStatus.Active) {
       throw new AppError("Store is not verified or active.", 403);
     }
 
@@ -74,14 +74,14 @@ export async function POST(request: NextRequest) {
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 
     // Ensure that store can not upload more than 20 products
-    const productCount = await Product.countDocuments({ storeID });
+    const productCount = await Product.countDocuments({ storeId });
     if (productCount >= 20) {
       throw new AppError("Store has reached the maximum product limit", 400);
     }
 
     // Create product data
     const productData = {
-      storeID,
+      storeId,
       productType: productType || "Product",
       name,
       price: sizes?.length > 0 ? undefined : price,
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     await product.save();
 
     // Update the store by pushing the new product to the products array
-    await Store.findByIdAndUpdate(storeID, {
+    await Store.findByIdAndUpdate(storeId, {
       $push: { physicalProducts: product._id },
     });
 

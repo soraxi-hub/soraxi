@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getUserFromCookie } from "./get-user-from-cookie";
-import { siteConfig } from "@/config/site";
 
 /**
  * Generate consistent metadata for user-only pages.
@@ -15,14 +14,14 @@ export async function generateUserMetadata(
 
   if (!user) {
     return {
-      title: `Sign In | ${siteConfig.name}`,
+      title: `Sign In`,
       description:
         "Sign in to your account to manage your profile, track orders, and enjoy a personalized shopping experience.",
     };
   }
 
   return {
-    title: `${page} | ${siteConfig.name}`,
+    title: `${page}`,
     description,
     robots: {
       index: false,

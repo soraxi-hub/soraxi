@@ -14,7 +14,7 @@ export interface IWishlistItem {
  * Each user has a unique wishlist containing various product types.
  */
 export interface IWishlist extends Document {
-  user: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   products: IWishlistItem[];
   createdAt: Date;
   updatedAt: Date;
@@ -26,7 +26,7 @@ export interface IWishlist extends Document {
  */
 const WishlistSchema = new Schema<IWishlist>(
   {
-    user: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -81,12 +81,12 @@ export async function getWishlistByUserId(
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
 
-  const wishlist = await Wishlist.findOne<IWishlist>({ user: userId }).populate(
-    {
-      path: "products.productId",
-      select: "name price sizes images productType slug category rating",
-    }
-  );
+  const wishlist = await Wishlist.findOne<IWishlist>({
+    userId: userId,
+  }).populate({
+    path: "products.productId",
+    select: "name price sizes images productType slug category rating",
+  });
   // .lean();
 
   return wishlist;
@@ -120,10 +120,10 @@ export async function addItemToWishlist(
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
 
-  let wishlist = await Wishlist.findOne({ user: userId });
+  let wishlist = await Wishlist.findOne({ userId: userId });
 
   if (!wishlist) {
-    wishlist = new Wishlist({ user: userId, products: [product] });
+    wishlist = new Wishlist({ userId: userId, products: [product] });
   } else {
     const alreadyInWishlist = wishlist.products.some(
       (item) =>
@@ -147,7 +147,7 @@ export async function removeItemFromWishlist(
   const Wishlist = await getWishlistModel();
 
   return Wishlist.findOneAndUpdate(
-    { user: userId },
+    { userId: userId },
     {
       $pull: {
         products: { productId: new mongoose.Types.ObjectId(productId) },

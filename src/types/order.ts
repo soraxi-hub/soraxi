@@ -1,6 +1,6 @@
 import { DeliveryStatus, DeliveryType, StatusHistory } from "@/enums";
 import mongoose from "mongoose";
-import { z } from "zod";
+import z from "zod";
 
 /**
  * Type definitions for populated order data structures
@@ -21,7 +21,7 @@ export interface PopulatedProduct {
   images: string[];
   price: number;
   productType: "Product" | "digitalproducts";
-  storeID: string;
+  storeId: string;
 }
 
 /**
@@ -46,7 +46,7 @@ export interface PopulatedStore {
 export interface OrderProduct {
   _id: string;
   // Product: PopulatedProduct; // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
-  store: string;
+  storeId: string;
   productSnapshot: {
     _id: string;
     name: string;
@@ -223,7 +223,7 @@ export interface FormattedOrderForAdmin {
  */
 export interface RawOrderDocument {
   _id: mongoose.Types.ObjectId;
-  user: PopulatedUser | mongoose.Types.ObjectId;
+  userId: PopulatedUser | mongoose.Types.ObjectId;
   stores: mongoose.Types.ObjectId[] | PopulatedStore[];
   totalAmount: number;
   paymentStatus?: string;
@@ -238,11 +238,11 @@ export interface RawOrderDocument {
   updatedAt: Date;
   subOrders: Array<{
     _id: mongoose.Types.ObjectId;
-    store: PopulatedStore | mongoose.Types.ObjectId;
+    storeId: PopulatedStore | mongoose.Types.ObjectId;
     products: Array<{
       _id: mongoose.Types.ObjectId;
-      Product: PopulatedProduct | mongoose.Types.ObjectId;
-      store: mongoose.Types.ObjectId;
+      productId: PopulatedProduct | mongoose.Types.ObjectId;
+      storeId: mongoose.Types.ObjectId;
       productSnapshot: {
         _id: mongoose.Schema.Types.ObjectId;
         name: string;

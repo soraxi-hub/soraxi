@@ -7,7 +7,7 @@ export interface SizeOption {
 
 export interface Product {
   _id: string; // Product ID
-  storeID: string; // Store ID (again for nested product)
+  storeId: string; // Store ID (again for nested product)
   productType: "Product"; // Type of product (e.g., "Product")
   name: string; // Product name
   price?: string; // Product price in kobo (as string)
@@ -24,7 +24,7 @@ interface SelectedSize {
 
 export interface CartItem {
   product: Product;
-  storeID: string; // Store ID (again for nested product)
+  storeId: string; // Store ID (again for nested product)
   quantity: string; // Quantity ordered (as string)
   productType: "Product"; // Type of product (e.g., "Product")
   selectedSize?: SelectedSize;
@@ -39,7 +39,7 @@ interface ShippingMethod {
 }
 
 interface StoreCart {
-  storeID: string; // Store ID associated with the items
+  storeId: string; // Store ID associated with the items
   storeName: string; // Name of the store
   products: CartItem[];
   // shippingMethods: ShippingMethod[];

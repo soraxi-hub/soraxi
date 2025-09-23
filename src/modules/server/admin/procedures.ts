@@ -34,7 +34,10 @@ export const adminRouter = createTRPCRouter({
       }
 
       const products = await Product.find(query)
-        .populate("storeID", "name storeEmail")
+        .populate({
+          path: "storeId",
+          select: "name storeEmail",
+        })
         .select(
           "name description price category status images createdAt updatedAt"
         )

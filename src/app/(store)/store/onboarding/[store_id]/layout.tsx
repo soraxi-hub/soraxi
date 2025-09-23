@@ -4,7 +4,10 @@ import {
   StoreOnboardingProvider,
   useStoreOnboarding,
 } from "@/contexts/StoreOnboardingContext";
-import { IShippingMethod } from "@/lib/db/models/store.model";
+import {
+  IShippingMethod,
+  StoreBusinessInfo,
+} from "@/lib/db/models/store.model";
 import axios from "axios";
 import { useEffect } from "react";
 
@@ -21,7 +24,7 @@ interface Store {
       businessName?: string;
       registrationNumber?: string;
       taxId?: string;
-      type: "individual" | "company";
+      type: StoreBusinessInfo;
       documentUrls?: string[];
     };
     shipping: IShippingMethod[];

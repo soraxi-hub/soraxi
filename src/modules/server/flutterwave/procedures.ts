@@ -16,7 +16,7 @@ import {
 } from "@/enums";
 
 // Define the Zod schema for validation
-const flutterwaveInputSchema = z.object({
+export const flutterwaveInputSchema = z.object({
   amount: z.number(),
   cartItemsWithShippingMethod: z.array(
     z.object({
@@ -28,13 +28,13 @@ const flutterwaveInputSchema = z.object({
           estimatedDeliveryDays: z.number().optional(),
         })
         .optional(), // optional because a store may not have any shipping methods yet. fix it before you go live
-      storeID: z.string(),
+      storeId: z.string(),
       storeName: z.string(),
       products: z.array(
         z.object({
           product: z.object({
             _id: z.string(),
-            storeID: z.string(),
+            storeId: z.string(),
             productType: z.string(),
             name: z.string(),
             price: z.number().optional(),
@@ -62,7 +62,7 @@ const flutterwaveInputSchema = z.object({
             z.literal("Product"),
             z.literal("digitalproducts"),
           ]),
-          storeID: z.string(),
+          storeId: z.string(),
         })
       ),
     })
@@ -77,11 +77,8 @@ const flutterwaveInputSchema = z.object({
     city: z.string(),
     state: z.string(),
     postal_code: z.string(),
-    userID: z.string(),
-    deliveryType: z.union([
-      z.literal(DeliveryType.Campus),
-      z.literal(DeliveryType.OffCampus),
-    ]),
+    userId: z.string(),
+    deliveryType: z.nativeEnum(DeliveryType),
   }),
 });
 
@@ -155,7 +152,7 @@ export const flutterwaveRouter = createTRPCRouter({
           meta,
         } = input;
         const { email, phone_number, name } = customer;
-        const { address, city, state, postal_code, userID, deliveryType } =
+        const { address, city, state, postal_code, userId, deliveryType } =
           meta;
 
         const payload = {
@@ -177,6 +174,13 @@ export const flutterwaveRouter = createTRPCRouter({
           },
         } as const;
 
+        if (userId !== user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "userId mismatch",
+          });
+        }
+
         // console.log("payload", payload);
 
         /**
@@ -187,14 +191,14 @@ export const flutterwaveRouter = createTRPCRouter({
         session = await mongoose.startSession();
         session.startTransaction();
 
-        const storeIDs = [...new Set(cartItems.map((s) => s.storeID))];
+        const storeIds = [...new Set(cartItems.map((s) => s.storeId))];
         // console.log("storeIDs", storeIDs);
         // This is the subOrders array inside the main order
         const subOrders = cartItems.map((store) => {
           const products = store.products.map((item) => {
             const base = {
-              Product: item.product._id,
-              store: item.storeID,
+              productId: item.product._id,
+              storeId: item.storeId,
               productSnapshot: {
                 _id: item.product._id,
                 name: item.product.name,
@@ -203,7 +207,7 @@ export const flutterwaveRouter = createTRPCRouter({
                 price: Number(item.selectedSize?.price || item.product.price),
               },
               storeSnapshot: {
-                _id: store.storeID,
+                _id: store.storeId,
                 name: store.storeName,
               },
             };
@@ -231,7 +235,7 @@ export const flutterwaveRouter = createTRPCRouter({
           );
 
           return {
-            store: store.storeID,
+            storeId: store.storeId,
             products,
             totalAmount: storeTotal,
             deliveryStatus: DeliveryStatus.OrderPlaced,
@@ -260,8 +264,8 @@ export const flutterwaveRouter = createTRPCRouter({
         // console.log("subOrders", subOrders);
         // Create and save main order
         const orderDoc = new Order({
-          user: userID,
-          stores: storeIDs,
+          userId: user.id,
+          stores: storeIds,
           subOrders,
           totalAmount: amount,
           shippingAddress: {

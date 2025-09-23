@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getStoreModel, IStore } from "@/lib/db/models/store.model";
+import {
+  getStoreModel,
+  IStore,
+  StoreBusinessInfo,
+} from "@/lib/db/models/store.model";
 import {
   getStoreFromCookie,
   StoreTokenData,
@@ -38,8 +42,8 @@ export async function GET(_request: NextRequest) {
       profile: !!(store.name && store.description),
       "business-info": !!(
         store.businessInfo &&
-        (store.businessInfo.type === "individual" ||
-          (store.businessInfo.type === "company" &&
+        (store.businessInfo.type === StoreBusinessInfo.Individual ||
+          (store.businessInfo.type === StoreBusinessInfo.Company &&
             store.businessInfo.businessName &&
             store.businessInfo.registrationNumber))
       ),

@@ -19,7 +19,7 @@ export interface RawProductDocument {
   category: string;
   status: IProduct["status"];
   images: string[];
-  storeID: PopulatedStore | mongoose.Types.ObjectId;
+  storeId: PopulatedStore | mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,7 +60,7 @@ export function formatProductDocument(
   rawProduct: RawProductDocument
 ): FormattedProduct {
   // Validate store population
-  if (!isPopulatedStore(rawProduct.storeID)) {
+  if (!isPopulatedStore(rawProduct.storeId)) {
     throw new Error(`Product ${rawProduct._id} has unpopulated store`);
   }
 
@@ -73,9 +73,9 @@ export function formatProductDocument(
     status: rawProduct.status || "",
     images: rawProduct.images || [],
     store: {
-      id: rawProduct.storeID._id.toString(),
-      name: rawProduct.storeID.name,
-      email: rawProduct.storeID.storeEmail,
+      id: rawProduct.storeId._id.toString(),
+      name: rawProduct.storeId.name,
+      email: rawProduct.storeId.storeEmail,
     },
     createdAt: rawProduct.createdAt,
     updatedAt: rawProduct.updatedAt,

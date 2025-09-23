@@ -38,7 +38,9 @@ export class UserFactory {
       dbUser.lastName,
       dbUser.email,
       dbUser.password,
-      dbUser.stores[0].storeId.toString()
+      dbUser.stores && dbUser.stores.length > 0 && dbUser.stores[0].storeId
+        ? dbUser.stores[0].storeId.toString()
+        : undefined
     );
   }
 

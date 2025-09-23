@@ -1,7 +1,5 @@
 import { Suspense } from "react";
 import { StoreReturnsManagement } from "@/modules/store/returns/StoreReturnsManagement";
-import { redirect } from "next/navigation";
-import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 
 interface StoreReturnsPageProps {
   params: Promise<{ store_id: string }>;
@@ -11,12 +9,6 @@ export default async function StoreReturnsPage({
   params,
 }: StoreReturnsPageProps) {
   const { store_id } = await params;
-
-  // Check store session
-  const session = await getStoreFromCookie();
-  if (!session || session.id !== store_id) {
-    redirect("/login");
-  }
 
   return (
     <div className="min-h-screen bg-background">

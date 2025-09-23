@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft,
   Store,
   Banknote,
   CheckCircle,
@@ -15,7 +14,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
-import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
@@ -105,16 +103,10 @@ export default function StoreWithdrawalDetail({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 py-6 px-6 min-h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/store/${storeId}/wallet`}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Transactions
-            </Link>
-          </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               Withdrawal Request Details

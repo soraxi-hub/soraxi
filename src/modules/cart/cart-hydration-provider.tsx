@@ -123,7 +123,7 @@ export function CartHydration() {
        */
       const items = cart.items.map((item) => ({
         // Convert MongoDB ObjectId to string for client compatibility
-        productId: item.product.toString(),
+        productId: item.productId.toString(),
 
         // Preserve quantity as-is
         quantity: item.quantity,

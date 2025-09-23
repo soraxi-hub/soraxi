@@ -62,7 +62,7 @@ export const productReviewRouter = createTRPCRouter({
         });
 
         // Update average rating on the product
-        const allReviews = await ProductReview.find({ product: productId });
+        const allReviews = await ProductReview.find({ productId: productId });
         const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
         const avgRating = totalRating / allReviews.length;
 

@@ -9,7 +9,7 @@ export interface Category {
 
 export interface Product {
   _id: string; // Mongoose _id as string
-  storeID: string;
+  storeId: string;
   productType: "Product" | "digitalproducts";
   name: string;
   price?: number;
@@ -59,7 +59,7 @@ export interface User {
 
 export interface CartProduct {
   _id: string; // Mongoose _id as string
-  storeID: string; // Mongoose _id as string
+  storeId: string; // Mongoose _id as string
   productType: string;
   name: string;
   price?: number;

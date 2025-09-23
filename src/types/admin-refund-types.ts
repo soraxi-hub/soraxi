@@ -68,11 +68,7 @@ export const RefundQueueItemSchema = z.object({
   store: RefundStoreSchema,
   products: z.array(RefundProductSchema),
   totalAmount: z.number(), // Total amount of the sub-order
-  deliveryStatus: z.enum([
-    DeliveryStatus.Delivered,
-    DeliveryStatus.Returned,
-    DeliveryStatus.FailedDelivery,
-  ]),
+  deliveryStatus: z.nativeEnum(DeliveryStatus),
   escrow: RefundEscrowSchema,
   shippingMethod: RefundShippingMethodSchema,
   refundRequestDate: z.string().datetime(), // Date when the order was marked for refund

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (order.user.toString() !== user.id) {
+    if (order.userId.toString() !== user.id) {
       return NextResponse.json(
         { error: "Unauthorized access to order" },
         { status: 403 }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     // Find the product in the sub-order
     const orderItem = subOrder.products.find(
-      (item) => item.Product.toString() === productId
+      (item) => item.productId.toString() === productId
     );
 
     if (!orderItem) {
@@ -393,7 +393,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate ownership if userId is provided
-    if (userId && order.user.toString() !== userId) {
+    if (userId && order.userId.toString() !== userId) {
       return NextResponse.json(
         { error: "Unauthorized access to order" },
         { status: 403 }

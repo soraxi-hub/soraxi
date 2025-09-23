@@ -31,7 +31,7 @@ export const wishlistRouter = createTRPCRouter({
     }
 
     const formattedWishlist = {
-      user: wishlist.user.toString(),
+      userId: wishlist.userId.toString(),
       products: wishlist.products.map((p) => ({
         productId: p.productId.toString(),
         productType: p.productType,
@@ -57,7 +57,7 @@ export const wishlistRouter = createTRPCRouter({
     // If no wishlist exists, return a default empty structure
     if (!wishlist) {
       return {
-        user: user.id,
+        userId: user.id,
         products: [],
         createdAt: null,
         updatedAt: null,
@@ -65,7 +65,7 @@ export const wishlistRouter = createTRPCRouter({
     }
 
     const formattedWishlist = {
-      user: wishlist.user.toString(),
+      userId: wishlist.userId.toString(),
       products: wishlist.products.map((p) => {
         const product = p.productId as unknown as IProduct;
 

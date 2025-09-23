@@ -10,7 +10,7 @@ import { IWalletTransaction } from "@/lib/db/models/wallet.model";
  */
 export type PopulatedStoreForRelease = Pick<
   IStore,
-  "_id" | "name" | "storeEmail" | "wallet"
+  "_id" | "name" | "storeEmail" | "walletId"
 >;
 
 /**
@@ -125,7 +125,7 @@ export interface EscrowEligibilityCheck {
  */
 export type WalletTransactionData = Pick<
   IWalletTransaction,
-  | "wallet"
+  | "walletId"
   | "type"
   | "amount"
   | "source"

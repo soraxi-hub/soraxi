@@ -75,6 +75,7 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
       onSuccess: (data) => {
         toast.success(`Success, ${data.message}`);
         setIsValidating(false);
+        setIsSubmitting(false);
       },
       onError: () => {
         toast.error("Failed to add payout account. Please try again.");

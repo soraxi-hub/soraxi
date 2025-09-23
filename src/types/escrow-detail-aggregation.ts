@@ -1,5 +1,9 @@
 import type mongoose from "mongoose";
 import type { IOrder, ISubOrder } from "@/lib/db/models/order.model";
+import {
+  StoreBusinessInfo,
+  StoreVerificationStatus,
+} from "@/lib/db/models/store.model";
 
 /**
  * Interface for populated user details in escrow detail aggregation result
@@ -29,7 +33,7 @@ interface PopulatedStoreDetailsForDetail {
   logoUrl?: string;
   verification?: {
     isVerified: boolean;
-    method: "email" | "identity" | "video-call";
+    method: StoreVerificationStatus;
     verifiedAt?: Date;
     notes?: string;
   };
@@ -37,7 +41,7 @@ interface PopulatedStoreDetailsForDetail {
     businessName?: string;
     registrationNumber?: string;
     taxId?: string;
-    type: "individual" | "company";
+    type: StoreBusinessInfo;
     documentUrls?: string[];
   };
 }
@@ -147,7 +151,7 @@ export interface FormattedEscrowReleaseDetail {
       verifiedAt: Date | null;
     };
     businessInfo: {
-      type: "individual" | "company";
+      type?: StoreBusinessInfo;
       businessName: string | null;
       registrationNumber: string | null;
     };

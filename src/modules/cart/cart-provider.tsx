@@ -46,7 +46,7 @@ export async function CartProvider() {
     const items =
       cart?.items.map((item) => ({
         // Convert ObjectId to string for client compatibility
-        productId: item.product.toString(),
+        productId: item.productId.toString(),
         quantity: item.quantity,
         // Handle optional size selection
         size: item.selectedSize?.size,

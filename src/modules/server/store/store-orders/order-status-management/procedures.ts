@@ -149,13 +149,16 @@ export const orderStatusRouter = createTRPCRouter({
         // ==================== Email Notifications ====================
         try {
           const Order = await getOrderModel();
-          const orderDoc = await Order.findById(input.orderId).populate(
-            "user",
-            "email"
-          );
-          const customerEmail = (orderDoc?.user as unknown as IUser)?.email;
+          const orderDoc = await Order.findById(input.orderId)
+            .populate({
+              path: "userId",
+              select: "email",
+            })
+            .select("userId");
 
-          if (!orderDoc || !orderDoc.user) {
+          const customerEmail = (orderDoc?.userId as unknown as IUser)?.email;
+
+          if (!orderDoc || !orderDoc.userId) {
             console.log("Failed to fetch order or user ID");
           } else {
             const isOrderFailedOrCanceled =

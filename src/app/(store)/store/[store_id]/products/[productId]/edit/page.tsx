@@ -1,6 +1,4 @@
 import { ProductEditForm } from "@/modules/store/components/product-edit-form";
-import { redirect } from "next/navigation";
-import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { caller } from "@/trpc/server";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
 import { Metadata } from "next";
@@ -27,12 +25,6 @@ export default async function ProductEditPage({
   params,
 }: ProductEditPageProps) {
   const { store_id, productId } = await params;
-
-  // Server-side check for store session (though client-side check is also in ProductForm)
-  const storeSession = await getStoreFromCookie();
-  if (!storeSession || storeSession.id !== store_id) {
-    redirect(`/login?redirect=/store/${store_id}/products/${productId}/edit`);
-  }
 
   const data = await caller.storeProducts.getStoreProductById({
     id: productId,
