@@ -59,6 +59,7 @@ const WalletSchema = new Schema<IWallet>(
       ref: "Store",
       required: true,
       unique: true,
+      index: true,
     },
     balance: { type: Number, default: 0 }, // in kobo
     pending: { type: Number, default: 0 },
@@ -75,6 +76,7 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
       required: true,
+      index: true,
     },
     type: {
       type: String,

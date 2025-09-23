@@ -122,7 +122,7 @@ export function formatOrderDocument(
           //   images: productItem.Product.images,
           //   price: productItem.Product.price,
           //   productType: productItem.Product.productType,
-          //   storeID: productItem.Product.storeID,
+          //   storeId: productItem.Product.storeID,
           // }, // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
           storeId: productItem.storeId.toString(),
           productSnapshot: {
@@ -398,7 +398,7 @@ export function formatStoreOrderDocument(
           //   images: productItem.Product.images,
           //   price: productItem.Product.price,
           //   productType: productItem.Product.productType,
-          //   storeID: productItem.Product.storeID,
+          //   storeId: productItem.Product.storeID,
           // },
           storeId: productItem.storeId.toString(),
           productSnapshot: {

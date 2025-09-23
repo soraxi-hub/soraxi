@@ -379,7 +379,7 @@ export async function getOrderById(
     .populate({
       path: "subOrders.products.productId",
       model: "Product",
-      select: "_id name images price productType storeID",
+      select: "_id name images price productType storeId",
     })
     .populate({
       path: "subOrders.storeId",

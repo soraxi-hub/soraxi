@@ -78,10 +78,7 @@ export const flutterwaveInputSchema = z.object({
     state: z.string(),
     postal_code: z.string(),
     userId: z.string(),
-    deliveryType: z.union([
-      z.literal(DeliveryType.Campus),
-      z.literal(DeliveryType.OffCampus),
-    ]),
+    deliveryType: z.nativeEnum(DeliveryType),
   }),
 });
 
@@ -177,6 +174,13 @@ export const flutterwaveRouter = createTRPCRouter({
           },
         } as const;
 
+        if (userId !== user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "userId mismatch",
+          });
+        }
+
         // console.log("payload", payload);
 
         /**
@@ -260,7 +264,7 @@ export const flutterwaveRouter = createTRPCRouter({
         // console.log("subOrders", subOrders);
         // Create and save main order
         const orderDoc = new Order({
-          userId: userId,
+          userId: user.id,
           stores: storeIds,
           subOrders,
           totalAmount: amount,

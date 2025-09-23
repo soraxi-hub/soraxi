@@ -314,8 +314,7 @@ export const withdrawalRouter = createTRPCRouter({
         const skip = (page - 1) * limit;
 
         const WithdrawalRequestModel = await getWithdrawalRequestModel();
-        // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
-        const AdminModel = await getAdminModel(); // Assuming Admin model exists
+        await getAdminModel(); // Assuming Admin model exists
 
         const pipeline: mongoose.PipelineStage[] = [];
 
@@ -327,7 +326,7 @@ export const withdrawalRouter = createTRPCRouter({
         // Match by storeId
         if (storeId && mongoose.Types.ObjectId.isValid(storeId)) {
           pipeline.push({
-            $match: { store: new mongoose.Types.ObjectId(storeId) },
+            $match: { storeId: new mongoose.Types.ObjectId(storeId) },
           });
         }
 

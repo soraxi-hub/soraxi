@@ -153,8 +153,8 @@ export async function addItemToCart(
   const Cart = await getCartModel();
 
   // const query = {
-  //   user: userId,
-  //   "items.product": newItem.product,
+  //   userId: userId,
+  //   "items.productId": newItem.product,
   //   ...(newItem.selectedSize?.size && {
   //     "items.selectedSize.size": newItem.selectedSize.size,
   //   }),

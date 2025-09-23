@@ -352,10 +352,10 @@ export const orderRouter = createTRPCRouter({
          */
         const [totalOrders, recentOrders, orderStats] = await Promise.all([
           // Total order count
-          Order.countDocuments({ user: input.userId }),
+          Order.countDocuments({ userId: input.userId }),
 
           // Recent orders with basic info
-          Order.find({ user: input.userId })
+          Order.find({ userId: input.userId })
             .select("_id totalAmount paymentStatus createdAt")
             .sort({ createdAt: -1 })
             .limit(input.limit)
@@ -363,7 +363,7 @@ export const orderRouter = createTRPCRouter({
 
           // Order statistics aggregation
           Order.aggregate([
-            { $match: { user: new mongoose.Types.ObjectId(input.userId) } },
+            { $match: { userId: new mongoose.Types.ObjectId(input.userId) } },
             {
               $group: {
                 _id: null,
