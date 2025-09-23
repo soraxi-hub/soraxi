@@ -1,5 +1,10 @@
 import type mongoose from "mongoose";
-import type { IWalletTransaction } from "@/lib/db/models/wallet.model";
+import type {
+  IWalletTransaction,
+  WalletTransactionRelatedDocumentType,
+  WalletTransactionSource,
+  WalletTransactionType,
+} from "@/lib/db/models/wallet.model";
 
 /**
  * Interface for wallet transaction query parameters
@@ -21,12 +26,12 @@ export interface WalletTransactionQueryParams {
   /**
    * Filter by transaction type
    */
-  type?: "credit" | "debit";
+  type?: WalletTransactionType;
 
   /**
    * Filter by transaction source
    */
-  source?: "order" | "withdrawal" | "refund" | "adjustment";
+  source?: WalletTransactionSource;
 
   /**
    * Filter by date range in days (e.g., 7, 30, 90, 365)
@@ -49,7 +54,7 @@ export interface CreateWalletTransactionInput {
   /**
    * Transaction type - credit adds to balance, debit subtracts
    */
-  type: "credit" | "debit";
+  type: WalletTransactionType;
 
   /**
    * Transaction amount in kobo (must be positive)
@@ -59,7 +64,7 @@ export interface CreateWalletTransactionInput {
   /**
    * Source of the transaction for categorization
    */
-  source: "order" | "withdrawal" | "refund" | "adjustment";
+  source: WalletTransactionSource;
 
   /**
    * Optional description providing context for the transaction
@@ -76,7 +81,7 @@ export interface CreateWalletTransactionInput {
    * Optional type of the related document (e.g., "Order", "WithdrawalRequest")
    * This helps in dynamically populating or linking to the correct detail page.
    */
-  relatedDocumentType?: "Order" | "WithdrawalRequest" | "Refund" | "Adjustment"; // New field
+  relatedDocumentType?: WalletTransactionRelatedDocumentType; // New field
 }
 
 /**
@@ -121,18 +126,13 @@ export type PopulatedRelatedDocument =
  */
 export interface FormattedWalletTransaction {
   _id: string;
-  wallet: string;
-  type: "credit" | "debit";
+  walletId: string;
+  type: WalletTransactionType;
   amount: number;
-  source: "order" | "withdrawal" | "refund" | "adjustment";
+  source: WalletTransactionSource;
   description: string | null;
   relatedDocumentId: string | null; // Changed from relatedOrderId
-  relatedDocumentType:
-    | "Order"
-    | "WithdrawalRequest"
-    | "Refund"
-    | "Adjustment"
-    | null; // New field
+  relatedDocumentType: WalletTransactionRelatedDocumentType | null; // New field
   relatedDocument: PopulatedRelatedDocument | null; // Changed from relatedOrder
   createdAt: Date;
 }
@@ -161,7 +161,7 @@ export interface WalletTransactionAggregationResult
    * Original related document ID (preserved for reference)
    */
   relatedDocumentId?: mongoose.Types.ObjectId; // Changed from relatedOrderId
-  relatedDocumentType?: "Order" | "WithdrawalRequest" | "Refund" | "Adjustment"; // New field
+  relatedDocumentType?: WalletTransactionRelatedDocumentType; // New field
 }
 
 /**

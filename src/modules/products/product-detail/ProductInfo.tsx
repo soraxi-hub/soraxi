@@ -83,7 +83,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         // console.log("variables", variables);
         // Update Zustand cart immediately
         useCartStore.getState().addItem({
-          productId: variables.product,
+          productId: variables.productId,
           quantity: variables.quantity,
           size: variables.selectedSize?.size,
         });
@@ -128,8 +128,8 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
     addToCart.mutate({
       userId,
-      product: product.id,
-      storeID: product.storeID,
+      productId: product.id,
+      storeId: product.storeId,
       quantity: 1,
       productType: product.productType,
       selectedSize: selectedSizeData

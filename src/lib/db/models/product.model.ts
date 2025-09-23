@@ -7,7 +7,7 @@ import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
  * Interface for Product document
  */
 export interface IProduct extends Document {
-  storeID: mongoose.Types.ObjectId;
+  storeId: mongoose.Types.ObjectId;
   productType: "Product" | "digitalproducts";
   name: string;
   price?: number;
@@ -35,7 +35,7 @@ export interface IProduct extends Document {
 
 const ProductSchema = new Schema<IProduct>(
   {
-    storeID: {
+    storeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: [true, "Store ID is required"],

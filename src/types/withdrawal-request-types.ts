@@ -87,7 +87,7 @@ export interface FormattedStoreWithdrawalRequestDetail {
  */
 export type PopulatedStoreForWithdrawal = Pick<
   IStore,
-  "_id" | "name" | "storeEmail" | "wallet" | "payoutAccounts"
+  "_id" | "name" | "storeEmail" | "walletId" | "payoutAccounts"
 >;
 
 /**
@@ -102,7 +102,7 @@ export type PopulatedAdminForWithdrawal = Pick<
  * Interface for the aggregation result of a single withdrawal request detail
  */
 export interface WithdrawalRequestDetailAggregationResult
-  extends Omit<IWithdrawalRequest, "store" | "reviewedBy" | "processedBy"> {
+  extends Omit<IWithdrawalRequest, "storeId" | "reviewedBy" | "processedBy"> {
   storeDetails: PopulatedStoreForWithdrawal;
   walletDetails?: {
     balance: number;

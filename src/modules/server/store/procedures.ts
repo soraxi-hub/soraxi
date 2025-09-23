@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { getStoreModel, IStore } from "@/lib/db/models/store.model";
+import {
+  getStoreModel,
+  IStore,
+  StoreBusinessInfo,
+} from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel } from "@/lib/db/models/product.model";
@@ -63,8 +67,8 @@ export const storeRouter = createTRPCRouter({
         profile: !!(store.name && store.description),
         "business-info": !!(
           store.businessInfo &&
-          (store.businessInfo.type === "individual" ||
-            (store.businessInfo.type === "company" &&
+          (store.businessInfo.type === StoreBusinessInfo.Individual ||
+            (store.businessInfo.type === StoreBusinessInfo.Company &&
               store.businessInfo.businessName &&
               store.businessInfo.registrationNumber))
         ),
@@ -127,7 +131,7 @@ export const storeRouter = createTRPCRouter({
 
       const Product = await getProductModel();
 
-      const query: Record<string, any> = { storeID: store.id };
+      const query: Record<string, any> = { storeId: store.id };
 
       if (status === "pending") {
         // query.isVerifiedProduct = false;
@@ -204,7 +208,7 @@ export const storeRouter = createTRPCRouter({
 
       const Product = await getProductModel();
       const product = await Product.findById(input.productId).select(
-        "storeID isVisible slug"
+        "storeId isVisible slug"
       );
 
       if (!product) {
@@ -214,7 +218,7 @@ export const storeRouter = createTRPCRouter({
         });
       }
 
-      if (product.storeID.toString() !== store.id) {
+      if (product.storeId.toString() !== store.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Unauthorized access to product",
@@ -241,8 +245,8 @@ export const computeOnboardingStatus = (store: IStore) => {
     profileComplete: !!(store.name && store.description),
     businessInfoComplete: !!(
       store.businessInfo &&
-      (store.businessInfo.type === "individual" ||
-        (store.businessInfo.type === "company" &&
+      (store.businessInfo.type === StoreBusinessInfo.Individual ||
+        (store.businessInfo.type === StoreBusinessInfo.Company &&
           store.businessInfo.businessName &&
           store.businessInfo.registrationNumber))
     ),

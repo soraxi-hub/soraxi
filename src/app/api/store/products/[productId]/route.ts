@@ -53,7 +53,7 @@ export async function PUT(
       throw new AppError("Product not found", 404);
     }
 
-    if (product.storeID.toString() !== storeSession.id) {
+    if (product.storeId.toString() !== storeSession.id) {
       // Ensure comparison is string to string
       throw new AppError("Unauthorized access to product", 403);
     }

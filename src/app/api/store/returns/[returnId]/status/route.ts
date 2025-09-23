@@ -54,7 +54,7 @@ export async function PUT(
 
     // Find the order with the return
     const order = await Order.findOne({
-      "subOrders.store": store._id,
+      "subOrders.storeId": store._id,
       "subOrders.returns._id": returnId,
     });
 
@@ -62,12 +62,12 @@ export async function PUT(
       return NextResponse.json({ error: "Return not found" }, { status: 404 });
     }
 
-    console.log("Order found:", order);
+    // console.log("Order found:", order);
 
     // Find the specific sub-order and return
     const subOrder = order.subOrders.find(
       (sub) =>
-        sub.store.toString() === storeId &&
+        sub.storeId.toString() === storeId &&
         sub.returns?.some((ret) => ret._id.toString() === returnId)
     );
 

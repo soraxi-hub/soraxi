@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/order-formatter";
 import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 /**
  * Order Router with Type-Safe Procedures
@@ -47,6 +48,7 @@ export const orderRouter = createTRPCRouter({
         // Ensure database connection
         await connectToDatabase();
         const Order = await getOrderModel();
+        await getStoreModel();
 
         // Validate user ID format
         if (!mongoose.Types.ObjectId.isValid(input.userId)) {
@@ -63,19 +65,19 @@ export const orderRouter = createTRPCRouter({
          * Uses selective field projection to optimize performance while
          * ensuring all necessary data is available for formatting.
          */
-        const rawOrders = await Order.find({ user: input.userId })
+        const rawOrders = await Order.find({ userId: input.userId })
           // .populate({
           //   path: "subOrders.products.Product",
           //   model: "Product",
           //   select: "_id name images price productType storeID",
           // }) // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
           .populate({
-            path: "subOrders.store",
+            path: "subOrders.storeId",
             model: "Store",
             select: "_id name storeEmail logoUrl",
           })
           .select(
-            "_id user stores totalAmount paymentStatus paymentMethod " +
+            "_id userId stores totalAmount paymentStatus paymentMethod " +
               "shippingAddress notes createdAt updatedAt subOrders"
           )
           .sort({ createdAt: -1 })

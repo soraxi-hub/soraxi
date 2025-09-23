@@ -1,6 +1,4 @@
-import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import UpdatePayoutAccount from "@/modules/store/payment-setup/payout-setup-page";
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
 
@@ -11,12 +9,10 @@ export async function generateMetadata(): Promise<Metadata> {
   );
 }
 
-async function page() {
-  const storeTokenData = await getStoreFromCookie();
-  if (!storeTokenData) {
-    redirect(`/login`);
-  }
-  return <UpdatePayoutAccount storeId={storeTokenData?.id} />;
+async function page({ params }: { params: Promise<{ store_id: string }> }) {
+  const { store_id } = await params;
+
+  return <UpdatePayoutAccount storeId={store_id} />;
 }
 
 export default page;

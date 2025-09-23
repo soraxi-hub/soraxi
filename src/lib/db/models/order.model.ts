@@ -7,14 +7,17 @@ import {
   PaymentStatus,
   StatusHistory,
 } from "@/enums";
+import { getUserModel } from "./user.model";
+import { getStoreModel } from "./store.model";
+import { getProductModel } from "./product.model";
 
 /**
  * Interface representing a product snapshot in an order.
  * All monetary values are stored in kobo to avoid floating-point errors.
  */
 export interface IOrderProduct {
-  Product: mongoose.Schema.Types.ObjectId;
-  store: mongoose.Schema.Types.ObjectId;
+  productId: mongoose.Schema.Types.ObjectId;
+  storeId: mongoose.Schema.Types.ObjectId;
   productSnapshot: {
     _id: mongoose.Schema.Types.ObjectId;
     name: string;
@@ -41,7 +44,7 @@ export interface IOrderProduct {
  */
 export interface ISubOrder {
   _id: mongoose.Schema.Types.ObjectId;
-  store: mongoose.Schema.Types.ObjectId;
+  storeId: mongoose.Schema.Types.ObjectId;
   products: IOrderProduct[];
   totalAmount: number;
   shippingMethod?: {
@@ -106,7 +109,7 @@ export interface ISubOrder {
  * Interface representing the main Order document.
  */
 export interface IOrder extends Document {
-  user: mongoose.Schema.Types.ObjectId;
+  userId: mongoose.Schema.Types.ObjectId;
   stores: mongoose.Schema.Types.ObjectId[];
   subOrders: ISubOrder[];
   totalAmount: number;
@@ -133,12 +136,12 @@ export interface IOrder extends Document {
  * Schema for individual products inside a sub-order.
  */
 const OrderProductSchema = new Schema<IOrderProduct>({
-  Product: {
+  productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
     required: [true, "ProductId is required for reference"],
   },
-  store: {
+  storeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Store",
     required: [true, "StoreId is required for reference"],
@@ -191,7 +194,7 @@ const OrderProductSchema = new Schema<IOrderProduct>({
  * Schema for sub-orders linked to stores.
  */
 const SubOrderSchema = new Schema<ISubOrder>({
-  store: {
+  storeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Store",
     required: [true, "StoreId is required for reference"],
@@ -288,7 +291,7 @@ const SubOrderSchema = new Schema<ISubOrder>({
  */
 const OrderSchema = new Schema<IOrder>(
   {
-    user: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "UserId is required for reference"],
@@ -362,21 +365,24 @@ export async function getOrderById(
   lean = false
 ): Promise<IOrder | null> {
   await connectToDatabase();
+  await getUserModel();
+  await getStoreModel();
+  await getProductModel();
   const Order = await getOrderModel();
 
   const query = Order.findById(id)
     .populate({
-      path: "user",
+      path: "userId",
       model: "User",
       select: "_id firstName lastName email phoneNumber",
     })
     .populate({
-      path: "subOrders.products.Product",
+      path: "subOrders.products.productId",
       model: "Product",
       select: "_id name images price productType storeID",
     })
     .populate({
-      path: "subOrders.store",
+      path: "subOrders.storeId",
       model: "Store",
       select: "name storeEmail logo",
     });
@@ -397,6 +403,6 @@ export async function getOrdersByUserId(
   const Order = await getOrderModel();
 
   return lean
-    ? Order.find({ user: userId }).lean()
-    : Order.find({ user: userId });
+    ? Order.find({ userId: userId }).lean()
+    : Order.find({ userId: userId });
 }

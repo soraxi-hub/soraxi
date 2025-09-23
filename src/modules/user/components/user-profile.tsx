@@ -158,7 +158,7 @@ const DetailSection = ({ icon, title, items }: DetailSectionProps) => (
 );
 
 const VerificationSection = () => (
-  <section className="bg-card rounded-lg p-6 shadow-xs border border-green-100">
+  <section className="bg-card dark:bg-muted/50 rounded-lg p-6 shadow-xs border border-soraxi-green/20">
     <div className="flex items-center gap-4 mb-4">
       <ShieldCheck className="w-8 h-8 text-soraxi-green" />
       <h2 className="text-xl font-bold">Account Verification</h2>

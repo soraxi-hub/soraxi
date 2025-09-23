@@ -331,7 +331,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
       // Prepare product data
       const productData = {
         ...data,
-        storeID: storeId,
+        storeId,
         description,
         specifications,
         images: imageUrls,

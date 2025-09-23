@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@/services/mail.service";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserById, IUser } from "@/lib/db/models/user.model";
-import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
+import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { siteConfig } from "@/config/site";

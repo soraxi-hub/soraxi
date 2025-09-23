@@ -13,7 +13,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId");
 
-    console.log("Fetching return details for:", returnId, "Store ID:", storeId);
+    // console.log("Fetching return details for:", returnId, "Store ID:", storeId);
 
     if (!storeId || !returnId) {
       return NextResponse.json(
@@ -39,13 +39,13 @@ export async function GET(
 
     const pipeline = [
       // 1. Match orders that have this storeId
-      { $match: { "subOrders.store": new mongoose.Types.ObjectId(storeId) } },
+      { $match: { "subOrders.storeId": new mongoose.Types.ObjectId(storeId) } },
 
       // 2. Unwind subOrders
       { $unwind: "$subOrders" },
 
       // 3. Filter subOrders by storeId again
-      { $match: { "subOrders.store": new mongoose.Types.ObjectId(storeId) } },
+      { $match: { "subOrders.storeId": new mongoose.Types.ObjectId(storeId) } },
 
       // 4. Unwind returns
       { $unwind: "$subOrders.returns" },
@@ -61,7 +61,7 @@ export async function GET(
       {
         $lookup: {
           from: "users",
-          localField: "user",
+          localField: "userId",
           foreignField: "_id",
           as: "userDetails",
         },

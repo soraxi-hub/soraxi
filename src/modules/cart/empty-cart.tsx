@@ -34,7 +34,7 @@ export function EmptyCart() {
       <div className="mt-12">
         <h3 className="text-lg font-medium mb-4">Popular Categories</h3>
         <div className="flex flex-wrap justify-center gap-2">
-          {categories.slice(0, 5).map((category) => (
+          {categories.slice(1, 5).map((category) => (
             <Button key={category.name} variant="outline" size="sm" asChild>
               <Link href={`/category/${category.slug}`}>{category.name}</Link>
             </Button>

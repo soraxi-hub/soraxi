@@ -176,7 +176,7 @@ export const adminRefundRouter = createTRPCRouter({
             baseMatchConditions.$or = [];
 
             if (userIds.length > 0) {
-              baseMatchConditions.$or.push({ user: { $in: userIds } });
+              baseMatchConditions.$or.push({ userId: { $in: userIds } });
             }
 
             if (storeIds.length > 0) {
@@ -201,7 +201,7 @@ export const adminRefundRouter = createTRPCRouter({
           {
             $lookup: {
               from: "users",
-              localField: "user",
+              localField: "userId",
               foreignField: "_id",
               as: "userData",
             },
@@ -229,7 +229,7 @@ export const adminRefundRouter = createTRPCRouter({
           {
             $lookup: {
               from: "stores",
-              localField: "subOrders.store",
+              localField: "subOrders.storeId",
               foreignField: "_id",
               as: "subOrders.storeData",
             },
@@ -239,7 +239,7 @@ export const adminRefundRouter = createTRPCRouter({
           {
             $lookup: {
               from: "products",
-              localField: "subOrders.products.Product",
+              localField: "subOrders.products.productId",
               foreignField: "_id",
               as: "subOrders.productData",
             },

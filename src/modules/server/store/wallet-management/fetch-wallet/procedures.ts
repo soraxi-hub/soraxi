@@ -42,9 +42,11 @@ export const storeWalletRouter = createTRPCRouter({
       const Wallet = await getWalletModel();
 
       // Find wallet for the authenticated store
-      const wallet = await Wallet.findOne({ store: store.id })
+      const wallet = await Wallet.findOne({
+        storeId: new mongoose.Types.ObjectId(store.id),
+      })
         .select(
-          "store balance pending totalEarned currency createdAt updatedAt"
+          "storeId balance pending totalEarned currency createdAt updatedAt"
         )
         .lean();
 
@@ -59,7 +61,7 @@ export const storeWalletRouter = createTRPCRouter({
       // Format wallet data for client
       const formattedWallet = {
         _id: wallet._id.toString(),
-        store: wallet.store.toString(),
+        storeId: wallet.storeId.toString(),
         balance: wallet.balance || 0,
         pending: wallet.pending || 0,
         totalEarned: wallet.totalEarned || 0,
@@ -113,7 +115,7 @@ export const storeWalletRouter = createTRPCRouter({
         const Wallet = await getWalletModel();
 
         // Check if wallet already exists
-        const existingWallet = await Wallet.findOne({ store: store.id });
+        const existingWallet = await Wallet.findOne({ storeId: store.id });
         if (existingWallet) {
           throw new TRPCError({
             code: "CONFLICT",
@@ -123,7 +125,7 @@ export const storeWalletRouter = createTRPCRouter({
 
         // Create new wallet
         const newWallet = new Wallet({
-          store: store.id,
+          storeId: store.id,
           balance: 0,
           pending: 0,
           totalEarned: 0,
@@ -137,7 +139,7 @@ export const storeWalletRouter = createTRPCRouter({
           _id: (
             savedWallet._id as unknown as mongoose.Schema.Types.ObjectId
           ).toString(),
-          store: savedWallet.store.toString(),
+          storeId: savedWallet.storeId.toString(),
           balance: savedWallet.balance,
           pending: savedWallet.pending,
           totalEarned: savedWallet.totalEarned,

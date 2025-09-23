@@ -110,7 +110,7 @@ export const homeRouter = createTRPCRouter({
 
         const formattedProduct = {
           id: (product._id as string).toString(),
-          storeID: product.storeID.toString(),
+          storeId: product.storeId.toString(),
           productType: product.productType,
           name: product.name,
           description: product.description,
@@ -124,7 +124,6 @@ export const homeRouter = createTRPCRouter({
           rating: product.rating || 0,
           slug: product.slug,
           isVerifiedProduct: product.isVerifiedProduct,
-          formattedPrice: product.formattedPrice,
         };
 
         return {
@@ -202,7 +201,7 @@ export const homeRouter = createTRPCRouter({
         category: product.category,
         subCategory: product.subCategory,
         rating: product.rating || 0,
-        storeID: product.storeID,
+        storeId: product.storeId,
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
         price: product.price,

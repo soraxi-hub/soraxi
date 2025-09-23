@@ -54,7 +54,7 @@ import { siteConfig } from "@/config/site";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { TokenData } from "@/lib/helpers/getUserDataFromToken";
+import { TokenData } from "@/lib/helpers/get-user-data-from-token";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

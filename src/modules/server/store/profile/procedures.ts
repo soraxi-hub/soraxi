@@ -3,7 +3,7 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { IProduct } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { koboToNaira } from "@/lib/utils/naira";
 
 type Product = Pick<
@@ -14,7 +14,6 @@ type Product = Pick<
   | "sizes"
   | "slug"
   | "isVerifiedProduct"
-  | "formattedPrice"
   | "productType"
   | "category"
 > & { _id: mongoose.Types.ObjectId };
@@ -32,9 +31,10 @@ export const storeProfileRouter = createTRPCRouter({
     }
 
     const Store = await getStoreModel();
+    await getProductModel();
     const storeData = await Store.findById(store.id)
       .select(
-        "-password -storeOwner -recipientCode -wallet -suspensionReason -payoutHistory -platformFee -shippingMethods -payoutAccounts -transactionFees -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+        "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
       )
       .populate({
         path: "physicalProducts",
@@ -106,7 +106,7 @@ export const storeProfileRouter = createTRPCRouter({
         { new: true, runValidators: true }
       )
         .select(
-          "-password -storeOwner -recipientCode -wallet -digitalProducts -suspensionReason -payoutHistory -platformFee -shippingMethods -payoutAccounts -transactionFees -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+          "-password -storeOwner -recipientCode -walletId -digitalProducts -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
         )
         .lean();
 

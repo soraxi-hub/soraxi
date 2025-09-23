@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getStoreFromCookie } from "./get-store-from-cookie";
-import { siteConfig } from "@/config/site";
 
 export async function generateStoreMetadata(
   page:
@@ -20,7 +19,7 @@ export async function generateStoreMetadata(
 
   if (!store) {
     return {
-      title: `Sign In | ${siteConfig.name}`,
+      title: `Sign In`,
       description:
         "Sign in to your account to manage your store, track orders, and update your profile on the platform.",
     };
@@ -30,7 +29,7 @@ export async function generateStoreMetadata(
     title: `${showStoreName(page, store.name)} ${page} ${showStoreNameAfterPage(
       page,
       store.name
-    )} | ${siteConfig.name}`,
+    )}`,
     description,
     robots: {
       index: false,

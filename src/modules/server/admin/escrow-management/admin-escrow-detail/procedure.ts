@@ -179,7 +179,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
           {
             $lookup: {
               from: "users",
-              localField: "user",
+              localField: "userId",
               foreignField: "_id",
               as: "userDetails",
               pipeline: [
@@ -206,7 +206,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
           {
             $lookup: {
               from: "stores",
-              localField: "subOrders.store",
+              localField: "subOrders.storeId",
               foreignField: "_id",
               as: "storeDetails",
               pipeline: [
@@ -330,7 +330,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
             verifiedAt: result.storeDetails.verification?.verifiedAt || null,
           },
           businessInfo: {
-            type: result.storeDetails.businessInfo?.type || "individual",
+            type: result.storeDetails.businessInfo?.type,
             businessName:
               result.storeDetails.businessInfo?.businessName || null,
             registrationNumber:
@@ -347,7 +347,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
          */
         const products = result.subOrders.products.map((product) => {
           return {
-            id: product.Product.toString(),
+            id: product.productId.toString(),
             name: product.productSnapshot?.name || "Unknown Product",
             images: product.productSnapshot?.images || [],
             quantity: product.productSnapshot.quantity,
@@ -373,7 +373,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
         const commissionResult = calculateCommission(
           result.subOrders.totalAmount
         );
-        console.log("Commission Result:", commissionResult);
+        // console.log("Commission Result:", commissionResult);
 
         const settlementDetails = {
           // Settlement after commission

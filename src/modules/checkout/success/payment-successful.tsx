@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
+import { CartHydration } from "@/modules/cart/cart-hydration-provider";
 
 interface Props {
   searchParams: {
@@ -179,6 +180,7 @@ export default function PaymentSuccess({ searchParams }: Props) {
                 <ArrowRightIcon className="w-5 h-5 transform transition-transform duration-300 group-hover:translate-x-1.5" />
               </Link>
             </Button>
+            <CartHydration />
           </div>
         </div>
       </main>

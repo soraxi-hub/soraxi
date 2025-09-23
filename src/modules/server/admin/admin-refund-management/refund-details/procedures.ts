@@ -92,7 +92,7 @@ export const adminRefundDetailRouter = createTRPCRouter({
           {
             $lookup: {
               from: "users",
-              localField: "user",
+              localField: "userId",
               foreignField: "_id",
               as: "userData",
             },
@@ -124,7 +124,7 @@ export const adminRefundDetailRouter = createTRPCRouter({
           {
             $lookup: {
               from: "stores",
-              localField: "subOrders.store",
+              localField: "subOrders.storeId",
               foreignField: "_id",
               as: "subOrders.storeData",
             },
@@ -134,7 +134,7 @@ export const adminRefundDetailRouter = createTRPCRouter({
           {
             $lookup: {
               from: "products",
-              localField: "subOrders.products.Product",
+              localField: "subOrders.products.productId",
               foreignField: "_id",
               as: "subOrders.productData",
             },

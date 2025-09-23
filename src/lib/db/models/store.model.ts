@@ -2,6 +2,24 @@ import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import { nairaToKobo } from "@/lib/utils/naira";
 
+export enum StoreStatus {
+  Active = "active",
+  Suspended = "suspended",
+  Pending = "pending",
+  Rejected = "rejected",
+}
+
+export enum StoreVerificationStatus {
+  Email = "email",
+  Identity = "identity",
+  videoCall = "video_call",
+}
+
+export enum StoreBusinessInfo {
+  Individual = "individual",
+  Company = "company",
+}
+
 /**
  * Shipping Method Schema Subdocument Interface
  */
@@ -33,31 +51,6 @@ export interface IPayoutAccount {
     bankCode: number;
     bankId?: number;
   };
-  totalEarnings: number;
-  lastPayoutDate: Date | null;
-}
-
-/**
- * Payout History Entry Interface
- */
-export interface IPayoutHistory {
-  payoutAccount: string;
-  amount: number;
-  payoutDate: Date;
-  payoutMethodDetails: {
-    bankDetails?: {
-      bankName?: string;
-      accountNumber?: string;
-    };
-    mobileWallet?: {
-      walletProvider?: string;
-      walletId?: string;
-    };
-  };
-  status: "pending" | "completed" | "failed";
-  transactionFees: number;
-  platformFee: number;
-  taxes: number;
 }
 
 /**
@@ -81,7 +74,7 @@ export interface IStore extends Document {
   // Verification
   verification?: {
     isVerified: boolean;
-    method: "email" | "identity" | "video-call";
+    method: StoreVerificationStatus;
     verifiedAt?: Date;
     notes?: string;
   };
@@ -91,7 +84,7 @@ export interface IStore extends Document {
     businessName?: string;
     registrationNumber?: string; // e.g., company registration number like CAC for Nigerians
     taxId?: string;
-    type: "individual" | "company";
+    type: StoreBusinessInfo;
     documentUrls?: string[];
   };
 
@@ -103,7 +96,7 @@ export interface IStore extends Document {
   };
 
   // Store Status & Moderation
-  status: "active" | "suspended" | "pending" | "rejected";
+  status: StoreStatus;
   suspensionReason?: string;
 
   // Legal Agreement
@@ -114,14 +107,13 @@ export interface IStore extends Document {
   forgotpasswordTokenExpiry?: Date;
 
   // Financials
-  wallet: mongoose.Schema.Types.ObjectId;
+  walletId: mongoose.Schema.Types.ObjectId;
 
   // Shipping
   shippingMethods: IShippingMethod[];
 
   // Payouts
   payoutAccounts: IPayoutAccount[];
-  payoutHistory: IPayoutHistory[];
 
   // Metadata
   createdAt: Date;
@@ -181,8 +173,6 @@ const PayoutAccountSchema = new Schema<IPayoutAccount>({
     },
     bankId: Number,
   },
-  totalEarnings: { type: Number, default: 0 },
-  lastPayoutDate: { type: Date, default: null },
 });
 
 const StoreSchema = new Schema<IStore>(
@@ -227,8 +217,8 @@ const StoreSchema = new Schema<IStore>(
       isVerified: { type: Boolean, default: false },
       method: {
         type: String,
-        enum: ["email", "identity", "video-call"],
-        default: "email",
+        enum: Object.values(StoreVerificationStatus),
+        default: StoreVerificationStatus.Email,
       },
       verifiedAt: Date,
       notes: String,
@@ -241,8 +231,8 @@ const StoreSchema = new Schema<IStore>(
       taxId: String,
       type: {
         type: String,
-        enum: ["individual", "company"],
-        default: "individual",
+        enum: Object.values(StoreBusinessInfo),
+        default: StoreBusinessInfo.Individual,
       },
       documentUrls: [String],
     },
@@ -257,8 +247,8 @@ const StoreSchema = new Schema<IStore>(
     // ✅ Admin moderation / status
     status: {
       type: String,
-      enum: ["active", "suspended", "pending", "rejected"],
-      default: "pending",
+      enum: Object.values(StoreStatus),
+      default: StoreStatus.Pending,
     },
     suspensionReason: String,
 
@@ -270,7 +260,7 @@ const StoreSchema = new Schema<IStore>(
     forgotpasswordTokenExpiry: Date,
 
     // ✅ Financials
-    wallet: {
+    walletId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
       validate: {
@@ -293,42 +283,6 @@ const StoreSchema = new Schema<IStore>(
 
     // ✅ Payout setup
     payoutAccounts: [PayoutAccountSchema],
-
-    // ✅ Payout history
-    payoutHistory: [
-      {
-        payoutAccount: {
-          type: String,
-          required: [true, "Payout account is required"],
-        },
-        amount: {
-          type: Number,
-          required: [true, "Payout amount is required"],
-        },
-        payoutDate: {
-          type: Date,
-          default: Date.now,
-        },
-        payoutMethodDetails: {
-          bankDetails: {
-            bankName: String,
-            accountNumber: String,
-          },
-          mobileWallet: {
-            walletProvider: String,
-            walletId: String,
-          },
-        },
-        status: {
-          type: String,
-          enum: ["pending", "completed", "failed"],
-          default: "pending",
-        },
-        transactionFees: { type: Number, default: 0 },
-        platformFee: { type: Number, default: 0 },
-        taxes: { type: Number, default: 0 },
-      },
-    ],
   },
   { timestamps: true }
 );

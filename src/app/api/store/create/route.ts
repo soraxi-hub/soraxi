@@ -1,8 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getStoreModel } from "@/lib/db/models/store.model";
+import {
+  getStoreModel,
+  StoreStatus,
+  StoreVerificationStatus,
+} from "@/lib/db/models/store.model";
 import { getWalletModel } from "@/lib/db/models/wallet.model";
-import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
+import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel } from "@/lib/db/models/user.model";
@@ -66,7 +70,11 @@ export async function POST(request: NextRequest) {
     // Check if user already has a store
     const existingUserStore = await User.findById(userData.id).select("stores");
 
-    if (existingUserStore && existingUserStore.stores.length > 0) {
+    if (
+      existingUserStore &&
+      Array.isArray(existingUserStore.stores) &&
+      existingUserStore.stores.length > 0
+    ) {
       throw new AppError("Cannot create multiple stores", 400);
     }
 
@@ -99,19 +107,16 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       storeOwner: userData.id, // ✅ Associate store with authenticated user
       uniqueId,
-      status: "pending", // ✅ Set initial status to pending
+      status: StoreStatus.Pending, // ✅ Set initial status to pending
       verification: {
         isVerified: false, // ✅ Not verified initially
-        method: "email",
+        method: StoreVerificationStatus.Email,
       },
       // Initialize empty arrays and default values
       followers: [],
       physicalProducts: [],
       shippingMethods: [],
       payoutAccounts: [],
-      payoutHistory: [],
-      platformFee: 0,
-      transactionFees: 0,
       ratings: {
         averageRating: 0,
         reviewCount: 0,
@@ -124,11 +129,11 @@ export async function POST(request: NextRequest) {
 
     // Create Wallet for the new Store
     const Wallet = await getWalletModel();
-    const existingWallet = await Wallet.findOne({ store: savedStore._id });
+    const existingWallet = await Wallet.findOne({ storeId: savedStore._id });
 
     if (!existingWallet) {
       const wallet = await Wallet.create({
-        store: savedStore._id,
+        storeId: savedStore._id,
         balance: 0,
         pending: 0,
         totalEarned: 0,
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Link the wallet back to the store
-      savedStore.wallet = wallet._id as mongoose.Schema.Types.ObjectId;
+      savedStore.walletId = wallet._id as mongoose.Schema.Types.ObjectId;
       await savedStore.save();
 
       console.log(`Wallet created and linked for store ${savedStore._id}`);

@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     // find order by ID
     const order = await Order.findById(
       new mongoose.Types.ObjectId(orderId)
-    ).populate("subOrders.store");
+    ).populate("subOrders.storeId");
     if (!order) {
       return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
 
     // ✅ Step 4: Notify stores
     for (const subOrder of order.subOrders) {
-      const storeDoc = await Store.findById(subOrder.store).lean();
+      const storeDoc = await Store.findById(subOrder.storeId).lean();
       //   subOrder.statusHistory.push({
       //     status: "Paid",
       //     notes: "Payment confirmed via Flutterwave webhook",
@@ -197,7 +197,7 @@ export async function POST(request: Request) {
     }
 
     // ✅ Step 5: Optionally clear user's cart
-    await clearUserCart(order.user.toString());
+    await clearUserCart(order.userId.toString());
     await session.commitTransaction();
 
     return NextResponse.json(

@@ -23,7 +23,7 @@ export interface IUser extends Document {
   postalCode: string;
   isVerified: boolean;
   followingStores: mongoose.Schema.Types.ObjectId[];
-  stores: {
+  stores?: {
     storeId: mongoose.Schema.Types.ObjectId;
   }[];
   forgotpasswordToken?: string;

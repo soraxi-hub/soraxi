@@ -1,11 +1,33 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 
+export enum WalletTransactionSource {
+  Order = "order",
+  Withdrawal = "withdrawal",
+  Refund = "refund",
+  Adjustment = "adjustment",
+}
+
+export enum WalletTransactionType {
+  Credit = "credit",
+  Debit = "debit",
+}
+
+/**
+ * The values for the fields here start with capital letter because it is used to reference MongoDB schemas
+ */
+export enum WalletTransactionRelatedDocumentType {
+  Order = "Order",
+  WithdrawalRequest = "WithdrawalRequest",
+  Refund = "Refund",
+  Adjustment = "Adjustment",
+}
+
 /**
  * Wallet Interface - represents a store's wallet account
  */
 export interface IWallet extends Document {
-  store: mongoose.Schema.Types.ObjectId;
+  storeId: mongoose.Schema.Types.ObjectId;
   balance: number;
   pending: number;
   totalEarned: number;
@@ -19,12 +41,12 @@ export interface IWallet extends Document {
  */
 export interface IWalletTransaction extends Document {
   _id: mongoose.Types.ObjectId;
-  wallet: mongoose.Schema.Types.ObjectId;
-  type: "credit" | "debit";
+  walletId: mongoose.Schema.Types.ObjectId;
+  type: WalletTransactionType;
   amount: number;
-  source: "order" | "withdrawal" | "refund" | "adjustment";
+  source: WalletTransactionSource;
   description?: string;
-  relatedDocumentType?: "Order" | "WithdrawalRequest" | "Refund" | "Adjustment";
+  relatedDocumentType?: WalletTransactionRelatedDocumentType;
   relatedDocumentId?: mongoose.Schema.Types.ObjectId;
   createdAt: Date;
 }
@@ -32,7 +54,7 @@ export interface IWalletTransaction extends Document {
 // Wallet Schema
 const WalletSchema = new Schema<IWallet>(
   {
-    store: {
+    storeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: true,
@@ -49,22 +71,26 @@ const WalletSchema = new Schema<IWallet>(
 // Wallet Transaction Schema
 const WalletTransactionSchema = new Schema<IWalletTransaction>(
   {
-    wallet: {
+    walletId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
       required: true,
     },
-    type: { type: String, enum: ["credit", "debit"], required: true },
+    type: {
+      type: String,
+      enum: Object.values(WalletTransactionType),
+      required: true,
+    },
     amount: { type: Number, required: true },
     source: {
       type: String,
-      enum: ["order", "withdrawal", "refund", "adjustment"],
+      enum: Object.values(WalletTransactionSource),
       required: true,
     },
     description: { type: String },
     relatedDocumentType: {
       type: String,
-      enum: ["Order", "WithdrawalRequest", "Refund", "Adjustment"],
+      enum: Object.values(WalletTransactionRelatedDocumentType),
     },
     relatedDocumentId: {
       type: mongoose.Schema.Types.ObjectId,

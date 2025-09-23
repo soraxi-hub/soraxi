@@ -1,6 +1,26 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 
+export enum WithdrawalRequestStatus {
+  Pending = "pending",
+  UnderReview = "under_review",
+  Approved = "approved",
+  Processing = "processing",
+  Completed = "completed",
+  Rejected = "rejected",
+  Failed = "failed",
+}
+
+export enum WithdrawalRequestStatusHistory {
+  Pending = "pending",
+  UnderReview = "under_review",
+  Approved = "approved",
+  Processing = "processing",
+  Completed = "completed",
+  Rejected = "rejected",
+  Failed = "failed",
+}
+
 /**
  * Interface for Bank Details snapshot at the time of withdrawal request
  */
@@ -16,7 +36,7 @@ export interface IWithdrawalBankDetails {
  */
 export interface IWithdrawalRequest extends Document {
   _id: mongoose.Types.ObjectId;
-  store: mongoose.Types.ObjectId; // Reference to the store making the request
+  storeId: mongoose.Types.ObjectId; // Reference to the store making the request
   requestNumber: string; // Unique identifier for the request (e.g., WDR-ABC12345)
 
   // Financial details of the request
@@ -28,23 +48,9 @@ export interface IWithdrawalRequest extends Document {
   bankDetails: IWithdrawalBankDetails;
 
   // Status and timestamps
-  status:
-    | "pending"
-    | "under_review"
-    | "approved"
-    | "processing"
-    | "completed"
-    | "rejected"
-    | "failed";
+  status: WithdrawalRequestStatus;
   statusHistory: Array<{
-    status:
-      | "pending"
-      | "under_review"
-      | "approved"
-      | "processing"
-      | "completed"
-      | "rejected"
-      | "failed";
+    status: WithdrawalRequestStatusHistory;
     timestamp: Date;
     adminId?: mongoose.Types.ObjectId;
     notes?: string;
@@ -76,7 +82,7 @@ export interface IWithdrawalRequest extends Document {
  */
 const WithdrawalRequestSchema = new Schema<IWithdrawalRequest>(
   {
-    store: {
+    storeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: true,
@@ -109,31 +115,15 @@ const WithdrawalRequestSchema = new Schema<IWithdrawalRequest>(
     },
     status: {
       type: String,
-      enum: [
-        "pending",
-        "under_review",
-        "approved",
-        "processing",
-        "completed",
-        "rejected",
-        "failed",
-      ],
-      default: "pending",
+      enum: Object.values(WithdrawalRequestStatus),
+      default: WithdrawalRequestStatus.Pending,
       required: true,
     },
     statusHistory: [
       {
         status: {
           type: String,
-          enum: [
-            "pending",
-            "under_review",
-            "approved",
-            "processing",
-            "completed",
-            "rejected",
-            "failed",
-          ],
+          enum: Object.values(WithdrawalRequestStatusHistory),
           required: true,
         },
         timestamp: { type: Date, default: Date.now },

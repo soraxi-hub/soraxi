@@ -34,7 +34,11 @@ import {
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
-import type { IWalletTransaction } from "@/lib/db/models/wallet.model";
+import type {
+  IWalletTransaction,
+  WalletTransactionSource,
+  WalletTransactionType,
+} from "@/lib/db/models/wallet.model";
 import Link from "next/link";
 
 /**
@@ -54,8 +58,8 @@ import Link from "next/link";
  */
 
 interface TransactionFilters {
-  type: "credit" | "debit" | "all";
-  source: "order" | "withdrawal" | "refund" | "adjustment" | "all";
+  type: WalletTransactionType | "all";
+  source: WalletTransactionSource | "all";
   dateRange: string;
   search: string;
 }

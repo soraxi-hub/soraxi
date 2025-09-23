@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCartStore } from "@/modules/store/cart-store";
-import { CartItem } from "@/modules/cart/CartItem";
-import { CartSummary } from "@/modules/cart/CartSummary";
+import { CartItem } from "@/modules/cart/cart-item";
+import { CartSummary } from "@/modules/cart/cart-summary";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 
 /**
  * Type definitions for cart items and order summary
@@ -348,23 +349,25 @@ export function CartPageClient({
     <div className="grid lg:grid-cols-3 gap-8">
       {/* Cart Items Section */}
       <div className="lg:col-span-2">
-        <div className="bg-card rounded-lg border p-6 space-y-0">
-          {cartItems.map((item) => (
-            <CartItem
-              key={item.id}
-              item={item}
-              onUpdateQuantityAction={(productId, quantity) =>
-                handleUpdateQuantity(productId, quantity, item.size)
-              }
-              onRemoveItemAction={() =>
-                handleRemoveItem(item.productId, item.size)
-              }
-              onMoveToWishlistAction={() =>
-                handleMoveToWishlist(item.productId)
-              }
-            />
-          ))}
-        </div>
+        <Card>
+          <CardContent>
+            {cartItems.map((item) => (
+              <CartItem
+                key={item.id}
+                item={item}
+                onUpdateQuantityAction={(productId, quantity) =>
+                  handleUpdateQuantity(productId, quantity, item.size)
+                }
+                onRemoveItemAction={() =>
+                  handleRemoveItem(item.productId, item.size)
+                }
+                onMoveToWishlistAction={() =>
+                  handleMoveToWishlist(item.productId)
+                }
+              />
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Order Summary Section */}

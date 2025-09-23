@@ -14,6 +14,7 @@ import mongoose from "mongoose";
 import { Role } from "@/modules/admin/security/roles";
 import { RawOrderDocument } from "@/types/order";
 import { formatOrderDocumentsForAdmins } from "@/lib/utils/order-formatter";
+import { getProductModel } from "@/lib/db/models/product.model";
 
 /**
  * Admin Orders TRPC Router
@@ -154,6 +155,9 @@ export const adminOrdersRouter = createTRPCRouter({
          * Execute Database Query
          */
         const Order = await getOrderModel();
+        await getUserModel();
+        await getStoreModel();
+        await getProductModel();
 
         // Count total matching documents for pagination
         const totalOrders = await Order.countDocuments(query);
@@ -164,7 +168,7 @@ export const adminOrdersRouter = createTRPCRouter({
           .skip(skip)
           .limit(limit)
           .populate({
-            path: "user",
+            path: "userId",
             model: "User",
             select: "_id firstName lastName email phoneNumber",
           })
@@ -174,12 +178,12 @@ export const adminOrdersRouter = createTRPCRouter({
             select: "_id name storeEmail",
           })
           .populate({
-            path: "subOrders.store",
+            path: "subOrders.storeId",
             model: "Store",
             select: "_id name storeEmail",
           })
           .populate({
-            path: "subOrders.products.Product",
+            path: "subOrders.products.productId",
             model: "Product",
             select: "_id name images price",
           })

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getStoreModel } from "@/lib/db/models/store.model";
+import { getStoreModel, StoreBusinessInfo } from "@/lib/db/models/store.model";
 import {
   getStoreFromCookie,
   StoreTokenData,
@@ -16,7 +16,6 @@ export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const storeData = (await getStoreFromCookie()) as StoreTokenData;
-    // TODO: Uncomment and implement session handling
 
     if (!storeData) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,8 +40,8 @@ export async function GET(_request: NextRequest) {
       profileComplete: !!(store.name && store.description),
       businessInfoComplete: !!(
         store.businessInfo &&
-        (store.businessInfo.type === "individual" ||
-          (store.businessInfo.type === "company" &&
+        (store.businessInfo.type === StoreBusinessInfo.Individual ||
+          (store.businessInfo.type === StoreBusinessInfo.Company &&
             store.businessInfo.businessName &&
             store.businessInfo.registrationNumber))
       ),

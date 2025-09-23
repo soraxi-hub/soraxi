@@ -6,8 +6,8 @@ import { connectToDatabase } from "../mongoose";
  * Each item holds a product reference, quantity, and optional size details.
  */
 export interface ICartItem {
-  product: mongoose.Types.ObjectId;
-  storeID: mongoose.Types.ObjectId;
+  productId: mongoose.Types.ObjectId;
+  storeId: mongoose.Types.ObjectId;
   quantity: number;
   productType: "Product" | "digitalproducts";
   selectedSize?: {
@@ -22,7 +22,7 @@ export interface ICartItem {
  * Represents a user's shopping cart with polymorphic product support.
  */
 export interface ICart extends Document {
-  user: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   items: ICartItem[];
   createdAt: Date;
   updatedAt: Date;
@@ -35,12 +35,12 @@ export interface ICart extends Document {
  */
 const CartItemSchema = new Schema<ICartItem>(
   {
-    product: {
+    productId: {
       type: Schema.Types.ObjectId,
       refPath: "items.productType", // Dynamic reference based on productType
       required: true,
     },
-    storeID: {
+    storeId: {
       type: Schema.Types.ObjectId,
       ref: "Store",
       required: true,
@@ -69,7 +69,7 @@ const CartItemSchema = new Schema<ICartItem>(
  */
 const CartSchema = new Schema<ICart>(
   {
-    user: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -116,8 +116,8 @@ export async function getCartByUserId(
   const Cart = await getCartModel();
 
   return lean
-    ? Cart.findOne<ICart>({ user: userId }).lean()
-    : Cart.findOne<ICart>({ user: userId });
+    ? Cart.findOne<ICart>({ userId: userId }).lean()
+    : Cart.findOne<ICart>({ userId: userId });
 }
 
 /**
@@ -160,21 +160,21 @@ export async function addItemToCart(
   //   }),
   // };
 
-  const existingCart = await Cart.findOne<ICart>({ user: userId });
+  const existingCart = await Cart.findOne<ICart>({ userId: userId });
 
   if (!existingCart) {
     // Create new cart
     return await Cart.create({
-      user: userId,
+      userId: userId,
       items: [newItem],
     });
   }
 
   const itemIndex = existingCart.items.findIndex(
     (item) =>
-      item.product.toString() === newItem.product.toString() &&
+      item.productId.toString() === newItem.productId.toString() &&
       item.productType === newItem.productType &&
-      item.storeID.toString() === newItem.storeID.toString() &&
+      item.storeId.toString() === newItem.storeId.toString() &&
       item.selectedSize?.size === newItem.selectedSize?.size
   );
 
@@ -207,10 +207,10 @@ export async function removeItemFromCart(
   const Cart = await getCartModel();
 
   const updateQuery = size
-    ? { $pull: { items: { product: productId, "selectedSize.size": size } } }
-    : { $pull: { items: { product: productId } } };
+    ? { $pull: { items: { productId: productId, "selectedSize.size": size } } }
+    : { $pull: { items: { productId: productId } } };
 
-  return await Cart.findOneAndUpdate<ICart>({ user: userId }, updateQuery, {
+  return await Cart.findOneAndUpdate<ICart>({ userId: userId }, updateQuery, {
     new: true,
   });
 }
@@ -232,12 +232,12 @@ export async function updateCartItemQuantity(
   await connectToDatabase();
   const Cart = await getCartModel();
 
-  const cart = await Cart.findOne<ICart>({ user: userId });
+  const cart = await Cart.findOne<ICart>({ userId: userId });
   if (!cart) return null;
 
   const item = cart.items.find(
     (item) =>
-      item.product.toString() === productId &&
+      item.productId.toString() === productId &&
       (!size || item.selectedSize?.size === size)
   );
 
@@ -259,7 +259,7 @@ export async function clearUserCart(userId: string): Promise<ICart | null> {
   const Cart = await getCartModel();
 
   return await Cart.findOneAndUpdate<ICart>(
-    { user: userId },
+    { userId: userId },
     { $set: { items: [] } }, // Set items array to empty
     { new: true } // Return the updated document
   );
@@ -278,7 +278,7 @@ export async function addIdempotencyKeyToCart(
   const Cart = await getCartModel();
 
   return await Cart.findOneAndUpdate<ICart>(
-    { user: userId },
+    { userId: userId },
     { $set: { idempotencyKey } },
     { new: true }
   );

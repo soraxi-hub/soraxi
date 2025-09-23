@@ -4,7 +4,7 @@ import {
   IStore,
   IShippingMethod,
 } from "@/lib/db/models/store.model";
-import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
+import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 
 // import type { IShippingMethod, IPayoutAccount, IStore }  // adjust import as needed
 
@@ -36,12 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { storeId, data, progress } = body;
-    // const { storeId, data } = body;
+    // const { storeId, data, progress } = body;
+    const { storeId, data } = body;
 
-    console.log("storeId", storeId);
-    console.log("data", data);
-    console.log("progress", progress);
+    // console.log("storeId", storeId);
+    // console.log("data", data);
+    // console.log("progress", progress);
 
     if (!storeId) {
       return NextResponse.json(

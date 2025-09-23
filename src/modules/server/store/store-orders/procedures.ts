@@ -5,6 +5,10 @@ import { getOrderModel, IOrder } from "@/lib/db/models/order.model";
 import mongoose, { FilterQuery } from "mongoose";
 import { PopulatedStore, RawOrderDocument } from "@/types/order";
 import { formatStoreOrderDocument } from "@/lib/utils/order-formatter";
+import { getUserModel } from "@/lib/db/models/user.model";
+import { getProductModel } from "@/lib/db/models/product.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
+import { PaymentStatus } from "@/enums";
 
 export const storeOrdersRouter = createTRPCRouter({
   getStoreOrderById: baseProcedure
@@ -35,20 +39,18 @@ export const storeOrdersRouter = createTRPCRouter({
       }
 
       const Order = await getOrderModel();
+      await getUserModel();
+      await getStoreModel();
+      await getProductModel();
 
       const rawOrder = (await Order.findById(orderId)
         .populate({
-          path: "user",
+          path: "userId",
           model: "User",
           select: "_id firstName lastName email phoneNumber",
         })
-        // .populate({
-        //   path: "subOrders.products.Product",
-        //   model: "Product",
-        //   select: "_id name images price productType storeID",
-        // })
         .populate({
-          path: "subOrders.store",
+          path: "subOrders.storeId",
           model: "Store",
           select: "name storeEmail logo",
         })
@@ -76,7 +78,7 @@ export const storeOrdersRouter = createTRPCRouter({
       // 🧼 Filter subOrders to only include the one(s) belonging to this store
       const storeSubOrders = rawOrder.subOrders.filter(
         (subOrder) =>
-          (subOrder.store as PopulatedStore)._id.toString() === store.id
+          (subOrder.storeId as PopulatedStore)._id.toString() === store.id
       );
 
       // If store has no subOrders in this order, block access
@@ -149,10 +151,15 @@ export const storeOrdersRouter = createTRPCRouter({
 
         // ==================== Database Query Construction ====================
         const Order = await getOrderModel();
+        await getUserModel();
+        await getStoreModel();
+        await getProductModel();
 
         // Base match conditions for store-specific orders
+        // Match store-specific orders where the "paymentStatus" is not "pending"
         const matchConditions: FilterQuery<IOrder> = {
           stores: new mongoose.Types.ObjectId(storeSession.id),
+          paymentStatus: { $ne: PaymentStatus.Pending },
         };
 
         // Date range filtering
@@ -204,22 +211,22 @@ export const storeOrdersRouter = createTRPCRouter({
           // Main orders query with population and pagination
           Order.find(matchConditions)
             .populate({
-              path: "user",
+              path: "userId",
               model: "User",
               select: "_id firstName lastName email phoneNumber", // Changed 'name' to 'firstName lastName'
             })
             .populate({
-              path: "subOrders.products.Product",
+              path: "subOrders.products.productId",
               model: "Product",
               select: "_id name images price productType category subCategory",
             })
             .populate({
-              path: "subOrders.store",
+              path: "subOrders.storeId",
               model: "Store",
               select: "_id name storeEmail logoUrl", // Changed 'logo' to 'logoUrl'
             })
             .select(
-              "_id user stores totalAmount paymentStatus paymentMethod " +
+              "_id userId stores totalAmount paymentStatus paymentMethod " +
                 "shippingAddress notes discount taxAmount createdAt updatedAt subOrders"
             )
             .sort({ createdAt: -1 })
@@ -232,7 +239,7 @@ export const storeOrdersRouter = createTRPCRouter({
                 ...doc,
                 subOrders: doc.subOrders.filter(
                   (subOrder) =>
-                    (subOrder.store as any)._id.toString() === storeSession.id
+                    (subOrder.storeId as any)._id.toString() === storeSession.id
                 ),
               }));
             })

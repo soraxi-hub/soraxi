@@ -292,7 +292,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
         cartItemsWithShippingMethod: cartData.groupedCart.map(
           ({ shippingMethods, ...group }) => ({
             ...group,
-            selectedShippingMethod: selectedShippingMethods[group.storeID],
+            selectedShippingMethod: selectedShippingMethods[group.storeId],
           })
         ),
         amount: currencyOperations.add(cartData.totalPrice, totalShippingCost),
@@ -307,7 +307,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
           state: userData.stateOfResidence,
           address: userData.address,
           postal_code: userData.postalCode || "",
-          userID: userData._id,
+          userId: userData._id,
           deliveryType: deliveryType,
         },
       };
@@ -387,7 +387,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
       return true;
 
     // Check if shipping method is selected
-    return !!selectedShippingMethods[group.storeID];
+    return !!selectedShippingMethods[group.storeId];
   });
 
   // Calculate if there are validation errors
@@ -435,13 +435,13 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
         {/* Cart Items Section */}
         <div className="lg:col-span-2 space-y-6">
           {cartData.groupedCart.map((group) => (
-            <div key={group.storeID} data-store-id={group.storeID}>
+            <div key={group.storeId} data-store-id={group.storeId}>
               <StoreCartGroup
                 storeGroup={group}
                 onShippingMethodChangeAction={(method) =>
-                  handleShippingMethodChange(group.storeID, method)
+                  handleShippingMethodChange(group.storeId, method)
                 }
-                selectedShippingMethod={selectedShippingMethods[group.storeID]}
+                selectedShippingMethod={selectedShippingMethods[group.storeId]}
               />
             </div>
           ))}

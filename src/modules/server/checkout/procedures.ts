@@ -29,11 +29,11 @@ export const checkoutRouter = createTRPCRouter({
 
     // 📦 Fetch the user's cart and populate product references
     const cart = await Cart.findOne<ICart>({
-      user: new mongoose.Types.ObjectId(user.id),
+      userId: new mongoose.Types.ObjectId(user.id),
     })
       .populate({
-        path: "items.product",
-        select: "_id name price images sizes productType category storeID",
+        path: "items.productId",
+        select: "_id name price images sizes productType category storeId",
       })
       .lean();
 
@@ -63,32 +63,34 @@ export const checkoutRouter = createTRPCRouter({
           quantity: number;
         };
         productType: "Product" | "digitalproducts";
-        storeID: string;
+        storeId: string;
         // _id: string;
       }[]
     > = {};
 
     for (const item of cart.items) {
-      const storeID = item.storeID.toString();
+      const storeId = item.storeId.toString();
 
-      if (!groupedByStore[storeID]) {
-        groupedByStore[storeID] = [];
+      if (!groupedByStore[storeId]) {
+        groupedByStore[storeId] = [];
       }
 
-      groupedByStore[storeID].push({
+      groupedByStore[storeId].push({
         // _id: item._id.toString(),
         product: {
-          ...item.product,
-          storeID: (item.product as unknown as CartProduct).storeID.toString(),
-          _id: item.product._id.toString(),
+          ...item.productId,
+          storeId: (
+            item.productId as unknown as CartProduct
+          ).storeId.toString(),
+          _id: item.productId._id.toString(),
         } as unknown as CartProduct,
         quantity: item.quantity,
         selectedSize: item.selectedSize,
         productType: item.productType,
-        storeID,
+        storeId,
       });
 
-      const itemPrice = (item.product as unknown as CartProduct)?.price ?? 0;
+      const itemPrice = (item.productId as unknown as CartProduct)?.price ?? 0;
 
       totalPrice = currencyOperations.add(
         totalPrice,
@@ -120,12 +122,12 @@ export const checkoutRouter = createTRPCRouter({
       }
     > = {};
 
-    for (const storeID of Object.keys(groupedByStore)) {
-      const store = await Store.findById(storeID).select(
+    for (const storeId of Object.keys(groupedByStore)) {
+      const store = await Store.findById(storeId).select(
         "name shippingMethods"
       );
       if (store) {
-        storeShipping[storeID] = {
+        storeShipping[storeId] = {
           name: store.name,
           shippingMethods: store.shippingMethods,
         };
@@ -135,11 +137,11 @@ export const checkoutRouter = createTRPCRouter({
     // console.log("storeShipping", storeShipping);
 
     // 🧾 Format grouped cart by store
-    const groupedCart = Object.keys(groupedByStore).map((storeID) => ({
-      storeID,
-      storeName: storeShipping[storeID]?.name || `Store ${storeID.slice(0, 5)}`,
-      products: groupedByStore[storeID],
-      shippingMethods: storeShipping[storeID]?.shippingMethods || [],
+    const groupedCart = Object.keys(groupedByStore).map((storeId) => ({
+      storeId,
+      storeName: storeShipping[storeId]?.name || `Store ${storeId.slice(0, 5)}`,
+      products: groupedByStore[storeId],
+      shippingMethods: storeShipping[storeId]?.shippingMethods || [],
     }));
 
     // console.log("groupedCart", groupedCart);
@@ -166,10 +168,10 @@ export const checkoutRouter = createTRPCRouter({
     const Product = await getProductModel();
 
     const cart = await Cart.findOne<ICart>({
-      user: new mongoose.Types.ObjectId(user.id),
+      userId: new mongoose.Types.ObjectId(user.id),
     })
       .populate({
-        path: "items.product",
+        path: "items.productId",
         select: "_id name price productQuantity sizes",
       })
       .lean();
@@ -184,7 +186,7 @@ export const checkoutRouter = createTRPCRouter({
     const validationErrors: string[] = [];
 
     for (const item of cart.items) {
-      const product = await Product.findById(item.product._id).lean();
+      const product = await Product.findById(item.productId._id).lean();
 
       if (!product) {
         validationErrors.push(`Product no longer exists in catalog.`);

@@ -297,8 +297,8 @@ export default function ShippingMethodForm() {
                       <FormControl>
                         <Input
                           type="number"
-                          step="500"
-                          placeholder="1500"
+                          step="50"
+                          placeholder="500"
                           min="0"
                           {...field}
                           onChange={(e) =>

@@ -6,8 +6,15 @@ import { getStoreModel } from "@/lib/db/models/store.model";
 import {
   getWalletModel,
   getWalletTransactionModel,
+  WalletTransactionRelatedDocumentType,
+  WalletTransactionSource,
+  WalletTransactionType,
 } from "@/lib/db/models/wallet.model";
-import { getWithdrawalRequestModel } from "@/lib/db/models/withdrawal-request.model";
+import {
+  getWithdrawalRequestModel,
+  WithdrawalRequestStatus,
+  WithdrawalRequestStatusHistory,
+} from "@/lib/db/models/withdrawal-request.model";
 import { getAdminModel } from "@/lib/db/models/admin.model";
 import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import {
@@ -95,9 +102,9 @@ export const withdrawalRouter = createTRPCRouter({
             });
           }
 
-          const wallet = await WalletModel.findOne({ store: store.id }).session(
-            session
-          );
+          const wallet = await WalletModel.findOne({
+            storeId: store.id,
+          }).session(session);
           if (!wallet) {
             throw new TRPCError({
               code: "NOT_FOUND",
@@ -143,7 +150,7 @@ export const withdrawalRouter = createTRPCRouter({
 
           // Create withdrawal request
           const withdrawalRequest = new WithdrawalRequestModel({
-            store: store.id,
+            storeId: store.id,
             requestNumber,
             requestedAmount: amount,
             processingFee: totalFee,
@@ -154,9 +161,12 @@ export const withdrawalRouter = createTRPCRouter({
               accountHolderName: payoutAccount.bankDetails.accountHolderName,
               bankCode: payoutAccount.bankDetails.bankCode,
             },
-            status: "pending",
+            status: WithdrawalRequestStatus.Pending,
             statusHistory: [
-              { status: "pending", notes: "Initial request created" },
+              {
+                status: WithdrawalRequestStatusHistory.Pending,
+                notes: "Initial request created",
+              },
             ],
             description,
           });
@@ -169,13 +179,14 @@ export const withdrawalRouter = createTRPCRouter({
 
           // Create wallet transaction for debit
           const walletTransaction = new WalletTransactionModel({
-            wallet: wallet._id,
-            type: "debit",
+            walletId: wallet._id,
+            type: WalletTransactionType.Debit,
             amount: amount,
-            source: "withdrawal",
+            source: WalletTransactionSource.Withdrawal,
             description: `Withdrawal request ${requestNumber}`,
             relatedDocumentId: withdrawalRequest._id, // Link to withdrawal request
-            relatedDocumentType: "WithdrawalRequest", // Specify type
+            relatedDocumentType:
+              WalletTransactionRelatedDocumentType.WithdrawalRequest, // Specify type
           });
           await walletTransaction.save({ session });
 
@@ -336,7 +347,7 @@ export const withdrawalRouter = createTRPCRouter({
         pipeline.push({
           $lookup: {
             from: "stores",
-            localField: "store",
+            localField: "storeId",
             foreignField: "_id",
             as: "storeDetails",
             pipeline: [{ $project: { _id: 1, name: 1, storeEmail: 1 } }],
@@ -399,11 +410,11 @@ export const withdrawalRouter = createTRPCRouter({
 
         // Calculate summary statistics
         const totalPending = await WithdrawalRequestModel.countDocuments({
-          status: "pending",
+          status: WithdrawalRequestStatus.Pending,
         });
         const totalApprovedAmountResult =
           await WithdrawalRequestModel.aggregate([
-            { $match: { status: "approved" } },
+            { $match: { status: WithdrawalRequestStatus.Approved } },
             { $group: { _id: null, total: { $sum: "$netAmount" } } },
           ]);
         const totalApprovedAmount = totalApprovedAmountResult[0]?.total || 0;
@@ -484,8 +495,7 @@ export const withdrawalRouter = createTRPCRouter({
 
           const WithdrawalRequestModel = await getWithdrawalRequestModel();
           const AdminModel = await getAdminModel(); // Assuming Admin model exists
-          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
-          const StoreModel = await getStoreModel();
+          await getStoreModel();
 
           const pipeline: mongoose.PipelineStage[] = [
             { $match: { _id: new mongoose.Types.ObjectId(requestId) } },
@@ -493,11 +503,11 @@ export const withdrawalRouter = createTRPCRouter({
             {
               $lookup: {
                 from: "stores",
-                localField: "store",
+                localField: "storeId",
                 foreignField: "_id",
                 as: "storeDetails",
                 pipeline: [
-                  { $project: { _id: 1, name: 1, storeEmail: 1, wallet: 1 } },
+                  { $project: { _id: 1, name: 1, storeEmail: 1, walletId: 1 } },
                 ],
               },
             },
@@ -510,7 +520,7 @@ export const withdrawalRouter = createTRPCRouter({
             {
               $lookup: {
                 from: "wallets",
-                localField: "storeDetails.wallet",
+                localField: "storeDetails.walletId",
                 foreignField: "_id",
                 as: "walletDetails",
                 pipeline: [{ $project: { balance: 1 } }],
@@ -703,9 +713,8 @@ export const withdrawalRouter = createTRPCRouter({
 
           const WithdrawalRequestModel = await getWithdrawalRequestModel();
           const WalletModel = await getWalletModel();
-          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
-          const WalletTransactionModel = await getWalletTransactionModel();
           const StoreModel = await getStoreModel();
+          await getWalletTransactionModel();
 
           session = await mongoose.startSession();
           session.startTransaction();
@@ -732,7 +741,7 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           const wallet = await WalletModel.findOne({
-            store: withdrawalRequest.store,
+            storeId: withdrawalRequest.storeId,
           }).session(session);
           if (!wallet) {
             throw new TRPCError({
@@ -742,7 +751,7 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           const storeDoc = await StoreModel.findById(
-            withdrawalRequest.store
+            withdrawalRequest.storeId
           ).session(session);
           if (!storeDoc) {
             throw new TRPCError({
@@ -752,13 +761,13 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           // Update request status
-          withdrawalRequest.status = "approved";
+          withdrawalRequest.status = WithdrawalRequestStatus.Approved;
           withdrawalRequest.reviewedBy = new mongoose.Types.ObjectId(admin.id);
           withdrawalRequest.reviewedAt = new Date();
           withdrawalRequest.reviewNotes = notes;
           withdrawalRequest.transactionReference = transactionReference;
           withdrawalRequest.statusHistory.push({
-            status: "approved",
+            status: WithdrawalRequestStatusHistory.Approved,
             timestamp: new Date(),
             adminId: new mongoose.Types.ObjectId(admin.id),
             notes: `Approved by admin. Ref: ${transactionReference}`,
@@ -816,11 +825,11 @@ export const withdrawalRouter = createTRPCRouter({
             action: "withdrawal_request_approved",
             requestId: withdrawalRequest._id.toString(),
             requestNumber: withdrawalRequest.requestNumber,
-            storeId: withdrawalRequest.store.toString(),
+            storeId: withdrawalRequest.storeId.toString(),
             storeName: storeDoc.name,
             requestedAmount: withdrawalRequest.requestedAmount,
             netAmount: withdrawalRequest.netAmount,
-            status: "approved",
+            status: WithdrawalRequestStatus.Approved,
             transactionReference,
             adminNotes: notes,
           };
@@ -921,8 +930,8 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           if (
-            withdrawalRequest.status !== "pending" &&
-            withdrawalRequest.status !== "under_review"
+            withdrawalRequest.status !== WithdrawalRequestStatus.Pending &&
+            withdrawalRequest.status !== WithdrawalRequestStatus.UnderReview
           ) {
             throw new TRPCError({
               code: "BAD_REQUEST",
@@ -931,7 +940,7 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           const wallet = await WalletModel.findOne({
-            store: withdrawalRequest.store,
+            storeId: withdrawalRequest.storeId,
           }).session(session);
           if (!wallet) {
             throw new TRPCError({
@@ -941,7 +950,7 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           const storeDoc = await StoreModel.findById(
-            withdrawalRequest.store
+            withdrawalRequest.storeId
           ).session(session);
           if (!storeDoc) {
             throw new TRPCError({
@@ -951,13 +960,13 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           // Update request status
-          withdrawalRequest.status = "rejected";
+          withdrawalRequest.status = WithdrawalRequestStatus.Rejected;
           withdrawalRequest.reviewedBy = new mongoose.Types.ObjectId(admin.id);
           withdrawalRequest.reviewedAt = new Date();
           withdrawalRequest.reviewNotes = notes;
           withdrawalRequest.rejectionReason = reason;
           withdrawalRequest.statusHistory.push({
-            status: "rejected",
+            status: WithdrawalRequestStatusHistory.Rejected,
             timestamp: new Date(),
             adminId: new mongoose.Types.ObjectId(admin.id),
             notes: `Rejected by admin. Reason: ${reason}`,
@@ -977,13 +986,14 @@ export const withdrawalRouter = createTRPCRouter({
 
           // Create wallet transaction for refund/adjustment
           const walletTransaction = new WalletTransactionModel({
-            wallet: wallet._id,
-            type: "credit",
+            walletId: wallet._id,
+            type: WalletTransactionType.Credit,
             amount: withdrawalRequest.requestedAmount,
-            source: "adjustment", // Or 'refund' if applicable
+            source: WalletTransactionSource.Adjustment, // Or 'refund' if applicable
             description: `Withdrawal request ${withdrawalRequest.requestNumber} rejected. Funds returned.`,
             relatedDocumentId: withdrawalRequest._id, // Link to withdrawal request
-            relatedDocumentType: "WithdrawalRequest", // Specify type
+            relatedDocumentType:
+              WalletTransactionRelatedDocumentType.WithdrawalRequest, // Specify type
           });
           await walletTransaction.save({ session });
 
@@ -1018,11 +1028,11 @@ export const withdrawalRouter = createTRPCRouter({
             action: "withdrawal_request_rejected",
             requestId: withdrawalRequest._id.toString(),
             requestNumber: withdrawalRequest.requestNumber,
-            storeId: withdrawalRequest.store.toString(),
+            storeId: withdrawalRequest.storeId.toString(),
             storeName: storeDoc.name,
             requestedAmount: withdrawalRequest.requestedAmount,
             netAmount: withdrawalRequest.netAmount,
-            status: "rejected",
+            status: WithdrawalRequestStatus.Rejected,
             rejectionReason: reason,
             adminNotes: notes,
           };
@@ -1113,27 +1123,25 @@ export const withdrawalRouter = createTRPCRouter({
           }
 
           const WithdrawalRequestModel = await getWithdrawalRequestModel();
-          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
-          const WalletModel = await getWalletModel();
-          // @ts-expect-error i am expecing an error in the line below because i am not using the models directly. I am using it inside the mongo unwind and lookups.
-          const AdminModel = await getAdminModel(); // Needed to get admin names for status history
+          await getWalletModel();
+          await getAdminModel(); // Needed to get admin names for status history
 
           const pipeline: mongoose.PipelineStage[] = [
             {
               $match: {
                 _id: new mongoose.Types.ObjectId(requestId),
-                store: new mongoose.Types.ObjectId(storeId),
+                storeId: new mongoose.Types.ObjectId(storeId),
               },
             },
             // Populate store details (essential for wallet balance)
             {
               $lookup: {
                 from: "stores",
-                localField: "store",
+                localField: "storeId",
                 foreignField: "_id",
                 as: "storeDetails",
                 pipeline: [
-                  { $project: { _id: 1, name: 1, storeEmail: 1, wallet: 1 } },
+                  { $project: { _id: 1, name: 1, storeEmail: 1, walletId: 1 } },
                 ],
               },
             },
@@ -1146,7 +1154,7 @@ export const withdrawalRouter = createTRPCRouter({
             {
               $lookup: {
                 from: "wallets",
-                localField: "storeDetails.wallet",
+                localField: "storeDetails.walletId",
                 foreignField: "_id",
                 as: "walletDetails",
                 pipeline: [{ $project: { balance: 1 } }],

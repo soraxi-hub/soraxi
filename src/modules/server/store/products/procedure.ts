@@ -32,7 +32,7 @@ export const storeProductRouter = createTRPCRouter({
         });
       }
 
-      if (product.storeID.toString() !== store.id) {
+      if (product.storeId.toString() !== store.id) {
         // Ensure comparison is string to string
         throw new TRPCError({
           code: "UNAUTHORIZED",

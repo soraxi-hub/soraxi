@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getStoreModel } from "@/lib/db/models/store.model";
-import { getUserDataFromToken } from "@/lib/helpers/getUserDataFromToken";
+import {
+  getStoreModel,
+  StoreBusinessInfo,
+  StoreStatus,
+  StoreVerificationStatus,
+} from "@/lib/db/models/store.model";
+import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { type IStore, type IShippingMethod } from "@/lib/db/models/store.model";
 import {
   generateAdminNotificationHtml,
@@ -20,7 +25,7 @@ interface OnboardingProfile {
 
 // Business info section
 interface OnboardingBusinessInfo {
-  type: "individual" | "company";
+  type: StoreBusinessInfo;
   businessName?: string;
   registrationNumber?: string;
   taxId?: string;
@@ -59,11 +64,11 @@ export async function POST(request: NextRequest) {
     const body: PostBody = await request.json();
     const { storeId, onboardingData, agreementTimestamp } = body;
 
-    console.log("Onboarding submission data:", {
-      storeId,
-      onboardingData,
-      agreementTimestamp,
-    });
+    // console.log("Onboarding submission data:", {
+    //   storeId,
+    //   onboardingData,
+    //   agreementTimestamp,
+    // });
 
     // Validate required fields
     if (!storeId || !onboardingData) {
@@ -112,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      businessInfo.type === "company" &&
+      businessInfo.type === StoreBusinessInfo.Company &&
       (!businessInfo.businessName || !businessInfo.registrationNumber)
     ) {
       return NextResponse.json(
@@ -191,12 +196,12 @@ export async function POST(request: NextRequest) {
       agreedToTermsAt: new Date(agreementTimestamp),
 
       // Mark store as pending for admin review
-      status: "pending",
+      status: StoreStatus.Pending,
 
       // Initial verification setup
       verification: {
         isVerified: false, // Will be set to true after admin approval
-        method: "email",
+        method: StoreVerificationStatus.Email,
         notes: "Onboarding completed, pending admin review",
       },
     };

@@ -98,7 +98,7 @@ export function formatOrderDocument(
    */
   const formattedSubOrders = rawOrder.subOrders.map((subOrder, index) => {
     // Validate store population
-    if (!isPopulatedStore(subOrder.store)) {
+    if (!isPopulatedStore(subOrder.storeId)) {
       throw new Error(
         `Sub-order ${index} in order ${rawOrder._id} has unpopulated store`
       );
@@ -124,7 +124,7 @@ export function formatOrderDocument(
           //   productType: productItem.Product.productType,
           //   storeID: productItem.Product.storeID,
           // }, // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
-          store: productItem.store.toString(),
+          storeId: productItem.storeId.toString(),
           productSnapshot: {
             _id: productItem.productSnapshot._id.toString(),
             name: productItem.productSnapshot.name,
@@ -148,10 +148,10 @@ export function formatOrderDocument(
     return {
       _id: subOrder._id.toString(),
       store: {
-        _id: subOrder.store._id,
-        name: subOrder.store.name,
-        storeEmail: subOrder.store.storeEmail,
-        logoUrl: subOrder.store.logoUrl,
+        _id: subOrder.storeId._id,
+        name: subOrder.storeId.name,
+        storeEmail: subOrder.storeId.storeEmail,
+        logoUrl: subOrder.storeId.logoUrl,
       },
       products: formattedProducts,
       totalAmount: subOrder.totalAmount,
@@ -178,7 +178,7 @@ export function formatOrderDocument(
    */
   return {
     _id: rawOrder._id.toString(),
-    user: rawOrder.user.toString(),
+    user: rawOrder.userId.toString(),
     stores: rawOrder.stores.map((storeId) => storeId.toString()),
     totalAmount: rawOrder.totalAmount,
     paymentStatus: rawOrder.paymentStatus,
@@ -230,13 +230,13 @@ export function formatOrderDocumentForAdmins(
    * Extracts and formats customer details with fallbacks for missing data
    */
   const customer = {
-    id: rawOrder.user?._id?.toString() || "",
-    name: rawOrder.user
-      ? `${(rawOrder.user as PopulatedUser).firstName} ${
-          (rawOrder.user as PopulatedUser).lastName
+    id: rawOrder.userId?._id?.toString() || "",
+    name: rawOrder.userId
+      ? `${(rawOrder.userId as PopulatedUser).firstName} ${
+          (rawOrder.userId as PopulatedUser).lastName
         }`
       : "Unknown Customer",
-    email: (rawOrder.user as PopulatedUser).email || "",
+    email: (rawOrder.userId as PopulatedUser).email || "",
   };
 
   /**
@@ -260,7 +260,7 @@ export function formatOrderDocumentForAdmins(
    */
   const items = rawOrder.subOrders.flatMap((subOrder) =>
     subOrder.products.map((product) => ({
-      id: product.Product?._id?.toString() || "",
+      id: product.productId?._id?.toString() || "",
       productSnapshot: {
         _id: product.productSnapshot._id.toString(),
         name: product.productSnapshot.name,
@@ -366,7 +366,7 @@ export function formatStoreOrderDocument(
   storeId: string
 ): FormattedOrder {
   const storeSubOrders = rawOrder.subOrders.filter(
-    (subOrder) => subOrder.store?._id?.toString() === storeId
+    (subOrder) => subOrder.storeId?._id?.toString() === storeId
   );
 
   if (storeSubOrders.length === 0) {
@@ -376,7 +376,7 @@ export function formatStoreOrderDocument(
   }
 
   const formattedSubOrders = storeSubOrders.map((subOrder, index) => {
-    if (!isPopulatedStore(subOrder.store)) {
+    if (!isPopulatedStore(subOrder.storeId)) {
       throw new Error(
         `Sub-order ${index} in order ${rawOrder._id} has unpopulated store`
       );
@@ -400,7 +400,7 @@ export function formatStoreOrderDocument(
           //   productType: productItem.Product.productType,
           //   storeID: productItem.Product.storeID,
           // },
-          store: productItem.store.toString(),
+          storeId: productItem.storeId.toString(),
           productSnapshot: {
             _id: productItem.productSnapshot._id.toString(),
             name: productItem.productSnapshot.name,
@@ -424,10 +424,10 @@ export function formatStoreOrderDocument(
     return {
       _id: subOrder._id?.toString() || "",
       store: {
-        _id: subOrder.store._id,
-        name: subOrder.store.name,
-        storeEmail: subOrder.store.storeEmail,
-        logoUrl: subOrder.store.logoUrl,
+        _id: subOrder.storeId._id,
+        name: subOrder.storeId.name,
+        storeEmail: subOrder.storeId.storeEmail,
+        logoUrl: subOrder.storeId.logoUrl,
       },
       products: formattedProducts,
       totalAmount: subOrder.totalAmount,
@@ -448,17 +448,17 @@ export function formatStoreOrderDocument(
   });
 
   // ✅ Validate populated user
-  if (!isPopulatedUser(rawOrder.user)) {
+  if (!isPopulatedUser(rawOrder.userId)) {
     throw new Error(`Order ${rawOrder._id} has unpopulated user`);
   }
 
   // ✅ Handle populated user safely
   const user = {
-    _id: rawOrder.user._id.toString(),
-    firstName: rawOrder.user.firstName,
-    lastName: rawOrder.user.lastName,
-    email: rawOrder.user.email,
-    phoneNumber: rawOrder.user.phoneNumber || "Unknown",
+    _id: rawOrder.userId._id.toString(),
+    firstName: rawOrder.userId.firstName,
+    lastName: rawOrder.userId.lastName,
+    email: rawOrder.userId.email,
+    phoneNumber: rawOrder.userId.phoneNumber || "Unknown",
   };
 
   return {

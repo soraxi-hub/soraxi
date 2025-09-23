@@ -143,7 +143,7 @@ export const adminStoreRouter = createTRPCRouter({
       const Store = await getStoreModel();
       const storeData = await Store.findById(storeId)
         .select(
-          "-password -storeOwner -recipientCode -wallet -suspensionReason -payoutHistory -platformFee -shippingMethods -payoutAccounts -transactionFees -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+          "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
         )
         .populate({
           path: "physicalProducts",

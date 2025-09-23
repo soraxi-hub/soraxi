@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       // Match orders that have sub-orders for this store
       {
         $match: {
-          "subOrders.store": store._id,
+          "subOrders.storeId": store._id,
         },
       },
       // Unwind sub-orders
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       // Match only sub-orders for this store that have returns
       {
         $match: {
-          "subOrders.store": store._id,
+          "subOrders.storeId": store._id,
           "subOrders.returns": { $exists: true, $ne: [] },
         },
       },
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       {
         $lookup: {
           from: "users",
-          localField: "user",
+          localField: "userId",
           foreignField: "_id",
           as: "userDetails",
         },
