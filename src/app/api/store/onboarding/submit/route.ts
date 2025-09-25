@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
     // Send confirmation email to store owner
     await sendMail({
       email: storeEmail,
-      emailType: "orderConfirmation",
+      emailType: "noreply",
       fromAddress: "noreply@soraxihub.com",
       subject: `Your store "${updatedStore.name}" was submitted for review`,
       html: generateStoreOwnerConfirmationHtml(updatedStore.name, storeEmail),
