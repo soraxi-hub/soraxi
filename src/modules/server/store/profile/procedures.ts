@@ -2,8 +2,8 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
-import mongoose from "mongoose";
-import { getProductModel, IProduct } from "@/lib/db/models/product.model";
+import type mongoose from "mongoose";
+import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
 import { koboToNaira } from "@/lib/utils/naira";
 
 type Product = Pick<
@@ -87,8 +87,77 @@ export const storeProfileRouter = createTRPCRouter({
     return formattedStoreData;
   }),
 
+  handleStoreNameUpdate: baseProcedure
+    .input(
+      z.object({
+        name: z
+          .string()
+          .min(2, "Store name must be at least 2 characters")
+          .max(50, "Store name must not exceed 50 characters")
+          .regex(
+            /^[a-zA-Z0-9\s\-_&.]+$/,
+            "Store name contains invalid characters"
+          ),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { store } = ctx;
+
+      if (!store) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in to update the store name.",
+        });
+      }
+
+      const Store = await getStoreModel();
+
+      // Check if store name is already taken by another store
+      const existingStore = await Store.findOne({
+        name: input.name,
+        _id: { $ne: store.id },
+      });
+
+      if (existingStore) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "A store with this name already exists. Please choose a different name.",
+        });
+      }
+
+      const updatedStore = await Store.findByIdAndUpdate(
+        store.id,
+        { name: input.name },
+        { new: true, runValidators: true }
+      )
+        .select(
+          "-password -storeOwner -recipientCode -walletId -digitalProducts -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+        )
+        .lean();
+
+      if (!updatedStore) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Store not found.",
+        });
+      }
+
+      return {
+        success: true,
+        message: "Store name updated successfully.",
+      };
+    }),
+
   handleStoreDescriptionUpdate: baseProcedure
-    .input(z.object({ description: z.string().max(1500) }))
+    .input(
+      z.object({
+        description: z
+          .string()
+          .min(100, "Description must be at least 100 characters")
+          .max(1500, "Description must not exceed 1500 characters"),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const { store } = ctx;
 

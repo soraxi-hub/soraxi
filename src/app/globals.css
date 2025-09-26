@@ -4,11 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-success: var(--success);
-  --color-error: var(--error);
+  --color-soraxi-success: var(--soraxi-success);
+  --color-soraxi-warning: var(--soraxi-warning);
+  --color-soraxi-error: var(--soraxi-error);
   --color-soraxi-green: var(--soraxi-green);
   --color-soraxi-green-hover: var(--soraxi-green-hover);
-  --color-soraxi-darkmode-success: var(--soraxi-darkmode-success);
 
   --color-soraxi-darkmode-background: var(--soraxi-darkmode-background);
   --color-background: var(--soraxi-background);
@@ -90,8 +90,9 @@
   --soraxi-darkmode-text-primary: #e6e6e6;
   --soraxi-darkmode-text-secondary: #a0a0a0;
   --soraxi-darkmode-accent-green: #6fda44;
-  --soraxi-darkmode-success: #14a800;
-  --soraxi-darkmode-error: #ff6b6b;
+  --soraxi-success: #14a800;
+  --soraxi-warning: #ffee00;
+  --soraxi-error: #ff6b6b;
   --soraxi-green: #14a800;
   --soraxi-green-hover: #128a00;
 }
@@ -135,8 +136,9 @@
   --soraxi-darkmode-text-primary: #e6e6e6;
   --soraxi-darkmode-text-secondary: #a0a0a0;
   --soraxi-darkmode-accent-green: #6fda44;
-  --soraxi-darkmode-success: #14a800;
-  --soraxi-darkmode-error: #ff6b6b;
+  --soraxi-success: #14a800;
+  --soraxi-warning: #ffee00;
+  --soraxi-error: #ff6b6b;
   --soraxi-green: #14a800;
   --soraxi-green-hover: #128a00;
 }

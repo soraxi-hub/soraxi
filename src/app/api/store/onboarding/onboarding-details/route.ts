@@ -10,6 +10,7 @@ import {
 } from "@/lib/helpers/get-store-from-cookie";
 import { AppError } from "@/lib/errors/app-error";
 import mongoose from "mongoose";
+import { koboToNaira } from "@/lib/utils/naira";
 
 /**
  * API Route: Get Store Onboarding Details
@@ -26,7 +27,9 @@ export async function GET(_request: NextRequest) {
     }
 
     const Store = await getStoreModel();
-    const store = (await Store.findById(storeData.id).lean()) as IStore | null;
+    const store = (await Store.findById(storeData.id)
+      .select("name description businessInfo shippingMethods agreedToTermsAt")
+      .lean()) as IStore | null;
 
     if (!store) {
       throw new AppError(
@@ -59,6 +62,13 @@ export async function GET(_request: NextRequest) {
     const currentStep = completedSteps.length;
     const percentage = Math.round((completedSteps.length / totalSteps) * 100);
 
+    const shippingMethods = store.shippingMethods.map((shippingMethod) => {
+      return {
+        ...shippingMethod,
+        price: koboToNaira(shippingMethod.price),
+      };
+    });
+
     return NextResponse.json({
       success: true,
       store: {
@@ -71,7 +81,7 @@ export async function GET(_request: NextRequest) {
             bannerUrl: store.bannerUrl,
           },
           "business-info": store.businessInfo || {},
-          shipping: store.shippingMethods,
+          shipping: shippingMethods,
           terms: store.agreedToTermsAt,
         },
         progress: {

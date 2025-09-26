@@ -70,8 +70,14 @@ export function OnboardingLayout({
           <div className="lg:col-span-2">
             {/* Header */}
             <div className="bg-card border border-border rounded-lg p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
+              <div className="flex flex-col w-full justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {title}
+                  </h1>
+                  <p className="text-muted-foreground mt-1">{description}</p>
+                </div>
+                <div className="flex items-center space-x-4 justify-between w-full">
                   {showBackButton && (
                     <Button
                       variant="ghost"
@@ -83,25 +89,18 @@ export function OnboardingLayout({
                       Back
                     </Button>
                   )}
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground">
-                      {title}
-                    </h1>
-                    <p className="text-muted-foreground mt-1">{description}</p>
-                  </div>
+                  {/* Save Draft Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveDraft}
+                    disabled={state.isLoading}
+                    className="flex items-center space-x-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Draft</span>
+                  </Button>
                 </div>
-
-                {/* Save Draft Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSaveDraft}
-                  disabled={state.isLoading}
-                  className="flex items-center space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Save Draft</span>
-                </Button>
               </div>
             </div>
 

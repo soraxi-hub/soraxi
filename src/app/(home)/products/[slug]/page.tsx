@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProductDetailPage } from "@/modules/products/product-detail/ProductDetailPage";
 import { caller } from "@/trpc/server";
+import { cache } from "react";
 
 interface ProductPageProps {
   params: Promise<{
@@ -8,9 +9,16 @@ interface ProductPageProps {
   }>;
 }
 
+const getProduct = cache(async (slug: string) => {
+  const { product } = await caller.home.getPublicProductBySlug({ slug });
+  return product;
+});
+
 export async function generateMetadata({ params }: ProductPageProps) {
   const { slug } = await params;
-  const { product } = await caller.home.getPublicProductBySlug({ slug });
+  const product = await getProduct(slug);
+
+  if (!product) return {};
 
   return {
     title: `${product.name}`,
@@ -36,7 +44,7 @@ export async function generateMetadata({ params }: ProductPageProps) {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const { product } = await caller.home.getPublicProductBySlug({ slug });
+  const product = await getProduct(slug);
   const relatedProducts = await caller.home.getRelatedProducts({ slug });
 
   if (!product) {

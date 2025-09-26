@@ -1,6 +1,6 @@
 import { DeliveryStatus, DeliveryType, StatusHistory } from "@/enums";
 import mongoose from "mongoose";
-import z from "zod";
+import { z } from "zod";
 
 /**
  * Type definitions for populated order data structures

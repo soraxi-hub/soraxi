@@ -10,7 +10,8 @@ type EmailTypes =
   | "orderConfirmation"
   | "storeOrderNotification"
   | "supportNotification"
-  | "noreply";
+  | "noreply"
+  | "admin";
 
 type FromAddress =
   | "support@soraxihub.com"
