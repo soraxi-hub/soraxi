@@ -1,5 +1,5 @@
 import { flutterwaveInputSchema } from "@/modules/server/flutterwave/procedures";
-import z from "zod";
+import { z } from "zod";
 import { SubOrder } from "./sub-order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { calculateEstimatedDeliveryDays } from "@/lib/utils/calculate-est-delivery-days";

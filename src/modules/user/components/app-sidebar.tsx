@@ -5,6 +5,7 @@ import {
   PackageIcon,
   HeartIcon,
   EditIcon,
+  StoreIcon,
   // MapPinIcon,
   // CreditCardIcon,
   // StarIcon,
@@ -16,7 +17,6 @@ import {
   // RefreshCwIcon,
   // MailIcon,
   BuildingIcon,
-  UserPlusIcon,
   // Share2Icon,
   ChevronDownIcon,
   LogOutIcon,
@@ -107,7 +107,7 @@ const sidebarItems = (user: TokenData) => [
       {
         title: "Create Your Store",
         url: "/store/onboarding/",
-        icon: UserPlusIcon,
+        icon: StoreIcon,
       },
       // {
       //   title: "Affiliate Program",

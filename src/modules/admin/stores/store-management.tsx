@@ -22,13 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -40,7 +33,6 @@ import { toast } from "sonner";
 import {
   Store,
   MoreHorizontal,
-  Eye,
   CheckCircle,
   XCircle,
   Pause,
@@ -51,15 +43,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { IStore } from "@/lib/db/models/store.model";
-import { inferProcedureOutput } from "@trpc/server";
-import { AppRouter } from "@/trpc/routers/_app";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
-
-type Output = inferProcedureOutput<AppRouter["adminStore"]["listStores"]>;
-type StoreData = Output["stores"][number];
 
 type Status = IStore["status"];
 type VerificationFilter = "all" | "true" | "false";
@@ -70,8 +57,6 @@ type VerificationFilter = "all" | "true" | "false";
  */
 export function StoreManagement() {
   const trpc = useTRPC();
-  const [selectedStore, setSelectedStore] = useState<StoreData | null>(null);
-  const [showStoreDetails, setShowStoreDetails] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -105,31 +90,23 @@ export function StoreManagement() {
     setPage(1);
   }, [statusFilter, verificationFilter, searchQuery, limit]);
 
-  const handleStoreAction = async (
-    storeId: string,
-    action: string,
-    reason?: string
-  ) => {
-    try {
-      const response = await fetch(`/api/admin/stores/${storeId}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+  const storeAction = useMutation(
+    trpc.adminStore.storeActionForAdmins.mutationOptions({
+      onSuccess: (data) => {
         toast.success(data.message);
         refetchStore();
-        setSelectedStore(null);
-        setShowStoreDetails(false);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Action failed");
-    }
+      },
+      onError: (err) => {
+        toast.error(err.message || "Action failed");
+      },
+    })
+  );
+
+  const handleStoreAction = async (
+    storeId: string,
+    action: "approved" | "rejected" | "reactivate" | "suspend"
+  ) => {
+    storeAction.mutate({ storeId, action });
   };
 
   const getStatusBadge = (status: string) => {
@@ -223,7 +200,10 @@ export function StoreManagement() {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button onClick={() => refetchStore()} className="w-full">
+              <Button
+                onClick={() => refetchStore()}
+                className="w-full bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 Apply Filters
               </Button>
@@ -321,15 +301,6 @@ export function StoreManagement() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedStore(store);
-                              setShowStoreDetails(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/stores/${store.id}`}>
                               <MoreVerticalIcon className="w-4 h-4 mr-2" />
@@ -341,7 +312,7 @@ export function StoreManagement() {
                             <>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleStoreAction(store.id, "approve")
+                                  handleStoreAction(store.id, "approved")
                                 }
                                 className="text-green-600"
                               >
@@ -350,7 +321,7 @@ export function StoreManagement() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleStoreAction(store.id, "reject")
+                                  handleStoreAction(store.id, "rejected")
                                 }
                                 className="text-red-600"
                               >
@@ -417,87 +388,6 @@ export function StoreManagement() {
           )}
         </CardContent>
       </Card>
-
-      {/* Store Details Dialog */}
-      <Dialog open={showStoreDetails} onOpenChange={setShowStoreDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Store Details</DialogTitle>
-            <DialogDescription>
-              Comprehensive information about {selectedStore?.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedStore && (
-            <div className="space-y-6">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Basic Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Store Name</Label>
-                      <p className="text-sm">{selectedStore.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Email</Label>
-                      <p className="text-sm">{selectedStore.storeEmail}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Status</Label>
-                      <div className="mt-1">
-                        {getStatusBadge(selectedStore.status)}
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Business Type
-                      </Label>
-                      <p className="text-sm">
-                        {selectedStore.businessInfo?.type || "unKnown"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Total Products</span>
-                      <span className="font-medium">
-                        {selectedStore.stats.totalProducts}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Total Orders</span>
-                      <span className="font-medium">
-                        {selectedStore.stats.totalOrders}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Total Revenue</span>
-                      <span className="font-medium">
-                        ${selectedStore.stats.totalRevenue.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Average Rating</span>
-                      <span className="font-medium">
-                        {selectedStore.stats.averageRating}/5
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

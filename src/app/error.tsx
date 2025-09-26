@@ -44,7 +44,7 @@ export default function Error({
             : error?.message || "An unexpected error occurred."}
         </p>
 
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-center gap-3">
           {reset && (
             <Button
               onClick={() => window.location.reload()}

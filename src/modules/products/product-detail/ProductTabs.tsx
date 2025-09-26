@@ -189,11 +189,11 @@ export function ProductTabs({
                 <Card key={review.id} className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                      <div className="w-10 h-10 bg-gray-100 rounded-full sm:flex items-center justify-center text-gray-600 dark:bg-gray-800 dark:text-gray-300 hidden">
                         <User className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="sm:flex-row flex flex-col sm:items-center gap-1 sm:gap-2">
                           <span className="font-semibold text-gray-900 dark:text-gray-100">
                             {review.user}
                           </span>
