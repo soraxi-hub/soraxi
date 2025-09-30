@@ -190,7 +190,7 @@ export default function ShippingMethodForm() {
               </Badge>
             </CardTitle>
             <CardDescription>
-              Manage your store's shipping methods and configurations
+              Manage your store&#39;s shipping methods and configurations
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -528,7 +528,7 @@ export default function ShippingMethodForm() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
+                  className="flex-1 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
                 >
                   {isSubmitting
                     ? "Saving..."

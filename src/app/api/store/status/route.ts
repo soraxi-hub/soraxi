@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getStoreModel, StoreBusinessInfo } from "@/lib/db/models/store.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
 import {
   getStoreFromCookie,
   StoreTokenData,
 } from "@/lib/helpers/get-store-from-cookie";
+import { StoreBusinessInfoEnum } from "@/validators/store-validators";
 
 /**
  * API Route: Get Store Status
@@ -40,8 +41,8 @@ export async function GET(_request: NextRequest) {
       profileComplete: !!(store.name && store.description),
       businessInfoComplete: !!(
         store.businessInfo &&
-        (store.businessInfo.type === StoreBusinessInfo.Individual ||
-          (store.businessInfo.type === StoreBusinessInfo.Company &&
+        (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
+          (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
             store.businessInfo.businessName &&
             store.businessInfo.registrationNumber))
       ),

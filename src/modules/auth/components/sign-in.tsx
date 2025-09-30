@@ -151,7 +151,7 @@ function SignIn() {
               <div className="flex justify-center mx-auto">
                 <Link
                   href="/"
-                  className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-darkmode-success ${playpenSans.className}`}
+                  className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-green ${playpenSans.className}`}
                 >
                   {siteConfig.name}
                 </Link>
@@ -184,7 +184,7 @@ function SignIn() {
                           <div className="relative">
                             <Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                              className="pl-10 w-full bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+                              className="pl-10 w-full bg-background text-primary focus:!ring-soraxi-green focus:!outline-none focus:!ring-1 focus:border-transparent"
                               type="email"
                               placeholder="Email Address"
                               aria-label="Email Address"
@@ -208,7 +208,7 @@ function SignIn() {
                           <div className="relative">
                             <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-green focus:!outline-none focus:!ring-1 focus:border-transparent"
                               type={showPassword ? "text" : "password"}
                               placeholder="Enter your password"
                               aria-label="password"
@@ -236,13 +236,13 @@ function SignIn() {
                   <div className="flex items-center justify-between mt-4">
                     <Link
                       href="/forgot-password?ref=user"
-                      className="text-sm hover:text-soraxi-darkmode-success hover:underline"
+                      className="text-sm hover:text-soraxi-green hover:underline"
                     >
                       Forgot Password?
                     </Link>
 
                     <Button
-                      className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-soraxi-darkmode-success rounded-lg hover:bg-soraxi-darkmode-success/85"
+                      className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-soraxi-green rounded-lg hover:bg-soraxi-green-hover"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -264,12 +264,12 @@ function SignIn() {
 
               <div className="flex items-center justify-center py-4 text-center pt-6">
                 <span className="text-sm text-gray-600 dark:text-gray-200">
-                  Don&apos;t have an account?{" "}
+                  Don&#39;t have an account?{" "}
                 </span>
 
                 <Link
                   href="/sign-up"
-                  className="mx-2 text-sm font-bold text-soraxi-darkmode-success hover:underline"
+                  className="mx-2 text-sm font-bold text-soraxi-green hover:underline"
                 >
                   Sign Up
                 </Link>

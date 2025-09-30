@@ -1,9 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import {
-  getStoreModel,
-  IStore,
-  StoreBusinessInfo,
-} from "@/lib/db/models/store.model";
+import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import {
   getStoreFromCookie,
   StoreTokenData,
@@ -11,6 +7,7 @@ import {
 import { AppError } from "@/lib/errors/app-error";
 import mongoose from "mongoose";
 import { koboToNaira } from "@/lib/utils/naira";
+import { StoreBusinessInfoEnum } from "@/validators/store-validators";
 
 /**
  * API Route: Get Store Onboarding Details
@@ -28,7 +25,9 @@ export async function GET(_request: NextRequest) {
 
     const Store = await getStoreModel();
     const store = (await Store.findById(storeData.id)
-      .select("name description businessInfo shippingMethods agreedToTermsAt")
+      .select(
+        "name description logoUrl bannerUrl businessInfo shippingMethods agreedToTermsAt"
+      )
       .lean()) as IStore | null;
 
     if (!store) {
@@ -45,8 +44,8 @@ export async function GET(_request: NextRequest) {
       profile: !!(store.name && store.description),
       "business-info": !!(
         store.businessInfo &&
-        (store.businessInfo.type === StoreBusinessInfo.Individual ||
-          (store.businessInfo.type === StoreBusinessInfo.Company &&
+        (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
+          (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
             store.businessInfo.businessName &&
             store.businessInfo.registrationNumber))
       ),
@@ -62,12 +61,14 @@ export async function GET(_request: NextRequest) {
     const currentStep = completedSteps.length;
     const percentage = Math.round((completedSteps.length / totalSteps) * 100);
 
-    const shippingMethods = store.shippingMethods.map((shippingMethod) => {
-      return {
-        ...shippingMethod,
-        price: koboToNaira(shippingMethod.price),
-      };
-    });
+    const shippingMethods = (store.shippingMethods ?? []).map(
+      (shippingMethod) => {
+        return {
+          ...shippingMethod,
+          price: koboToNaira(shippingMethod.price),
+        };
+      }
+    );
 
     return NextResponse.json({
       success: true,

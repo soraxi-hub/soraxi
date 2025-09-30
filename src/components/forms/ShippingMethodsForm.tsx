@@ -164,7 +164,7 @@ export function ShippingMethodsForm({
           Configure Shipping Methods
         </h2>
         <p className="text-sm text-muted-foreground">
-          Set up how you&apos;ll deliver products to your customers. You can add
+          Set up how you&#39;ll deliver products to your customers. You can add
           multiple shipping options with different pricing and delivery times.
         </p>
       </div>
@@ -268,12 +268,12 @@ export function ShippingMethodsForm({
                     <Input
                       id={`price-${index}`}
                       type="number"
-                      step="500"
+                      step="50"
+                      placeholder="500"
                       min="0"
                       {...register(`shippingMethods.${index}.price`, {
                         valueAsNumber: true,
                       })}
-                      placeholder="0.00"
                       className={
                         errors.shippingMethods?.[index]?.price
                           ? "border-destructive"

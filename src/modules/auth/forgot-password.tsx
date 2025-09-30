@@ -60,7 +60,7 @@ const ForgotPassword = () => {
                 <div className="flex justify-center mx-auto">
                   <Link
                     href="/"
-                    className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-darkmode-success ${playpenSans.className}`}
+                    className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-green ${playpenSans.className}`}
                   >
                     {siteConfig.name}
                   </Link>
@@ -127,7 +127,7 @@ const ForgotPassword = () => {
                 <div className="flex justify-center mx-auto">
                   <Link
                     href="/"
-                    className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-darkmode-success ${playpenSans.className}`}
+                    className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-green ${playpenSans.className}`}
                   >
                     {siteConfig.name}
                   </Link>

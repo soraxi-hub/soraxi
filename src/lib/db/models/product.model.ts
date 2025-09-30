@@ -105,7 +105,7 @@ const ProductSchema = new Schema<IProduct>(
     },
     isVisible: {
       type: Boolean,
-      default: true,
+      default: false, // default to false untill the admin approves it
     },
     slug: {
       type: String,
@@ -144,6 +144,8 @@ ProductSchema.index(
     name: "TextIndex",
   }
 );
+
+ProductSchema.index({ isVisible: 1 });
 
 ProductSchema.pre("save", async function (next) {
   if (!this.slug) {

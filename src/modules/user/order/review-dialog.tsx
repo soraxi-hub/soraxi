@@ -124,7 +124,7 @@ export function ReviewDialog({
           </Button>
           <Button
             type="submit"
-            className="bg-soraxi-green hover:bg-soraxi-green/85 text-white"
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
             onClick={onSubmitAction}
             disabled={submitting || !rating || !review.trim()}
           >

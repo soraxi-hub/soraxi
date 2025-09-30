@@ -14,7 +14,7 @@ export default function ForbiddenPage() {
           Access Forbidden
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          You don&apos;t have permission to access this page.
+          You don&#39;t have permission to access this page.
           <br />
           Please contact your administrator if you believe this is a mistake.
         </p>

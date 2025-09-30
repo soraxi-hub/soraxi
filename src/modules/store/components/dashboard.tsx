@@ -197,7 +197,9 @@ export default function StoreDashboardPage({
                   <WalletIcon className="w-5 h-5 text-soraxi-green" />
                   <span>My Wallet</span>
                 </CardTitle>
-                <CardDescription>Track your store's Finanials</CardDescription>
+                <CardDescription>
+                  Track your store&#39;s Finanials
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full">

@@ -1,10 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import {
-  getStoreModel,
-  StoreStatus,
-  StoreVerificationStatus,
-} from "@/lib/db/models/store.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
 import { getWalletModel } from "@/lib/db/models/wallet.model";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
@@ -14,6 +10,13 @@ import { handleApiError } from "@/lib/utils/handle-api-error";
 import mongoose from "mongoose";
 import { StoreTokenPayload } from "@/lib/helpers/get-store-data-from-token";
 import jwt from "jsonwebtoken";
+import {
+  storeName as storeNameSchema,
+  storeEmail as storeEmailSchema,
+  storePassword as storePasswordSchema,
+  StoreStatusEnum,
+  StoreVerificationStatusEnum,
+} from "@/validators/store-validators";
 
 /**
  * API Route: Create New Store
@@ -37,28 +40,35 @@ export async function POST(request: NextRequest) {
       throw new AppError("Store name, email, and password are required", 400);
     }
 
+    const storeNameRes = storeNameSchema.safeParse(storeName);
+
     // Validate store name format
-    if (!/^[a-zA-Z0-9\s\-_]+$/.test(storeName)) {
+    if (!storeNameRes.success) {
       throw new AppError(
-        `Store name can only contain letters, numbers, spaces, hyphens, and underscores`,
+        storeNameRes.error.errors[0].message ||
+          `Store name can only contain letters, numbers, spaces, hyphens, and underscores`,
         400
       );
     }
 
+    const storeEmailRes = storeEmailSchema.safeParse(storeEmail);
+
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(storeEmail)) {
-      throw new AppError("Please enter a valid email address", 400);
+    if (!storeEmailRes.success) {
+      throw new AppError(
+        storeEmailRes.error.errors[0].message ||
+          "Please enter a valid email address",
+        400
+      );
     }
+
+    const storePasswordres = storePasswordSchema.safeParse(password);
 
     // Validate password strength
-    if (password.length < 8) {
-      throw new AppError("Password must be at least 8 characters long", 400);
-    }
-
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+    if (!storePasswordres.success) {
       throw new AppError(
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+        storePasswordres.error.errors[0].message ||
+          "Password must contain at least one uppercase letter, one lowercase letter, and one number",
         400
       );
     }
@@ -107,10 +117,10 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       storeOwner: userData.id, // ✅ Associate store with authenticated user
       uniqueId,
-      status: StoreStatus.Pending, // ✅ Set initial status to pending
+      status: StoreStatusEnum.Pending, // ✅ Set initial status to pending
       verification: {
         isVerified: false, // ✅ Not verified initially
-        method: StoreVerificationStatus.Email,
+        method: StoreVerificationStatusEnum.Email,
       },
       // Initialize empty arrays and default values
       followers: [],

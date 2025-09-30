@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
-import { getStoreModel, StoreStatus } from "@/lib/db/models/store.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
 import bcrypt from "bcryptjs";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { StoreStatusEnum } from "@/validators/store-validators";
 
 /**
  * API Route: Store Product Management
@@ -64,9 +65,17 @@ export async function POST(request: NextRequest) {
       throw new AppError("Store not found", 404);
     }
 
+    // Check if store is suspended
+    if (store.status === StoreStatusEnum.Suspended) {
+      throw new AppError(
+        "Store Suspended. You can not perform this action",
+        403
+      );
+    }
+
     // Check if store is active and verified
     // if (store.status !== "active" || !store.verification?.isVerified) {
-    if (store.status !== StoreStatus.Active) {
+    if (store.status !== StoreStatusEnum.Active) {
       throw new AppError("Store is not verified or active.", 403);
     }
 
@@ -81,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Create product data
     const productData = {
-      storeId,
+      storeId: storeSession.id,
       productType: productType || "Product",
       name,
       price: sizes?.length > 0 ? undefined : price,
@@ -93,7 +102,7 @@ export async function POST(request: NextRequest) {
       category,
       subCategory,
       isVerifiedProduct: false, // Products need admin approval
-      isVisible: true,
+      isVisible: false, // Until approved by admin, visibility stays hidden. This is necessary to prevent products displaying on the home page or search results
     };
 
     // Create the product

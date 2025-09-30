@@ -202,7 +202,7 @@ export function StoreProductsManagement({
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Products</h1>
           <p className="text-muted-foreground">
-            Manage your store&apos;s product catalog
+            Manage your store&#39;s product catalog
           </p>
         </div>
         <Link href={`/store/${store_id}/products/upload`}>

@@ -111,7 +111,7 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
           <p className="text-sm text-destructive">{errors.name.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          This will be displayed as your store&apos;s public name
+          This will be displayed as your store&#39;s public name
         </p>
       </div>
 

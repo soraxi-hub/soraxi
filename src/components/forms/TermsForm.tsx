@@ -106,7 +106,6 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // storeId: "", // TODO: Replace with actual store ID
           storeId: state.storeId,
           onboardingData: {
             ...state.data,
@@ -159,7 +158,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
             <span>Onboarding Summary</span>
           </CardTitle>
           <CardDescription>
-            Review the information you&apos;ve provided during setup
+            Review the information you&#39;ve provided during setup
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -443,9 +442,8 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
       <Alert>
         <AlertDescription>
           After submitting, your store will be reviewed by our team. This
-          process typically takes 1-3 business days. You&apos;ll receive an
-          email notification once your store is approved and ready to start
-          selling.
+          process typically takes 1-3 business days. You&#39;ll receive an email
+          notification once your store is approved and ready to start selling.
         </AlertDescription>
       </Alert>
 

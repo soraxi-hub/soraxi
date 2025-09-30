@@ -94,7 +94,7 @@ export function AccountVerification() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-soraxi-green/20 rounded-2xl dark:bg-muted/50">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-soraxi-darkmode-success">
+          <CardTitle className="text-2xl font-bold text-soraxi-green">
             Verify Your Account
           </CardTitle>
           <CardDescription className="text-primary">
@@ -133,12 +133,12 @@ export function AccountVerification() {
             </Button>
 
             <div className="text-center text-sm text-primary">
-              Didn&apos;t receive code?{" "}
+              Didn&#39;t receive code?{" "}
               <Button
                 variant="link"
                 onClick={handleResendOTP}
                 disabled={isResendDisabled}
-                className="text-soraxi-darkmode-success p-0 h-auto"
+                className="text-soraxi-green p-0 h-auto"
               >
                 {isResendDisabled ? `Resend in ${countdown}s` : "Resend Code"}
               </Button>

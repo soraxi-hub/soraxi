@@ -35,7 +35,7 @@ export const ThemeSwitcher = ({ page = "default" }: ThemeSwitcherProps) => {
       containerClass =
         "flex items-center space-x-2 w-fit rounded-full p-1 bg-soraxi-darkmode-background border-[#ffffff28] border";
       buttonClass =
-        "rounded-full text-[#ffffffa4] hover:text-soraxi-darkmode-success bg-soraxi-darkmode-background hover:bg-soraxi-darkmode-success/15 transition-colors duration-200";
+        "rounded-full text-[#ffffffa4] hover:text-soraxi-green bg-soraxi-darkmode-background hover:bg-soraxi-green/15 transition-colors duration-200";
       break;
   }
 
@@ -107,7 +107,7 @@ export const ThemeSwitcher = ({ page = "default" }: ThemeSwitcherProps) => {
 // export const ThemeSwitcher = () => {
 //   const { setTheme } = useTheme();
 //   const className =
-//     "rounded-full text-[#ffffffa4] hover:text-soraxi-darkmode-success bg-soraxi-darkmode-background hover:bg-soraxi-darkmode-success/15 transition-colors duration-200";
+//     "rounded-full text-[#ffffffa4] hover:text-soraxi-green bg-soraxi-darkmode-background hover:bg-soraxi-green/15 transition-colors duration-200";
 
 //   return (
 //     <div className="flex items-center space-x-2 w-fit rounded-full p-1 bg-soraxi-darkmode-background border-[#ffffff28] border">

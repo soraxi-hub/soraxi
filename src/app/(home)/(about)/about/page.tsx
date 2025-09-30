@@ -140,8 +140,8 @@ export default function AboutPage() {
               At <strong>{siteConfig.name}</strong>, we are creating a trusted
               marketplace that connects students, entrepreneurs, and small
               businesses within the university community. Our goal is simple:
-              make it easier for students to access what they need while equipping
-              vendors with the digital tools to grow their businesses.
+              make it easier for students to access what they need while
+              equipping vendors with the digital tools to grow their businesses.
             </p>
           </div>
         </div>
@@ -209,10 +209,10 @@ export default function AboutPage() {
                 </p>
                 <p>
                   While our roots are in UNICAL, our vision extends far beyond
-                  one campus. We're building the foundation for a marketplace
-                  that will scale across Nigeria — connecting communities,
-                  creating opportunities, and making online trade accessible to
-                  all.
+                  one campus. We&#39;re building the foundation for a
+                  marketplace that will scale across Nigeria — connecting
+                  communities, creating opportunities, and making online trade
+                  accessible to all.
                 </p>
               </div>
               <div className="flex items-center gap-4 pt-4">

@@ -690,7 +690,7 @@ export default function WithdrawalRequestDetail({
             <DialogDescription>
               You are about to reject withdrawal request{" "}
               <strong>{withdrawalRequest.requestNumber}</strong>. Funds will be
-              returned to the store's wallet.
+              returned to the store&#39;s wallet.
             </DialogDescription>
           </DialogHeader>
 

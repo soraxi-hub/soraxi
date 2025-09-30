@@ -146,7 +146,7 @@ export default function EnhancedStoreProfile() {
   };
 
   const storeStats = storeManager.getStoreStats();
-  const storeStatus = storeManager.getStoreStatus();
+  const StoreStatusEnum = storeManager.getStoreStatus();
 
   if (isLoading || !store) {
     return (
@@ -237,18 +237,18 @@ export default function EnhancedStoreProfile() {
                         ID: {store.uniqueId}
                       </Badge>
                       <Badge
-                        className={`${storeStatus.statusColor} text-white`}
+                        className={`${StoreStatusEnum.statusColor} text-white`}
                       >
-                        {storeStatus.status === "active" && (
+                        {StoreStatusEnum.status === "active" && (
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                         )}
-                        {storeStatus.status === "pending" && (
+                        {StoreStatusEnum.status === "pending" && (
                           <Clock className="h-3 w-3 mr-1" />
                         )}
-                        {storeStatus.status === "suspended" && (
+                        {StoreStatusEnum.status === "suspended" && (
                           <AlertCircle className="h-3 w-3 mr-1" />
                         )}
-                        {storeStatus.statusText}
+                        {StoreStatusEnum.statusText}
                       </Badge>
                     </div>
 
@@ -486,9 +486,9 @@ export default function EnhancedStoreProfile() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Status</span>
                     <Badge
-                      className={`status-badge ${storeStatus.statusColor} text-white`}
+                      className={`status-badge ${StoreStatusEnum.statusColor} text-white`}
                     >
-                      {storeStatus.statusText}
+                      {StoreStatusEnum.statusText}
                     </Badge>
                   </div>
                 </CardContent>
@@ -587,7 +587,7 @@ export default function EnhancedStoreProfile() {
               <CardHeader className="form-header">
                 <CardTitle>Store Information</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Update your store's basic information
+                  Update your store&#39;s basic information
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -641,9 +641,9 @@ export default function EnhancedStoreProfile() {
                 <div className="flex justify-between items-center">
                   <span>Current Status</span>
                   <Badge
-                    className={`status-badge ${storeStatus.statusColor} text-white`}
+                    className={`status-badge ${StoreStatusEnum.statusColor} text-white`}
                   >
-                    {storeStatus.statusText}
+                    {StoreStatusEnum.statusText}
                   </Badge>
                 </div>
                 <Separator />

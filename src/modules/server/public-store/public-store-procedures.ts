@@ -4,7 +4,8 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
 import { koboToNaira } from "@/lib/utils/naira";
-import { getStoreModel, StoreStatus } from "@/lib/db/models/store.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
+import { StoreStatusEnum } from "@/validators/store-validators";
 
 type Product = Pick<
   IProduct,
@@ -58,7 +59,7 @@ export const publicStoreRouter = createTRPCRouter({
         });
       }
 
-      if (storeData.status !== StoreStatus.Active) {
+      if (storeData.status !== StoreStatusEnum.Active) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Store is not available.",

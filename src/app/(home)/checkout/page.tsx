@@ -147,7 +147,7 @@ export default async function CheckoutPage() {
             </p>
             <Button
               asChild
-              className="bg-soraxi-green hover:bg-soraxi-green/85"
+              className="bg-soraxi-green hover:bg-soraxi-green-hover"
             >
               <Link href="/">Continue Shopping</Link>
             </Button>

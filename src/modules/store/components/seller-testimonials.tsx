@@ -98,7 +98,7 @@ export default function SellerTestimonials() {
                       />
                     </div>
                     <p className="text-muted-foreground text-sm max-w-xs">
-                      "{t.message}"
+                      &#34;{t.message}&#34;
                     </p>
                     <p className="mt-2 font-semibold text-sm text-soraxi-green">
                       — {t.name}, {t.role}

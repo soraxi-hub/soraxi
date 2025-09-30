@@ -1,5 +1,8 @@
-import { StoreDataProfileAdminView } from "@/modules/admin/stores/store-admin-dashboard";
-import { StoreBusinessInfo, StoreStatus } from "@/lib/db/models/store.model";
+import type { StoreDataProfileAdminView } from "@/modules/admin/stores/store-admin-dashboard";
+import {
+  StoreBusinessInfoEnum,
+  StoreStatusEnum,
+} from "@/validators/store-validators";
 
 /**
  * Store Admin Manager Class
@@ -33,7 +36,9 @@ export class StoreAdminManager {
    * Get a store's business type. Individual || Company
    */
   getBusinessType() {
-    return this.storeData.businessInfo?.type || StoreBusinessInfo.Individual;
+    return (
+      this.storeData.businessInfo?.type || StoreBusinessInfoEnum.Individual
+    );
   }
 
   /**
@@ -44,7 +49,7 @@ export class StoreAdminManager {
     const status = this.storeData.status;
 
     switch (status) {
-      case StoreStatus.Pending:
+      case StoreStatusEnum.Pending:
         actions.push(
           {
             type: "approved",
@@ -60,7 +65,7 @@ export class StoreAdminManager {
           }
         );
         break;
-      case StoreStatus.Active:
+      case StoreStatusEnum.Active:
         actions.push({
           type: "suspend",
           label: "Suspend Store",
@@ -68,7 +73,7 @@ export class StoreAdminManager {
           icon: "Pause",
         });
         break;
-      case StoreStatus.Suspended:
+      case StoreStatusEnum.Suspended:
         actions.push({
           type: "reactivate",
           label: "Reactivate Store",
@@ -76,7 +81,7 @@ export class StoreAdminManager {
           icon: "Play",
         });
         break;
-      case StoreStatus.Rejected:
+      case StoreStatusEnum.Rejected:
         actions.push({
           type: "approved",
           label: "Approve Store",
@@ -231,7 +236,7 @@ export class StoreAdminManager {
       return "Request compliance improvements before approval";
     }
     if (
-      this.storeData.status === StoreStatus.Pending &&
+      this.storeData.status === StoreStatusEnum.Pending &&
       compliance.level === "high"
     ) {
       return "Ready for approval - All compliance checks passed";
