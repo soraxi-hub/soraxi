@@ -241,7 +241,7 @@ const EditProfile = () => {
             </Button>
             <Button
               type="submit"
-              className="bg-soraxi-green hover:bg-soraxi-green/85"
+              className="bg-soraxi-green hover:bg-soraxi-green-hover"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? "Saving..." : "Save Changes"}

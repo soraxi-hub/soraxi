@@ -1,24 +1,11 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import { nairaToKobo } from "@/lib/utils/naira";
-
-export enum StoreStatus {
-  Active = "active",
-  Suspended = "suspended",
-  Pending = "pending",
-  Rejected = "rejected",
-}
-
-export enum StoreVerificationStatus {
-  Email = "email",
-  Identity = "identity",
-  videoCall = "video_call",
-}
-
-export enum StoreBusinessInfo {
-  Individual = "individual",
-  Company = "company",
-}
+import {
+  StoreBusinessInfoEnum,
+  StoreStatusEnum,
+  StoreVerificationStatusEnum,
+} from "@/validators/store-validators";
 
 /**
  * Shipping Method Schema Subdocument Interface
@@ -74,7 +61,7 @@ export interface IStore extends Document {
   // Verification
   verification?: {
     isVerified: boolean;
-    method: StoreVerificationStatus;
+    method: StoreVerificationStatusEnum;
     verifiedAt?: Date;
     notes?: string;
   };
@@ -84,7 +71,7 @@ export interface IStore extends Document {
     businessName?: string;
     registrationNumber?: string; // e.g., company registration number like CAC for Nigerians
     taxId?: string;
-    type: StoreBusinessInfo;
+    type: StoreBusinessInfoEnum;
     documentUrls?: string[];
   };
 
@@ -96,7 +83,7 @@ export interface IStore extends Document {
   };
 
   // Store Status & Moderation
-  status: StoreStatus;
+  status: StoreStatusEnum;
   suspensionReason?: string;
 
   // Legal Agreement
@@ -217,8 +204,8 @@ const StoreSchema = new Schema<IStore>(
       isVerified: { type: Boolean, default: false },
       method: {
         type: String,
-        enum: Object.values(StoreVerificationStatus),
-        default: StoreVerificationStatus.Email,
+        enum: Object.values(StoreVerificationStatusEnum),
+        default: StoreVerificationStatusEnum.Email,
       },
       verifiedAt: Date,
       notes: String,
@@ -231,8 +218,8 @@ const StoreSchema = new Schema<IStore>(
       taxId: String,
       type: {
         type: String,
-        enum: Object.values(StoreBusinessInfo),
-        default: StoreBusinessInfo.Individual,
+        enum: Object.values(StoreBusinessInfoEnum),
+        default: StoreBusinessInfoEnum.Individual,
       },
       documentUrls: [String],
     },
@@ -247,8 +234,8 @@ const StoreSchema = new Schema<IStore>(
     // ✅ Admin moderation / status
     status: {
       type: String,
-      enum: Object.values(StoreStatus),
-      default: StoreStatus.Pending,
+      enum: Object.values(StoreStatusEnum),
+      default: StoreStatusEnum.Pending,
     },
     suspensionReason: String,
 
@@ -300,6 +287,14 @@ StoreSchema.pre("save", function (next) {
   }
   next();
 });
+
+StoreSchema.index(
+  { name: 1 },
+  { unique: true, collation: { locale: "en", strength: 2 } }
+);
+StoreSchema.index({ storeOwner: 1 });
+StoreSchema.index({ status: 1 });
+StoreSchema.index({ walletId: 1 });
 
 /**
  * Get the Store model

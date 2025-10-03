@@ -209,7 +209,7 @@ export default function StoreLoginPage() {
                     type="email"
                     {...register("storeEmail")}
                     placeholder="Enter your store email"
-                    className={`pl-10 focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent ${
+                    className={`pl-10 focus:!ring-soraxi-green focus:!outline-none focus:!ring-1 focus:border-transparent ${
                       errors.storeEmail ? "border-destructive" : ""
                     }`}
                     disabled={isLoading}
@@ -235,7 +235,7 @@ export default function StoreLoginPage() {
                     type={showPassword ? "text" : "password"}
                     {...register("password")}
                     placeholder="Enter your password"
-                    className={`pl-10 pr-10 focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent ${
+                    className={`pl-10 pr-10 focus:!ring-soraxi-green focus:!outline-none focus:!ring-1 focus:border-transparent ${
                       errors.password ? "border-destructive" : ""
                     }`}
                     disabled={isLoading}
@@ -295,7 +295,7 @@ export default function StoreLoginPage() {
         {/* Create Store Link */}
         {/* <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">
-            Don&apos;t have a store yet?
+            Don&#39;t have a store yet?
           </p>
           <Button
             variant="outline"

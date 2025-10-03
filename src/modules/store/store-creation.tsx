@@ -19,38 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import AlertUI from "@/modules/shared/alert";
-
-/**
- * Store Creation Form Schema
- * Validates store name, email, and password for new store creation
- */
-const createStoreSchema = z
-  .object({
-    storeName: z
-      .string()
-      .min(2, "Store name must be at least 2 characters")
-      .max(50, "Store name must be less than 50 characters")
-      .regex(
-        /^[a-zA-Z0-9\s\-_]+$/,
-        "Store name can only contain letters, numbers, spaces, hyphens, and underscores"
-      ),
-    storeEmail: z
-      .string()
-      .email("Please enter a valid email address")
-      .min(1, "Store email is required"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-      ),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+import { createStoreSchema } from "@/validators/store-validators";
 
 type CreateStoreFormData = z.infer<typeof createStoreSchema>;
 
@@ -162,7 +131,7 @@ export function CreateStorePage() {
           <CardHeader>
             <CardTitle>Store Information</CardTitle>
             <CardDescription>
-              Enter your store details to get started. You&apos;ll complete the
+              Enter your store details to get started. You&#39;ll complete the
               setup process after creation.
             </CardDescription>
           </CardHeader>
@@ -186,7 +155,7 @@ export function CreateStorePage() {
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  This will be your store&apos;s public display name
+                  This will be your store&#39;s public display name
                 </p>
               </div>
 
@@ -317,7 +286,7 @@ export function CreateStorePage() {
         {/* Additional Info */}
         <Alert className="dark:bg-muted/50">
           <AlertDescription>
-            After creating your store, you&apos;ll be guided through a setup
+            After creating your store, you&#39;ll be guided through a setup
             process to configure your store profile, business information, and
             shipping methods.
           </AlertDescription>

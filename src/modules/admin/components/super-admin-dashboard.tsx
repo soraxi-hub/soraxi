@@ -121,7 +121,7 @@ export default function SuperAdminDashboardPage() {
           Welcome back, {admin.name}
         </h1>
         <p className="text-muted-foreground">
-          Here&apos;s what&apos;s happening on your platform today.
+          Here&#39;s what&#39;s happening on your platform today.
         </p>
       </div>
 

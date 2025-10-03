@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { formatNaira } from "@/lib/utils/naira";
+import { siteConfig } from "@/config/site";
 
 type RelatedProductsOutput = inferProcedureOutput<
   AppRouter["home"]["getRelatedProducts"]
@@ -44,8 +45,8 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                   <div className="relative aspect-square overflow-hidden rounded-t-lg">
                     <Image
                       src={
-                        product.images[0] ||
-                        "/placeholder.svg?height=300&width=300"
+                        (product.images && product.images[0]) ||
+                        siteConfig.placeHolderImg1
                       }
                       alt={product.name}
                       fill
@@ -87,9 +88,11 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                         {hasVariants ? "From " : ""}
                         {formatNaira(displayPrice!)}
                       </span>
-                      <Badge variant="outline" className="text-xs">
-                        {product.category[0]}
-                      </Badge>
+                      {product.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {product.category[0]}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardContent>

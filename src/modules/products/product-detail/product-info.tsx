@@ -244,7 +244,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       )}
 
       {/* Stock Info for non-variant products */}
-      {!hasVariants && (
+      {!hasVariants && product.productQuantity && (
         <div className="flex items-center gap-2">
           <div
             className={`w-2 h-2 rounded-full ${
@@ -265,7 +265,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <div className="grid grid-cols-2 gap-4">
         <Button
           size="lg"
-          className="w-full col-span-2 bg-soraxi-green hover:bg-soraxi-green/85 text-white"
+          className="w-full col-span-2 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
           disabled={!hasVariants ? product.productQuantity === 0 : false}
           onClick={() => handleAddToCart(product)}
         >

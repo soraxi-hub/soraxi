@@ -32,13 +32,6 @@ export async function POST(request: NextRequest) {
 
     if (!store)
       throw new AppError("Store not found", 404, "not_found", "StoreNotFound");
-    if (store.status === "suspended")
-      throw new AppError(
-        "Store is suspended",
-        403,
-        "suspended",
-        "StoreSuspended"
-      );
 
     const isPasswordValid = await bcrypt.compare(password, store.password);
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);

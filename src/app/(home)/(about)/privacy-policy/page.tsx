@@ -32,9 +32,10 @@ export default function PrivacyPolicyPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                This Privacy Policy describes how Soraxi Marketplace ("Soraxi",
-                "we", "us", or "our") collects, uses, and shares your personal
-                information when you access or use our e-commerce platform.
+                This Privacy Policy describes how Soraxi Marketplace
+                (&#34;Soraxi&#34;, &#34;we&#34;, &#34;us&#34;, or &#34;our&#34;)
+                collects, uses, and shares your personal information when you
+                access or use our e-commerce platform.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 Soraxi is committed to protecting your privacy and ensuring the
@@ -633,8 +634,8 @@ export default function PrivacyPolicyPage() {
                 changes in our practices, technology, legal requirements, or
                 other factors. When we make material updates, we will notify you
                 by posting the revised policy on this page and updating the{" "}
-                <em>"Last Updated"</em> date. We encourage you to review this
-                Privacy Policy periodically to stay informed about how we
+                <em>&#34;Last Updated&#34;</em> date. We encourage you to review
+                this Privacy Policy periodically to stay informed about how we
                 protect your information.
               </p>
             </CardContent>

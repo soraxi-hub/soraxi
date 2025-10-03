@@ -7,12 +7,19 @@ import {
   formatProductListResponse,
   RawProductDocument,
 } from "@/modules/admin/product-formatter";
+import { ProductStatusEnum } from "@/validators/product-validators";
+
+const ProductStatusWithAll = {
+  ...ProductStatusEnum,
+  All: "all",
+} as const;
 
 export const adminRouter = createTRPCRouter({
   list: baseProcedure
     .input(
       z.object({
-        status: z.enum(["pending", "approved", "rejected", "all"]).optional(),
+        status: z.nativeEnum(ProductStatusWithAll).optional(),
+        // status: z.enum(["pending", "approved", "rejected", "all"]).optional(),
         category: z.string().optional(),
         search: z.string().optional(),
         page: z.number().default(1),
@@ -75,8 +82,9 @@ export const adminRouter = createTRPCRouter({
         status: IProduct["status"];
         isVerifiedProduct: boolean;
         moderationNotes: string;
+        firstApprovedAt?: Date;
       } = {
-        status: "pending",
+        status: ProductStatusWithAll.Pending,
         isVerifiedProduct: false,
         moderationNotes: "",
       };
@@ -91,8 +99,9 @@ export const adminRouter = createTRPCRouter({
             });
           }
           updateData = {
-            status: "approved",
+            status: ProductStatusWithAll.Approved,
             isVerifiedProduct: true,
+            firstApprovedAt: new Date(),
             moderationNotes: reason || "Approved by admin",
           };
           message = "Product approved successfully";
@@ -105,7 +114,7 @@ export const adminRouter = createTRPCRouter({
             });
           }
           updateData = {
-            status: "rejected",
+            status: ProductStatusWithAll.Rejected,
             isVerifiedProduct: false,
             moderationNotes: reason || "Rejected by admin",
           };

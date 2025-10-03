@@ -78,7 +78,7 @@ function AdminSignIn() {
               <div className="flex justify-center mx-auto">
                 <Link
                   href="/"
-                  className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-darkmode-success ${playpenSans.className}`}
+                  className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-green ${playpenSans.className}`}
                 >
                   {siteConfig.name}
                 </Link>
@@ -109,7 +109,7 @@ function AdminSignIn() {
                           <div className="relative">
                             <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-green focus:!outline-none focus:!ring-1 focus:border-transparent"
                               type="email"
                               placeholder="Admin Email"
                               aria-label="Admin Email"
@@ -133,7 +133,7 @@ function AdminSignIn() {
                           <div className="relative">
                             <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1 focus:border-transparent"
+                              className="w-full pl-10 bg-background text-primary focus:!ring-soraxi-green focus:!outline-none focus:!ring-1 focus:border-transparent"
                               type={showPassword ? "text" : "password"}
                               placeholder="Admin Password"
                               aria-label="Admin Password"
@@ -160,7 +160,7 @@ function AdminSignIn() {
 
                   <div className="flex items-center justify-end mt-4">
                     <Button
-                      className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-soraxi-darkmode-success rounded-lg hover:bg-soraxi-darkmode-success/85"
+                      className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-soraxi-green rounded-lg hover:bg-soraxi-green-hover"
                       disabled={isLoading}
                     >
                       {isLoading ? (

@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type mongoose from "mongoose";
 import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
 import { koboToNaira } from "@/lib/utils/naira";
+import { storeName, storeDescription } from "@/validators/store-validators";
 
 type Product = Pick<
   IProduct,
@@ -90,14 +91,7 @@ export const storeProfileRouter = createTRPCRouter({
   handleStoreNameUpdate: baseProcedure
     .input(
       z.object({
-        name: z
-          .string()
-          .min(2, "Store name must be at least 2 characters")
-          .max(50, "Store name must not exceed 50 characters")
-          .regex(
-            /^[a-zA-Z0-9\s\-_&.]+$/,
-            "Store name contains invalid characters"
-          ),
+        name: storeName,
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -116,7 +110,7 @@ export const storeProfileRouter = createTRPCRouter({
       const existingStore = await Store.findOne({
         name: input.name,
         _id: { $ne: store.id },
-      });
+      }).collation({ locale: "en", strength: 2 });
 
       if (existingStore) {
         throw new TRPCError({
@@ -126,16 +120,28 @@ export const storeProfileRouter = createTRPCRouter({
         });
       }
 
-      const updatedStore = await Store.findByIdAndUpdate(
-        store.id,
-        { name: input.name },
-        { new: true, runValidators: true }
-      )
-        .select(
-          "-password -storeOwner -recipientCode -walletId -digitalProducts -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+      let updatedStore = null;
+      try {
+        updatedStore = await Store.findByIdAndUpdate(
+          store.id,
+          { name: input.name },
+          { new: true, runValidators: true }
         )
-        .lean();
-
+          .select(
+            "-password -storeOwner -recipientCode -walletId -digitalProducts -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+          )
+          .lean();
+      } catch (err: unknown) {
+        // Handle unique index violation if present
+        if ((err as any)?.code === 11000) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "A store with this name already exists. Please choose a different name.",
+          });
+        }
+        throw err;
+      }
       if (!updatedStore) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -152,10 +158,7 @@ export const storeProfileRouter = createTRPCRouter({
   handleStoreDescriptionUpdate: baseProcedure
     .input(
       z.object({
-        description: z
-          .string()
-          .min(100, "Description must be at least 100 characters")
-          .max(1500, "Description must not exceed 1500 characters"),
+        description: storeDescription,
       })
     )
     .mutation(async ({ ctx, input }) => {

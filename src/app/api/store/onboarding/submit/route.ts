@@ -1,10 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import {
-  getStoreModel,
-  StoreBusinessInfo,
-  StoreStatus,
-  StoreVerificationStatus,
-} from "@/lib/db/models/store.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { type IStore, type IShippingMethod } from "@/lib/db/models/store.model";
 import {
@@ -12,6 +7,11 @@ import {
   generateStoreOwnerConfirmationHtml,
   sendMail,
 } from "@/services/mail.service";
+import {
+  StoreBusinessInfoEnum,
+  StoreStatusEnum,
+  StoreVerificationStatusEnum,
+} from "@/validators/store-validators";
 
 // ----------- Types for incoming request -----------
 
@@ -25,7 +25,7 @@ interface OnboardingProfile {
 
 // Business info section
 interface OnboardingBusinessInfo {
-  type: StoreBusinessInfo;
+  type: StoreBusinessInfoEnum;
   businessName?: string;
   registrationNumber?: string;
   taxId?: string;
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      businessInfo.type === StoreBusinessInfo.Company &&
+      businessInfo.type === StoreBusinessInfoEnum.Company &&
       (!businessInfo.businessName || !businessInfo.registrationNumber)
     ) {
       return NextResponse.json(
@@ -196,12 +196,12 @@ export async function POST(request: NextRequest) {
       agreedToTermsAt: new Date(agreementTimestamp),
 
       // Mark store as pending for admin review
-      status: StoreStatus.Pending,
+      status: StoreStatusEnum.Pending,
 
       // Initial verification setup
       verification: {
         isVerified: false, // Will be set to true after admin approval
-        method: StoreVerificationStatus.Email,
+        method: StoreVerificationStatusEnum.Email,
         notes: "Onboarding completed, pending admin review",
       },
     };
@@ -218,31 +218,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send notification email to admins about new store submission
-    const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL!;
-    const storeEmail = store.storeEmail;
+    try {
+      // Send notification email to admins about new store submission
+      const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL!;
+      const storeEmail = store.storeEmail;
 
-    // Admin notification
-    await sendMail({
-      email: adminEmail,
-      emailType: "storeOrderNotification",
-      fromAddress: "admin@soraxihub.com",
-      subject: `New Store Submission: ${updatedStore.name}`,
-      html: generateAdminNotificationHtml({
-        storeName: updatedStore.name,
-        ownerEmail: storeEmail,
-        submittedAt: updatedStore.agreedToTermsAt || new Date(),
-      }),
-    });
+      // Admin notification
+      await sendMail({
+        email: adminEmail,
+        emailType: "storeOrderNotification",
+        fromAddress: "admin@soraxihub.com",
+        subject: `New Store Submission: ${updatedStore.name}`,
+        html: generateAdminNotificationHtml({
+          storeName: updatedStore.name,
+          ownerEmail: storeEmail,
+          submittedAt: updatedStore.agreedToTermsAt || new Date(),
+        }),
+      });
 
-    // Send confirmation email to store owner
-    await sendMail({
-      email: storeEmail,
-      emailType: "noreply",
-      fromAddress: "noreply@soraxihub.com",
-      subject: `Your store "${updatedStore.name}" was submitted for review`,
-      html: generateStoreOwnerConfirmationHtml(updatedStore.name, storeEmail),
-    });
+      // Send confirmation email to store owner
+      await sendMail({
+        email: storeEmail,
+        emailType: "noreply",
+        fromAddress: "noreply@soraxihub.com",
+        subject: `Your store "${updatedStore.name}" was submitted for review`,
+        html: generateStoreOwnerConfirmationHtml(updatedStore.name, storeEmail),
+      });
+    } catch (error) {
+      console.error(
+        `Failed to send store submission emails (admin notification or store owner confirmation).
+     Store ID: ${store.id}, Store Name: ${updatedStore.name}, Store Email: ${
+          store.storeEmail
+        }.
+     Error: ${error instanceof Error ? error.message : error}`
+      );
+    }
 
     // Return success response with summary
     return NextResponse.json({

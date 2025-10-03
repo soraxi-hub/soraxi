@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { siteConfig } from "@/config/site";
 import { addNairaSign } from "@/lib/utils/naira";
 import { Shield, Star } from "lucide-react";
 import Image from "next/image";
@@ -9,8 +10,8 @@ interface ProductCardProps {
     id: string;
     name: string;
     price?: number;
-    images: string[];
-    category: string[];
+    images?: string[];
+    category?: string[];
     rating?: number;
     slug: string;
     isVerifiedProduct?: boolean;
@@ -33,7 +34,9 @@ export const ProductCard = ({ product }: ProductCardProps) => (
     <CardHeader className="p-0">
       <div className="relative overflow-hidden rounded-t-lg">
         <Image
-          src={product.images[0] || "/placeholder.svg?height=200&width=300"}
+          src={
+            (product.images && product.images[0]) || siteConfig.placeHolderImg1
+          }
           height={200}
           width={300}
           alt={product.name}
@@ -64,9 +67,11 @@ export const ProductCard = ({ product }: ProductCardProps) => (
           <span className="text-2xl font-bold text-soraxi-green">
             {addNairaSign(product.price || 0)}
           </span>
-          <Badge variant="outline" className="text-xs">
-            {product.category[0]}
-          </Badge>
+          {product.category && (
+            <Badge variant="outline" className="text-xs">
+              {product.category[0]}
+            </Badge>
+          )}
         </div>
         {/* <p className="text-sm text-muted-foreground">by {product.storeName}</p> */}
       </div>

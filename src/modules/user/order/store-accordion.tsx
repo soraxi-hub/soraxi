@@ -215,7 +215,7 @@ export function StoreAccordion({
                                 <br />
                                 This helps us release payment to the seller.{" "}
                                 <br />
-                                You can also confirm when it's marked as{" "}
+                                You can also confirm when it&#39;s marked as{" "}
                                 <strong>Out for Delivery</strong>.
                               </TooltipContent>
                             </Tooltip>

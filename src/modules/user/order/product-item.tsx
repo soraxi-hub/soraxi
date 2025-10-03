@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { DeliveryStatus } from "@/enums";
+import { siteConfig } from "@/config/site";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -53,8 +54,7 @@ export function ProductItem({
       <div className="relative overflow-hidden rounded-t-lg">
         <Image
           src={
-            product.productSnapshot.images?.[0] ||
-            "/placeholder.svg?height=200&width=300"
+            product.productSnapshot.images?.[0] || siteConfig.placeHolderImg1
           }
           height={200}
           width={300}

@@ -5,6 +5,12 @@ import { AppError } from "@/lib/errors/app-error";
 import bcrypt from "bcryptjs";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import {
+  ProductStatusEnum,
+  ProductActionEnum,
+} from "@/validators/product-validators";
+import { productName } from "@/validators/product-validators";
+import { StoreStatusEnum } from "@/validators/store-validators";
 
 export async function PUT(
   request: NextRequest,
@@ -18,31 +24,18 @@ export async function PUT(
     }
 
     const body = await request.json();
-    // Basic validation (more comprehensive validation should happen in the form/schema)
     const {
       name,
       price,
       productQuantity,
-      images, // This will now contain Cloudinary URLs
+      images,
       description,
       specifications,
       category,
       subCategory,
-      storePassword, // For verification, not stored
+      storePassword,
+      submitAction, // "draft" or "publish"
     } = body;
-
-    if (
-      !name ||
-      !price ||
-      !productQuantity ||
-      !description ||
-      !specifications ||
-      !category ||
-      !subCategory ||
-      !storePassword
-    ) {
-      throw new AppError("Missing required fields", 400);
-    }
 
     const { productId } = await params;
     const Product = await getProductModel();
@@ -54,48 +47,160 @@ export async function PUT(
     }
 
     if (product.storeId.toString() !== storeSession.id) {
-      // Ensure comparison is string to string
       throw new AppError("Unauthorized access to product", 403);
     }
 
     const Store = await getStoreModel();
-    const store = await Store.findById(storeSession.id).select("password");
+
+    // Check if store exists
+    const store = await Store.findById(storeSession.id).select(
+      "password status verification"
+    );
     if (!store) {
       throw new AppError("Store not found", 404);
     }
 
+    // Block suspended stores
+    if (store.status === StoreStatusEnum.Suspended) {
+      throw new AppError(
+        "Store Suspended. You can not perform this action",
+        403
+      );
+    }
+
+    // Ensure store is active
+    if (store.status !== StoreStatusEnum.Active) {
+      throw new AppError("Store is not verified or active.", 403);
+    }
+
+    // Verify store password
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 
-    // Update product fields
-    product.name = name;
-    product.price = price;
-    product.productQuantity = productQuantity;
-    product.description = description;
-    product.specifications = specifications;
-    product.category = category; // Assuming category is an array of strings
-    product.subCategory = subCategory; // Assuming subCategory is an array of strings
-    product.images = images; // Images are already Cloudinary URLs from the client
+    // Helper function to get first error message
+    const getFirstError = (result: any) =>
+      result.error?.errors[0]?.message || "Validation failed";
 
-    // Mark product as pending review again if significant changes are made
-    // Or if it was previously approved and now modified
-    if (product.isVerifiedProduct) {
-      product.isVerifiedProduct = false; // Requires re-verification
-      product.status = "pending";
+    /**
+     * ======================
+     * DRAFT FLOW
+     * ======================
+     */
+    if (submitAction === ProductActionEnum.Draft) {
+      // Validate draft fields if they exist (partial validation)
+      const validationErrors: string[] = [];
+
+      const nameResult = productName.safeParse(name);
+      if (!nameResult.success) {
+        validationErrors.push(`Name: ${getFirstError(nameResult)}`);
+      }
+
+      // If there are validation errors, throw them
+      if (validationErrors.length > 0) {
+        throw new AppError(
+          `Draft validation failed: ${validationErrors.join("; ")}`,
+          400
+        );
+      }
+
+      // Update product fields for draft (only update provided fields)
+      if (name !== undefined) product.name = name;
+      if (price !== undefined) product.price = price;
+      if (productQuantity !== undefined)
+        product.productQuantity = productQuantity;
+      if (description !== undefined) product.description = description;
+      if (specifications !== undefined) product.specifications = specifications;
+      if (category !== undefined) product.category = category;
+      if (subCategory !== undefined) product.subCategory = subCategory;
+      if (images !== undefined) product.images = images;
+
+      // Keep as draft
+      product.status = ProductStatusEnum.Draft;
+      product.isVerifiedProduct = false;
+      product.isVisible = false;
+
+      await product.save();
+
+      return NextResponse.json({
+        success: true,
+        message: "Draft updated successfully!",
+        data: {
+          productId: (product._id as { toString: typeof toString }).toString(),
+        },
+      });
     }
 
-    await product.save();
+    /**
+     * ======================
+     * PUBLISH FLOW
+     * ======================
+     */
+    if (submitAction === ProductActionEnum.Publish) {
+      // Validate publish (strict schema) - all fields required
+      const validationErrors: string[] = [];
 
-    return NextResponse.json({
-      success: true,
-      message: "Product updated successfully and is pending re-review.",
-      product: {
-        id: (product._id as { toString: typeof toString }).toString(),
-        name: product.name,
-      },
-    });
+      // Validate all required fields
+      const requiredValidations = [
+        { field: "name", value: name, validator: productName },
+      ];
+
+      requiredValidations.forEach(({ field, value, validator }) => {
+        const result = validator.safeParse(value);
+        if (!result.success) {
+          validationErrors.push(`${field}: ${getFirstError(result)}`);
+        }
+      });
+
+      // Additional validation for images
+      if (!images || images.length < 3) {
+        validationErrors.push("images: At least 3 product images are required");
+      }
+
+      // If there are validation errors, throw them
+      if (validationErrors.length > 0) {
+        throw new AppError(
+          `Publish validation failed: ${validationErrors.join("; ")}`,
+          400
+        );
+      }
+
+      // Update all product fields for publish
+      product.name = name;
+      product.price = price;
+      product.productQuantity = productQuantity;
+      product.description = description;
+      product.specifications = specifications;
+      product.category = category;
+      product.subCategory = subCategory;
+      product.images = images;
+
+      // Set status based on previous state
+      if (product.isVerifiedProduct) {
+        // If product was previously verified, mark for re-review
+        product.isVerifiedProduct = false;
+        product.status = ProductStatusEnum.Pending;
+        product.isVisible = false;
+      } else {
+        // If product was draft or pending, keep as pending
+        product.status = ProductStatusEnum.Pending;
+        product.isVerifiedProduct = false;
+        product.isVisible = false;
+      }
+
+      await product.save();
+
+      return NextResponse.json({
+        success: true,
+        message: "Product updated successfully and is pending review!",
+        data: {
+          productId: (product._id as { toString: typeof toString }).toString(),
+        },
+      });
+    }
+
+    throw new AppError("Invalid submit action", 400);
   } catch (error) {
-    console.error("Error creating product:", error);
+    console.error("Error updating product:", error);
     return handleApiError(error);
   }
 }

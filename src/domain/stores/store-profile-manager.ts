@@ -1,7 +1,11 @@
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
 import { z } from "zod";
-import { StoreStatus } from "../../lib/db/models/store.model";
+import {
+  storeDescription,
+  storeName,
+  StoreStatusEnum,
+} from "@/validators/store-validators";
 
 type StoreProfileData = inferProcedureOutput<
   AppRouter["storeProfile"]["getStoreProfilePrivate"]
@@ -9,18 +13,11 @@ type StoreProfileData = inferProcedureOutput<
 
 // Validation schemas
 export const StoreNameSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Store name must be at least 2 characters")
-    .max(50, "Store name must not exceed 50 characters")
-    .regex(/^[a-zA-Z0-9\s\-_&.]+$/, "Store name contains invalid characters"),
+  name: storeName,
 });
 
 export const StoreDescriptionSchema = z.object({
-  description: z
-    .string()
-    .min(100, "Description must be at least 100 characters")
-    .max(1500, "Description must not exceed 1500 characters"),
+  description: storeDescription,
 });
 
 export const StoreProfileSchema = StoreNameSchema.merge(StoreDescriptionSchema);
@@ -184,7 +181,7 @@ export class StoreProfileManager {
 
   // Status helpers
   getStoreStatus(): {
-    status: StoreStatus | "unknown";
+    status: StoreStatusEnum | "unknown";
     statusColor: string;
     statusText: string;
   } {
@@ -192,21 +189,21 @@ export class StoreProfileManager {
       return { status: "unknown", statusColor: "gray", statusText: "Unknown" };
     }
 
-    const status = this.storeData.status as StoreStatus;
+    const status = this.storeData.status as StoreStatusEnum;
     switch (status) {
-      case StoreStatus.Active:
+      case StoreStatusEnum.Active:
         return {
           status,
           statusColor: "bg-soraxi-success",
           statusText: "Active",
         };
-      case StoreStatus.Pending:
+      case StoreStatusEnum.Pending:
         return {
           status,
           statusColor: "bg-soraxi-warning",
           statusText: "Pending Review",
         };
-      case StoreStatus.Suspended:
+      case StoreStatusEnum.Suspended:
         return {
           status,
           statusColor: "bg-soraxi-error",

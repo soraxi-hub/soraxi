@@ -183,8 +183,8 @@ export default function HelpPage() {
         <section id="contact-us" className="space-y-8">
           <SectionHeading icon={MessageSquare} title="Contact Us" />
           <p className="text-lg text-muted-foreground">
-            Can't find what you're looking for? Our friendly support team is
-            ready to assist you.
+            Can&#39;t find what you&#39;re looking for? Our friendly support
+            team is ready to assist you.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

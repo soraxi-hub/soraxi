@@ -4,10 +4,8 @@ import {
   StoreOnboardingProvider,
   useStoreOnboarding,
 } from "@/contexts/StoreOnboardingContext";
-import {
-  IShippingMethod,
-  StoreBusinessInfo,
-} from "@/lib/db/models/store.model";
+import { IShippingMethod } from "@/lib/db/models/store.model";
+import { StoreBusinessInfoEnum } from "@/validators/store-validators";
 import axios from "axios";
 import { useEffect } from "react";
 
@@ -24,7 +22,7 @@ interface Store {
       businessName?: string;
       registrationNumber?: string;
       taxId?: string;
-      type: StoreBusinessInfo;
+      type: StoreBusinessInfoEnum;
       documentUrls?: string[];
     };
     shipping: IShippingMethod[];

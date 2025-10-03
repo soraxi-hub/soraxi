@@ -2,11 +2,7 @@ import { z } from "zod";
 
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import {
-  getStoreModel,
-  type IStore,
-  StoreStatus,
-} from "@/lib/db/models/store.model";
+import { getStoreModel, type IStore } from "@/lib/db/models/store.model";
 import mongoose from "mongoose";
 import type { Product } from "@/types";
 import { koboToNaira } from "@/lib/utils/naira";
@@ -18,6 +14,7 @@ import {
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
 import { sendMail } from "@/services/mail.service";
+import { StoreStatusEnum } from "@/validators/store-validators";
 
 export const adminStoreRouter = createTRPCRouter({
   listStores: baseProcedure
@@ -205,6 +202,7 @@ export const adminStoreRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      let session: mongoose.ClientSession | null = null;
       try {
         const { storeId, action } = input;
         const { admin } = ctx;
@@ -245,19 +243,23 @@ export const adminStoreRouter = createTRPCRouter({
         let updateData = {};
         let auditAction = "";
         let message = "";
+        session = await mongoose.startSession();
+        session.startTransaction();
 
         switch (action) {
           case "approved":
             if (
-              store.status !== (StoreStatus.Pending || StoreStatus.Rejected)
+              ![StoreStatusEnum.Pending, StoreStatusEnum.Rejected].includes(
+                store.status
+              )
             ) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `Store Status is not: ${StoreStatus.Pending} or ${StoreStatus.Rejected} `,
+                message: `Store Status is not: ${StoreStatusEnum.Pending} or ${StoreStatusEnum.Rejected}`,
               });
             }
             updateData = {
-              status: StoreStatus.Active,
+              status: StoreStatusEnum.Active,
               "verification.isVerified": true,
               "verification.verifiedAt": new Date(),
               "verification.notes": `Approved by admin (${admin.name})`,
@@ -266,15 +268,15 @@ export const adminStoreRouter = createTRPCRouter({
             message = `Store approved successfully. Approved by: (${admin.name})`;
             break;
 
-          case StoreStatus.Rejected:
-            if (store.status !== StoreStatus.Pending) {
+          case "rejected":
+            if (store.status !== StoreStatusEnum.Pending) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Store is not pending approval",
               });
             }
             updateData = {
-              status: StoreStatus.Rejected,
+              status: StoreStatusEnum.Rejected,
               "verification.isVerified": false,
               "verification.notes": `Rejected by admin (${admin.name})`,
             };
@@ -283,10 +285,10 @@ export const adminStoreRouter = createTRPCRouter({
             break;
 
           case "suspend":
-            if (store.status !== StoreStatus.Active) {
+            if (store.status !== StoreStatusEnum.Active) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `Store is not ${StoreStatus.Active}`,
+                message: `Store is not ${StoreStatusEnum.Active}`,
               });
             }
             updateData = {
@@ -298,14 +300,14 @@ export const adminStoreRouter = createTRPCRouter({
             break;
 
           case "reactivate":
-            if (store.status !== StoreStatus.Suspended) {
+            if (store.status !== StoreStatusEnum.Suspended) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `Store is not ${StoreStatus.Suspended}`,
+                message: `Store is not ${StoreStatusEnum.Suspended}`,
               });
             }
             updateData = {
-              status: StoreStatus.Active,
+              status: StoreStatusEnum.Active,
               "verification.notes": `Store Reactivated by admin (${admin.name})`,
             };
             auditAction = AUDIT_ACTIONS.STORE_REACTIVATED;
@@ -320,22 +322,48 @@ export const adminStoreRouter = createTRPCRouter({
         }
 
         // Update store
-        await Store.findByIdAndUpdate(storeId, updateData);
+        await Store.findByIdAndUpdate(storeId, updateData, {
+          new: true,
+          runValidators: true,
+          session,
+        });
+
+        // If the action performed is that of susspending the store, we have to find all
+        // the store's products and make them as hidden so that the show up on the home page
+        // or in search results
+        if (action === "suspend") {
+          const Product = await getProductModel();
+
+          await Product.updateMany(
+            { storeId },
+            { $set: { isVisible: false } },
+            { session }
+          );
+        }
+
+        // commit transaction
+        await session.commitTransaction();
 
         // Log admin action
-        const data = {
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles,
-          action: auditAction,
-          module: AUDIT_MODULES.STORES,
-          resourceId: storeId,
-          resourceType: "store",
-          details: { action, previousStatus: store.status },
-        };
+        try {
+          const data = {
+            adminId: admin.id,
+            adminName: admin.name,
+            adminEmail: admin.email,
+            adminRoles: admin.roles,
+            action: auditAction,
+            module: AUDIT_MODULES.STORES,
+            resourceId: storeId,
+            resourceType: "store",
+            details: { action, previousStatus: store.status },
+          };
 
-        await logAdminAction(data);
+          await logAdminAction(data);
+        } catch (error) {
+          console.log(
+            error || `Failed to Log admin action of susspending a store`
+          );
+        }
 
         // Send notification email to store owner
         const storeEmail = store.storeEmail;
@@ -389,13 +417,18 @@ export const adminStoreRouter = createTRPCRouter({
         }
 
         if (storeEmail) {
-          await sendMail({
-            email: storeEmail,
-            emailType: "noreply",
-            fromAddress: "noreply@soraxihub.com",
-            subject,
-            html,
-          });
+          try {
+            await sendMail({
+              email: storeEmail,
+              emailType: "noreply",
+              fromAddress: "noreply@soraxihub.com",
+              subject,
+              html,
+            });
+          } catch (err) {
+            // Log the failure but don’t break the flow
+            console.error("Failed to send store email:", err);
+          }
         }
 
         return {
@@ -404,6 +437,10 @@ export const adminStoreRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("storeActionForAdmins error:", error);
+
+        if (session) {
+          session.abortTransaction();
+        }
 
         if (error instanceof TRPCError) {
           // Already a TRPCError, just rethrow
@@ -415,6 +452,11 @@ export const adminStoreRouter = createTRPCRouter({
           message: "Something went wrong while performing the store action",
           cause: error, // optional, lets you inspect the raw error in dev
         });
+      } finally {
+        // Always end the session
+        if (session) {
+          await session.endSession();
+        }
       }
     }),
 });

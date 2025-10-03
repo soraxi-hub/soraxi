@@ -125,7 +125,7 @@ export function NetworkStatus({
         <div className="container mx-auto flex items-center justify-center gap-2 text-sm">
           <AlertTriangle className="h-4 w-4" />
           <span>
-            You're currently offline. Some features may not work properly.
+            You&#39;re currently offline. Some features may not work properly.
           </span>
         </div>
       </div>

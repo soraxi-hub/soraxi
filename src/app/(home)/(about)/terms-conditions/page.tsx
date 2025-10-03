@@ -32,10 +32,12 @@ export default function TermsAndConditionsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                Welcome to Soraxi Marketplace ("Soraxi", "Platform", "Service",
-                "we", "us", or "our"). These Terms and Conditions ("Terms")
-                govern your access to and use of Soraxi Marketplace, including
-                our website, mobile access, and related services.
+                Welcome to Soraxi Marketplace (&#34;Soraxi&#34;,
+                &#34;Platform&#34;, &#34;Service&#34;, &#34;we&#34;,
+                &#34;us&#34;, or &#34;our&#34;). These Terms and Conditions
+                (&#34;Terms&#34;) govern your access to and use of Soraxi
+                Marketplace, including our website, mobile access, and related
+                services.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 By using or accessing our Platform, you acknowledge that you
@@ -388,9 +390,9 @@ export default function TermsAndConditionsPage() {
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 We may update or revise these Terms from time to time. If a
-                revision is material, we will provide at least 30 days' notice
-                before the new terms take effect. What constitutes a material
-                change will be determined at our sole discretion.
+                revision is material, we will provide at least 30 days&#39;
+                notice before the new terms take effect. What constitutes a
+                material change will be determined at our sole discretion.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 By continuing to access or use the Platform after any revisions

@@ -63,3 +63,17 @@ subOrder.escrow.refunded = true;
 - 2.  Return canonical status (success | pending | failed) and amounts.
 - 3.  Render the appropriate UI; handle pending gracefully.
       +- Implement idempotent verification and a webhook listener to reconcile delayed notifications.
+
+⚠️ Potential issue | 🔴 Critical
+
+🧩 Analysis chain
+
+Filter out suspended‐store products in getByUserId
+In src/modules/server/wishlist/procedures.ts the getByUserId query currently returns all products on a user’s wishlist without excluding those from suspended stores. Add a filter—similar to your home-page and search queries—to exclude any product whose merchant/store is suspended before mapping and returning the list.
+
+In src/modules/server/wishlist/procedures.ts around the getByUserId query, the
+current DB query returns wishlist products from suspended merchants; modify the
+query to filter out products whose merchant/store is suspended (e.g., add a
+join/where checking merchant.suspended = false or equivalent flag used
+elsewhere) before mapping and returning results so suspended-store products are
+excluded in the returned list.

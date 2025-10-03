@@ -26,7 +26,7 @@ export function HomeFooter() {
   }
   const currentYear = new Date().getFullYear();
   const linkStyles =
-    "text-sm hover:text-soraxi-darkmode-success transition-colors duration-200";
+    "text-sm hover:text-soraxi-green transition-colors duration-200";
 
   return (
     <footer className="bg-soraxi-darkmode-background text-sm text-[#ffffffa4] border-t">

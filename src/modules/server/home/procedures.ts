@@ -6,6 +6,7 @@ import {
   getProducts,
 } from "@/lib/db/models/product.model";
 import { TRPCError } from "@trpc/server";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 /**
  * tRPC Router: homeRouter
@@ -39,7 +40,7 @@ export const homeRouter = createTRPCRouter({
         limit,
         category,
         subCategory,
-        verified,
+        // verified,
         search,
         sort,
         priceMin,
@@ -53,7 +54,7 @@ export const homeRouter = createTRPCRouter({
         skip: (page - 1) * limit,
         category: category !== "all" ? category : undefined,
         subCategory,
-        verified,
+        verified: true,
         search,
         sort,
         priceMin,
@@ -71,7 +72,6 @@ export const homeRouter = createTRPCRouter({
         rating: product.rating || 0,
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
-        formattedPrice: product.formattedPrice,
       }));
 
       return {
@@ -108,6 +108,20 @@ export const homeRouter = createTRPCRouter({
           });
         }
 
+        // Check that the store this product belongs to is still
+        // active and not susspended or any other status other than active.
+        // This will be done client side when we pass the store status to the client.
+
+        const Store = await getStoreModel();
+        const storeDoc = await Store.findById(product.storeId).select("status");
+
+        if (!storeDoc) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found",
+          });
+        }
+
         const formattedProduct = {
           id: (product._id as string).toString(),
           storeId: product.storeId.toString(),
@@ -129,6 +143,7 @@ export const homeRouter = createTRPCRouter({
         return {
           success: true,
           product: formattedProduct,
+          storeStatus: storeDoc.status,
         };
       } catch (err: any) {
         // 🔹 Detect network-related issues
@@ -205,7 +220,6 @@ export const homeRouter = createTRPCRouter({
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
         price: product.price,
-        formattedPrice: product.formattedPrice,
       }));
     }),
 
@@ -231,7 +245,6 @@ export const homeRouter = createTRPCRouter({
       rating: product.rating || 0,
       slug: product.slug,
       isVerifiedProduct: product.isVerifiedProduct,
-      formattedPrice: product.formattedPrice,
     }));
 
     // Return only verified products

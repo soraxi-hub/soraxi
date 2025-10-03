@@ -269,7 +269,9 @@ export function StoreManagement() {
                           <Badge variant="secondary">Unverified</Badge>
                         )
                       ) : (
-                        <Badge>Hasn't completed the onboarding Process</Badge>
+                        <Badge>
+                          Hasn&#39;t completed the onboarding Process
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -280,7 +282,9 @@ export function StoreManagement() {
                             : "Individual"}
                         </Badge>
                       ) : (
-                        <Badge>Hasn't completed the onboarding Process</Badge>
+                        <Badge>
+                          Hasn&#39;t completed the onboarding Process
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>

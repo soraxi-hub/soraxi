@@ -96,7 +96,7 @@ export function Wishlist() {
               <Link href="/">
                 <Button
                   size="sm"
-                  className="bg-soraxi-green hover:bg-soraxi-darkmode-success/85"
+                  className="bg-soraxi-green hover:bg-soraxi-green-hover"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Browse Products

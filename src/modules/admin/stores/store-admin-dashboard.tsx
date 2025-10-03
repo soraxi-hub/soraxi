@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
 import { cx } from "class-variance-authority";
+import Image from "next/image";
 
 export type StoreDataProfileAdminView = inferProcedureOutput<
   AppRouter["adminStore"]["getStoreProfileAdminView"]
@@ -413,13 +414,14 @@ export function StoreAdminDashboard({
             <CardContent>
               {storeData.products?.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {storeData.products.slice(0, 6).map((product: any) => (
+                  {storeData.products.slice(0, 6).map((product) => (
                     <div key={product._id} className="border rounded-lg p-4">
-                      <div className="aspect-square bg-muted rounded-lg mb-2">
+                      <div className="relative aspect-square bg-muted rounded-lg mb-2">
                         {product.images?.[0] && (
-                          <img
+                          <Image
                             src={product.images[0] || "/placeholder.svg"}
                             alt={product.name}
+                            fill
                             className="w-full h-full object-cover rounded-lg"
                           />
                         )}

@@ -57,6 +57,7 @@ export const storeProductRouter = createTRPCRouter({
         isVerifiedProduct: product.isVerifiedProduct,
         isVisible: product.isVisible,
         rating: product.rating,
+        firstApprovedAt: product.firstApprovedAt,
       };
 
       return {

@@ -938,7 +938,7 @@ export default function OrderDetailsPage(props: {
 //           </Button>
 //           <Button
 //             type="submit"
-//             className="bg-soraxi-green hover:bg-soraxi-green/85 text-white"
+//             className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
 //             onClick={onSubmit}
 //             disabled={submitting || !rating || !review.trim()}
 //           >

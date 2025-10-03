@@ -51,6 +51,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
+import { ProductStatusEnum } from "@/validators/product-validators";
 
 type Output = inferProcedureOutput<AppRouter["store"]["getStoreProducts"]>;
 type StoreProduct = Output["products"][number];
@@ -167,13 +168,40 @@ export function StoreProductsManagement({
   //   }
   // };
 
-  const getStatusBadge = (isVerified: boolean) => {
-    if (isVerified) {
-      return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-    } else {
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800">Pending Review</Badge>
-      );
+  // const getStatusBadge = (isVerified: boolean) => {
+  //   if (isVerified) {
+  //     return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+  //   } else {
+  //     return (
+  //       <Badge className="bg-yellow-100 text-yellow-800">Pending Review</Badge>
+  //     );
+  //   }
+  // };
+
+  /**
+   * Returns a styled Badge component based on product status
+   */
+  const getProductStatusBadge = (status: ProductStatusEnum) => {
+    switch (status) {
+      case ProductStatusEnum.Draft:
+        return <Badge className="bg-gray-100 text-gray-800">Draft</Badge>;
+
+      case ProductStatusEnum.Pending:
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+
+      case ProductStatusEnum.Approved:
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+
+      case ProductStatusEnum.Rejected:
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+
+      case ProductStatusEnum.Archived:
+        return (
+          <Badge className="bg-purple-100 text-purple-800">Archived</Badge>
+        );
+
+      default:
+        return <Badge className="bg-gray-200 text-gray-600">Unknown</Badge>;
     }
   };
 
@@ -202,7 +230,7 @@ export function StoreProductsManagement({
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Products</h1>
           <p className="text-muted-foreground">
-            Manage your store&apos;s product catalog
+            Manage your store&#39;s product catalog
           </p>
         </div>
         <Link href={`/store/${store_id}/products/upload`}>
@@ -348,12 +376,9 @@ export function StoreProductsManagement({
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
-                <TableHead className="hidden lg:inline-block">
-                  Category
-                </TableHead>
+                <TableHead>Product Status</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Visibility</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
@@ -387,7 +412,7 @@ export function StoreProductsManagement({
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          {product.images.length > 0 ? (
+                          {product.images && product.images.length > 0 ? (
                             <Image
                               width={100}
                               height={100}
@@ -403,24 +428,11 @@ export function StoreProductsManagement({
                           <p className="font-medium line-clamp-1">
                             {product.name}
                           </p>
-                          <p className="text-sm text-muted-foreground hidden">
-                            ID: {product.id.slice(-8)}
-                          </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden lg:inline-block">
-                      <div className="space-y-1">
-                        {product.category.map((cat, index) => (
-                          <Badge
-                            key={index}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {cat}
-                          </Badge>
-                        ))}
-                      </div>
+                    <TableCell>
+                      {getProductStatusBadge(product.status)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
@@ -440,21 +452,20 @@ export function StoreProductsManagement({
                       </span>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(product.isVerifiedProduct)}
-                    </TableCell>
-                    <TableCell>
                       <div className="flex items-center space-x-2">
                         {getVisibilityBadge(product.isVisible)}
-                        <Switch
-                          checked={product.isVisible}
-                          onCheckedChange={() =>
-                            handleVisibilityToggle(
-                              product.id,
-                              product.isVisible
-                            )
-                          }
-                          className="hidden lg:inline-block"
-                        />
+                        {product.status !== ProductStatusEnum.Draft && (
+                          <Switch
+                            checked={product.isVisible}
+                            onCheckedChange={() =>
+                              handleVisibilityToggle(
+                                product.id,
+                                product.isVisible
+                              )
+                            }
+                            className="hidden lg:inline-block"
+                          />
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -476,12 +487,14 @@ export function StoreProductsManagement({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/products/${product.slug}`}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Product
-                            </Link>
-                          </DropdownMenuItem>
+                          {product.status !== ProductStatusEnum.Draft && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.slug}`}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Product
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem asChild>
                             <Link
                               href={`/store/${store_id}/products/${product.id}/edit`}
@@ -490,28 +503,32 @@ export function StoreProductsManagement({
                               Edit Product
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleVisibilityToggle(
-                                product.id,
-                                product.isVisible
-                              )
-                            }
-                            className="text-blue-600"
-                          >
-                            {product.isVisible ? (
-                              <>
-                                <EyeOff className="w-4 h-4 mr-2" />
-                                Hide Product
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="w-4 h-4 mr-2" />
-                                Show Product
-                              </>
-                            )}
-                          </DropdownMenuItem>
+                          {product.status !== ProductStatusEnum.Draft && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleVisibilityToggle(
+                                    product.id,
+                                    product.isVisible
+                                  )
+                                }
+                                className="text-blue-600"
+                              >
+                                {product.isVisible ? (
+                                  <>
+                                    <EyeOff className="w-4 h-4 mr-2" />
+                                    Hide Product
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Show Product
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           {/* <DropdownMenuItem
                             onClick={() => handleDeleteProduct(product.id)}
                             className="text-red-600"

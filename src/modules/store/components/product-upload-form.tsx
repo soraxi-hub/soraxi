@@ -1,11 +1,47 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect, type ChangeEvent } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  ChevronRight,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  SaveIcon,
+  Upload,
+  X,
+} from "lucide-react";
+import "react-quill-new/dist/quill.snow.css";
+import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary-upload";
+import { categories, getSubcategoryNames, slugify } from "@/constants/constant";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
+import {
+  productCategory,
+  productDescription,
+  productName,
+  productPrice,
+  productQuantity,
+  productSpecifications,
+  productStorePassword,
+  productSubCategory,
+  ProductTypeEnum,
+} from "@/validators/product-validators";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,144 +60,144 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
-import {
-  ChevronRight,
-  Loader2,
-  Upload,
-  X,
-  ImageIcon,
-  Package,
-  Tag,
-  DollarSign,
-  FileText,
-  Shield,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary-upload";
-import { categories, getSubcategoryNames, slugify } from "@/constants/constant";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
-import AlertUI from "@/modules/shared/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const MIN_IMAGE_NUMBER = 3;
 const MAX_IMAGE_NUMBER = 5;
-
-/**
- * Product Upload Form Schema
- * Comprehensive validation schema for product creation with detailed error messages
- */
-const productUploadSchema = z.object({
-  name: z
-    .string()
-    .min(5, "Product name must be at least 5 characters")
-    .max(100, "Product name too long"),
-  productType: z.enum(["Product", "digitalproducts"]).optional(),
-  price: z.number().min(500, "Price must be greater than 499").optional(),
-  sizes: z
-    .array(
-      z.object({
-        size: z.string().min(1, "Size is required"),
-        price: z.number().min(0.01, "Price must be greater than 0"),
-        quantity: z.number().min(0, "Quantity cannot be negative"),
-      })
-    )
-    .optional(),
-  productQuantity: z.number().min(0, "Quantity cannot be negative"),
-  images: z.array(z.string()).optional(),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  specifications: z
-    .string()
-    .min(10, "Specifications must be at least 10 characters"),
-  category: z.string().min(1, "Category is required"),
-  subCategory: z.string().min(1, "Subcategory is required"),
-  storePassword: z.string().min(1, "Store password is required"),
-});
-
-type ProductUploadFormData = z.infer<typeof productUploadSchema>;
 
 interface ProductUploadFormProps {
   storeId: string;
 }
 
-/**
- * Modern Product Upload Form Component
- *
- * A comprehensive, modern product upload form with:
- * - Clean, card-based layout with proper spacing
- * - Rich text editors for descriptions and specifications
- * - Advanced image upload with drag-and-drop support
- * - Real-time form validation with visual feedback
- * - Responsive design optimized for all screen sizes
- * - Professional styling with soraxi-green brand colors
- * - Accessibility features and proper ARIA labels
- * - Progress indicators and loading states
- */
+interface ProductFormData {
+  name: string;
+  description: string;
+  specifications: string;
+  price: number;
+  productQuantity: number;
+  category: string[];
+  subCategory: string[];
+  storePassword: string;
+  productType: string;
+}
+
+// Initial form state for comparison
+const initialFormData: ProductFormData = {
+  name: "",
+  description: "",
+  specifications: "",
+  price: 0,
+  productQuantity: 0,
+  category: [],
+  subCategory: [],
+  storePassword: "",
+  productType: ProductTypeEnum.Product,
+};
+
 export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
 
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [resError, setError] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [draftProductId, setDraftProductId] = useState<string | null>(null);
 
-  // ============================================================================
-  // FORM CONFIGURATION
-  // ============================================================================
+  // Form state
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: "",
+    description: "",
+    specifications: "",
+    price: 0,
+    productQuantity: 0,
+    category: [],
+    subCategory: [],
+    storePassword: "",
+    productType: ProductTypeEnum.Product,
+  });
+
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ProductFormData, string>>
+  >({});
 
   const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    setValue,
-    formState: { errors, isValid, dirtyFields },
-    reset,
-    trigger,
-  } = useForm<ProductUploadFormData>({
-    resolver: zodResolver(productUploadSchema),
-    mode: "onChange", // Real-time validation
-    defaultValues: {
-      productType: "Product",
-      productQuantity: 0,
-      images: [],
-      category: "",
-      subCategory: "",
-      sizes: [],
+    // isDirty,
+    showDialog: showUnsavedDialog,
+    isSaving: isSavingBeforeLeave,
+    setShowDialog: setShowUnsavedDialog,
+    // confirmNavigation,
+    handleDialogAction,
+    resetDirtyState,
+  } = useUnsavedChanges({
+    initialData: initialFormData,
+    currentData: formData,
+    additionalDirtyCheck: imageFiles.length > 0,
+    onSaveBeforeLeave: async () => {
+      if (!validateForm("draft")) {
+        toast.error("Cannot save draft: Please fix validation errors");
+        return false;
+      }
+
+      try {
+        setUploadProgress(30);
+
+        const imageUrls = await uploadImagesToCloudinary(imageFiles);
+
+        const productData = {
+          ...formData,
+          storeId,
+          images: imageUrls,
+          category:
+            formData.category.length > 0 ? slugify(formData.category) : [],
+          subCategory:
+            formData.subCategory.length > 0
+              ? slugify(formData.subCategory)
+              : [],
+          submitAction: "draft" as const,
+          submittedDraftProductId: draftProductId,
+        };
+
+        setUploadProgress(80);
+
+        const response = await fetch(`/api/store/products`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(productData),
+        });
+
+        setUploadProgress(100);
+
+        if (!response.ok) {
+          const { message } = await parseErrorFromResponse(response);
+          toast.error(`Failed to save draft: ${message}`);
+          return false;
+        }
+
+        const { data: resData, message } = await response.json();
+        setDraftProductId(resData?.productId);
+
+        toast.success(message || "Your product has been saved as draft.");
+        return true;
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to save draft"
+        );
+        return false;
+      } finally {
+        setUploadProgress(0);
+      }
     },
   });
-
-  const {
-    // fields: sizeFields,
-    // append: appendSize,
-    // remove: removeSize,
-  } = useFieldArray({
-    control,
-    name: "sizes",
-  });
-
-  // ============================================================================
-  // FORM WATCHERS
-  // ============================================================================
-
-  const watchedCategory = watch("category");
-  const watchedSubCategory = watch("subCategory");
-  const description = watch("description");
-  const specifications = watch("specifications");
-  const productName = watch("name");
-  const price = watch("price");
-  const quantity = watch("productQuantity");
 
   // ============================================================================
   // RICH TEXT EDITOR CONFIGURATION
@@ -192,12 +228,143 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   ];
 
   // ============================================================================
+  // FORM HANDLERS
+  // ============================================================================
+
+  const handleInputChange = (
+    field: keyof ProductFormData,
+    value: string | number
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: undefined,
+      }));
+    }
+  };
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+    action: "draft" | "publish"
+  ) => {
+    e.preventDefault();
+
+    if (!validateForm(action)) {
+      return;
+    }
+
+    try {
+      setError(null);
+      setUploadProgress(10);
+
+      const prepareProductData = async () => {
+        const imageUrls = await uploadImagesToCloudinary(imageFiles);
+
+        return {
+          ...formData,
+          storeId,
+          images: imageUrls,
+          category:
+            formData.category.length > 0 ? slugify(formData.category) : [],
+          subCategory:
+            formData.subCategory.length > 0
+              ? slugify(formData.subCategory)
+              : [],
+          submitAction: action,
+          submittedDraftProductId: draftProductId,
+        };
+      };
+
+      if (action === "draft") {
+        setIsLoadingDraft(true);
+        setUploadProgress(30);
+        const productData = await prepareProductData();
+        setUploadProgress(80);
+
+        const response = await fetch(`/api/store/products`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(productData),
+        });
+
+        setUploadProgress(100);
+
+        if (!response.ok) {
+          const { message } = await parseErrorFromResponse(response);
+          toast.error(`Failed to save draft: ${message}`);
+          setError([message]);
+          return;
+        }
+
+        const { data: resData, message } = await response.json();
+        setDraftProductId(resData?.productId);
+
+        toast.success(message || "Your product has been saved as draft.");
+        resetDirtyState();
+      } else if (action === "publish") {
+        setIsLoading(true);
+        setUploadProgress(30);
+        const productData = await prepareProductData();
+        setUploadProgress(80);
+
+        const response = await fetch(`/api/store/products`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(productData),
+        });
+
+        setUploadProgress(100);
+
+        if (!response.ok) {
+          const { message } = await parseErrorFromResponse(response);
+          toast.error(`Failed to publish: ${message}`);
+          setError([message]);
+          return;
+        }
+
+        toast.success("Your product has been uploaded and is pending review.");
+        resetDirtyState();
+
+        // Reset form after publish
+        setFormData({
+          name: "",
+          description: "",
+          specifications: "",
+          price: 0,
+          productQuantity: 0,
+          category: [],
+          subCategory: [],
+          storePassword: "",
+          productType: "product",
+        });
+        setSelectedCategory("");
+        setSelectedSubCategory("");
+        setImageFiles([]);
+        setImagePreviews([]);
+        router.back();
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload product"
+      );
+      setError(["Failed to upload product"]);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingDraft(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // ============================================================================
   // IMAGE UPLOAD HANDLERS
   // ============================================================================
 
-  /**
-   * Handle drag and drop events for image upload
-   */
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -208,9 +375,6 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     }
   };
 
-  /**
-   * Handle dropped files
-   */
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -221,28 +385,20 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     }
   };
 
-  /**
-   * Handle file input change
-   */
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       handleFiles(e.target.files);
     }
   };
 
-  /**
-   * Process and validate uploaded files
-   */
   const handleFiles = (files: FileList) => {
     const fileArray = Array.from(files);
 
-    // Validate file count
     if (fileArray.length > MAX_IMAGE_NUMBER) {
       toast.error(`You can only upload up to ${MAX_IMAGE_NUMBER} images`);
       return;
     }
 
-    // Validate file types and sizes
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     const maxSize = 5 * 1024 * 1024; // 5MB
 
@@ -259,19 +415,14 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
 
     setImageFiles(fileArray);
 
-    // Create preview URLs
     const previews = fileArray.map((file) => URL.createObjectURL(file));
     setImagePreviews(previews);
   };
 
-  /**
-   * Remove uploaded image
-   */
   const removeImage = (index: number) => {
     const newFiles = imageFiles.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
 
-    // Revoke URL to prevent memory leaks
     URL.revokeObjectURL(imagePreviews[index]);
 
     setImageFiles(newFiles);
@@ -282,101 +433,187 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   // CATEGORY HANDLERS
   // ============================================================================
 
-  /**
-   * Handle category selection change
-   */
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
     setSelectedSubCategory("");
-    setValue("category", value);
-    setValue("subCategory", "");
-    trigger(["category", "subCategory"]);
+    setFormData((prev) => ({
+      ...prev,
+      category: [value],
+      subCategory: [""],
+    }));
   };
 
-  /**
-   * Handle subcategory selection change
-   */
   const handleSubCategoryChange = (value: string) => {
     setSelectedSubCategory(value);
-    setValue("subCategory", value);
-    trigger("subCategory");
+    setFormData((prev) => ({
+      ...prev,
+      subCategory: [value],
+    }));
   };
 
   // ============================================================================
-  // FORM SUBMISSION
+  // VALIDATION FUNCTION
   // ============================================================================
 
-  /**
-   * Handle form submission with comprehensive validation and error handling
-   */
-  const onSubmit = async (data: ProductUploadFormData) => {
-    try {
-      setIsLoading(true);
-      setUploadProgress(10);
+  const validateForm = (action: "draft" | "publish"): boolean => {
+    const newErrors: Partial<Record<keyof ProductFormData, string>> & {
+      images?: string;
+    } = {};
 
-      // Validate images
+    // Helper function to get first error message
+    const getFirstError = (result: any) =>
+      result.error?.errors[0]?.message || "Validation failed";
+
+    // Validate all fields that have values (for both draft and publish)
+    const nameResult = productName.safeParse(formData.name);
+    if (!nameResult.success) {
+      newErrors.name = getFirstError(nameResult);
+    }
+
+    if (!formData.storePassword) {
+      newErrors.storePassword =
+        "Authorization required: Please enter your store password";
+    } else if (formData.storePassword.length < 4) {
+      newErrors.storePassword = "Please enter a valid store password";
+    }
+
+    if (formData.description && formData.description !== "") {
+      const descriptionResult = productDescription.safeParse(
+        formData.description
+      );
+      if (!descriptionResult.success) {
+        newErrors.description = getFirstError(descriptionResult);
+      }
+    }
+
+    if (formData.specifications && formData.specifications !== "") {
+      const specificationsResult = productSpecifications.safeParse(
+        formData.specifications
+      );
+      if (!specificationsResult.success) {
+        newErrors.specifications = getFirstError(specificationsResult);
+      }
+    }
+
+    if (formData.price !== undefined && formData.price !== 0) {
+      const priceResult = productPrice.safeParse(formData.price);
+      if (!priceResult.success) {
+        newErrors.price = getFirstError(priceResult);
+      }
+    }
+
+    if (
+      formData.productQuantity !== undefined &&
+      formData.productQuantity !== 0
+    ) {
+      const quantityResult = productQuantity.safeParse(
+        formData.productQuantity
+      );
+      if (!quantityResult.success) {
+        newErrors.productQuantity = getFirstError(quantityResult);
+      }
+    }
+
+    if (formData.category.length > 0) {
+      const categoryResult = productCategory.safeParse(formData.category);
+      if (!categoryResult.success) {
+        newErrors.category = getFirstError(categoryResult);
+      }
+    }
+
+    if (formData.subCategory.length > 0) {
+      const subCategoryResult = productSubCategory.safeParse(
+        formData.subCategory
+      );
+      if (!subCategoryResult.success) {
+        newErrors.subCategory = getFirstError(subCategoryResult);
+      }
+    }
+
+    // Publish-specific validations - all fields are required and must pass validation
+    if (action === "publish") {
+      // Required fields validation (all fields must be present and valid)
+      const requiredValidations = {
+        name: productName.safeParse(formData.name),
+        description: productDescription.safeParse(formData.description),
+        specifications: productSpecifications.safeParse(
+          formData.specifications
+        ),
+        price: productPrice.safeParse(formData.price),
+        productQuantity: productQuantity.safeParse(formData.productQuantity),
+        category: productCategory.safeParse(formData.category),
+        subCategory: productSubCategory.safeParse(formData.subCategory),
+        storePassword: productStorePassword.safeParse(formData.storePassword),
+      };
+
+      // Check if any required field is missing
+      if (!formData.name) newErrors.name = "Product name is required";
+      if (!formData.description)
+        newErrors.description = "Product description is required";
+      if (!formData.specifications)
+        newErrors.specifications = "Product specifications are required";
+      if (!formData.price) newErrors.price = "Price is required";
+      if (formData.productQuantity === undefined)
+        newErrors.productQuantity = "Quantity is required";
+      if (formData.category.length === 0)
+        newErrors.category = "Category is required";
+      if (formData.subCategory.length === 0)
+        newErrors.subCategory = "Subcategory is required";
+      if (!formData.storePassword)
+        newErrors.storePassword = "Store password is required";
+
+      // Override with validation errors if fields exist but are invalid
+      if (!newErrors.name && !requiredValidations.name.success) {
+        newErrors.name = getFirstError(requiredValidations.name);
+      }
+      if (!newErrors.description && !requiredValidations.description.success) {
+        newErrors.description = getFirstError(requiredValidations.description);
+      }
+      if (
+        !newErrors.specifications &&
+        !requiredValidations.specifications.success
+      ) {
+        newErrors.specifications = getFirstError(
+          requiredValidations.specifications
+        );
+      }
+      if (!newErrors.price && !requiredValidations.price.success) {
+        newErrors.price = getFirstError(requiredValidations.price);
+      }
+      if (
+        !newErrors.productQuantity &&
+        !requiredValidations.productQuantity.success
+      ) {
+        newErrors.productQuantity = getFirstError(
+          requiredValidations.productQuantity
+        );
+      }
+      if (!newErrors.category && !requiredValidations.category.success) {
+        newErrors.category = getFirstError(requiredValidations.category);
+      }
+      if (!newErrors.subCategory && !requiredValidations.subCategory.success) {
+        newErrors.subCategory = getFirstError(requiredValidations.subCategory);
+      }
+      if (
+        !newErrors.storePassword &&
+        !requiredValidations.storePassword.success
+      ) {
+        newErrors.storePassword = getFirstError(
+          requiredValidations.storePassword
+        );
+      }
+
+      // Image validation for publish
       if (imageFiles.length < MIN_IMAGE_NUMBER) {
+        newErrors.images = `Please select at least ${MIN_IMAGE_NUMBER} product images`;
         toast.error(
           `Please select at least ${MIN_IMAGE_NUMBER} product images`
         );
-        return;
       }
-
-      setUploadProgress(30);
-
-      // Upload images to Cloudinary
-      const imageUrls = await uploadImagesToCloudinary(imageFiles);
-      setUploadProgress(60);
-
-      // Prepare product data
-      const productData = {
-        ...data,
-        storeId,
-        description,
-        specifications,
-        images: imageUrls,
-        category: [slugify(watchedCategory)], // Slugify category so that MongoDB can better perform category search
-        subCategory: [slugify(watchedSubCategory)], // Slugify subcategory for better search by MongoDB
-      };
-
-      setUploadProgress(80);
-
-      // Submit to API
-      const response = await fetch(`/api/store/products`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productData),
-      });
-
-      setUploadProgress(100);
-
-      if (!response.ok) {
-        const { message, code, cause } = await parseErrorFromResponse(response);
-        console.error("Edit Product error:", { message, code, cause });
-        setError(message);
-        toast.error(message);
-        return;
-      }
-
-      toast.success("Your product has been uploaded and is pending review.");
-
-      // Reset form
-      reset();
-      setSelectedCategory("");
-      setSelectedSubCategory("");
-      setImageFiles([]);
-      setImagePreviews([]);
-      setUploadProgress(0);
-
-      router.back();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload product"
-      );
-    } finally {
-      setIsLoading(false);
-      setUploadProgress(0);
     }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // ============================================================================
@@ -389,14 +626,11 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     };
   }, [imagePreviews]);
 
-  /**
-   * Get validation status icon
-   */
-  const getValidationIcon = (fieldName: keyof ProductUploadFormData) => {
+  const getValidationIcon = (fieldName: keyof ProductFormData) => {
     if (errors[fieldName]) {
       return <AlertCircle className="h-4 w-4 text-red-500" />;
     }
-    if (dirtyFields[fieldName] && !errors[fieldName]) {
+    if (formData[fieldName] && !errors[fieldName]) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     }
     return null;
@@ -408,14 +642,64 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
 
   return (
     <div className="min-h-screen">
+      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Unsaved Changes
+            </DialogTitle>
+            <DialogDescription>
+              You have unsaved changes in your product form. Would you like to
+              save them as a draft before leaving?
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleDialogAction("cancel")}
+              className="sm:flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleDialogAction("leave")}
+              className="sm:flex-1"
+            >
+              Leave Without Saving
+            </Button>
+            <Button
+              type="button"
+              onClick={() => handleDialogAction("save")}
+              disabled={isSavingBeforeLeave}
+              className="sm:flex-1 bg-[#14a800] hover:bg-[#14a800]/90"
+            >
+              {isSavingBeforeLeave ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  Save Draft
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2 justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-[#14a800]/10 rounded-lg">
-                <Package className="h-6 w-6 text-[#14a800]" />
-              </div>
+              <div className="p-2 bg-[#14a800]/10 rounded-lg"></div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   Add New Product
@@ -426,13 +710,42 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
               </div>
             </div>
 
-            {/* Desktop Submit Button */}
-            <div className="hidden md:block">
+            {/* Desktop Submit Buttons */}
+            <div className="hidden md:flex gap-2 justify-between">
               <Button
-                type="submit"
-                form="product-upload-form"
+                type="button"
+                variant="outline"
+                disabled={isLoadingDraft}
+                onClick={(e) => {
+                  handleSubmit(
+                    e as unknown as React.FormEvent<HTMLFormElement>,
+                    "draft"
+                  );
+                }}
+              >
+                {isLoadingDraft ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Draft...
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon className="ml-2 h-4 w-4" />
+                    Save as Draft
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
                 className="bg-[#14a800] hover:bg-[#14a800]/90 text-white px-6 py-2"
-                disabled={isLoading || !isValid}
+                disabled={isLoading}
+                onClick={(e) => {
+                  handleSubmit(
+                    e as unknown as React.FormEvent<HTMLFormElement>,
+                    "publish"
+                  );
+                }}
               >
                 {isLoading ? (
                   <>
@@ -450,11 +763,13 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           </div>
 
           {/* Progress Indicator */}
-          {isLoading && (
+          {(isLoading || isSavingBeforeLeave) && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Uploading Product...
+                  {isSavingBeforeLeave
+                    ? "Saving Draft..."
+                    : "Uploading Product..."}
                 </span>
                 <span className="text-sm text-gray-500">{uploadProgress}%</span>
               </div>
@@ -468,19 +783,39 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
         </div>
 
         {/* Main Form */}
+
         <form
           id="product-upload-form"
-          onSubmit={handleSubmit(onSubmit)}
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {error && <AlertUI message={error} variant={`destructive`} />}
+            {resError && (
+              <Alert
+                variant="destructive"
+                className="mb-6 dark:bg-muted/50 border-red-500/15"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Validation Issues</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">
+                    Please resolve the following issues before proceeding:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(resError ?? []).map((error, index) => (
+                      <li key={index} className="text-sm">
+                        {error}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Product Information Card */}
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-xl">Product Information</CardTitle>
                 </div>
                 <CardDescription>
@@ -502,18 +837,19 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                   </div>
                   <Input
                     id="product-name"
-                    {...register("name")}
+                    value={formData.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="Enter a descriptive product name"
                     className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
                   />
                   {errors.name && (
                     <p className="text-sm text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      {errors.name.message}
+                      {errors.name}
                     </p>
                   )}
                   <p className="text-xs text-gray-500">
-                    {productName?.length || 0}/100 characters
+                    {formData.name.length}/100 characters
                   </p>
                 </div>
 
@@ -523,28 +859,25 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Label className="text-sm font-medium">
-                      Product Description *
+                      Product Description
                     </Label>
                     {getValidationIcon("description")}
                   </div>
-                  <div className="overflow-hidde h-70">
+                  <div className="overflow-hidden h-70">
                     <ReactQuill
-                      value={description || ""}
-                      onChange={(value) => {
-                        setValue("description", value);
-                        trigger("description");
-                      }}
+                      value={formData.description}
+                      onChange={(value) =>
+                        handleInputChange("description", value)
+                      }
                       modules={quillModules}
                       formats={quillFormats}
-                      // placeholder="Describe your product in detail..."
                       className="h-56"
-                      // style={{ minHeight: "150px" }}
                     />
                   </div>
                   {errors.description && (
                     <p className="text-sm text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      {errors.description.message}
+                      {errors.description}
                     </p>
                   )}
                 </div>
@@ -555,28 +888,25 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Label className="text-sm font-medium">
-                      Product Specifications *
+                      Product Specifications
                     </Label>
                     {getValidationIcon("specifications")}
                   </div>
-                  <div className="overflow-hidde h-70">
+                  <div className="overflow-hidden h-70">
                     <ReactQuill
-                      value={specifications || ""}
-                      onChange={(value) => {
-                        setValue("specifications", value);
-                        trigger("specifications");
-                      }}
+                      value={formData.specifications}
+                      onChange={(value) =>
+                        handleInputChange("specifications", value)
+                      }
                       modules={quillModules}
                       formats={quillFormats}
-                      // placeholder="List technical specifications, dimensions, materials, etc..."
                       className="h-56"
-                      // style={{ minHeight: "150px" }}
                     />
                   </div>
                   {errors.specifications && (
                     <p className="text-sm text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      {errors.specifications.message}
+                      {errors.specifications}
                     </p>
                   )}
                 </div>
@@ -587,7 +917,6 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-xl">Pricing & Inventory</CardTitle>
                 </div>
                 <CardDescription>
@@ -603,13 +932,23 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                         htmlFor="product-price"
                         className="text-sm font-medium"
                       >
-                        Price (₦) *
+                        Price (₦)
                       </Label>
                       {getValidationIcon("price")}
                     </div>
                     <Input
                       id="product-price"
-                      {...register("price", { valueAsNumber: true })}
+                      value={
+                        formData.price === 0 ? "" : formData.price.toString()
+                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Only convert to number if not empty
+                        handleInputChange(
+                          "price",
+                          value === "" ? 0 : Number(value)
+                        );
+                      }}
                       type="number"
                       min="0"
                       step="500"
@@ -619,13 +958,13 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                     {errors.price && (
                       <p className="text-sm text-red-500 flex items-center">
                         <AlertCircle className="h-3 w-3 mr-1" />
-                        {errors.price.message}
+                        {errors.price}
                       </p>
                     )}
-                    {price && price > 0 && (
+                    {formData.price > 0 && (
                       <p className="text-xs text-green-600">
                         ₦
-                        {price.toLocaleString("en-NG", {
+                        {formData.price.toLocaleString("en-NG", {
                           minimumFractionDigits: 2,
                         })}
                       </p>
@@ -639,13 +978,24 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                         htmlFor="product-quantity"
                         className="text-sm font-medium"
                       >
-                        Quantity *
+                        Quantity
                       </Label>
                       {getValidationIcon("productQuantity")}
                     </div>
                     <Input
                       id="product-quantity"
-                      {...register("productQuantity", { valueAsNumber: true })}
+                      value={
+                        formData.productQuantity === 0
+                          ? ""
+                          : formData.productQuantity.toString()
+                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        handleInputChange(
+                          "productQuantity",
+                          value === "" ? 0 : Number(value)
+                        );
+                      }}
                       type="number"
                       min="0"
                       placeholder="0"
@@ -654,12 +1004,12 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                     {errors.productQuantity && (
                       <p className="text-sm text-red-500 flex items-center">
                         <AlertCircle className="h-3 w-3 mr-1" />
-                        {errors.productQuantity.message}
+                        {errors.productQuantity}
                       </p>
                     )}
-                    {quantity > 0 && (
+                    {formData.productQuantity > 0 && (
                       <Badge variant="outline" className="text-xs">
-                        {quantity} units in stock
+                        {formData.productQuantity} units in stock
                       </Badge>
                     )}
                   </div>
@@ -674,7 +1024,6 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <Tag className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-lg">Category</CardTitle>
                 </div>
                 <CardDescription>
@@ -685,9 +1034,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                 {/* Main Category */}
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Label className="text-sm font-medium">
-                      Main Category *
-                    </Label>
+                    <Label className="text-sm font-medium">Main Category</Label>
                     {getValidationIcon("category")}
                   </div>
                   <Select
@@ -708,7 +1055,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                   {errors.category && (
                     <p className="text-sm text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      {errors.category.message}
+                      {errors.category}
                     </p>
                   )}
                 </div>
@@ -717,9 +1064,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                 {selectedCategory && (
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
-                      <Label className="text-sm font-medium">
-                        Subcategory *
-                      </Label>
+                      <Label className="text-sm font-medium">Subcategory</Label>
                       {getValidationIcon("subCategory")}
                     </div>
                     <Select
@@ -742,7 +1087,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                     {errors.subCategory && (
                       <p className="text-sm text-red-500 flex items-center">
                         <AlertCircle className="h-3 w-3 mr-1" />
-                        {errors.subCategory.message}
+                        {errors.subCategory}
                       </p>
                     )}
                   </div>
@@ -754,7 +1099,6 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <ImageIcon className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-lg">Product Images</CardTitle>
                 </div>
                 <CardDescription>
@@ -843,7 +1187,6 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-lg">Security</CardTitle>
                 </div>
                 <CardDescription>
@@ -863,7 +1206,10 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                   </div>
                   <Input
                     id="store-password"
-                    {...register("storePassword")}
+                    value={formData.storePassword}
+                    onChange={(e) =>
+                      handleInputChange("storePassword", e.target.value)
+                    }
                     type="password"
                     placeholder="Enter your store password"
                     className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
@@ -871,7 +1217,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                   {errors.storePassword && (
                     <p className="text-sm text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      {errors.storePassword.message}
+                      {errors.storePassword}
                     </p>
                   )}
                 </div>
@@ -880,13 +1226,43 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           </div>
         </form>
 
-        {/* Mobile Submit Button */}
-        <div className="md:hidden mt-8">
+        {/* Mobile Submit Buttons */}
+        <div className="md:hidden mt-8 space-y-4">
           <Button
-            type="submit"
-            form="product-upload-form"
+            type="button"
+            variant="outline"
+            className="w-full bg-transparent"
+            disabled={isLoadingDraft}
+            onClick={(e) => {
+              handleSubmit(
+                e as unknown as React.FormEvent<HTMLFormElement>,
+                "draft"
+              );
+            }}
+          >
+            {isLoadingDraft ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving Draft...
+              </>
+            ) : (
+              <>
+                <SaveIcon className="mr-2 h-4 w-4" />
+                Save as Draft
+              </>
+            )}
+          </Button>
+
+          <Button
+            type="button"
             className="w-full bg-[#14a800] hover:bg-[#14a800]/90 text-white h-12"
-            disabled={isLoading || !isValid}
+            disabled={isLoading}
+            onClick={(e) => {
+              handleSubmit(
+                e as unknown as React.FormEvent<HTMLFormElement>,
+                "publish"
+              );
+            }}
           >
             {isLoading ? (
               <>

@@ -183,19 +183,19 @@ function SignUp() {
   };
 
   const inputClass =
-    "w-full px-4 py-2 mt-2 border rounded-lg bg-background text-primary focus:!ring-soraxi-darkmode-success focus:!outline-none focus:!ring-1";
+    "w-full px-4 py-2 mt-2 border rounded-lg bg-background text-primary focus:!ring-soraxi-green focus:!outline-none focus:!ring-1";
 
   return (
     <main className="min-h-screen bg-background transition-colors duration-300">
       <section className="flex flex-col lg:flex-row lg:min-h-screen">
         {/* Progress indicator (Vertical) */}
-        <div className="hidden lg:flex flex-col items-center justify-center w-full max-w-[180px] py-12 px-4 bg-soraxi-darkmode-success/15 dark:bg-background border-r-2">
+        <div className="hidden lg:flex flex-col items-center justify-center w-full max-w-[180px] py-12 px-4 bg-soraxi-green/15 dark:bg-background border-r-2">
           {steps.map((step, index) => (
             <div key={step.title} className="flex flex-col items-center">
               <div
                 className={`w-8 h-8 flex items-center justify-center rounded-full font-bold mb-2 text-sm transition-colors duration-300 ${
                   currentStep > index + 1
-                    ? "bg-soraxi-darkmode-success text-white"
+                    ? "bg-soraxi-green text-white"
                     : currentStep === index + 1
                     ? "bg-blue-400 text-white"
                     : "bg-gray-400 text-white"
@@ -223,7 +223,7 @@ function SignUp() {
         <div className="w-full px-4 lg:px-8 py-10 lg:w-3/4 mx-auto">
           <Link
             href="/"
-            className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-darkmode-success ${playpenSans.className}`}
+            className={`flex justify-center mb-6 text-2xl font-bold text-soraxi-green ${playpenSans.className}`}
           >
             {siteConfig.name}
           </Link>
@@ -476,7 +476,7 @@ function SignUp() {
                     <Button
                       type="button"
                       onClick={handleNext}
-                      className="w-32 bg-soraxi-darkmode-success hover:bg-soraxi-darkmode-success/85 text-white"
+                      className="w-32 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
                     >
                       Next
                     </Button>
@@ -485,7 +485,7 @@ function SignUp() {
                       {isLoading ? (
                         <Button
                           type="submit"
-                          className="w-32 bg-soraxi-darkmode-success hover:bg-soraxi-darkmode-success text-white flex items-center justify-center gap-2"
+                          className="w-32 bg-soraxi-green hover:bg-soraxi-green text-white flex items-center justify-center gap-2"
                           disabled={isLoading}
                         >
                           <Loader className=" animate-spin w-5 h-5" /> Signing
@@ -494,7 +494,7 @@ function SignUp() {
                       ) : (
                         <Button
                           type="submit"
-                          className="w-32 bg-soraxi-darkmode-success hover:bg-soraxi-darkmode-success text-white"
+                          className="w-32 bg-soraxi-green hover:bg-soraxi-green text-white"
                         >
                           Sign Up
                         </Button>
@@ -510,7 +510,7 @@ function SignUp() {
                 Already have an account?{" "}
                 <Link
                   href="/sign-in"
-                  className="text-soraxi-darkmode-success font-semibold hover:underline"
+                  className="text-soraxi-green font-semibold hover:underline"
                 >
                   Sign In
                 </Link>

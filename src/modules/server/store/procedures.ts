@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import {
-  getStoreModel,
-  IStore,
-  StoreBusinessInfo,
-} from "@/lib/db/models/store.model";
+import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel } from "@/lib/db/models/product.model";
+import {
+  StoreBusinessInfoEnum,
+  StoreStatusEnum,
+} from "@/validators/store-validators";
+import { ProductStatusEnum } from "@/validators/product-validators";
 
 export const storeRouter = createTRPCRouter({
   getById: baseProcedure
@@ -67,8 +68,8 @@ export const storeRouter = createTRPCRouter({
         profile: !!(store.name && store.description),
         "business-info": !!(
           store.businessInfo &&
-          (store.businessInfo.type === StoreBusinessInfo.Individual ||
-            (store.businessInfo.type === StoreBusinessInfo.Company &&
+          (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
+            (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
               store.businessInfo.businessName &&
               store.businessInfo.registrationNumber))
         ),
@@ -199,44 +200,135 @@ export const storeRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { store } = ctx;
 
-      if (!store) {
+      try {
+        if (!store) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Store authentication required",
+          });
+        }
+
+        const Store = await getStoreModel();
+        const storeDoc = await Store.findById(store.id).select("status");
+
+        if (!storeDoc) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found",
+          });
+        }
+
+        // Prevent product visibility updates depending on store status
+        switch (storeDoc.status) {
+          case StoreStatusEnum.Pending:
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "Your store is still pending approval. You cannot update product visibility until it is approved.",
+            });
+
+          case StoreStatusEnum.Rejected:
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "Your store application was rejected. Please contact support for further details.",
+            });
+
+          case StoreStatusEnum.Suspended:
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "Your store is currently suspended. You cannot update product visibility at this time.",
+            });
+
+          case StoreStatusEnum.Active:
+            // ✅ Approved stores are allowed to update product visibility
+            break;
+
+          default:
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Invalid store status. Please contact support.",
+            });
+        }
+
+        const Product = await getProductModel();
+        const product = await Product.findById(input.productId).select(
+          "storeId isVisible isVerifiedProduct slug"
+        );
+
+        if (!product) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found",
+          });
+        }
+
+        if (product.storeId.toString() !== store.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Unauthorized access to product",
+          });
+        }
+
+        // If the product is not verified, prevent making it visible
+        if (!product.isVerifiedProduct && input.isVisible) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message:
+              "This product cannot be made visible because it has not been verified yet.",
+          });
+        }
+        // Only approved products may be visible
+        if (input.isVisible && product.status !== ProductStatusEnum.Approved) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only approved products can be made visible.",
+          });
+        }
+        // Idempotency: avoid unnecessary write
+        if (product.isVisible === input.isVisible) {
+          return {
+            success: true,
+            message: `Product already ${input.isVisible ? "shown" : "hidden"}`,
+            product: {
+              id: (
+                product._id as unknown as mongoose.Types.ObjectId
+              ).toString(),
+              isVisible: product.isVisible,
+            },
+          };
+        }
+
+        // console.log("product", product);
+        product.isVisible = input.isVisible;
+        await product.save();
+
+        // console.log("product", product);
+        product.isVisible = input.isVisible;
+        await product.save();
+
+        return {
+          success: true,
+          message: `Product ${
+            input.isVisible ? "shown" : "hidden"
+          } successfully`,
+          product: {
+            id: (product._id as unknown as mongoose.Types.ObjectId).toString(),
+            isVisible: product.isVisible,
+          },
+        };
+      } catch (error: any) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
         throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Store authentication required",
+          code: "INTERNAL_SERVER_ERROR",
+          message: error.message || "An unexpected error occurred",
+          cause: error,
         });
       }
-
-      const Product = await getProductModel();
-      const product = await Product.findById(input.productId).select(
-        "storeId isVisible slug"
-      );
-
-      if (!product) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Product not found",
-        });
-      }
-
-      if (product.storeId.toString() !== store.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Unauthorized access to product",
-        });
-      }
-      // console.log("product", product);
-
-      product.isVisible = input.isVisible;
-      await product.save();
-
-      return {
-        success: true,
-        message: `Product ${input.isVisible ? "shown" : "hidden"} successfully`,
-        product: {
-          id: (product._id as unknown as mongoose.Types.ObjectId).toString(),
-          isVisible: product.isVisible,
-        },
-      };
     }),
 });
 
@@ -245,8 +337,8 @@ export const computeOnboardingStatus = (store: IStore) => {
     profileComplete: !!(store.name && store.description),
     businessInfoComplete: !!(
       store.businessInfo &&
-      (store.businessInfo.type === StoreBusinessInfo.Individual ||
-        (store.businessInfo.type === StoreBusinessInfo.Company &&
+      (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
+        (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
           store.businessInfo.businessName &&
           store.businessInfo.registrationNumber))
     ),

@@ -11,6 +11,7 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { generateUniqueId } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 export const cartRouter = createTRPCRouter({
   // ✅ Get cart by user ID
@@ -171,10 +172,10 @@ export const cartRouter = createTRPCRouter({
         id: p._id.toString(),
         name: p.name,
         slug: p.slug,
-        image: p.images[0],
+        image: (p.images && p.images[0]) || siteConfig.placeHolderImg1,
         price: p.price,
         // originalPrice: p.originalPrice,
-        inStock: p.productQuantity > 0 ? true : false,
+        inStock: p.productQuantity && p.productQuantity > 0 ? true : false,
         // storeName: "TODO", // Optional: populate store if needed
         maxQuantity: p.productQuantity,
         productType: p.productType,

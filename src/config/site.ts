@@ -45,4 +45,7 @@ export const siteConfig = {
     // { name: "Code of Conduct", href: "/code-of-conduct" },
     // { name: "Human Rights Policy", href: "/human-rights-policy" },
   ],
+  placeHolderImg: `/svg/placeholder-img.svg`,
+  placeHolderImg1: `/svg/placeholder-img1.svg`,
+  placeHolderImg2: `/svg/placeholder-img2.svg`,
 };
