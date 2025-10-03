@@ -202,15 +202,9 @@ export const checkoutRouter = createTRPCRouter({
     // --- Step 1: Validate products ---
     for (const item of cart.items) {
       const storeId = item.storeId.toString();
-      const product = item.productId as unknown as IProduct & {
-        _id: string;
-      }; // already populated
-
-      // Group products by store for later validation
-      if (!groupedByStore[storeId]) {
-        groupedByStore[storeId] = [];
-      }
-      groupedByStore[storeId].push({ productId: product._id.toString() });
+      const product = item.productId as unknown as
+        | (IProduct & { _id: mongoose.Types.ObjectId })
+        | null; // already populated if any
 
       // Product was deleted from catalog
       if (!product) {
@@ -219,6 +213,14 @@ export const checkoutRouter = createTRPCRouter({
         );
         continue;
       }
+
+      if (!groupedByStore[storeId]) {
+        groupedByStore[storeId] = [];
+      }
+
+      groupedByStore[storeId].push({
+        productId: product._id.toString(),
+      });
 
       // Handle size-based products
       if (item.selectedSize) {
@@ -240,7 +242,10 @@ export const checkoutRouter = createTRPCRouter({
         }
       } else {
         // Non-size-based products
-        if (product.productQuantity < item.quantity) {
+        if (
+          product.productQuantity &&
+          product.productQuantity < item.quantity
+        ) {
           validationErrors.push(
             `Insufficient stock for ${product.name}. Available: ${product.productQuantity}, Requested: ${item.quantity}.`
           );

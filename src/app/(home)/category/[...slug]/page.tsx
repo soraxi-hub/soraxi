@@ -74,7 +74,7 @@ export default function CategoryPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Category Not Found</h1>
           <p className="text-muted-foreground">
-            The category you`&#39;`re looking for doesn`&#39;`t exist.
+            The category you&#39;re looking for doesn&#39;t exist.
           </p>
         </div>
       </div>

@@ -8,6 +8,7 @@ import {
   StoreBusinessInfoEnum,
   StoreStatusEnum,
 } from "@/validators/store-validators";
+import { ProductStatusEnum } from "@/validators/product-validators";
 
 export const storeRouter = createTRPCRouter({
   getById: baseProcedure
@@ -270,7 +271,7 @@ export const storeRouter = createTRPCRouter({
           });
         }
 
-        // If the product is not verified, prevent the store from marking the product as visible
+        // If the product is not verified, prevent making it visible
         if (!product.isVerifiedProduct && input.isVisible) {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -278,6 +279,30 @@ export const storeRouter = createTRPCRouter({
               "This product cannot be made visible because it has not been verified yet.",
           });
         }
+        // Only approved products may be visible
+        if (input.isVisible && product.status !== ProductStatusEnum.Approved) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only approved products can be made visible.",
+          });
+        }
+        // Idempotency: avoid unnecessary write
+        if (product.isVisible === input.isVisible) {
+          return {
+            success: true,
+            message: `Product already ${input.isVisible ? "shown" : "hidden"}`,
+            product: {
+              id: (
+                product._id as unknown as mongoose.Types.ObjectId
+              ).toString(),
+              isVisible: product.isVisible,
+            },
+          };
+        }
+
+        // console.log("product", product);
+        product.isVisible = input.isVisible;
+        await product.save();
 
         // console.log("product", product);
         product.isVisible = input.isVisible;

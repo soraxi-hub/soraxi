@@ -5,10 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type mongoose from "mongoose";
 import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
 import { koboToNaira } from "@/lib/utils/naira";
-import {
-  storeName as StoreNameSchema,
-  storeDescription as StoreDescriptionSchema,
-} from "@/validators/store-validators";
+import { storeName, storeDescription } from "@/validators/store-validators";
 
 type Product = Pick<
   IProduct,
@@ -94,7 +91,7 @@ export const storeProfileRouter = createTRPCRouter({
   handleStoreNameUpdate: baseProcedure
     .input(
       z.object({
-        name: StoreNameSchema,
+        name: storeName,
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -161,7 +158,7 @@ export const storeProfileRouter = createTRPCRouter({
   handleStoreDescriptionUpdate: baseProcedure
     .input(
       z.object({
-        description: StoreDescriptionSchema,
+        description: storeDescription,
       })
     )
     .mutation(async ({ ctx, input }) => {

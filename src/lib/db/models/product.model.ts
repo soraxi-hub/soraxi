@@ -2,6 +2,7 @@ import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import slugify from "slugify";
 import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
+import { ProductStatusEnum } from "@/validators/product-validators";
 
 /**
  * Interface for Product document
@@ -16,21 +17,21 @@ export interface IProduct extends Document {
     price: number;
     quantity: number;
   }[];
-  productQuantity: number;
-  images: string[];
-  description: string;
-  specifications: string;
-  category: string[];
-  subCategory: string[];
+  productQuantity?: number;
+  images?: string[];
+  description?: string;
+  specifications?: string;
+  category?: string[];
+  subCategory?: string[];
   isVerifiedProduct: boolean;
-  status: "pending" | "approved" | "rejected";
+  status: ProductStatusEnum;
   isVisible: boolean;
   slug: string;
   rating?: number;
   createdAt: Date;
   updatedAt: Date;
 
-  formattedPrice?: string;
+  firstApprovedAt?: Date;
 }
 
 const ProductSchema = new Schema<IProduct>(
@@ -54,7 +55,10 @@ const ProductSchema = new Schema<IProduct>(
     price: {
       type: Number,
       required: function () {
-        return !this.sizes || this.sizes.length === 0;
+        return (
+          this.status !== ProductStatusEnum.Draft &&
+          (!this.sizes || this.sizes.length === 0)
+        );
       },
       set: (price: number) => nairaToKobo(price),
       get: (price: number) => koboToNaira(price),
@@ -68,7 +72,9 @@ const ProductSchema = new Schema<IProduct>(
     ],
     productQuantity: {
       type: Number,
-      required: [true, "Product quantity is required"],
+      required: function () {
+        return this.status !== ProductStatusEnum.Draft;
+      },
     },
     images: {
       type: [String],
@@ -76,21 +82,29 @@ const ProductSchema = new Schema<IProduct>(
     },
     description: {
       type: String,
-      required: [true, "Description is required"],
+      required: function () {
+        return this.status !== ProductStatusEnum.Draft;
+      },
       index: true,
     },
     specifications: {
       type: String,
-      required: [true, "Specifications are required"],
+      required: function () {
+        return this.status !== ProductStatusEnum.Draft;
+      },
     },
     category: {
       type: [String],
-      required: [true, "Category is required"],
+      required: function () {
+        return this.status !== ProductStatusEnum.Draft;
+      },
       index: true,
     },
     subCategory: {
       type: [String],
-      required: [true, "Subcategory is required"],
+      required: function () {
+        return this.status !== ProductStatusEnum.Draft;
+      },
       index: true,
     },
     isVerifiedProduct: {
@@ -99,8 +113,8 @@ const ProductSchema = new Schema<IProduct>(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      enum: Object.values(ProductStatusEnum),
+      default: ProductStatusEnum.Draft,
       index: true,
     },
     isVisible: {
@@ -118,6 +132,10 @@ const ProductSchema = new Schema<IProduct>(
       min: [0, "Rating must be at least 0"],
       max: [5, "Rating cannot be more than 5"],
       default: 0,
+    },
+    firstApprovedAt: {
+      type: Date,
+      immutable: true,
     },
   },
   {

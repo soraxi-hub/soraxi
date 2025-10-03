@@ -72,7 +72,6 @@ export const homeRouter = createTRPCRouter({
         rating: product.rating || 0,
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
-        formattedPrice: product.formattedPrice,
       }));
 
       return {
@@ -221,7 +220,6 @@ export const homeRouter = createTRPCRouter({
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
         price: product.price,
-        formattedPrice: product.formattedPrice,
       }));
     }),
 
@@ -247,7 +245,6 @@ export const homeRouter = createTRPCRouter({
       rating: product.rating || 0,
       slug: product.slug,
       isVerifiedProduct: product.isVerifiedProduct,
-      formattedPrice: product.formattedPrice,
     }));
 
     // Return only verified products

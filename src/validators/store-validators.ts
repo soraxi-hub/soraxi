@@ -24,8 +24,8 @@ export const storeName = z
   .min(2, "Store name must be at least 2 characters")
   .max(50, "Store name must be less than 50 characters")
   .regex(
-    /^[a-zA-Z0-9\s\-_']+$/,
-    "Store name can only contain letters, numbers, spaces, hyphens, underscores, and apostrophes"
+    /^[a-zA-Z0-9\s\-_'&.]+$/,
+    "Store name can only contain letters, numbers, spaces, hyphens, underscores, apostrophes, ampersands and periods"
   );
 export const storeDescription = z
   .string()

@@ -268,7 +268,7 @@ export const adminStoreRouter = createTRPCRouter({
             message = `Store approved successfully. Approved by: (${admin.name})`;
             break;
 
-          case StoreStatusEnum.Rejected:
+          case "rejected":
             if (store.status !== StoreStatusEnum.Pending) {
               throw new TRPCError({
                 code: "BAD_REQUEST",

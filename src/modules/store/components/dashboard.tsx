@@ -198,7 +198,7 @@ export default function StoreDashboardPage({
                   <span>My Wallet</span>
                 </CardTitle>
                 <CardDescription>
-                  Track your store&#39;s Finanials
+                  Track your store&#39;s Financials
                 </CardDescription>
               </CardHeader>
               <CardContent>

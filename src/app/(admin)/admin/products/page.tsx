@@ -1,4 +1,4 @@
-import { ProductModeration } from "@/modules/admin/products/ProductModeration";
+import { ProductModeration } from "@/modules/admin/products/product-moderation";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";

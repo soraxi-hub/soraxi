@@ -88,13 +88,20 @@ export const getSubcategoryNames = (categoryName: string) => {
   return category?.subcategories.map((sub) => sub.name) || [];
 };
 
-// Slugify a string
-export function slugify(text: string): string {
-  return text
-    .toLowerCase() // Convert to lowercase
-    .replace(/'/g, "") // Remove apostrophes
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/[^a-z0-9\-]/g, "") // Remove any other non-url-friendly characters
-    .replace(/-+/g, "-") // Collapse multiple hyphens
-    .replace(/^-|-$/g, ""); // Trim hyphens from start/end
+type Sluggable = string | string[];
+
+export function slugify<T extends Sluggable>(text: T): T {
+  const process = (t: string) =>
+    t
+      .toLowerCase()
+      .replace(/'/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9\-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  if (Array.isArray(text)) {
+    return text.map(process) as T;
+  }
+  return process(text) as T;
 }

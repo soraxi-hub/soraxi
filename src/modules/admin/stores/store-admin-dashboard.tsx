@@ -416,12 +416,12 @@ export function StoreAdminDashboard({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {storeData.products.slice(0, 6).map((product) => (
                     <div key={product._id} className="border rounded-lg p-4">
-                      <div className="aspect-square bg-muted rounded-lg mb-2">
+                      <div className="relative aspect-square bg-muted rounded-lg mb-2">
                         {product.images?.[0] && (
                           <Image
                             src={product.images[0] || "/placeholder.svg"}
                             alt={product.name}
-                            // fill
+                            fill
                             className="w-full h-full object-cover rounded-lg"
                           />
                         )}

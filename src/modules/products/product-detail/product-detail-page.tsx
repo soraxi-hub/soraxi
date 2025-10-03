@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ProductImageGallery } from "./ProductImageGallery";
-import { ProductInfo } from "./ProductInfo";
-import { ProductTabs } from "./ProductTabs";
-import { RelatedProducts } from "./RelatedProducts";
+import { ProductImageGallery } from "./product-image-gallery";
+import { ProductInfo } from "./product-info";
+import { ProductTabs } from "./product-tabs";
+import { RelatedProducts } from "./related-products";
 
 import {
   Breadcrumb,
@@ -18,6 +18,7 @@ import {
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { slugify } from "@/constants/constant";
+import { siteConfig } from "@/config/site";
 
 type ProductsOutput = inferProcedureOutput<
   AppRouter["home"]["getPublicProductBySlug"]
@@ -60,26 +61,30 @@ export function ProductDetailPage({
 
             <BreadcrumbSeparator />
 
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                href={`/category/${slugify(product.category[0])}`}
-              >
-                {product.category[0]}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-
-            {product.subCategory[0] && (
+            {product.category && (
               <>
-                <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink
-                    href={`/category/${slugify(product.category[0])}/${slugify(
-                      product.subCategory[0]
-                    )}`}
+                    href={`/category/${slugify(product.category[0])}`}
                   >
-                    {product.subCategory[0]}
+                    {product.category[0]}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
+
+                {product.subCategory && product.subCategory[0] && (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink
+                        href={`/category/${slugify(
+                          product.category[0]
+                        )}/${slugify(product.subCategory[0])}`}
+                      >
+                        {product.subCategory[0]}
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                  </>
+                )}
               </>
             )}
 
@@ -95,7 +100,11 @@ export function ProductDetailPage({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
           <div>
             <ProductImageGallery
-              images={product.images}
+              images={
+                (product.images && product.images) || [
+                  siteConfig.placeHolderImg1,
+                ]
+              }
               productName={product.name}
               isVerifiedProduct={product.isVerifiedProduct}
             />

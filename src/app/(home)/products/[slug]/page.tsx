@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ProductDetailPage } from "@/modules/products/product-detail/ProductDetailPage";
+import { ProductDetailPage } from "@/modules/products/product-detail/product-detail-page";
 import { caller } from "@/trpc/server";
 import { cache } from "react";
 import { StoreStatusEnum } from "@/validators/store-validators";
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: ProductPageProps) {
     openGraph: {
       title: product.name,
       description: product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-      images: product.images.map((image) => ({
+      images: (product.images ?? []).map((image) => ({
         url: image,
         alt: product.name,
       })),
