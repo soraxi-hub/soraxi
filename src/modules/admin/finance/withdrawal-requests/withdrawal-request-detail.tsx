@@ -46,6 +46,8 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
 import type { FormattedWithdrawalRequestDetail } from "@/types/withdrawal-request-types";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../../security/permissions";
 
 interface WithdrawalRequestDetailProps {
   requestId: string;
@@ -53,9 +55,7 @@ interface WithdrawalRequestDetailProps {
 
 type WithdrawalStatus = FormattedWithdrawalRequestDetail["status"];
 
-export default function WithdrawalRequestDetail({
-  requestId,
-}: WithdrawalRequestDetailProps) {
+function WithdrawalRequestDetail({ requestId }: WithdrawalRequestDetailProps) {
   const trpc = useTRPC();
 
   // State for approve dialog
@@ -745,3 +745,7 @@ export default function WithdrawalRequestDetail({
     </div>
   );
 }
+
+export default withAdminAuth(WithdrawalRequestDetail, {
+  requiredPermissions: [PERMISSIONS.PROCESS_WITHDRAWAL],
+});

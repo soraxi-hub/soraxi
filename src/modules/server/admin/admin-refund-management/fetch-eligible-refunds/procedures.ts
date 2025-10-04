@@ -5,12 +5,12 @@ import { getUserModel } from "@/lib/db/models/user.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose, { PipelineStage } from "mongoose";
-import {
-  logAdminAction,
-  AUDIT_ACTIONS,
-  AUDIT_MODULES,
-} from "@/modules/admin/security/audit-logger";
-import type { Role } from "@/modules/admin/security/roles";
+// import {
+//   logAdminAction,
+//   AUDIT_ACTIONS,
+//   AUDIT_MODULES,
+// } from "@/modules/admin/security/audit-logger";
+// import type { Role } from "@/modules/admin/security/roles";
 import { GetRefundQueueOutputSchema } from "@/types/admin-refund-types"; // Import the new output schema
 
 export const adminRefundRouter = createTRPCRouter({
@@ -372,26 +372,26 @@ export const adminRefundRouter = createTRPCRouter({
          * Records the admin's refund queue viewing action for audit purposes,
          * including the filters they applied.
          */
-        await logAdminAction({
-          adminId: ctx.admin.id,
-          adminName: ctx.admin.name,
-          adminEmail: ctx.admin.email,
-          adminRoles: ctx.admin.roles as Role[],
-          action: AUDIT_ACTIONS.REFUND_QUEUE_VIEWED,
-          module: AUDIT_MODULES.REFUNDS,
-          details: {
-            filters: {
-              page: input.page,
-              limit: input.limit,
-              fromDate: fromDate?.toISOString(),
-              toDate: toDate?.toISOString(),
-              deliveryStatus,
-              storeId,
-              search,
-            },
-            resultCount: formattedItems.length,
-          },
-        });
+        // await logAdminAction({
+        //   adminId: ctx.admin.id,
+        //   adminName: ctx.admin.name,
+        //   adminEmail: ctx.admin.email,
+        //   adminRoles: ctx.admin.roles as Role[],
+        //   action: AUDIT_ACTIONS.REFUND_QUEUE_VIEWED,
+        //   module: AUDIT_MODULES.REFUNDS,
+        //   details: {
+        //     filters: {
+        //       page: input.page,
+        //       limit: input.limit,
+        //       fromDate: fromDate?.toISOString(),
+        //       toDate: toDate?.toISOString(),
+        //       deliveryStatus,
+        //       storeId,
+        //       search,
+        //     },
+        //     resultCount: formattedItems.length,
+        //   },
+        // });
 
         // ==================== Response ====================
 

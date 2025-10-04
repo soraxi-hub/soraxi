@@ -58,7 +58,7 @@ function DashboardContent({ admin }: { admin?: Admin }) {
           <DashboardCard
             title="Finance"
             description="Manage settlements and financial reports"
-            link="/admin/settlement"
+            link="/admin/finance/withdrawals"
           />
         ) : null}
 
@@ -72,7 +72,7 @@ function DashboardContent({ admin }: { admin?: Admin }) {
             <DashboardCard
               title="Admin Audit Log"
               description="View the activities of all admins"
-              link="/admin/audit-trail"
+              link="/admin/audit-logs"
             />
           </>
         ) : null}
@@ -95,7 +95,7 @@ function DashboardCard({
       href={link}
       className="group block focus:outline-none focus:ring-2 focus:ring-soraxi-green rounded-2xl"
     >
-      <div className="p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-gray-200 group-hover:border-soraxi-green">
+      <div className="p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-gray-200 group-hover:border-soraxi-green h-full">
         <h2 className="text-xl font-semibold text-soraxi-green mb-2 group-hover:underline">
           {title}
         </h2>

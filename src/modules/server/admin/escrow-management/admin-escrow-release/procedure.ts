@@ -31,6 +31,7 @@ import type {
   PopulatedUserForRelease,
 } from "@/types/escrow-release-types";
 import { DeliveryStatus } from "@/enums";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 /**
  * Admin Escrow Release TRPC Router
@@ -104,7 +105,10 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
          * with appropriate permissions to release escrow funds. This is a critical
          * security check as escrow release involves financial transactions.
          */
-        if (!admin || !checkAdminPermission(admin, [])) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.PROCESS_ESCROW])
+        ) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Admin authentication required",
@@ -520,7 +524,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
           adminName: admin.name,
           adminEmail: admin.email,
           adminRoles: admin.roles as Role[],
-          action: AUDIT_ACTIONS.REFUND_APPROVED, // Using closest available action
+          action: AUDIT_ACTIONS.ESCROW_PROCESSED, // Using closest available action
           module: AUDIT_MODULES.FINANCE,
           details: auditDetails,
         });

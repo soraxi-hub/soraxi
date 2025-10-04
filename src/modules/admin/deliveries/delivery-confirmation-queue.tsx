@@ -33,8 +33,10 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
-export function DeliveryConfirmationQueue() {
+function DeliveryConfirmationQueue() {
   const trpc = useTRPC();
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -298,3 +300,7 @@ export function DeliveryConfirmationQueue() {
     </div>
   );
 }
+
+export default withAdminAuth(DeliveryConfirmationQueue, {
+  requiredPermissions: [PERMISSIONS.STALE_ORDERS],
+});

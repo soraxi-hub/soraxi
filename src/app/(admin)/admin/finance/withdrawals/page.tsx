@@ -1,7 +1,7 @@
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
-import { WithdrawalRequestList } from "@/modules/admin/finance/withdrawal-requests/withdrawal-request-list";
+import WithdrawalRequestList from "@/modules/admin/finance/withdrawal-requests/withdrawal-request-list";
 
 /**
  * Admin Withdrawal Requests Page

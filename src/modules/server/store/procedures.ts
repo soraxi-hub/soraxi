@@ -254,7 +254,7 @@ export const storeRouter = createTRPCRouter({
 
         const Product = await getProductModel();
         const product = await Product.findById(input.productId).select(
-          "storeId isVisible isVerifiedProduct slug"
+          "storeId status isVisible isVerifiedProduct slug"
         );
 
         if (!product) {

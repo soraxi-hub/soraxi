@@ -4,7 +4,7 @@
 export const dynamic = "force-dynamic";
 
 import { AdminLayout } from "@/modules/admin/AdminLayout";
-import { FinancePanel } from "@/modules/admin/finance/FinancePanel";
+import { FinancePanel } from "@/modules/admin/finance/finance-panel";
 
 /**
  * Admin Finance Page

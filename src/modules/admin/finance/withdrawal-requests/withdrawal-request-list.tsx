@@ -44,6 +44,8 @@ import { useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
 import type { FormattedWithdrawalRequestListItem } from "@/types/withdrawal-request-types";
 import Link from "next/link"; // Import Link for navigation
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../../security/permissions";
 
 type WithdrawalStatus = FormattedWithdrawalRequestListItem["status"];
 
@@ -51,7 +53,7 @@ type WithdrawalStatus = FormattedWithdrawalRequestListItem["status"];
  * WithdrawalRequestList Component
  * Admin interface for viewing and managing store withdrawal requests.
  */
-export function WithdrawalRequestList() {
+function WithdrawalRequestList() {
   const trpc = useTRPC();
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -346,3 +348,7 @@ export function WithdrawalRequestList() {
     </div>
   );
 }
+
+export default withAdminAuth(WithdrawalRequestList, {
+  requiredPermissions: [PERMISSIONS.VIEW_WITHDRAWALS],
+});

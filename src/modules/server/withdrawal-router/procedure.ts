@@ -218,26 +218,26 @@ export const withdrawalRouter = createTRPCRouter({
           });
 
           // Log audit action
-          const auditDetails: WithdrawalAuditDetails = {
-            action: "withdrawal_request_created",
-            requestId: withdrawalRequest._id.toString(),
-            requestNumber: withdrawalRequest.requestNumber,
-            storeId: store.id,
-            storeName: storeDoc.name,
-            requestedAmount: amount,
-            netAmount: netAmount,
-            status: "pending",
-            adminNotes: description,
-          };
-          await logAdminAction({
-            adminId: store.id, // Using store ID as adminId for store-initiated actions
-            adminName: storeDoc.name,
-            adminEmail: storeDoc.storeEmail,
-            adminRoles: ["store_owner" as Role], // Custom role for audit
-            action: AUDIT_ACTIONS.PAYOUT_PROCESSED, // Closest action
-            module: AUDIT_MODULES.FINANCE,
-            details: auditDetails,
-          });
+          // const auditDetails: WithdrawalAuditDetails = {
+          //   action: "withdrawal_request_created",
+          //   requestId: withdrawalRequest._id.toString(),
+          //   requestNumber: withdrawalRequest.requestNumber,
+          //   storeId: store.id,
+          //   storeName: storeDoc.name,
+          //   requestedAmount: amount,
+          //   netAmount: netAmount,
+          //   status: "pending",
+          //   adminNotes: description,
+          // };
+          // await logAdminAction({
+          //   adminId: store.id, // Using store ID as adminId for store-initiated actions
+          //   adminName: storeDoc.name,
+          //   adminEmail: storeDoc.storeEmail,
+          //   adminRoles: ["store_owner" as Role], // Custom role for audit
+          //   action: AUDIT_ACTIONS.PAYOUT_PROCESSED, // Closest action
+          //   module: AUDIT_MODULES.FINANCE,
+          //   details: auditDetails,
+          // });
 
           // Commit transaction
           await session.commitTransaction();
@@ -837,7 +837,7 @@ export const withdrawalRouter = createTRPCRouter({
             adminName: admin.name,
             adminEmail: admin.email,
             adminRoles: admin.roles as Role[],
-            action: AUDIT_ACTIONS.PAYOUT_PROCESSED,
+            action: AUDIT_ACTIONS.WITHDRAWAL_TRIGGERED,
             module: AUDIT_MODULES.FINANCE,
             details: auditDetails,
           });
@@ -1040,7 +1040,7 @@ export const withdrawalRouter = createTRPCRouter({
             adminName: admin.name,
             adminEmail: admin.email,
             adminRoles: admin.roles as Role[],
-            action: AUDIT_ACTIONS.PAYOUT_REJECTED,
+            action: AUDIT_ACTIONS.WITHDRAWAL_TRIGGERED,
             module: AUDIT_MODULES.FINANCE,
             details: auditDetails,
           });

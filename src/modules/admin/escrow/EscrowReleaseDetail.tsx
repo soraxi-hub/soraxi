@@ -35,14 +35,14 @@ import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { currencyOperations, formatNaira } from "@/lib/utils/naira";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 interface EscrowReleaseDetailProps {
   subOrderId: string;
 }
 
-export default function EscrowReleaseDetail({
-  subOrderId,
-}: EscrowReleaseDetailProps) {
+export function EscrowReleaseDetail({ subOrderId }: EscrowReleaseDetailProps) {
   const trpc = useTRPC();
   const [releasing, setReleasing] = useState(false);
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
@@ -853,3 +853,7 @@ export default function EscrowReleaseDetail({
     </div>
   );
 }
+
+export default withAdminAuth(EscrowReleaseDetail, {
+  requiredPermissions: [PERMISSIONS.PROCESS_ESCROW],
+});

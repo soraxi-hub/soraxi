@@ -20,8 +20,6 @@ import mongoose from "mongoose";
  */
 export async function POST(request: NextRequest) {
   let session: mongoose.ClientSession | null = null;
-  session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     const body = await request.json();
@@ -90,6 +88,9 @@ export async function POST(request: NextRequest) {
     if (productCount >= 20) {
       throw new AppError("Store has reached the maximum product limit", 400);
     }
+
+    session = await mongoose.startSession();
+    session.startTransaction();
 
     // Helper function to get first error message
     const getFirstError = (result: any) =>

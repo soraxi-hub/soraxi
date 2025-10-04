@@ -5,16 +5,17 @@ import { getOrderModel } from "@/lib/db/models/order.model";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { checkAdminPermission } from "@/modules/admin/security/access-control";
-import {
-  logAdminAction,
-  AUDIT_ACTIONS,
-  AUDIT_MODULES,
-} from "@/modules/admin/security/audit-logger";
+// import {
+//   logAdminAction,
+//   AUDIT_ACTIONS,
+//   AUDIT_MODULES,
+// } from "@/modules/admin/security/audit-logger";
+// import { Role } from "@/modules/admin/security/roles";
 import mongoose from "mongoose";
-import { Role } from "@/modules/admin/security/roles";
 import { RawOrderDocument } from "@/types/order";
 import { formatOrderDocumentsForAdmins } from "@/lib/utils/order-formatter";
 import { getProductModel } from "@/lib/db/models/product.model";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 /**
  * Admin Orders TRPC Router
@@ -66,7 +67,7 @@ export const adminOrdersRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions to view order data.
          */
-        if (!admin || !checkAdminPermission(admin, ["view_orders"])) {
+        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ORDERS])) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Unauthorized access",
@@ -195,25 +196,25 @@ export const adminOrdersRouter = createTRPCRouter({
         /**
          * Log Admin Action
          */
-        await logAdminAction({
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles as Role[],
-          action: AUDIT_ACTIONS.ORDER_VIEWED,
-          module: AUDIT_MODULES.ORDERS,
-          details: {
-            filters: {
-              page,
-              limit,
-              fromDate: fromDateObj?.toISOString(),
-              toDate: toDateObj?.toISOString(),
-              status,
-              search,
-            },
-            resultCount: formattedOrders.length,
-          },
-        });
+        // await logAdminAction({
+        //   adminId: admin.id,
+        //   adminName: admin.name,
+        //   adminEmail: admin.email,
+        //   adminRoles: admin.roles as Role[],
+        //   action: AUDIT_ACTIONS.ORDER_VIEWED,
+        //   module: AUDIT_MODULES.ORDERS,
+        //   details: {
+        //     filters: {
+        //       page,
+        //       limit,
+        //       fromDate: fromDateObj?.toISOString(),
+        //       toDate: toDateObj?.toISOString(),
+        //       status,
+        //       search,
+        //     },
+        //     resultCount: formattedOrders.length,
+        //   },
+        // });
 
         // ==================== Response ====================
         /**

@@ -47,6 +47,8 @@ import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
 import { cx } from "class-variance-authority";
 import Image from "next/image";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 export type StoreDataProfileAdminView = inferProcedureOutput<
   AppRouter["adminStore"]["getStoreProfileAdminView"]
@@ -59,7 +61,7 @@ interface StoreAdminDashboardProps {
   onAction: (storeId: string, action: AdminAction) => Promise<void>;
 }
 
-export function StoreAdminDashboard({
+function StoreAdminDashboard({
   storeData,
   onAction,
 }: StoreAdminDashboardProps) {
@@ -484,3 +486,7 @@ export function StoreAdminDashboard({
     </div>
   );
 }
+
+export default withAdminAuth(StoreAdminDashboard, {
+  requiredPermissions: [PERMISSIONS.VERIFY_STORE, PERMISSIONS.SUSPEND_STORE],
+});

@@ -49,6 +49,7 @@ import { siteConfig } from "@/config/site";
 import axios from "axios";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
+import { PERMISSIONS } from "./security/permissions";
 
 /**
  * Admin Layout Component
@@ -85,7 +86,7 @@ const navigationItems = [
         title: "All Stores",
         url: "/admin/stores",
         icon: Store,
-        permissions: ["view_stores"],
+        permissions: [PERMISSIONS.VIEW_STORES],
       },
       // {
       //   title: "Pending Approvals",
@@ -102,7 +103,7 @@ const navigationItems = [
         title: "All Products",
         url: "/admin/products",
         icon: Package,
-        permissions: ["view_products"],
+        permissions: [PERMISSIONS.VIEW_PRODUCTS],
       },
       // {
       //   title: "Product Moderation",
@@ -119,13 +120,13 @@ const navigationItems = [
         title: "All Orders",
         url: "/admin/orders",
         icon: ShoppingCart,
-        permissions: ["view_orders"],
+        permissions: [PERMISSIONS.VIEW_ORDERS],
       },
       {
         title: "Stale Orders",
         url: "/admin/orders/stale",
         icon: ShoppingBag,
-        permissions: ["view_orders"],
+        permissions: [PERMISSIONS.VIEW_ORDERS],
       },
     ],
   },
@@ -136,7 +137,7 @@ const navigationItems = [
         title: "Escrow Release Queue",
         url: "/admin/escrow/release-queue",
         icon: Wallet,
-        permissions: ["view_settlements"],
+        permissions: [PERMISSIONS.VIEW_ESCROW],
       },
     ],
   },
@@ -147,13 +148,13 @@ const navigationItems = [
         title: "withdrawals",
         url: "/admin/finance/withdrawals",
         icon: CreditCard,
-        permissions: ["view_settlements"],
+        permissions: [PERMISSIONS.VIEW_ESCROW],
       },
       {
         title: "Refunds",
         url: "/admin/refunds/queue",
         icon: RefreshCcw,
-        permissions: ["view_settlements"],
+        permissions: [PERMISSIONS.VIEW_ESCROW],
       },
       // {
       //   title: "Financial Reports",
@@ -170,19 +171,19 @@ const navigationItems = [
         title: "Admin Users",
         url: "/admin/manage-admins",
         icon: Users,
-        permissions: ["manage_admins"],
+        permissions: [PERMISSIONS.MANAGE_ADMINS],
       },
       {
         title: "Audit Logs",
         url: "/admin/audit-logs",
         icon: FileText,
-        permissions: ["view_audit_logs"],
+        permissions: [PERMISSIONS.VIEW_AUDIT_LOGS],
       },
       {
         title: "Super Dashboard",
         url: "/admin/super-dashboard",
         icon: Bell,
-        permissions: ["super_admin_access"],
+        permissions: [PERMISSIONS.VIEW_SUPER_DASHBOARD],
       },
     ],
   },
