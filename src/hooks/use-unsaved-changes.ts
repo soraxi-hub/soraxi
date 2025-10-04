@@ -112,6 +112,7 @@ export function useUnsavedChanges<T extends Record<string, any>>({
             pendingAction();
           }
           setPendingAction(null);
+          setManualDirtyReset(false);
         }, 0);
         return;
       }
@@ -131,6 +132,7 @@ export function useUnsavedChanges<T extends Record<string, any>>({
               pendingAction();
             }
             setPendingAction(null);
+            setManualDirtyReset(false);
           }, 0);
         }
       }

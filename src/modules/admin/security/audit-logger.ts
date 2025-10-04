@@ -50,14 +50,14 @@ export const AUDIT_ACTIONS = {
   ORDER_VIEWED: "order_viewed",
   ORDER_STATUS_CHANGED: "order_status_changed",
   ORDER_CANCELLED: "order_cancelled",
+  STALED_ORDER_TRIGGERED: "staled_order_triggered",
 
   // Finance Management
-  PAYOUT_PROCESSED: "payout_processed",
-  PAYOUT_REJECTED: "payout_rejected",
+  ESCROW_PROCESSED: "escrow_processed",
+  ESCROW_REJECTED: "escrow_rejected",
   REFUND_APPROVED: "refund_approved",
   REFUND_REJECTED: "refund_rejected",
-  SETTLEMENT_TRIGGERED: "settlement_triggered",
-  FINANCIAL_REPORT_VIEWED: "financial_report_viewed",
+  WITHDRAWAL_TRIGGERED: "withdrawal_triggered",
 
   // Refund Management
   REFUND_QUEUE_VIEWED: "refund_queue_viewed",
@@ -103,7 +103,7 @@ export const AUDIT_MODULES = {
   REFUNDS: "refunds",
   USERS: "users",
   SYSTEM: "system",
-  ADMIN: "Admin",
+  ADMIN: "admin",
   AUTH: "auth",
   DASHBOARD: "dashboard",
   DELIVERIES: "deliveries",

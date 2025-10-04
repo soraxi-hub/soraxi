@@ -3,9 +3,8 @@ import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
 import { serializeData } from "@/lib/utils";
-import {
+import StoreAdminDashboard, {
   AdminAction,
-  StoreAdminDashboard,
 } from "@/modules/admin/stores/store-admin-dashboard";
 import { StoreProfileSkeleton } from "@/modules/skeletons/store-profile-skeleton";
 

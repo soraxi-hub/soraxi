@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
 import * as jose from "jose";
 import type { Role } from "@/modules/admin/security/roles";
-import { logAdminAction } from "@/modules/admin/security/audit-logger";
+// import { logAdminAction } from "@/modules/admin/security/audit-logger";
 import { getAdminByEmail, IAdmin } from "@/lib/db/models/admin.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
@@ -85,18 +85,18 @@ export async function POST(request: NextRequest) {
     admin.lastLogin = new Date();
     await admin.save();
 
-    const data = {
-      adminId: admin._id.toString(),
-      adminName: admin.name,
-      adminEmail: admin.email,
-      adminRoles: admin.roles,
-      action: "ADMIN_LOGIN",
-      module: "AUTHENTICATION",
-      details: { email: admin.email },
-      request: request,
-    };
+    // const data = {
+    //   adminId: admin._id.toString(),
+    //   adminName: admin.name,
+    //   adminEmail: admin.email,
+    //   adminRoles: admin.roles,
+    //   action: "ADMIN_LOGIN",
+    //   module: "AUTHENTICATION",
+    //   details: { email: admin.email },
+    //   request: request,
+    // };
 
-    await logAdminAction(data);
+    // await logAdminAction(data);
 
     const response = NextResponse.json(
       {

@@ -1,4 +1,4 @@
-import { RefundApprovalQueue } from "@/modules/admin/refunds/RefundApprovalQueue";
+import RefundApprovalQueue from "@/modules/admin/refunds/refund-approval-queue";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";

@@ -46,6 +46,8 @@ import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 type Status = "Canceled" | "Returned" | "Failed Delivery";
 
@@ -63,7 +65,7 @@ type Status = "Canceled" | "Returned" | "Failed Delivery";
  * - escrow.refunded === false
  */
 
-export function RefundApprovalQueue() {
+function RefundApprovalQueue() {
   const trpc = useTRPC();
   const [summary, setSummary] = useState<{
     totalPendingRefunds: number;
@@ -502,3 +504,7 @@ export function RefundApprovalQueue() {
     </div>
   );
 }
+
+export default withAdminAuth(RefundApprovalQueue, {
+  requiredPermissions: [PERMISSIONS.VIEW_REFUNDS],
+});

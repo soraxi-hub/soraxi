@@ -3,7 +3,7 @@
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
-import { OrderMonitoring } from "@/modules/admin/orders/OrderMonitoring";
+import OrderMonitoring from "@/modules/admin/orders/order-monitoring";
 
 /**
  * Admin Orders Page

@@ -29,6 +29,8 @@ import Image from "next/image";
 import { useTRPC } from "@/trpc/client";
 import { formatNaira } from "@/lib/utils/naira";
 import { useQuery } from "@tanstack/react-query";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 /**
  * Refund Detail View Component Props
@@ -55,9 +57,7 @@ interface RefundDetailViewProps {
  * perspective, providing tools for refund approval, customer communication,
  * and financial tracking.
  */
-export default function RefundDetailView({
-  subOrderId,
-}: RefundDetailViewProps) {
+function RefundDetailView({ subOrderId }: RefundDetailViewProps) {
   // ==================== State Management ====================
   const trpc = useTRPC();
 
@@ -742,3 +742,7 @@ export default function RefundDetailView({
     </div>
   );
 }
+
+export default withAdminAuth(RefundDetailView, {
+  requiredPermissions: [PERMISSIONS.PROCESS_REFUND],
+});

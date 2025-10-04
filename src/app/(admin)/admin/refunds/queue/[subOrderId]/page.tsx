@@ -1,4 +1,4 @@
-import RefundDetailView from "@/modules/admin/refunds/RefundDetailView";
+import RefundDetailView from "@/modules/admin/refunds/refund-detail-view";
 
 /**
  * Admin Refund Detail Page

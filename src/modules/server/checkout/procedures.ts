@@ -243,7 +243,7 @@ export const checkoutRouter = createTRPCRouter({
       } else {
         // Non-size-based products
         if (
-          product.productQuantity &&
+          product.productQuantity != null &&
           product.productQuantity < item.quantity
         ) {
           validationErrors.push(

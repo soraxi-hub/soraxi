@@ -20,12 +20,14 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 /**
  * Admin Dashboard Page
  * Main overview dashboard for platform administrators
  */
-export default function SuperAdminDashboardPage() {
+function SuperAdminDashboardPage() {
   // Mock admin data - replace with actual auth
   const admin = {
     id: "1",
@@ -404,3 +406,7 @@ export default function SuperAdminDashboardPage() {
     </div>
   );
 }
+
+export default withAdminAuth(SuperAdminDashboardPage, {
+  requiredPermissions: [PERMISSIONS.VIEW_SUPER_DASHBOARD],
+});

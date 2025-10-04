@@ -56,6 +56,8 @@ import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import Image from "next/image";
 import { DeliveryType } from "@/enums";
 import { campusLocations } from "@/modules/checkout/order-summary";
+import { withAdminAuth } from "@/modules/auth/with-admin-auth";
+import { PERMISSIONS } from "../security/permissions";
 
 /**
  * Order Monitoring Component
@@ -64,7 +66,7 @@ import { campusLocations } from "@/modules/checkout/order-summary";
 type Output = inferProcedureOutput<AppRouter["adminOrders"]["listOrders"]>;
 type OrderData = Output["orders"][number];
 
-export function OrderMonitoring() {
+function OrderMonitoring() {
   const trpc = useTRPC();
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
@@ -649,3 +651,7 @@ export function OrderMonitoring() {
     </div>
   );
 }
+
+export default withAdminAuth(OrderMonitoring, {
+  requiredPermissions: [PERMISSIONS.VIEW_ORDERS],
+});

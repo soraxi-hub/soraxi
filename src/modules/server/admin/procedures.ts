@@ -8,6 +8,7 @@ import {
   RawProductDocument,
 } from "@/modules/admin/product-formatter";
 import { ProductStatusEnum } from "@/validators/product-validators";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 const ProductStatusWithAll = {
   ...ProductStatusEnum,
@@ -29,6 +30,7 @@ export const adminRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const { status, category, search, page, limit } = input;
       const Product = await getProductModel();
+      await getStoreModel();
 
       const query: any = {};
       if (status && status !== "all") query.status = status;

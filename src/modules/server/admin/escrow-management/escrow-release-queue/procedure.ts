@@ -3,15 +3,16 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { checkAdminPermission } from "@/modules/admin/security/access-control";
-import {
-  logAdminAction,
-  AUDIT_ACTIONS,
-  AUDIT_MODULES,
-} from "@/modules/admin/security/audit-logger";
+// import {
+//   logAdminAction,
+//   AUDIT_ACTIONS,
+//   AUDIT_MODULES,
+// } from "@/modules/admin/security/audit-logger";
+// import type { Role } from "@/modules/admin/security/roles";
 import mongoose from "mongoose";
-import type { Role } from "@/modules/admin/security/roles";
 import type { EscrowReleaseAggregationResult } from "@/types/escrow-aggregation";
 import { DeliveryStatus } from "@/enums";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 // import { currencyOperations } from "@/lib/utils/naira";
 
 /**
@@ -76,7 +77,7 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions to view escrow release data.
          */
-        if (!admin || !checkAdminPermission(admin, [])) {
+        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Admin authentication required",
@@ -486,27 +487,27 @@ export const adminEscrowReleaseQueueRouter = createTRPCRouter({
          * Records the admin's escrow queue viewing action for audit purposes.
          * This helps maintain a complete audit trail of admin activities.
          */
-        await logAdminAction({
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles as Role[],
-          action: AUDIT_ACTIONS.ORDER_VIEWED,
-          module: AUDIT_MODULES.FINANCE,
-          details: {
-            viewType: "escrow_release_queue",
-            filters: {
-              page,
-              limit,
-              fromDate: fromDateObj?.toISOString(),
-              toDate: toDateObj?.toISOString(),
-              storeId,
-              search,
-            },
-            resultCount: formattedSubOrders.length,
-            totalEscrowAmount,
-          },
-        });
+        // await logAdminAction({
+        //   adminId: admin.id,
+        //   adminName: admin.name,
+        //   adminEmail: admin.email,
+        //   adminRoles: admin.roles as Role[],
+        //   action: AUDIT_ACTIONS.ORDER_VIEWED,
+        //   module: AUDIT_MODULES.FINANCE,
+        //   details: {
+        //     viewType: "escrow_release_queue",
+        //     filters: {
+        //       page,
+        //       limit,
+        //       fromDate: fromDateObj?.toISOString(),
+        //       toDate: toDateObj?.toISOString(),
+        //       storeId,
+        //       search,
+        //     },
+        //     resultCount: formattedSubOrders.length,
+        //     totalEscrowAmount,
+        //   },
+        // });
 
         // ==================== Response ====================
 

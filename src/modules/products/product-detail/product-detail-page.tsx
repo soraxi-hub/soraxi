@@ -61,7 +61,7 @@ export function ProductDetailPage({
 
             <BreadcrumbSeparator />
 
-            {product.category && (
+            {product.category?.length ? (
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink
@@ -70,8 +70,7 @@ export function ProductDetailPage({
                     {product.category[0]}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-
-                {product.subCategory && product.subCategory[0] && (
+                {product.subCategory?.length ? (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -84,9 +83,9 @@ export function ProductDetailPage({
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                   </>
-                )}
+                ) : null}
               </>
-            )}
+            ) : null}
 
             <BreadcrumbSeparator />
 

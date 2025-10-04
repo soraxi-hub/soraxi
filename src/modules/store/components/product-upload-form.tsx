@@ -439,7 +439,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     setFormData((prev) => ({
       ...prev,
       category: [value],
-      subCategory: [""],
+      subCategory: [],
     }));
   };
 

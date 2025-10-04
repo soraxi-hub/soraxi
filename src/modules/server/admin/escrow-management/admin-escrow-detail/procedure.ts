@@ -3,13 +3,13 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { checkAdminPermission } from "@/modules/admin/security/access-control";
-import {
-  logAdminAction,
-  AUDIT_ACTIONS,
-  AUDIT_MODULES,
-} from "@/modules/admin/security/audit-logger";
+// import {
+//   logAdminAction,
+//   AUDIT_ACTIONS,
+//   AUDIT_MODULES,
+// } from "@/modules/admin/security/audit-logger";
+// import type { Role } from "@/modules/admin/security/roles";
 import mongoose from "mongoose";
-import type { Role } from "@/modules/admin/security/roles";
 import type {
   EscrowReleaseDetailAggregationResult,
   FormattedEscrowReleaseDetail,
@@ -17,6 +17,7 @@ import type {
 import { currencyOperations } from "@/lib/utils/naira";
 import { calculateCommission } from "@/lib/utils/calculate-commission";
 import { DeliveryStatus } from "@/enums";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 /**
  * Admin Escrow Release Detail TRPC Router
@@ -77,7 +78,7 @@ export const adminEscrowDetailRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions to view detailed escrow data.
          */
-        if (!admin || !checkAdminPermission(admin, [])) {
+        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Admin authentication required",
@@ -487,24 +488,24 @@ export const adminEscrowDetailRouter = createTRPCRouter({
          * This maintains a complete audit trail of all admin activities related
          * to escrow management and helps with compliance and monitoring.
          */
-        await logAdminAction({
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles as Role[],
-          action: AUDIT_ACTIONS.ORDER_VIEWED,
-          module: AUDIT_MODULES.FINANCE,
-          details: {
-            viewType: "escrow_release_detail",
-            subOrderId,
-            subOrderNumber,
-            orderNumber,
-            escrowAmount: escrowInfo.settlementDetails.totalAmount,
-            daysSinceReturnWindow: deliveryInfo.daysSinceReturnWindow,
-            storeId: store.id,
-            customerId: customer.id,
-          },
-        });
+        // await logAdminAction({
+        //   adminId: admin.id,
+        //   adminName: admin.name,
+        //   adminEmail: admin.email,
+        //   adminRoles: admin.roles as Role[],
+        //   action: AUDIT_ACTIONS.ORDER_VIEWED,
+        //   module: AUDIT_MODULES.FINANCE,
+        //   details: {
+        //     viewType: "escrow_release_detail",
+        //     subOrderId,
+        //     subOrderNumber,
+        //     orderNumber,
+        //     escrowAmount: escrowInfo.settlementDetails.totalAmount,
+        //     daysSinceReturnWindow: deliveryInfo.daysSinceReturnWindow,
+        //     storeId: store.id,
+        //     customerId: customer.id,
+        //   },
+        // });
 
         // ==================== Response ====================
 

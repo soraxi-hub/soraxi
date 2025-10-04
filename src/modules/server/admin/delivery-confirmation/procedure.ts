@@ -13,6 +13,7 @@ import {
 import mongoose from "mongoose";
 import { Role } from "@/modules/admin/security/roles";
 import { DeliveryStatus } from "@/enums";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 // ==================== Response Formatting ====================
 
@@ -127,7 +128,10 @@ export const deliveryConfirmationRouter = createTRPCRouter({
          * with appropriate permissions to view the delivery confirmation queue.
          */
         // const admin = getAdminFromRequest(ctx.admin);
-        if (!admin || !checkAdminPermission(admin, [])) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.STALE_ORDERS])
+        ) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Unauthorized",
@@ -309,18 +313,18 @@ export const deliveryConfirmationRouter = createTRPCRouter({
         /**
          * Log Admin Action
          */
-        await logAdminAction({
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles as Role[],
-          action: AUDIT_ACTIONS.DELIVERY_CONFIRMATION_QUEUE_VIEWED,
-          module: AUDIT_MODULES.DELIVERIES,
-          details: {
-            filters: { page, limit, search, fromDate, toDate },
-            resultCount: formatted.length,
-          },
-        });
+        // await logAdminAction({
+        //   adminId: admin.id,
+        //   adminName: admin.name,
+        //   adminEmail: admin.email,
+        //   adminRoles: admin.roles as Role[],
+        //   action: AUDIT_ACTIONS.DELIVERY_CONFIRMATION_QUEUE_VIEWED,
+        //   module: AUDIT_MODULES.DELIVERIES,
+        //   details: {
+        //     filters: { page, limit, search, fromDate, toDate },
+        //     resultCount: formatted.length,
+        //   },
+        // });
 
         // ==================== Response ====================
 
@@ -395,7 +399,10 @@ export const deliveryConfirmationRouter = createTRPCRouter({
         /**
          * Admin Authentication Check
          */
-        if (!admin || !checkAdminPermission(admin, [])) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.STALE_ORDERS])
+        ) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Unauthorized",

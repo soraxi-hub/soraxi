@@ -1,4 +1,4 @@
-import { DeliveryConfirmationQueue } from "@/modules/admin/deliveries/delivery-confirmation-queue";
+import DeliveryConfirmationQueue from "@/modules/admin/deliveries/delivery-confirmation-queue";
 
 export const dynamic = "force-dynamic";
 

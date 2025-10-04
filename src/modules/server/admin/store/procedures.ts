@@ -15,6 +15,7 @@ import {
 } from "@/modules/admin/security/audit-logger";
 import { sendMail } from "@/services/mail.service";
 import { StoreStatusEnum } from "@/validators/store-validators";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 export const adminStoreRouter = createTRPCRouter({
   listStores: baseProcedure
@@ -121,7 +122,14 @@ export const adminStoreRouter = createTRPCRouter({
        * Verifies that the request is coming from an authenticated admin user
        * with appropriate permissions.
        */
-      if (!admin || !checkAdminPermission(admin, [])) {
+      if (
+        !admin ||
+        !checkAdminPermission(admin, [
+          PERMISSIONS.SUSPEND_STORE,
+          PERMISSIONS.VERIFY_STORE,
+          PERMISSIONS.REJECT_STORE,
+        ])
+      ) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "Admin authentication required",
