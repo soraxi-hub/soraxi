@@ -1,4 +1,4 @@
-import { PublicUser } from "@/domain/users/eal";
+import { PublicUser } from "@/domain/users/user";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
 
 export class UserRepository {
