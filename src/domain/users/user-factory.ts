@@ -1,6 +1,6 @@
 import { IUser } from "@/lib/db/models/user.model";
-import { AuthUser, PublicUser } from "./user";
-import { Admin } from "./admin";
+import { AuthUser, PublicUser } from "@/domain/users/user";
+import { Admin } from "@/domain/users/admin";
 
 export class UserFactory {
   static async createPublicUser(props: {
