@@ -1,4 +1,4 @@
-import { User } from "./user";
+import { User } from "./eal";
 
 export class Admin extends User {
   constructor(
