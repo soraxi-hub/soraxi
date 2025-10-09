@@ -80,22 +80,29 @@ export async function POST(request: Request) {
   const requestBody = await request.json();
   const headers = request.headers;
   const secretHash = process.env.FLUTTERWAVE_SECRET_HASH_KEY;
-
-  // Step 1: Verify webhook signature
-  const signature = headers.get("verif-hash");
-  if (!signature || signature !== secretHash) {
-    return NextResponse.json(
-      { message: "This request isn't from Flutterwave" },
-      { status: 401 }
-    );
-  }
-
-  await connectToDatabase();
   let session: mongoose.ClientSession | null = null;
+  await connectToDatabase();
   session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    if (!secretHash) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required FLUTTERWAVE environment variables"
+      );
+    }
+
+    // Step 1: Verify webhook signature
+    const signature = headers.get("verif-hash");
+
+    if (!signature || signature !== secretHash) {
+      return NextResponse.json(
+        { message: "This request isn't from Flutterwave" },
+        { status: 401 }
+      );
+    }
+
     const transactionId: number = requestBody?.id || requestBody?.data?.id;
     if (!transactionId) {
       return NextResponse.json(
@@ -225,6 +232,13 @@ export async function POST(request: Request) {
 async function verifyTransaction(
   transactionId: number
 ): Promise<FlutterwaveVerifyResponse | null> {
+  if (!process.env.FLUTTERWAVE_SECRET_KEY || !process.env.FLUTTERWAVE_API_URL) {
+    console.error("Missing required environment variables");
+    throw new Error(
+      "Server configuration error: Missing required FLUTTERWAVE environment variables"
+    );
+  }
+
   const res = await fetch(
     `${
       process.env.FLUTTERWAVE_API_URL || "https://api.flutterwave.com/v3"

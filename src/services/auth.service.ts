@@ -1,5 +1,5 @@
-import { AuthUser, User } from "@/domain/users/User";
-import { UserFactory } from "@/domain/users/UserFactory";
+import { AuthUser, User } from "@/domain/users/user";
+import { UserFactory } from "@/domain/users/user-factory";
 import { AppError } from "@/lib/errors/app-error";
 import { UserRepository } from "@/repositories/user-repo";
 

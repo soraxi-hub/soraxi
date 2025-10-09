@@ -41,6 +41,13 @@ export const getUserDataFromToken = (
 
     if (!encodedToken) throw new Error("No token found");
 
+    if (!process.env.JWT_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required JWT environment variables"
+      );
+    }
+
     const decodedToken = jwt.verify(
       encodedToken,
       process.env.JWT_SECRET_KEY as string

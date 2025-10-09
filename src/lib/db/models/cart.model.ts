@@ -116,7 +116,7 @@ export async function getCartByUserId(
   const Cart = await getCartModel();
 
   return lean
-    ? Cart.findOne<ICart>({ userId: userId }).lean()
+    ? Cart.findOne<ICart>({ userId: userId }).lean<ICart>()
     : Cart.findOne<ICart>({ userId: userId });
 }
 
@@ -134,7 +134,9 @@ export async function getCartById(
   await connectToDatabase();
   const Cart = await getCartModel();
 
-  return lean ? Cart.findById<ICart>(id).lean() : Cart.findById<ICart>(id);
+  return lean
+    ? Cart.findById<ICart>(id).lean<ICart>()
+    : Cart.findById<ICart>(id);
 }
 
 /**

@@ -3,6 +3,20 @@ import { v2 as cloudinary } from "cloudinary";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 
 export async function POST() {
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    console.error("Missing required environment variables");
+    return NextResponse.json(
+      {
+        error:
+          "Server configuration error: Missing required Cloudinary environment variables",
+      },
+      { status: 500 }
+    );
+  }
   try {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

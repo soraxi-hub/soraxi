@@ -21,14 +21,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import {
-  productCategory,
-  productDescription,
-  productName,
-  productPrice,
-  productQuantity,
-  productSpecifications,
-  productStorePassword,
-  productSubCategory,
+  ProductFormData,
   ProductTypeEnum,
 } from "@/validators/product-validators";
 import {
@@ -63,24 +56,11 @@ import { Separator } from "@/components/ui/separator";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-const MIN_IMAGE_NUMBER = 3;
-const MAX_IMAGE_NUMBER = 5;
+import { ProductFactory } from "@/domain/products/product-factory";
+import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
 
 interface ProductUploadFormProps {
   storeId: string;
-}
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  specifications: string;
-  price: number;
-  productQuantity: number;
-  category: string[];
-  subCategory: string[];
-  storePassword: string;
-  productType: string;
 }
 
 // Initial form state for comparison
@@ -143,7 +123,14 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     currentData: formData,
     additionalDirtyCheck: imageFiles.length > 0,
     onSaveBeforeLeave: async () => {
-      if (!validateForm("draft")) {
+      const productToUpload = ProductFactory.creatUploadProduct(formData);
+      const productValidationResult = productToUpload.validate(
+        "draft",
+        imageFiles.length
+      );
+
+      if (!productValidationResult.hasErrors) {
+        setErrors(productValidationResult.newErrors);
         toast.error("Cannot save draft: Please fix validation errors");
         return false;
       }
@@ -158,9 +145,11 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           storeId,
           images: imageUrls,
           category:
-            formData.category.length > 0 ? slugify(formData.category) : [],
+            formData.category && formData.category.length > 0
+              ? slugify(formData.category)
+              : [],
           subCategory:
-            formData.subCategory.length > 0
+            formData.subCategory && formData.subCategory.length > 0
               ? slugify(formData.subCategory)
               : [],
           submitAction: "draft" as const,
@@ -255,7 +244,15 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   ) => {
     e.preventDefault();
 
-    if (!validateForm(action)) {
+    const productToUpload = ProductFactory.creatUploadProduct(formData);
+    console.log("productToUpload", productToUpload);
+    const productValidationResult = productToUpload.validate(
+      action,
+      imageFiles.length
+    );
+
+    if (!productValidationResult.hasErrors) {
+      setErrors(productValidationResult.newErrors);
       return;
     }
 
@@ -271,9 +268,11 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           storeId,
           images: imageUrls,
           category:
-            formData.category.length > 0 ? slugify(formData.category) : [],
+            formData.category && formData.category.length > 0
+              ? slugify(formData.category)
+              : [],
           subCategory:
-            formData.subCategory.length > 0
+            formData.subCategory && formData.subCategory.length > 0
               ? slugify(formData.subCategory)
               : [],
           submitAction: action,
@@ -341,7 +340,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           category: [],
           subCategory: [],
           storePassword: "",
-          productType: "product",
+          productType: ProductTypeEnum.Product,
         });
         setSelectedCategory("");
         setSelectedSubCategory("");
@@ -449,171 +448,6 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
       ...prev,
       subCategory: [value],
     }));
-  };
-
-  // ============================================================================
-  // VALIDATION FUNCTION
-  // ============================================================================
-
-  const validateForm = (action: "draft" | "publish"): boolean => {
-    const newErrors: Partial<Record<keyof ProductFormData, string>> & {
-      images?: string;
-    } = {};
-
-    // Helper function to get first error message
-    const getFirstError = (result: any) =>
-      result.error?.errors[0]?.message || "Validation failed";
-
-    // Validate all fields that have values (for both draft and publish)
-    const nameResult = productName.safeParse(formData.name);
-    if (!nameResult.success) {
-      newErrors.name = getFirstError(nameResult);
-    }
-
-    if (!formData.storePassword) {
-      newErrors.storePassword =
-        "Authorization required: Please enter your store password";
-    } else if (formData.storePassword.length < 4) {
-      newErrors.storePassword = "Please enter a valid store password";
-    }
-
-    if (formData.description && formData.description !== "") {
-      const descriptionResult = productDescription.safeParse(
-        formData.description
-      );
-      if (!descriptionResult.success) {
-        newErrors.description = getFirstError(descriptionResult);
-      }
-    }
-
-    if (formData.specifications && formData.specifications !== "") {
-      const specificationsResult = productSpecifications.safeParse(
-        formData.specifications
-      );
-      if (!specificationsResult.success) {
-        newErrors.specifications = getFirstError(specificationsResult);
-      }
-    }
-
-    if (formData.price !== undefined && formData.price !== 0) {
-      const priceResult = productPrice.safeParse(formData.price);
-      if (!priceResult.success) {
-        newErrors.price = getFirstError(priceResult);
-      }
-    }
-
-    if (
-      formData.productQuantity !== undefined &&
-      formData.productQuantity !== 0
-    ) {
-      const quantityResult = productQuantity.safeParse(
-        formData.productQuantity
-      );
-      if (!quantityResult.success) {
-        newErrors.productQuantity = getFirstError(quantityResult);
-      }
-    }
-
-    if (formData.category.length > 0) {
-      const categoryResult = productCategory.safeParse(formData.category);
-      if (!categoryResult.success) {
-        newErrors.category = getFirstError(categoryResult);
-      }
-    }
-
-    if (formData.subCategory.length > 0) {
-      const subCategoryResult = productSubCategory.safeParse(
-        formData.subCategory
-      );
-      if (!subCategoryResult.success) {
-        newErrors.subCategory = getFirstError(subCategoryResult);
-      }
-    }
-
-    // Publish-specific validations - all fields are required and must pass validation
-    if (action === "publish") {
-      // Required fields validation (all fields must be present and valid)
-      const requiredValidations = {
-        name: productName.safeParse(formData.name),
-        description: productDescription.safeParse(formData.description),
-        specifications: productSpecifications.safeParse(
-          formData.specifications
-        ),
-        price: productPrice.safeParse(formData.price),
-        productQuantity: productQuantity.safeParse(formData.productQuantity),
-        category: productCategory.safeParse(formData.category),
-        subCategory: productSubCategory.safeParse(formData.subCategory),
-        storePassword: productStorePassword.safeParse(formData.storePassword),
-      };
-
-      // Check if any required field is missing
-      if (!formData.name) newErrors.name = "Product name is required";
-      if (!formData.description)
-        newErrors.description = "Product description is required";
-      if (!formData.specifications)
-        newErrors.specifications = "Product specifications are required";
-      if (!formData.price) newErrors.price = "Price is required";
-      if (formData.productQuantity === undefined)
-        newErrors.productQuantity = "Quantity is required";
-      if (formData.category.length === 0)
-        newErrors.category = "Category is required";
-      if (formData.subCategory.length === 0)
-        newErrors.subCategory = "Subcategory is required";
-      if (!formData.storePassword)
-        newErrors.storePassword = "Store password is required";
-
-      // Override with validation errors if fields exist but are invalid
-      if (!newErrors.name && !requiredValidations.name.success) {
-        newErrors.name = getFirstError(requiredValidations.name);
-      }
-      if (!newErrors.description && !requiredValidations.description.success) {
-        newErrors.description = getFirstError(requiredValidations.description);
-      }
-      if (
-        !newErrors.specifications &&
-        !requiredValidations.specifications.success
-      ) {
-        newErrors.specifications = getFirstError(
-          requiredValidations.specifications
-        );
-      }
-      if (!newErrors.price && !requiredValidations.price.success) {
-        newErrors.price = getFirstError(requiredValidations.price);
-      }
-      if (
-        !newErrors.productQuantity &&
-        !requiredValidations.productQuantity.success
-      ) {
-        newErrors.productQuantity = getFirstError(
-          requiredValidations.productQuantity
-        );
-      }
-      if (!newErrors.category && !requiredValidations.category.success) {
-        newErrors.category = getFirstError(requiredValidations.category);
-      }
-      if (!newErrors.subCategory && !requiredValidations.subCategory.success) {
-        newErrors.subCategory = getFirstError(requiredValidations.subCategory);
-      }
-      if (
-        !newErrors.storePassword &&
-        !requiredValidations.storePassword.success
-      ) {
-        newErrors.storePassword = getFirstError(
-          requiredValidations.storePassword
-        );
-      }
-
-      // Image validation for publish
-      if (imageFiles.length < MIN_IMAGE_NUMBER) {
-        newErrors.images = `Please select at least ${MIN_IMAGE_NUMBER} product images`;
-        toast.error(
-          `Please select at least ${MIN_IMAGE_NUMBER} product images`
-        );
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // ============================================================================
@@ -939,7 +773,9 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                     <Input
                       id="product-price"
                       value={
-                        formData.price === 0 ? "" : formData.price.toString()
+                        formData.price === 0
+                          ? ""
+                          : formData.price && formData.price.toString()
                       }
                       onChange={(e) => {
                         const value = e.target.value;
@@ -961,7 +797,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                         {errors.price}
                       </p>
                     )}
-                    {formData.price > 0 && (
+                    {formData.price && formData.price > 0 && (
                       <p className="text-xs text-green-600">
                         ₦
                         {formData.price.toLocaleString("en-NG", {
@@ -987,7 +823,8 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                       value={
                         formData.productQuantity === 0
                           ? ""
-                          : formData.productQuantity.toString()
+                          : formData.productQuantity &&
+                            formData.productQuantity.toString()
                       }
                       onChange={(e) => {
                         const value = e.target.value;
@@ -1007,11 +844,12 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                         {errors.productQuantity}
                       </p>
                     )}
-                    {formData.productQuantity > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {formData.productQuantity} units in stock
-                      </Badge>
-                    )}
+                    {formData.productQuantity &&
+                      formData.productQuantity > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {formData.productQuantity} units in stock
+                        </Badge>
+                      )}
                   </div>
                 </div>
               </CardContent>

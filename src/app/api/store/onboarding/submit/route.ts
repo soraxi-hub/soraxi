@@ -54,6 +54,13 @@ interface PostBody {
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables"
+      );
+    }
+
     // Check authentication
     const userData = await getUserDataFromToken(request);
     if (!userData) {
@@ -220,7 +227,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Send notification email to admins about new store submission
-      const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL!;
+      const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;
       const storeEmail = store.storeEmail;
 
       // Admin notification

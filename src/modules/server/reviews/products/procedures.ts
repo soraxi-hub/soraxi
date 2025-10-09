@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { getProductReviewModel } from "@/lib/db/models/product-review.model";
 import { IUser } from "@/lib/db/models/user.model";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 type PopulatedUser = Pick<IUser, "firstName" | "email" | "lastName">;
 
@@ -39,7 +40,7 @@ export const productReviewRouter = createTRPCRouter({
 
       const product = await Product.findById(productId).select("productType");
       if (product) {
-        productType = "Product";
+        productType = ProductTypeEnum.Product;
       }
 
       if (!productType) {

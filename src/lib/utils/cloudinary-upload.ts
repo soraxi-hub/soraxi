@@ -14,12 +14,20 @@ import { handleApiError } from "./handle-api-error";
  * @returns Promise<string[]> - Array of Cloudinary secure URLs.
  */
 export const uploadImagesToCloudinary = async (images: File[]) => {
-  // If no files were passed in, return an empty array immediately.
-  if (images.length < 1) {
-    return [];
-  }
-
   try {
+    if (
+      !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+      !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY
+    ) {
+      console.error("Missing required environment variables");
+      throw new Error("Missing required environment variables");
+    }
+
+    // If no files were passed in, return an empty array immediately.
+    if (images.length < 1) {
+      return [];
+    }
+
     // Request upload credentials (timestamp + signature) from the backend.
     // This ensures uploads are securely signed server-side.
     const {
@@ -34,7 +42,7 @@ export const uploadImagesToCloudinary = async (images: File[]) => {
     for (const image of images) {
       const formData = new FormData();
       formData.append("file", image);
-      formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+      formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
       formData.append("timestamp", timestamp);
       formData.append("signature", signature);
 

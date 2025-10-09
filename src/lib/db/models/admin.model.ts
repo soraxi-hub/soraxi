@@ -97,7 +97,9 @@ export async function getAdminByEmail(
   await connectToDatabase();
   const Admin = await getAdminModel();
 
-  return lean ? Admin.findOne({ email }).lean() : Admin.findOne({ email });
+  return lean
+    ? Admin.findOne({ email }).lean<IAdmin>()
+    : Admin.findOne({ email });
 }
 
 /**
@@ -113,7 +115,7 @@ export async function getAdminById(
   await connectToDatabase();
   const Admin = await getAdminModel();
 
-  return lean ? Admin.findById(id).lean() : Admin.findById(id);
+  return lean ? Admin.findById(id).lean<IAdmin>() : Admin.findById(id);
 }
 
 /**
@@ -126,6 +128,6 @@ export async function getAllAdmins(lean = false): Promise<IAdmin[] | null> {
   const Admin = await getAdminModel();
 
   return lean
-    ? Admin.find().select("-password").sort({ name: 1 }).lean()
+    ? Admin.find().select("-password").sort({ name: 1 }).lean<IAdmin[]>()
     : Admin.find();
 }

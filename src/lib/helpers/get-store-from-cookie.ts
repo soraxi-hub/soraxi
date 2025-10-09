@@ -19,11 +19,18 @@ export async function getStoreFromCookie(): Promise<StoreTokenData | null> {
     const cookieStore = await cookies();
     const token = cookieStore.get("store")?.value;
 
+    if (!process.env.JWT_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required JWT environment variables"
+      );
+    }
+
     if (!token) return null;
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET_KEY!
+      process.env.JWT_SECRET_KEY
     ) as StoreTokenData;
 
     const isValid =

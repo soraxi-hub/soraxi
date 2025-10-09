@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { Role } from "@/modules/admin/security/roles";
+import { AppError } from "../errors/app-error";
 
 export interface AdminTokenData {
   id: string;
@@ -31,6 +32,13 @@ export interface AdminUser {
  */
 export async function getAdminFromCookie(): Promise<AdminTokenData | null> {
   try {
+    if (!process.env.JWT_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new AppError(
+        "Server configuration error: Missing required JWT environment variables",
+        500
+      );
+    }
     const cookieStore = await cookies();
     const token = cookieStore.get("adminToken")?.value;
 
@@ -38,7 +46,7 @@ export async function getAdminFromCookie(): Promise<AdminTokenData | null> {
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET_KEY!
+      process.env.JWT_SECRET_KEY
     ) as AdminTokenData;
 
     const isValid =

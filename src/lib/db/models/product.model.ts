@@ -2,14 +2,17 @@ import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import slugify from "slugify";
 import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
-import { ProductStatusEnum } from "@/validators/product-validators";
+import {
+  ProductStatusEnum,
+  ProductTypeEnum,
+} from "@/validators/product-validators";
 
 /**
  * Interface for Product document
  */
 export interface IProduct extends Document {
   storeId: mongoose.Types.ObjectId;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
   name: string;
   price?: number;
   sizes?: {
@@ -43,8 +46,8 @@ const ProductSchema = new Schema<IProduct>(
     },
     productType: {
       type: String,
-      enum: ["Product", "digitalproducts"],
-      default: "Product",
+      enum: Object.values(ProductTypeEnum),
+      default: ProductTypeEnum.Product,
       required: [true, "Product type is required"],
     },
     name: {
@@ -85,7 +88,6 @@ const ProductSchema = new Schema<IProduct>(
       required: function () {
         return this.status !== ProductStatusEnum.Draft;
       },
-      index: true,
     },
     specifications: {
       type: String,
@@ -264,7 +266,7 @@ export async function getProducts(
 export async function getProductBySlug(slug: string): Promise<IProduct | null> {
   await connectToDatabase();
   const Product = await getProductModel();
-  return Product.findOne({ slug }).lean();
+  return Product.findOne({ slug }).lean<IProduct>();
 }
 
 export async function getProductById(id: string): Promise<IProduct | null> {

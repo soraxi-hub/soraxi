@@ -64,9 +64,15 @@ export async function POST(req: Request) {
 `;
 
   try {
+    if (!process.env.SORAXI_SUPPORT_EMAIL) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables"
+      );
+    }
     // send email to support team
     await sendMail({
-      email: process.env.SORAXI_SUPPORT_EMAIL!,
+      email: process.env.SORAXI_SUPPORT_EMAIL,
       emailType: "supportNotification",
       fromAddress: "support@soraxihub.com",
       subject: `[Support Form] New message from ${name} (Ticket: ${ticketId})`,
@@ -89,10 +95,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, ticketId });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     return NextResponse.json(
-      { error: "Failed to send emails" },
+      { error: err.message || "Failed to send emails" },
       { status: 500 }
     );
   }

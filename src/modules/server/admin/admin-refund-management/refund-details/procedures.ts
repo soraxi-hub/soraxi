@@ -3,12 +3,12 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-// import {
-//   logAdminAction,
-//   AUDIT_ACTIONS,
-//   AUDIT_MODULES,
-// } from "@/modules/admin/security/audit-logger";
-// import type { Role } from "@/modules/admin/security/roles";
+import {
+  logAdminAction,
+  AUDIT_ACTIONS,
+  AUDIT_MODULES,
+} from "@/modules/admin/security/audit-logger";
+import type { Role } from "@/modules/admin/security/roles";
 import { GetRefundItemDetailOutputSchema } from "@/types/admin-refund-types";
 
 export const adminRefundDetailRouter = createTRPCRouter({
@@ -319,21 +319,21 @@ export const adminRefundDetailRouter = createTRPCRouter({
          *
          * Records the admin's detailed view action for audit purposes.
          */
-        // await logAdminAction({
-        //   adminId: ctx.admin.id,
-        //   adminName: ctx.admin.name,
-        //   adminEmail: ctx.admin.email,
-        //   adminRoles: ctx.admin.roles as Role[],
-        //   action: AUDIT_ACTIONS.REFUND_DETAIL_VIEWED,
-        //   module: AUDIT_MODULES.REFUNDS,
-        //   details: {
-        //     subOrderId: input.subOrderId,
-        //     orderId: orderData._id.toString(),
-        //     orderNumber: orderData.orderNumber,
-        //     refundAmount: orderData.subOrder.totalAmount,
-        //     deliveryStatus: orderData.subOrder.deliveryStatus,
-        //   },
-        // });
+        await logAdminAction({
+          adminId: ctx.admin.id,
+          adminName: ctx.admin.name,
+          adminEmail: ctx.admin.email,
+          adminRoles: ctx.admin.roles as Role[],
+          action: AUDIT_ACTIONS.REFUND_DETAIL_VIEWED,
+          module: AUDIT_MODULES.REFUNDS,
+          details: {
+            subOrderId: input.subOrderId,
+            orderId: orderData._id.toString(),
+            orderNumber: orderData.orderNumber,
+            refundAmount: orderData.subOrder.totalAmount,
+            deliveryStatus: orderData.subOrder.deliveryStatus,
+          },
+        });
 
         // ==================== Response ====================
 

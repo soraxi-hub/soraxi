@@ -20,25 +20,31 @@ interface NotificationItem {
 export async function POST(request: Request) {
   const requestBody = await request.json();
   const headers = request.headers;
-  const secret = process.env.PAYSTACK_SECRET_KEY!;
-
-  // ✅ Step 1: Verify webhook signature
-  const hash = crypto
-    .createHmac("sha512", secret)
-    .update(JSON.stringify(requestBody))
-    .digest("hex");
-  const signature = headers.get("x-paystack-signature");
-
-  if (hash !== signature) {
-    return NextResponse.json(
-      { message: "This request isn't from Paystack" },
-      { status: 401 }
-    );
-  }
-
+  const secret = process.env.PAYSTACK_SECRET_KEY;
   let session: mongoose.ClientSession | null = null;
 
   try {
+    if (!secret) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required PAYSTACK environment variables"
+      );
+    }
+
+    // ✅ Step 1: Verify webhook signature
+    const hash = crypto
+      .createHmac("sha512", secret)
+      .update(JSON.stringify(requestBody))
+      .digest("hex");
+    const signature = headers.get("x-paystack-signature");
+
+    if (hash !== signature) {
+      return NextResponse.json(
+        { message: "This request isn't from Paystack" },
+        { status: 401 }
+      );
+    }
+
     const transactionReference = requestBody.data.reference;
 
     // ✅ Step 2: Verify transaction

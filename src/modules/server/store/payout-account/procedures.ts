@@ -67,6 +67,15 @@ export const paymentRouter = createTRPCRouter({
   }),
 
   getBanks: baseProcedure.query(async () => {
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Server configuration error: Missing required PAYSTACK environment variables",
+      });
+    }
+
     const url = "https://api.paystack.co/bank";
     const response = await fetch(url, {
       method: "GET",

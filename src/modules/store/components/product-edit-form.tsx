@@ -47,24 +47,14 @@ import { AppRouter } from "@/trpc/routers/_app";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  productName,
-  productDescription,
-  productSpecifications,
-  productPrice,
-  productQuantity,
-  productCategory,
-  productSubCategory,
-  ProductStatusEnum,
-} from "@/validators/product-validators";
+import { ProductStatusEnum } from "@/validators/product-validators";
+import { ProductFactory } from "@/domain/products/product-factory";
+import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
 
 type Output = inferProcedureOutput<
   AppRouter["storeProducts"]["getStoreProductById"]
 >;
 type ProductData = Output["product"];
-
-const MIN_IMAGE_NUMBER = 3;
-const MAX_IMAGE_NUMBER = 5;
 
 type ProductFormData = Pick<
   ProductData,
@@ -79,6 +69,7 @@ type ProductFormData = Pick<
   | "subCategory"
   | "status"
   | "productQuantity"
+  | "productType"
 > & {
   storePassword: string;
 };
@@ -101,6 +92,7 @@ export function ProductEditForm({
   const router = useRouter();
   const [resError, setError] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(() => {
     const categorySlug = initialProductData?.category?.[0];
@@ -144,6 +136,7 @@ export function ProductEditForm({
     subCategory: initialProductData.subCategory || [],
     storePassword: "",
     firstApprovedAt: initialProductData.firstApprovedAt,
+    productType: initialProductData.productType,
   });
 
   const [errors, setErrors] = useState<
@@ -198,155 +191,6 @@ export function ProductEditForm({
         [field]: undefined,
       }));
     }
-  };
-
-  const validateForm = (action: "draft" | "publish"): boolean => {
-    const newErrors: Partial<Record<keyof ProductFormData, string>> & {
-      images?: string;
-    } = {};
-
-    // Helper function to get first error message
-    const getFirstError = (result: any) =>
-      result.error?.errors[0]?.message || "Validation failed";
-
-    // Validate all fields that have values (for both draft and publish)
-    const nameResult = productName.safeParse(formData.name);
-    if (!nameResult.success) {
-      newErrors.name = getFirstError(nameResult);
-    }
-
-    // Store password validation - basic client-side check only
-    if (!formData.storePassword) {
-      newErrors.storePassword =
-        "Store password is required to authorize this action";
-    } else if (formData.storePassword.length < 4) {
-      newErrors.storePassword = "Please enter your store password to continue";
-    }
-
-    if (formData.description) {
-      const descriptionResult = productDescription.safeParse(
-        formData.description
-      );
-      if (!descriptionResult.success) {
-        newErrors.description = getFirstError(descriptionResult);
-      }
-    }
-
-    if (formData.specifications) {
-      const specificationsResult = productSpecifications.safeParse(
-        formData.specifications
-      );
-      if (!specificationsResult.success) {
-        newErrors.specifications = getFirstError(specificationsResult);
-      }
-    }
-
-    if (formData.price && formData.price !== 0) {
-      const priceResult = productPrice.safeParse(Number(formData.price));
-      if (!priceResult.success) {
-        newErrors.price = getFirstError(priceResult);
-      }
-    }
-
-    if (formData.productQuantity && formData.productQuantity !== 0) {
-      const quantityResult = productQuantity.safeParse(
-        Number(formData.productQuantity)
-      );
-      if (!quantityResult.success) {
-        newErrors.productQuantity = getFirstError(quantityResult);
-      }
-    }
-
-    if (formData.category && formData.category.length > 0) {
-      const categoryResult = productCategory.safeParse(formData.category);
-      if (!categoryResult.success) {
-        newErrors.category = getFirstError(categoryResult);
-      }
-    }
-
-    if (formData.subCategory && formData.subCategory.length > 0) {
-      const subCategoryResult = productSubCategory.safeParse(
-        formData.subCategory
-      );
-      if (!subCategoryResult.success) {
-        newErrors.subCategory = getFirstError(subCategoryResult);
-      }
-    }
-
-    // Publish-specific validations - all fields are required
-    if (action === "publish") {
-      const requiredValidations = {
-        name: productName.safeParse(formData.name),
-        description: productDescription.safeParse(formData.description),
-        specifications: productSpecifications.safeParse(
-          formData.specifications
-        ),
-        price: productPrice.safeParse(Number(formData.price)),
-        productQuantity: productQuantity.safeParse(
-          Number(formData.productQuantity)
-        ),
-        category: productCategory.safeParse(formData.category),
-        subCategory: productSubCategory.safeParse(formData.subCategory),
-      };
-
-      // Check if any required field is missing
-      if (!formData.name) newErrors.name = "Product name is required";
-      if (!formData.description)
-        newErrors.description = "Product description is required";
-      if (!formData.specifications)
-        newErrors.specifications = "Product specifications are required";
-      if (!formData.price || formData.price === 0)
-        newErrors.price = "Price is required";
-      if (!formData.productQuantity || formData.productQuantity === 0)
-        newErrors.productQuantity = "Quantity is required";
-      if (!formData.category || formData.category.length === 0)
-        newErrors.category = "Category is required";
-      if (!formData.subCategory || formData.subCategory.length === 0)
-        newErrors.subCategory = "Subcategory is required";
-
-      // Override with validation errors if fields exist but are invalid
-      if (!newErrors.name && !requiredValidations.name.success) {
-        newErrors.name = getFirstError(requiredValidations.name);
-      }
-      if (!newErrors.description && !requiredValidations.description.success) {
-        newErrors.description = getFirstError(requiredValidations.description);
-      }
-      if (
-        !newErrors.specifications &&
-        !requiredValidations.specifications.success
-      ) {
-        newErrors.specifications = getFirstError(
-          requiredValidations.specifications
-        );
-      }
-      if (!newErrors.price && !requiredValidations.price.success) {
-        newErrors.price = getFirstError(requiredValidations.price);
-      }
-      if (
-        !newErrors.productQuantity &&
-        !requiredValidations.productQuantity.success
-      ) {
-        newErrors.productQuantity = getFirstError(
-          requiredValidations.productQuantity
-        );
-      }
-      if (!newErrors.category && !requiredValidations.category.success) {
-        newErrors.category = getFirstError(requiredValidations.category);
-      }
-      if (!newErrors.subCategory && !requiredValidations.subCategory.success) {
-        newErrors.subCategory = getFirstError(requiredValidations.subCategory);
-      }
-
-      // Image validation for publish
-      const totalImages =
-        (initialProductData?.images?.length || 0) + imageFiles.length;
-      if (totalImages < MIN_IMAGE_NUMBER) {
-        newErrors.images = `Please select at least ${MIN_IMAGE_NUMBER} product images`;
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // ============================================================================
@@ -468,13 +312,19 @@ export function ProductEditForm({
     e.preventDefault();
     setSubmitAction(action);
 
-    if (!validateForm(action)) {
+    const editedProduct = ProductFactory.creatUploadProduct(formData);
+    // Image validation for publish
+    const totalImages =
+      (initialProductData?.images?.length || 0) + imageFiles.length;
+    const productValidationResult = editedProduct.validate(action, totalImages);
+
+    if (!productValidationResult.hasErrors) {
+      setErrors(productValidationResult.newErrors);
       return;
     }
 
     try {
       setError(null);
-      setIsLoading(true);
       setUploadProgress(10);
 
       const prepareProductData = async () => {
@@ -505,6 +355,7 @@ export function ProductEditForm({
       };
 
       if (action === "draft") {
+        setIsLoadingDraft(true);
         setUploadProgress(30);
         const productData = await prepareProductData();
         setUploadProgress(80);
@@ -526,6 +377,7 @@ export function ProductEditForm({
 
         toast.success("Your changes have been saved as draft.");
       } else if (action === "publish") {
+        setIsLoading(true);
         setUploadProgress(30);
         const productData = await prepareProductData();
         setUploadProgress(80);
@@ -555,6 +407,7 @@ export function ProductEditForm({
       setError(["Failed to update product"]);
     } finally {
       setIsLoading(false);
+      setIsLoadingDraft(false);
       setUploadProgress(0);
     }
   };
@@ -614,7 +467,7 @@ export function ProductEditForm({
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={isLoading}
+                  disabled={isLoadingDraft}
                   onClick={(e) => {
                     handleSubmit(
                       e as unknown as React.FormEvent<HTMLFormElement>,
@@ -622,7 +475,7 @@ export function ProductEditForm({
                     );
                   }}
                 >
-                  {isLoading ? (
+                  {isLoadingDraft ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving Draft...
@@ -663,19 +516,22 @@ export function ProductEditForm({
           </div>
 
           {/* Progress Indicator */}
-          {isLoading && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {submitAction === "draft"
-                    ? "Saving Draft..."
-                    : "Saving Changes..."}
-                </span>
-                <span className="text-sm text-gray-500">{uploadProgress}%</span>
+          {isLoading ||
+            (isLoadingDraft && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {submitAction === "draft"
+                      ? "Saving Draft..."
+                      : "Saving Changes..."}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {uploadProgress}%
+                  </span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
               </div>
-              <Progress value={uploadProgress} className="h-2" />
-            </div>
-          )}
+            ))}
         </div>
 
         {/* Main Form */}
@@ -1141,7 +997,7 @@ export function ProductEditForm({
               type="button"
               variant="outline"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoadingDraft}
               onClick={(e) => {
                 handleSubmit(
                   e as unknown as React.FormEvent<HTMLFormElement>,
@@ -1149,7 +1005,7 @@ export function ProductEditForm({
                 );
               }}
             >
-              {isLoading ? (
+              {isLoadingDraft ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving Draft...

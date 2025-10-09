@@ -16,6 +16,13 @@ interface StoreTokenPayload {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.JWT_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new AppError(
+        "Server configuration error: Missing required JWT environment variables",
+        500
+      );
+    }
     const body = await request.json();
     const { storeEmail, password } = body;
 
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
     const oneWeekInSeconds = 7 * 24 * 60 * 60;
 
     // Sign JWT
-    const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
+    const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
       expiresIn: oneWeekInSeconds,
     });
 

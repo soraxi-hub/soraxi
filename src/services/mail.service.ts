@@ -3,6 +3,7 @@ import { getUserModel } from "../lib/db/models/user.model";
 import { siteConfig } from "@/config/site";
 import { connectToDatabase } from "../lib/db/mongoose";
 import { handleApiError } from "../lib/utils/handle-api-error";
+import { AppError } from "@/lib/errors/app-error";
 
 type EmailTypes =
   | "emailVerification"
@@ -90,6 +91,16 @@ export const sendMail = async ({
   const User = await getUserModel();
 
   try {
+    if (
+      !process.env.SORAXI_ADMIN_EMAIL ||
+      !process.env.SORAXI_ADMIN_APP_PASSWORD ||
+      !process.env.SORAXI_NOREPLY_EMAIL ||
+      !process.env.SORAXI_NOREPLY_APP_PASSWORD
+    ) {
+      throw new AppError(
+        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables"
+      );
+    }
     let finalSubject = subject || "";
     let finalHtml = html || "";
     const finalText = text || "";
@@ -109,7 +120,7 @@ export const sendMail = async ({
     }
 
     if (!finalHtml && !finalText) {
-      throw new Error("Email body (HTML or text) must be provided.");
+      throw new AppError("Email body (HTML or text) must be provided.");
     }
 
     if (emailType === "storeOrderNotification" && html) {

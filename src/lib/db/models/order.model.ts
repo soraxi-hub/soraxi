@@ -387,7 +387,7 @@ export async function getOrderById(
       select: "name storeEmail logo",
     });
 
-  return lean ? query.lean().exec() : query.exec();
+  return lean ? query.lean<IOrder>().exec() : query.exec();
 }
 
 /**
@@ -403,6 +403,6 @@ export async function getOrdersByUserId(
   const Order = await getOrderModel();
 
   return lean
-    ? Order.find({ userId: userId }).lean()
+    ? Order.find({ userId: userId }).lean<IOrder[]>()
     : Order.find({ userId: userId });
 }

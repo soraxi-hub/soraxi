@@ -93,6 +93,14 @@ export const paystackRouter = createTRPCRouter({
     .input(paystackInputSchema)
     .mutation(async ({ input }) => {
       try {
+        if (!process.env.PAYSTACK_SECRET_KEY) {
+          console.error("Missing required environment variables");
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "Server configuration error: Missing required PAYSTACK environment variables",
+          });
+        }
         const { amount, cartItemsWithShippingMethod, customer, meta } = input;
         // const { email, phone_number, name, uniqueRef } = customer;
         const { email, phone_number, name } = customer;
