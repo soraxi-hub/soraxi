@@ -106,7 +106,7 @@ export async function getWishlistById(
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
 
-  return lean ? Wishlist.findById(id).lean() : Wishlist.findById(id);
+  return lean ? Wishlist.findById(id).lean<IWishlist>() : Wishlist.findById(id);
 }
 
 // Add to wishlist

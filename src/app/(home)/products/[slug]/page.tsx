@@ -46,7 +46,6 @@ export async function generateMetadata({ params }: ProductPageProps) {
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const { product, storeStatus } = await getProduct(slug);
-  const relatedProducts = await caller.home.getRelatedProducts({ slug });
 
   if (!product) {
     notFound();
@@ -65,6 +64,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </div>
     );
   }
+
+  // only query for related products when the store status check is a success.
+  const relatedProducts = await caller.home.getRelatedProducts({ slug });
 
   return (
     <ProductDetailPage product={product} relatedProducts={relatedProducts} />

@@ -70,7 +70,7 @@ export const adminStoreRouter = createTRPCRouter({
           .sort({ createdAt: -1 })
           .skip((page - 1) * limit)
           .limit(limit)
-          .lean();
+          .lean<IStore[]>();
 
         // Get total count for pagination
         const total = await Store.countDocuments(query);
@@ -122,13 +122,17 @@ export const adminStoreRouter = createTRPCRouter({
        * Verifies that the request is coming from an authenticated admin user
        * with appropriate permissions.
        */
+      const allowedPermissions = [
+        PERMISSIONS.SUSPEND_STORE,
+        PERMISSIONS.VERIFY_STORE,
+        PERMISSIONS.REJECT_STORE,
+      ];
+
       if (
         !admin ||
-        !checkAdminPermission(admin, [
-          PERMISSIONS.SUSPEND_STORE,
-          PERMISSIONS.VERIFY_STORE,
-          PERMISSIONS.REJECT_STORE,
-        ])
+        !allowedPermissions.some((permission) =>
+          checkAdminPermission(admin, [permission])
+        )
       ) {
         throw new TRPCError({
           code: "UNAUTHORIZED",

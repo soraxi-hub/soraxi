@@ -2,7 +2,7 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
-import { UserFactory } from "@/domain/users/UserFactory";
+import { UserFactory } from "@/domain/users/user-factory";
 import { UserRepository } from "@/repositories/user-repo";
 
 export async function POST(request: NextRequest) {

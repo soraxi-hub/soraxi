@@ -8,6 +8,7 @@ import { TRPCReactProvider } from "@/trpc/client";
 import { siteConfig } from "@/config/site";
 import { Montserrat } from "next/font/google";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const montserrat = Montserrat({
   weight: ["400", "600", "700"],
@@ -137,6 +138,7 @@ export default function RootLayout({
           >
             <NuqsAdapter>{children}</NuqsAdapter>
             <Toaster />
+            <SpeedInsights />
           </ThemeProvider>
         </TRPCReactProvider>
       </body>

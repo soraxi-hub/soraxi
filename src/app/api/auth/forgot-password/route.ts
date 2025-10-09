@@ -23,6 +23,17 @@ export async function POST(request: NextRequest) {
   };
 
   try {
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      console.error("Missing required environment variables");
+      return NextResponse.json(
+        {
+          error:
+            "Server configuration error: Missing required NEXT_PUBLIC_APP_URL environment variables",
+        },
+        { status: 500 }
+      );
+    }
+
     // Establish database connection
     await connectToDatabase();
 

@@ -26,6 +26,13 @@ function getQueryClient() {
 function getUrl() {
   const base = (() => {
     if (typeof window !== "undefined") return "";
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Missing required NEXT_PUBLIC_APP_URL environment variables"
+      );
+    }
+
     return process.env.NEXT_PUBLIC_APP_URL;
   })();
   return `${base}/api/trpc`;

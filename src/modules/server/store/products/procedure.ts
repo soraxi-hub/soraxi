@@ -52,6 +52,7 @@ export const storeProductRouter = createTRPCRouter({
         description: product.description,
         specifications: product.specifications,
         status: product.status,
+        productType: product.productType,
         createdAt: product.createdAt,
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,

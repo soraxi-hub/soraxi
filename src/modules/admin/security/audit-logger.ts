@@ -235,7 +235,11 @@ export async function getAuditLogs(
 
     // Execute queries
     const [logs, total] = await Promise.all([
-      AuditLog.find(query).sort(sort).skip(skip).limit(limit).lean(),
+      AuditLog.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean<IAuditLog[]>(),
       AuditLog.countDocuments(query),
     ]);
 

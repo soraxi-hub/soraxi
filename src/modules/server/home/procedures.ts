@@ -189,11 +189,14 @@ export const homeRouter = createTRPCRouter({
         isVisible: true,
       }).lean();
 
+      // If the product is not found (e.g., not visible or doesn't exist),
+      // return an empty array instead of throwing an error to avoid breaking the frontend flow.
       if (!currentProduct) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Product not found",
-        });
+        return [];
+        // throw new TRPCError({
+        //   code: "NOT_FOUND",
+        //   message: "Product not found",
+        // });
       }
 
       // Step 2: Find related products in the same category (excluding the current product)
@@ -216,7 +219,7 @@ export const homeRouter = createTRPCRouter({
         category: product.category,
         subCategory: product.subCategory,
         rating: product.rating || 0,
-        storeId: product.storeId,
+        storeId: product.storeId.toString(),
         slug: product.slug,
         isVerifiedProduct: product.isVerifiedProduct,
         price: product.price,

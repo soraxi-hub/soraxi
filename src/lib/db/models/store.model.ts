@@ -315,5 +315,5 @@ export async function getStoreByUniqueId(
 ): Promise<IStore | null> {
   await connectToDatabase();
   const Store = await getStoreModel();
-  return Store.findById(uniqueId).lean();
+  return Store.findById(uniqueId).lean<IStore>();
 }

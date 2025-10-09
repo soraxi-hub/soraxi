@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { storePassword } from "./store-validators";
+import { formatNaira } from "@/lib/utils/naira";
 
 /**
  * Enum for Product Status
@@ -46,11 +47,14 @@ export const productType = z
 
 export const productPrice = z
   .number()
-  .min(500, "Price must be greater than 499");
+  .min(500, "Price must be greater than 499")
+  .max(100000, `Price must to be greater than ${formatNaira(10000000)}.`)
+  .optional();
 
 export const productQuantity = z
   .number()
-  .min(1, "Product Quantity must be at least 1");
+  .min(1, "Product Quantity must be at least 1")
+  .optional();
 
 export const productSizes = ProductSizesSchema;
 
@@ -58,35 +62,37 @@ export const productImages = z.array(z.string()).default([]);
 
 export const productDescription = z
   .string()
-  .min(50, "Description must be at least 50 characters");
+  .min(50, "Description must be at least 50 characters")
+  .optional();
 
 export const productSpecifications = z
   .string()
-  .min(50, "Specifications must be at least 50 characters");
+  .min(50, "Specifications must be at least 50 characters")
+  .optional();
 
 export const productCategory = z
   .array(z.string())
-  .min(1, "Category is required");
+  .min(1, "Category is required")
+  .optional();
 
 export const productSubCategory = z
   .array(z.string())
-  .min(1, "Subcategory is required");
+  .min(1, "Subcategory is required")
+  .optional();
 
 export const productStorePassword = storePassword; // Reusing the existing storePassword validator
 
 // You can also recreate the complete schema by combining all the individual validators:
-export const PublishProductSchema = z.object({
-  _id: productId,
-  storeId: productStoreId,
+export const ProductFormDataSchema = z.object({
   name: productName,
-  productType: productType,
-  price: productPrice,
-  productQuantity: productQuantity,
-  sizes: productSizes,
-  images: productImages,
   description: productDescription,
   specifications: productSpecifications,
+  price: productPrice,
+  productQuantity: productQuantity,
   category: productCategory,
   subCategory: productSubCategory,
   storePassword: productStorePassword,
+  productType: productType,
 });
+
+export type ProductFormData = z.infer<typeof ProductFormDataSchema>;

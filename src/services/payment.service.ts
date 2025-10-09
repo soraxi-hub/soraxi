@@ -84,6 +84,12 @@ export async function verifyPaystackTransaction(
   transactionReference: string
 ): Promise<TransactionVerificationResult | null> {
   try {
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new Error(
+        "Server configuration error: Missing required PAYSTACK environment variables"
+      );
+    }
     const response = await fetch(
       `https://api.paystack.co/transaction/verify/${transactionReference}`,
       {

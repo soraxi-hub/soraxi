@@ -25,6 +25,14 @@ import {
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.JWT_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new AppError(
+        "Server configuration error: Missing required JWT environment variables",
+        500
+      );
+    }
+
     await connectToDatabase();
     // Check authentication - user must be logged in to create a store
     const userData = await getUserDataFromToken(request);
@@ -177,7 +185,7 @@ export async function POST(request: NextRequest) {
     const twoWeeksInSeconds = 2 * oneWeekInSeconds;
 
     // Sign JWT
-    const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
+    const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
       expiresIn: oneWeekInSeconds,
     });
 
@@ -219,7 +227,7 @@ export async function POST(request: NextRequest) {
       store: savedStore._id.toString(),
     };
 
-    const newUserToken = jwt.sign(userPayload, process.env.JWT_SECRET_KEY!, {
+    const newUserToken = jwt.sign(userPayload, process.env.JWT_SECRET_KEY, {
       expiresIn: twoWeeksInSeconds,
     });
 

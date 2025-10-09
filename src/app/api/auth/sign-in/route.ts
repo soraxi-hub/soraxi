@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { AuthService } from "@/services/auth.service";
+import { AppError } from "@/lib/errors/app-error";
 
 interface userData {
   id: string;
@@ -19,6 +20,13 @@ export async function POST(request: NextRequest) {
   const { email, password } = requestBody;
 
   try {
+    if (!process.env.JWT_SECRET_KEY) {
+      console.error("Missing required environment variables");
+      throw new AppError(
+        "Server configuration error: Missing required JWT environment variables",
+        500
+      );
+    }
     await connectToDatabase();
 
     const user = await AuthService.userLogin(email, password);
@@ -36,7 +44,7 @@ export async function POST(request: NextRequest) {
     const twoWeeksInSeconds = 2 * 7 * 24 * 60 * 60;
 
     // create token
-    const token = await jwt.sign(tokenData, process.env.JWT_SECRET_KEY!, {
+    const token = await jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
       expiresIn: twoWeeksInSeconds,
     });
 

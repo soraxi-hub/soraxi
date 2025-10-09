@@ -164,7 +164,7 @@ export async function getUserByEmail(
   await connectToDatabase();
   const User = await getUserModel();
 
-  return lean ? User.findOne({ email }).lean() : User.findOne({ email });
+  return lean ? User.findOne({ email }).lean<IUser>() : User.findOne({ email });
 }
 
 /**
@@ -185,7 +185,7 @@ export async function getUserById(
         .select(
           "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
         )
-        .lean()
+        .lean<IUser>()
     : User.findById(id).select(
         "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
       );
