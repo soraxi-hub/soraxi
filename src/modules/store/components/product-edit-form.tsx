@@ -312,13 +312,13 @@ export function ProductEditForm({
     e.preventDefault();
     setSubmitAction(action);
 
-    const editedProduct = ProductFactory.creatUploadProduct(formData);
+    const editedProduct = ProductFactory.createUploadProduct(formData);
     // Image validation for publish
     const totalImages =
       (initialProductData?.images?.length || 0) + imageFiles.length;
     const productValidationResult = editedProduct.validate(action, totalImages);
 
-    if (!productValidationResult.hasErrors) {
+    if (productValidationResult.hasErrors) {
       setErrors(productValidationResult.newErrors);
       return;
     }

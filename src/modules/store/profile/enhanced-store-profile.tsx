@@ -41,6 +41,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { truncateText } from "@/lib/utils";
 
 // Form schemas
 const StoreNameFormSchema = z.object({
@@ -232,9 +233,9 @@ export default function EnhancedStoreProfile() {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                      <Badge variant="outline" className="text-sm">
-                        ID: {store.uniqueId}
+                    <div className="flex flex-wrap items-center gap-3 mb-4 overflow-hidden text-ellipsis">
+                      <Badge variant="outline" className="text-sm max-w-xs">
+                        ID: {truncateText(store.uniqueId, 20)}
                       </Badge>
                       <Badge
                         className={`${StoreStatusEnum.statusColor} text-white`}
@@ -255,28 +256,28 @@ export default function EnhancedStoreProfile() {
                     {/* Enhanced Stats */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Users className="h-4 w-4 text-muted-foreground hidden sm:inline-flex" />
                         <span className="font-medium">
                           {storeStats.followersCount.toLocaleString()}
                         </span>
                         <span className="text-muted-foreground">Followers</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-muted-foreground" />
+                        <Package className="h-4 w-4 text-muted-foreground hidden sm:inline-flex" />
                         <span className="font-medium">
                           {storeStats.productsCount.toLocaleString()}
                         </span>
                         <span className="text-muted-foreground">Products</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Calendar className="h-4 w-4 text-muted-foreground hidden sm:inline-flex" />
                         <span className="font-medium">
                           {storeStats.storeAge}
                         </span>
                         <span className="text-muted-foreground">Old</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4 text-muted-foreground" />
+                        <Store className="h-4 w-4 text-muted-foreground hidden sm:inline-flex" />
                         <span className="font-medium">Est.</span>
                         <span className="text-muted-foreground">
                           {storeStats.establishedDate}

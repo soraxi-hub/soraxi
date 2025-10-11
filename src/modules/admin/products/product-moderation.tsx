@@ -22,13 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -44,8 +37,6 @@ import {
   CheckCircle,
   XCircle,
   EyeOff,
-  Trash2,
-  Store,
   Search,
   Filter,
 } from "lucide-react";
@@ -56,6 +47,8 @@ import Image from "next/image";
 import { IProduct } from "@/lib/db/models/product.model";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
+import Link from "next/link";
+import { truncateText } from "@/lib/utils";
 
 type Status = IProduct["status"];
 
@@ -63,33 +56,10 @@ type Status = IProduct["status"];
  * Product Moderation Component
  * Interface for moderating and managing products
  */
-
-interface ProductData {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  status: Status;
-  images: string[];
-  store: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export function ProductModeration() {
   const trpc = useTRPC();
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
-
-  const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(
-    null
-  );
-  const [showProductDetails, setShowProductDetails] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
@@ -117,9 +87,7 @@ export function ProductModeration() {
     trpc.admin.action.mutationOptions({
       onSuccess: (data) => {
         toast.success(data.message);
-        refetch(); // refresh products
-        setSelectedProduct(null);
-        setShowProductDetails(false);
+        refetch();
       },
       onError: (error) => {
         toast.error(error.message || "Action failed");
@@ -129,7 +97,7 @@ export function ProductModeration() {
 
   const handleProductAction = (
     productId: string,
-    action: "approve" | "reject" | "delete",
+    action: "approve" | "reject",
     reason?: string
   ) => {
     mutation.mutate({ productId, action, reason });
@@ -280,20 +248,22 @@ export function ProductModeration() {
                             <Package className="w-6 h-6 text-gray-400" />
                           )}
                         </div>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
+                        <div className="max-w-xs">
+                          <p className="font-medium">
+                            {truncateText(product.name, 20)}
+                          </p>
                         </div>
                       </div>
                     </TableCell>
+
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Store className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">
-                            {product.store.name}
+                            {truncateText(product.store.name, 20)}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {product.store.email}
+                            {truncateText(product.store.email, 25)}
                           </p>
                         </div>
                       </div>
@@ -328,18 +298,19 @@ export function ProductModeration() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedProduct(product as ProductData);
-                              setShowProductDetails(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
+                          <DropdownMenuItem>
+                            <Link
+                              className="flex items-center space-x-3"
+                              href={`/admin/products/${product.id}/`}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+
                           {product.status === "pending" && (
                             <>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() =>
                                   handleProductAction(product.id, "approve")
@@ -371,15 +342,6 @@ export function ProductModeration() {
                               Reject
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleProductAction(product.id, "delete")
-                            }
-                            className="text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -416,144 +378,6 @@ export function ProductModeration() {
           )}
         </CardContent>
       </Card>
-
-      {/* Product Details Dialog */}
-      <Dialog open={showProductDetails} onOpenChange={setShowProductDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Product Details</DialogTitle>
-            <DialogDescription>
-              Detailed information about {selectedProduct?.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedProduct && (
-            <div className="space-y-6">
-              {/* Product Images */}
-              {selectedProduct.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {selectedProduct.images.map((image, index) => (
-                    <div
-                      key={index}
-                      className="aspect-square bg-gray-100 rounded-lg overflow-hidden"
-                    >
-                      <Image
-                        width={100}
-                        height={100}
-                        src={image || "/placeholder.svg"}
-                        alt={`${selectedProduct.name} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Product Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      Product Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Name</Label>
-                      <p className="text-sm">{selectedProduct.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Description</Label>
-                      <p className="text-sm">{selectedProduct.description}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Category</Label>
-                      <p className="text-sm">{selectedProduct.category}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Price</Label>
-                      <p className="text-sm font-medium">
-                        {formatNaira(selectedProduct.price)}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Status</Label>
-                      <div className="mt-1">
-                        {getStatusBadge(selectedProduct.status)}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Store Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Store Name</Label>
-                      <p className="text-sm">{selectedProduct.store.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Store Email</Label>
-                      <p className="text-sm">{selectedProduct.store.email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Created</Label>
-                      <p className="text-sm">
-                        {new Date(selectedProduct.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Last Updated
-                      </Label>
-                      <p className="text-sm">
-                        {new Date(selectedProduct.updatedAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-2">
-                {selectedProduct.status === "pending" && (
-                  <>
-                    <Button
-                      onClick={() =>
-                        handleProductAction(selectedProduct.id, "approve")
-                      }
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve Product
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        handleProductAction(selectedProduct.id, "reject")
-                      }
-                      variant="destructive"
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Reject Product
-                    </Button>
-                  </>
-                )}
-                <Button
-                  onClick={() =>
-                    handleProductAction(selectedProduct.id, "delete")
-                  }
-                  variant="destructive"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Product
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

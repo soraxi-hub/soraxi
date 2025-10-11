@@ -48,7 +48,7 @@ export const productType = z
 export const productPrice = z
   .number()
   .min(500, "Price must be greater than 499")
-  .max(100000, `Price must to be greater than ${formatNaira(10000000)}.`)
+  .max(100000, `Price must be less than ${formatNaira(10000000)}.`)
   .optional();
 
 export const productQuantity = z

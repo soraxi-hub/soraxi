@@ -29,6 +29,16 @@ export const orderStatusRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
+        // ==================== Environment Validation ====================
+        if (!process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL) {
+          console.error("Missing required environment variables");
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables",
+          });
+        }
+
         // ==================== Authentication & Authorization ====================
         const { store: storeSession } = ctx;
 
@@ -148,14 +158,6 @@ export const orderStatusRouter = createTRPCRouter({
 
         // ==================== Email Notifications ====================
         try {
-          if (!process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL) {
-            console.error("Missing required environment variables");
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables",
-            });
-          }
           const Order = await getOrderModel();
           const orderDoc = await Order.findById(input.orderId)
             .populate({

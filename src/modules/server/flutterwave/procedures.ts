@@ -14,6 +14,7 @@ import {
   PaymentStatus,
   StatusHistory,
 } from "@/enums";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 // Define the Zod schema for validation
 export const flutterwaveInputSchema = z.object({
@@ -58,10 +59,7 @@ export const flutterwaveInputSchema = z.object({
               quantity: z.number(),
             })
             .optional(),
-          productType: z.union([
-            z.literal("Product"),
-            z.literal("digitalproducts"),
-          ]),
+          productType: z.nativeEnum(ProductTypeEnum),
           storeId: z.string(),
         })
       ),

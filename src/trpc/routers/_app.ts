@@ -1,7 +1,7 @@
 import { userRouter } from "@/modules/server/user/procedures";
 import { createTRPCRouter } from "../init";
 import { storeRouter } from "@/modules/server/store/procedures";
-import { adminRouter } from "@/modules/server/admin/procedures";
+import { adminProductRouter } from "@/modules/server/admin/procedures";
 import { homeRouter } from "@/modules/server/home/procedures";
 import { cartRouter } from "@/modules/server/cart/procedures";
 import { wishlistRouter } from "@/modules/server/wishlist/procedures";
@@ -36,12 +36,12 @@ export const appRouter = createTRPCRouter({
   home: homeRouter,
   cart: cartRouter,
   store: storeRouter,
-  admin: adminRouter,
   order: orderRouter,
   payment: paymentRouter,
   wishlist: wishlistRouter,
   checkout: checkoutRouter,
   paystack: paystackRouter,
+  admin: adminProductRouter,
   adminStore: adminStoreRouter,
   withdrawal: withdrawalRouter,
   adminAuditLog: auditLogRouter,

@@ -58,6 +58,7 @@ import { TokenData } from "@/lib/helpers/get-user-data-from-token";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { truncateText } from "@/lib/utils";
 
 const sidebarItems = (user: TokenData) => [
   {
@@ -148,6 +149,8 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
       .toUpperCase();
   };
 
+  const userName = `${user.firstName} ${user.lastName}`;
+
   return (
     <Sidebar
       // variant={`inset`}
@@ -215,9 +218,11 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
                 </Avatar>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium text-foreground">
-                    {user.firstName}
+                    {truncateText(user.firstName)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {truncateText(user.email)}
+                  </p>
                 </div>
               </div>
             </Button>
@@ -225,10 +230,10 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div>
-                <p className="font-medium">
-                  {user.firstName} {user.lastName}
+                <p className="font-medium">{truncateText(userName, 20)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {truncateText(user.email)}
                 </p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

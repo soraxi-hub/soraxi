@@ -1,4 +1,5 @@
 import { IProduct } from "@/lib/db/models/product.model";
+import { IStore } from "@/lib/db/models/store.model";
 import mongoose from "mongoose";
 
 /**
@@ -22,6 +23,19 @@ export interface RawProductDocument {
   storeId: PopulatedStore | mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface RawProductDocumentAdminManagement
+  extends Omit<IProduct, "_id" | "storeId"> {
+  _id: mongoose.Types.ObjectId;
+  storeId: {
+    _id: mongoose.Types.ObjectId;
+    name: string;
+    storeEmail: string;
+    uniqueId: IStore["uniqueId"];
+    status: IStore["status"];
+    verification: IStore["verification"];
+  };
 }
 
 export interface FormattedProduct {

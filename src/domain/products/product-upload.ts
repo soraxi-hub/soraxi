@@ -216,7 +216,7 @@ export class UploadProduct {
 
     return {
       newErrors: newErrors,
-      hasErrors: Object.keys(newErrors).length === 0,
+      hasErrors: Object.keys(newErrors).length > 0,
     };
   }
 }

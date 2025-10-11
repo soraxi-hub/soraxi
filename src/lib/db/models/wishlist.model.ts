@@ -1,12 +1,13 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 /**
  * Represents a single item in a user's wishlist.
  */
 export interface IWishlistItem {
   productId: mongoose.Types.ObjectId;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
 }
 
 /**
@@ -43,7 +44,7 @@ const WishlistSchema = new Schema<IWishlist>(
         productType: {
           type: String,
           required: true,
-          enum: ["Product", "digitalproducts"],
+          enum: Object.values(ProductTypeEnum),
         },
       },
     ],
@@ -114,7 +115,7 @@ export async function addItemToWishlist(
   userId: string,
   product: {
     productId: mongoose.Types.ObjectId;
-    productType: "Product" | "digitalproducts";
+    productType: ProductTypeEnum;
   }
 ): Promise<IWishlist> {
   await connectToDatabase();

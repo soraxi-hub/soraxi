@@ -1,3 +1,5 @@
+import { ProductTypeEnum } from "@/validators/product-validators";
+
 export interface Category {
   slug: string;
   name: string;
@@ -10,7 +12,7 @@ export interface Category {
 export interface Product {
   _id: string; // Mongoose _id as string
   storeId: string;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
   name: string;
   price?: number;
   sizes?: {

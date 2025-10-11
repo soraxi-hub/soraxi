@@ -159,3 +159,36 @@ export class PasswordService {
     return await bcryptjs.compare(dbPassword, password);
   }
 }
+
+/**
+ * Truncates a string or an array of strings to a specified maximum length.
+ *
+ * - If `word` is a string, it shortens it to `maxNumber` characters
+ *   and appends "..." if it exceeds that length.
+ * - If `word` is an array of strings, it performs the same truncation
+ *   on each element and returns a new array.
+ *
+ * @param {string | string[]} word - The text or array of texts to truncate.
+ * @param {number} [maxNumber=20] - The maximum allowed character length before truncation occurs.
+ * @returns {string | string[]} - The truncated string or an array of truncated strings.
+ *
+ * @example
+ * truncateText("Hello World, this is a long sentence");
+ * // "Hello World, this is..."
+ *
+ * @example
+ * truncateText(["short", "this one is way too long"], 10);
+ * // ["short", "this one ..."]
+ */
+export function truncateText(
+  word: string | string[],
+  maxNumber: number = 20
+): string | string[] {
+  if (Array.isArray(word)) {
+    return word.map((w) =>
+      w.length > maxNumber ? w.slice(0, maxNumber) + "..." : w
+    );
+  }
+
+  return word.length > maxNumber ? word.slice(0, maxNumber) + "..." : word;
+}

@@ -55,6 +55,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { siteConfig } from "@/config/site";
+import { truncateText } from "@/lib/utils";
 
 const sidebarItems = (storeId: string) => [
   {
@@ -235,7 +236,10 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
       <SidebarFooter className="border-t border-border p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start p-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start py-6 truncate"
+            >
               <div className="flex items-center space-x-3">
                 <Avatar className="w-8 h-8">
                   <AvatarFallback className="bg-soraxi-green text-white text-xs">
@@ -244,10 +248,10 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
                 </Avatar>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium text-foreground">
-                    {store.name}
+                    {truncateText(store.name, 20)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {store.storeEmail}
+                    {truncateText(store.storeEmail, 20)}
                   </p>
                 </div>
               </div>
@@ -256,9 +260,9 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div>
-                <p className="font-medium">{store.name}</p>
+                <p className="font-medium">{truncateText(store.name, 20)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {store.storeEmail}
+                  {truncateText(store.storeEmail, 20)}
                 </p>
               </div>
             </DropdownMenuLabel>

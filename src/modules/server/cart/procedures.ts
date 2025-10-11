@@ -12,6 +12,7 @@ import mongoose from "mongoose";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { generateUniqueId } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 export const cartRouter = createTRPCRouter({
   // ✅ Get cart by user ID
@@ -57,7 +58,7 @@ export const cartRouter = createTRPCRouter({
         productId: z.string(),
         storeId: z.string(),
         quantity: z.number().min(1),
-        productType: z.enum(["Product", "digitalproducts"]),
+        productType: z.nativeEnum(ProductTypeEnum),
         selectedSize: z
           .object({
             size: z.string(),
