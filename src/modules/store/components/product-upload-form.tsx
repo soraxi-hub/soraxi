@@ -123,7 +123,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     currentData: formData,
     additionalDirtyCheck: imageFiles.length > 0,
     onSaveBeforeLeave: async () => {
-      const productToUpload = ProductFactory.creatUploadProduct(formData);
+      const productToUpload = ProductFactory.createUploadProduct(formData);
       const productValidationResult = productToUpload.validate(
         "draft",
         imageFiles.length
@@ -244,14 +244,14 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   ) => {
     e.preventDefault();
 
-    const productToUpload = ProductFactory.creatUploadProduct(formData);
-    console.log("productToUpload", productToUpload);
+    const productToUpload = ProductFactory.createUploadProduct(formData);
+    // console.log("productToUpload", productToUpload);
     const productValidationResult = productToUpload.validate(
       action,
       imageFiles.length
     );
 
-    if (!productValidationResult.hasErrors) {
+    if (productValidationResult.hasErrors) {
       setErrors(productValidationResult.newErrors);
       return;
     }

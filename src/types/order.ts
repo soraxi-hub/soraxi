@@ -1,4 +1,5 @@
 import { DeliveryStatus, DeliveryType, StatusHistory } from "@/enums";
+import { ProductTypeEnum } from "@/validators/product-validators";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -20,7 +21,7 @@ export interface PopulatedProduct {
   name: string;
   images: string[];
   price: number;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
   storeId: string;
 }
 

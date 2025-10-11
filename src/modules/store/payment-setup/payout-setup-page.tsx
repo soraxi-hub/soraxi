@@ -145,7 +145,6 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
       {/* Existing Accounts Section */}
       <section className="space-y-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          {/* <Banknote className="h-6 w-6" /> */}
           Payout Accounts
         </h1>
 
@@ -179,7 +178,6 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
       {/* Add Account Form */}
       <section className="space-y-4">
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          {/* <Banknote className="h-6 w-6" /> */}
           Add New Account
         </h2>
 

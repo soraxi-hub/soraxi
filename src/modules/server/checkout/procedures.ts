@@ -8,6 +8,7 @@ import { CartProduct } from "@/types";
 import mongoose from "mongoose";
 import { IProduct } from "@/lib/db/models/product.model";
 import { StoreStatusEnum } from "@/validators/store-validators";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 export const checkoutRouter = createTRPCRouter({
   /**
@@ -63,7 +64,7 @@ export const checkoutRouter = createTRPCRouter({
           price: number;
           quantity: number;
         };
-        productType: "Product" | "digitalproducts";
+        productType: ProductTypeEnum;
         storeId: string;
         // _id: string;
       }[]
@@ -292,126 +293,4 @@ export const checkoutRouter = createTRPCRouter({
       validationErrors,
     };
   }),
-
-  // /**
-  //  * Group products by their store and validate that the store is still active
-  //  * and not susspended or pending approval or is rejected.
-  //  */
-  // validateUserCart: baseProcedure.mutation(async ({ ctx }) => {
-  //   const { user } = ctx;
-
-  //   if (!user) {
-  //     throw new TRPCError({
-  //       code: "UNAUTHORIZED",
-  //       message: "User not authenticated",
-  //     });
-  //   }
-
-  //   const Cart = await getCartModel();
-  //   const Store = await getStoreModel();
-  //   const Product = await getProductModel();
-  //   const validationErrors: string[] = [];
-  //   const groupedByStore: Record<string, { productId: string }[]> = {};
-
-  //   const cart = await Cart.findOne<ICart>({
-  //     userId: new mongoose.Types.ObjectId(user.id),
-  //   })
-  //     .populate({
-  //       path: "items.productId",
-  //       select: "_id name price productQuantity sizes",
-  //     })
-  //     .lean();
-
-  //   if (!cart || cart.items.length === 0) {
-  //     throw new TRPCError({
-  //       code: "BAD_REQUEST",
-  //       message: "Cart is empty",
-  //     });
-  //   }
-
-  //   for (const item of cart.items) {
-  //     const storeId = item.storeId.toString();
-  //     const product = await Product.findById(item.productId._id).lean();
-
-  //     if (!groupedByStore[storeId]) {
-  //       groupedByStore[storeId] = [];
-  //     }
-
-  //     groupedByStore[storeId].push({
-  //       productId: item.productId.toString(),
-  //     });
-
-  //     if (!product) {
-  //       validationErrors.push(`Product no longer exists in catalog.`);
-  //       continue;
-  //     }
-
-  //     // console.log("product", product);
-
-  //     // Handle size-based products
-  //     if (item.selectedSize !== undefined) {
-  //       const size = product.sizes?.find(
-  //         (s: { size: string }) => s.size === item.selectedSize!.size
-  //       );
-
-  //       if (!size) {
-  //         validationErrors.push(
-  //           `Size ${item.selectedSize.size} no longer available for ${product.name}`
-  //         );
-  //         continue;
-  //       }
-
-  //       if (size.quantity < item.quantity) {
-  //         validationErrors.push(
-  //           `Insufficient stock for ${product.name} (Size: ${item.selectedSize.size}). Available: ${size.quantity}, Requested: ${item.quantity}`
-  //         );
-  //       }
-  //     } else {
-  //       // Non-size-based products
-  //       if (product.productQuantity < item.quantity) {
-  //         validationErrors.push(
-  //           `Insufficient stock for ${product.name}. Available: ${product.productQuantity}, Requested: ${item.quantity}`
-  //         );
-  //       }
-  //     }
-  //   }
-
-  //   const storeIds = Object.keys(groupedByStore);
-
-  //   for (const storeId of storeIds) {
-  //     // Find the store by ID and select only status + name (optimization)
-  //     const store = await Store.findById(
-  //       new mongoose.Types.ObjectId(storeId)
-  //     ).select("status name");
-
-  //     if (!store) {
-  //       // Store ID provided does not exist in the database
-  //       validationErrors.push(
-  //         `One of the selected stores could not be found. Please check and try again.`
-  //       );
-  //       continue; // No need to check further if store is missing
-  //     }
-
-  //     if (store.status !== StoreStatusEnum.Active) {
-  //       // Store is in a non-active state (e.g., closed, inactive, etc.)
-  //       validationErrors.push(
-  //         `The store "${store.name}" is not active and cannot accept new orders.`
-  //       );
-  //     }
-  //   }
-
-  //   // if (validationErrors.length > 0) {
-  //   //   throw new TRPCError({
-  //   //     code: "BAD_REQUEST",
-  //   //     message: "Some cart items are invalid",
-  //   //     cause: validationErrors,
-  //   //   });
-  //   // }
-
-  //   return {
-  //     success: true,
-  //     isValid: validationErrors.length > 0 ? false : true,
-  //     validationErrors: validationErrors,
-  //   };
-  // }),
 });

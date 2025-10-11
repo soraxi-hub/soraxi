@@ -9,6 +9,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { IProduct } from "@/lib/db/models/product.model";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 export const wishlistRouter = createTRPCRouter({
   // it is used to help check if current product is already in user's wishlist under the product info component
@@ -97,7 +98,7 @@ export const wishlistRouter = createTRPCRouter({
       z.object({
         userId: z.string(),
         productId: z.string(),
-        productType: z.enum(["Product", "digitalproducts"]),
+        productType: z.nativeEnum(ProductTypeEnum),
       })
     )
     .mutation(async ({ input }) => {

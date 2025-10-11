@@ -1,3 +1,5 @@
+import { ProductTypeEnum } from "@/validators/product-validators";
+
 /**
  * Interface for a single item in the cart
  * Each item holds a product reference, quantity, and optional size details.
@@ -6,7 +8,7 @@ export interface CartItem {
   productId: string;
   storeId: string;
   quantity: number;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
 }
 
 /**

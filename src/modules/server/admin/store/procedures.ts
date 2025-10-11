@@ -225,7 +225,17 @@ export const adminStoreRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions.
          */
-        if (!admin || !checkAdminPermission(admin, [])) {
+        const allowedPermissions = [
+          PERMISSIONS.SUSPEND_STORE,
+          PERMISSIONS.VERIFY_STORE,
+          PERMISSIONS.REJECT_STORE,
+        ];
+        if (
+          !admin ||
+          !allowedPermissions.some((permission) =>
+            checkAdminPermission(admin, [permission])
+          )
+        ) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Admin authentication required",

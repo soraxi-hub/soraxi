@@ -1,5 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 /**
  * Interface for a single item in the cart
@@ -9,7 +10,7 @@ export interface ICartItem {
   productId: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
   quantity: number;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
   selectedSize?: {
     size: string;
     price: number;
@@ -52,7 +53,7 @@ const CartItemSchema = new Schema<ICartItem>(
     productType: {
       type: String,
       required: true,
-      enum: ["Product", "digitalproducts"],
+      enum: Object.values(ProductTypeEnum),
     },
     selectedSize: {
       size: { type: String },

@@ -1,12 +1,13 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 /**
  * Product Review Interface - represents a single review of a product by a buyer
  */
 export interface IProductReview extends Document {
   productId: mongoose.Schema.Types.ObjectId;
-  productType: "Product" | "digitalproducts";
+  productType: ProductTypeEnum;
   customerId: mongoose.Schema.Types.ObjectId;
   rating: number;
   reviewText: string;
@@ -26,7 +27,7 @@ const ProductReviewSchema = new Schema<IProductReview>(
     productType: {
       type: String,
       required: true,
-      enum: ["Product", "digitalproducts"],
+      enum: Object.values(ProductTypeEnum),
     },
     customerId: {
       type: mongoose.Schema.Types.ObjectId,

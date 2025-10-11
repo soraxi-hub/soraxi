@@ -250,9 +250,9 @@ function SuperAdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full" asChild>
-              <a href="/admin/products/moderation">
+              <Link href="/admin/products/moderation">
                 Review {stats.pendingProducts} products
-              </a>
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -267,7 +267,7 @@ function SuperAdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full" asChild>
-              <a href="/admin/finance/payouts">Process payouts</a>
+              <Link href="/admin/finance/payouts">Process payouts</Link>
             </Button>
           </CardContent>
         </Card>
@@ -284,7 +284,7 @@ function SuperAdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full" asChild>
-              <a href="/admin/users">Manage users</a>
+              <Link href="/admin/users">Manage users</Link>
             </Button>
           </CardContent>
         </Card>

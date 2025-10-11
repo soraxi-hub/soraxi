@@ -128,7 +128,7 @@ export const storeProfileRouter = createTRPCRouter({
           { new: true, runValidators: true }
         )
           .select(
-            "-password -storeOwner -recipientCode -walletId -digitalProducts -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+            "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
           )
           .lean();
       } catch (err: unknown) {
@@ -178,7 +178,7 @@ export const storeProfileRouter = createTRPCRouter({
         { new: true, runValidators: true }
       )
         .select(
-          "-password -storeOwner -recipientCode -walletId -digitalProducts -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+          "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
         )
         .lean();
 

@@ -50,6 +50,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { PERMISSIONS } from "./security/permissions";
+import { truncateText } from "@/lib/utils";
 
 /**
  * Admin Layout Component
@@ -280,10 +281,10 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
                       </Avatar>
                       <div className="flex-1 text-left">
                         <p className="text-sm font-medium text-foreground">
-                          {admin.name}
+                          {truncateText(admin.name, 20)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {admin.email}
+                          {truncateText(admin.email)}
                         </p>
                       </div>
                     </div>
@@ -292,9 +293,9 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div>
-                      <p className="font-medium">{admin.name}</p>
+                      <p className="font-medium">{truncateText(admin.name)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {admin.email}
+                        {truncateText(admin.email)}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {admin.roles.map((role) => (

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 // type PaystackInitResponse = {
 //   status: boolean;
@@ -55,10 +56,7 @@ const paystackInputSchema = z.object({
               quantity: z.number(),
             })
             .optional(),
-          productType: z.union([
-            z.literal("Product"),
-            z.literal("digitalproducts"),
-          ]),
+          productType: z.nativeEnum(ProductTypeEnum),
           storeID: z.string(),
         })
       ),
