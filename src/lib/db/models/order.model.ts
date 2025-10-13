@@ -234,7 +234,7 @@ const SubOrderSchema = new Schema<ISubOrder>({
     refunded: { type: Boolean, default: false }, // for returned or refunded orders
     refundReason: { type: String }, // optional reason
   },
-  returnWindow: { type: Date }, // set at delivery, e.g., +7 days
+  returnWindow: { type: Date }, // set at delivery, e.g., +2 days
   // <CHANGE> Add returns schema for tracking individual product returns
   returns: [
     {
