@@ -119,8 +119,8 @@ export const orderStatusRouter = createTRPCRouter({
             // Set delivery date and calculate return window
             subOrder.deliveryDate = currentDate;
             subOrder.returnWindow = new Date(
-              currentDate.getTime() + 7 * 24 * 60 * 60 * 1000
-            ); // 7 days
+              currentDate.getTime() + 2 * 24 * 60 * 60 * 1000
+            ); // 2 days
             break;
 
           case DeliveryStatus.Canceled:
