@@ -5,7 +5,7 @@
 ### 1. When `deliveryStatus` becomes `"Delivered"`
 
 ```ts
-subOrder.returnWindow = now + 7 days;
+subOrder.returnWindow = now + 2 days;
 ```
 
 - Set the return window countdown.

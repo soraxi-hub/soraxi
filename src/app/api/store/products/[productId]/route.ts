@@ -11,6 +11,7 @@ import {
 } from "@/validators/product-validators";
 import { productName } from "@/validators/product-validators";
 import { StoreStatusEnum } from "@/validators/store-validators";
+import { MIN_IMAGE_NUMBER } from "@/domain/products/product-upload";
 
 export async function PUT(
   request: NextRequest,
@@ -152,8 +153,10 @@ export async function PUT(
       });
 
       // Additional validation for images
-      if (!images || images.length < 3) {
-        validationErrors.push("images: At least 3 product images are required");
+      if (!images || images.length < MIN_IMAGE_NUMBER) {
+        validationErrors.push(
+          `images: At least ${MIN_IMAGE_NUMBER} product images are required`
+        );
       }
 
       // If there are validation errors, throw them

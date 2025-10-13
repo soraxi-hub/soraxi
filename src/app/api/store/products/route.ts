@@ -13,6 +13,7 @@ import {
 import { StoreStatusEnum } from "@/validators/store-validators";
 import { productName } from "@/validators/product-validators";
 import mongoose from "mongoose";
+import { MIN_IMAGE_NUMBER } from "@/domain/products/product-upload";
 
 /**
  * API Route: Store Product Management
@@ -202,8 +203,10 @@ export async function POST(request: NextRequest) {
       });
 
       // Additional validation for images
-      if (!images || images.length < 3) {
-        validationErrors.push("images: At least 3 product images are required");
+      if (!images || images.length < MIN_IMAGE_NUMBER) {
+        validationErrors.push(
+          `images: At least ${MIN_IMAGE_NUMBER} product images are required`
+        );
       }
 
       // If there are validation errors, throw them
