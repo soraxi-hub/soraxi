@@ -273,10 +273,12 @@ export const orderRouter = createTRPCRouter({
         });
       }
 
-      if (
-        subOrder.deliveryStatus !== DeliveryStatus.OutForDelivery &&
-        subOrder.deliveryStatus !== DeliveryStatus.Delivered
-      ) {
+      const acceptableCurrentStatuses = [
+        DeliveryStatus.OutForDelivery,
+        DeliveryStatus.Delivered,
+      ];
+
+      if (!acceptableCurrentStatuses.includes(subOrder.deliveryStatus)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: `Delivery cannot be confirmed unless it's marked as "Out for Delivery" or "Delivered".`,
@@ -303,8 +305,8 @@ export const orderRouter = createTRPCRouter({
         // Set delivery date and calculate return window
         subOrder.deliveryDate = currentDate;
         subOrder.returnWindow = new Date(
-          currentDate.getTime() + 7 * 24 * 60 * 60 * 1000
-        ); // 7 days in milliseconds
+          currentDate.getTime() + 2 * 24 * 60 * 60 * 1000
+        ); // 2 days in milliseconds
       }
 
       await order.save();

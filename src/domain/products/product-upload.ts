@@ -11,8 +11,8 @@ import {
 } from "@/validators/product-validators";
 import { toast } from "sonner";
 
-export const MIN_IMAGE_NUMBER = 3;
-export const MAX_IMAGE_NUMBER = 5;
+export const MIN_IMAGE_NUMBER = 1;
+export const MAX_IMAGE_NUMBER = 3;
 
 export class UploadProduct {
   private productToUpload: ProductFormData | null = null;
