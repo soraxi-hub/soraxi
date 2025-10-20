@@ -13,6 +13,8 @@ import { User, Mail, Phone, MapPin, ShieldCheck } from "lucide-react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
+import { UserFactory } from "@/domain/users/user-factory";
+import { truncateText } from "@/lib/utils";
 
 const Profile = () => {
   // State management
@@ -21,9 +23,11 @@ const Profile = () => {
   // const router = useRouter();
 
   const trpc = useTRPC();
-  const { data: user, isLoading } = useSuspenseQuery(
+  const { data, isLoading } = useSuspenseQuery(
     trpc.user.getById.queryOptions()
   );
+
+  const user = UserFactory.createProfileUser(data);
 
   // if (data.data) return JSON.stringify(data.data, null, 2);
 
@@ -62,9 +66,9 @@ const Profile = () => {
           <div className="flex items-center justify-between mb-6">
             <h1 className="sm:text-2xl font-bold flex items-center gap-2">
               <User className="w-6 h-6" />
-              Greetings, {user.firstName}!
+              Greetings, {user.getUserFirstName()}!
             </h1>
-            {user.isVerified && (
+            {user.getUserIsVerified() && (
               <Badge className="bg-green-100 text-green-800 hover:bg-inherit">
                 <ShieldCheck className="w-4 h-4 mr-1" />
                 Verified Account
@@ -80,16 +84,16 @@ const Profile = () => {
               items={[
                 {
                   label: "Full Name",
-                  value: `${user.firstName} ${user.otherNames} ${user.lastName}`,
+                  value: truncateText(user.getUserFullName(), 40) as string,
                 },
                 {
                   label: "Email",
-                  value: user.email,
+                  value: user.getUserEmail(),
                   icon: <Mail className="w-4 h-4" />,
                 },
                 {
                   label: "Phone",
-                  value: user.phoneNumber,
+                  value: user.getUserPhoneNumber(),
                   icon: <Phone className="w-4 h-4" />,
                 },
               ]}
@@ -99,17 +103,17 @@ const Profile = () => {
               icon={<MapPin className="w-5 h-5" />}
               title="Shipping Address"
               items={[
-                { label: "Address", value: user.address },
-                { label: "City", value: user.cityOfResidence },
-                { label: "State", value: user.stateOfResidence },
-                { label: "Postal Code", value: user.postalCode },
+                { label: "Address", value: user.getUserAddress() },
+                { label: "City", value: user.getUserCityOfResidence() },
+                { label: "State", value: user.getUserStateOfResidence() },
+                { label: "Postal Code", value: user.getUserPostalCode() },
               ]}
             />
           </div>
         </section>
 
         {/* Verification Section */}
-        {!user.isVerified && <VerificationSection />}
+        {!user.getUserIsVerified() && <VerificationSection />}
 
         {/* Recently Viewed Products */}
         {/* {recentProducts.length > 0 && (

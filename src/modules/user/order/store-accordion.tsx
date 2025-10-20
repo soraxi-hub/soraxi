@@ -27,7 +27,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { formatNaira } from "@/lib/utils/naira";
-import { getStatusBadge } from "@/lib/utils";
+import { getStatusBadge, truncateText } from "@/lib/utils";
 import { ProductItem } from "./product-item";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
@@ -108,11 +108,11 @@ export function StoreAccordion({
                   <AccordionTrigger className="sm:px-4 hover:no-underline">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-4">
-                        <Store className="w-5 h-5 text-primary" />
+                        <Store className="w-5 h-5 text-primary hidden sm:inline-flex" />
                         <span className="font-medium">
                           {typeof subOrder.store === "object" &&
                           "name" in subOrder.store
-                            ? subOrder.store.name
+                            ? truncateText(subOrder.store.name, 15)
                             : `Store ${index + 1}`}
                         </span>
                       </div>

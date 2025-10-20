@@ -34,12 +34,20 @@ import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { isPopulatedUser } from "@/lib/utils/order-formatter";
-import { getStatusBadge } from "@/lib/utils";
+import { cn, getStatusBadge } from "@/lib/utils";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { campusLocations } from "@/modules/checkout/order-summary";
 import {
@@ -49,6 +57,7 @@ import {
   DeliveryType,
   statusHistoryLabel,
 } from "@/enums";
+import { siteConfig } from "@/config/site";
 
 /**
  * Order Detail View Component Props
@@ -94,6 +103,10 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    * delivery status changes, and notes.
    */
   const [updating, setUpdating] = useState(false);
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  // const [selectedAction, setSelectedAction] = useState<string | null>(null);
+  const [subOrderId, setSubOrderId] = useState<string>("");
+  const [newStatus, setNewStatus] = useState<DeliveryStatus | null>(null);
 
   // ==================== Data Fetching ====================
 
@@ -126,6 +139,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         toast.success(data.message);
         setUpdating(false);
         refetchOrder();
+        setShowActionDialog(false);
+        setSubOrderId("");
+        setNewStatus(null);
       },
       onError: (error) => {
         toast.error(error.message || `Failed to update order status`);
@@ -149,6 +165,16 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
     subOrderId: string,
     newStatus: DeliveryStatus
   ) => {
+    setSubOrderId(subOrderId);
+    setNewStatus(newStatus);
+    setShowActionDialog(true);
+  };
+
+  const confirmAction = () => {
+    if (!newStatus) {
+      toast.info("Please select a new status");
+      return;
+    }
     setUpdating(true);
 
     StatusUpdate.mutate({
@@ -324,8 +350,10 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                     {subOrder.escrow && (
                       <div className="p-3 bg-muted rounded-lg">
                         <h4 className="font-medium mb-2">Escrow Status</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          {/* Held */}
+                          <div className="flex flex-wrap items-center">
                             <span className="text-muted-foreground">Held:</span>
                             <span
                               className={`ml-2 ${
@@ -337,7 +365,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                               {subOrder.escrow.held ? "Yes" : "No"}
                             </span>
                           </div>
-                          <div>
+
+                          {/* Released */}
+                          <div className="flex flex-wrap items-center">
                             <span className="text-muted-foreground">
                               Released:
                             </span>
@@ -351,55 +381,60 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                               {subOrder.escrow.released ? "Yes" : "No"}
                             </span>
                           </div>
+
+                          {/* Return Window Info */}
                           {subOrder.returnWindow && (
-                            <div>
-                              <span className="text-muted-foreground">
-                                <Tooltip>
-                                  <TooltipTrigger className="inline-flex items-center">
-                                    <InfoIcon
-                                      width={12}
-                                      height={12}
-                                      className="mr-1"
-                                    />
-                                    Return Window:{" "}
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">
-                                      Escrow would be released once the return
-                                      window expires on{" "}
-                                      {format(
+                            <>
+                              <div className="flex flex-wrap items-center">
+                                <span className="text-muted-foreground">
+                                  <Popover>
+                                    <PopoverTrigger className="inline-flex items-center cursor-pointer">
+                                      <InfoIcon
+                                        width={12}
+                                        height={12}
+                                        className="mr-1"
+                                      />
+                                      Return Window:
+                                    </PopoverTrigger>
+                                    <PopoverContent className="max-w-xs text-sm dark:bg-muted">
+                                      <p className="text-sm">
+                                        Escrow will be released once the return
+                                        window expires on{" "}
+                                        {format(
+                                          new Date(subOrder.returnWindow),
+                                          "MMM dd, yyyy"
+                                        )}
+                                        .
+                                      </p>
+                                    </PopoverContent>
+                                  </Popover>
+                                </span>
+                                <span className="ml-2">
+                                  {returnWindowActive ? "Active" : "Expired"}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center">
+                                <span className="text-muted-foreground">
+                                  {returnWindowActive
+                                    ? "Expires on:"
+                                    : "Expired on:"}
+                                </span>
+                                <span className="ml-2">
+                                  {returnWindowExpiration
+                                    ? format(
                                         new Date(subOrder.returnWindow),
                                         "MMM dd, yyyy"
-                                      )}
-                                      .
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </span>
-                              <span className="ml-2">
-                                {returnWindowActive ? "Active" : "Expired"}
-                              </span>
-                            </div>
+                                      )
+                                    : "N/A"}
+                                </span>
+                              </div>
+                            </>
                           )}
-                          {subOrder.returnWindow && (
-                            <div>
-                              <span className="text-muted-foreground">
-                                {returnWindowActive
-                                  ? "Expires on:"
-                                  : "Expired on:"}
-                              </span>
-                              <span className="ml-2">
-                                {returnWindowExpiration
-                                  ? format(
-                                      new Date(subOrder.returnWindow),
-                                      "MMM dd, yyyy"
-                                    )
-                                  : "N/A"}
-                              </span>
-                            </div>
-                          )}
+
+                          {/* Released At */}
                           {subOrder.escrow.releasedAt && (
-                            <div className="">
+                            <div className="flex flex-wrap items-center">
                               <span className="text-muted-foreground">
                                 Released At:
                               </span>
@@ -411,65 +446,68 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                               </span>
                             </div>
                           )}
+
+                          {/* Settlement Info */}
                           {subOrder.settlement && (
-                            <div className="">
-                              <span className="text-muted-foreground">
-                                Settlement Amount:
-                              </span>
-                              <span className="ml-2">
-                                {formatNaira(subOrder.settlement.amount)}
-                              </span>
-                            </div>
-                          )}
-                          {subOrder.settlement && (
-                            <div className="">
-                              <span className="text-muted-foreground">
-                                Shipping Cost:
-                              </span>
-                              <span className="ml-2">
-                                {formatNaira(subOrder.settlement.shippingPrice)}
-                              </span>
-                            </div>
-                          )}
-                          {subOrder.settlement && (
-                            <div className="">
-                              <span className="text-muted-foreground">
-                                <Tooltip>
-                                  <TooltipTrigger className="inline-flex items-center">
-                                    <InfoIcon
-                                      width={12}
-                                      height={12}
-                                      className="mr-1"
-                                    />
-                                    Total:{" "}
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">
-                                      Total = Settlement Amount - Shipping Cost
-                                      .
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </span>
-                              <span className="ml-2">
-                                {formatNaira(
-                                  currencyOperations.add(
-                                    subOrder.settlement.amount,
+                            <>
+                              <div className="flex flex-wrap items-center">
+                                <span className="text-muted-foreground">
+                                  Settlement Amount:
+                                </span>
+                                <span className="ml-2">
+                                  {formatNaira(subOrder.settlement.amount)}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center">
+                                <span className="text-muted-foreground">
+                                  Shipping Cost:
+                                </span>
+                                <span className="ml-2">
+                                  {formatNaira(
                                     subOrder.settlement.shippingPrice
-                                  )
-                                )}
-                              </span>
-                            </div>
-                          )}
-                          {subOrder.settlement && (
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground">
-                                Notes:
-                              </span>
-                              <span className="ml-2">
-                                {subOrder.settlement.notes}
-                              </span>
-                            </div>
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center">
+                                <span className="text-muted-foreground">
+                                  <Popover>
+                                    <PopoverTrigger className="inline-flex items-center cursor-pointer">
+                                      <InfoIcon
+                                        width={12}
+                                        height={12}
+                                        className="mr-1"
+                                      />
+                                      Total:
+                                    </PopoverTrigger>
+                                    <PopoverContent className="max-w-xs text-sm dark:bg-muted">
+                                      <p className="text-sm">
+                                        Total = Settlement Amount + Shipping
+                                        Cost.
+                                      </p>
+                                    </PopoverContent>
+                                  </Popover>
+                                </span>
+                                <span className="ml-2">
+                                  {formatNaira(
+                                    currencyOperations.add(
+                                      subOrder.settlement.amount,
+                                      subOrder.settlement.shippingPrice
+                                    )
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="col-span-1 sm:col-span-2 flex items-center">
+                                <span className="text-muted-foreground">
+                                  Notes:
+                                </span>
+                                <p className="ml-2 mt-1 break-words">
+                                  {subOrder.settlement.notes}
+                                </p>
+                              </div>
+                            </>
                           )}
                         </div>
                       </div>
@@ -501,13 +539,14 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                     {subOrder.products.map((item, itemIndex) => (
                       <div
                         key={itemIndex}
-                        className="flex gap-4 p-4 border rounded-lg"
+                        className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg"
                       >
-                        <div className="relative w-16 h-16 flex-shrink-0">
+                        {/* Product Image */}
+                        <div className="relative w-24 h-24 sm:w-16 sm:h-16 mx-auto sm:mx-0 flex-shrink-0">
                           <Image
                             src={
                               item.productSnapshot.images[0] ||
-                              "/placeholder.svg?height=64&width=64"
+                              siteConfig.placeHolderImg
                             }
                             alt={item.productSnapshot.name}
                             fill
@@ -515,11 +554,12 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                           />
                         </div>
 
-                        <div className="flex-1 min-w-0">
+                        {/* Product Details */}
+                        <div className="flex-1 min-w-0 text-center sm:text-left">
                           <h4 className="font-medium truncate">
                             {item.productSnapshot.name}
                           </h4>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                             <span>Qty: {item.productSnapshot.quantity}</span>
                             {item.productSnapshot.selectedSize && (
                               <span>
@@ -532,7 +572,8 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        {/* Price Summary */}
+                        <div className="text-center sm:text-right mt-2 sm:mt-0">
                           <p className="font-medium">
                             {formatNaira(
                               item.productSnapshot.price *
@@ -727,6 +768,50 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </Card>
         </div>
       </div>
+
+      {/* Action Confirmation Dialog */}
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Confirm{" "}
+              {newStatus
+                ? newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
+                : ""}
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to mark this product as &#34;
+              {newStatus &&
+                newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}
+              &#34;? This action can not be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowActionDialog(false)}
+              disabled={StatusUpdate.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmAction}
+              disabled={StatusUpdate.isPending}
+              className={cn(
+                "bg-soraxi-green hover:bg-soraxi-green-hover text-white hover:text-white"
+              )}
+            >
+              {StatusUpdate.isPending
+                ? "Processing..."
+                : `Mark Product as "${
+                    newStatus &&
+                    newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
+                  }"`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

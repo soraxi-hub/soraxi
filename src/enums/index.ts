@@ -93,6 +93,10 @@ export const statusHistoryLabel = (val: StatusHistory): StatusHistoryLabel => {
       return statusHistoryLabels[StatusHistory.Returned];
     case StatusHistory.ReturnRequested:
       return statusHistoryLabels[StatusHistory.ReturnRequested];
+    case StatusHistory.FailedDelivery:
+      return statusHistoryLabels[StatusHistory.FailedDelivery];
+    case StatusHistory.Refunded:
+      return statusHistoryLabels[StatusHistory.Refunded];
     default:
       return "Unknown Status";
   }
@@ -131,6 +135,10 @@ export const deliveryStatusLabel = (
       return deliveryStatusLabels[DeliveryStatus.Canceled];
     case DeliveryStatus.Returned:
       return deliveryStatusLabels[DeliveryStatus.Returned];
+    case DeliveryStatus.FailedDelivery:
+      return deliveryStatusLabels[DeliveryStatus.FailedDelivery];
+    case DeliveryStatus.Refunded:
+      return deliveryStatusLabels[DeliveryStatus.Refunded];
     default:
       return "Unknown Status";
   }

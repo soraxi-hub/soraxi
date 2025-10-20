@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import ShippingMethodForm from "@/modules/store/shipping/shipping-methods";
 import ShippingMethodFormSkeleton from "@/modules/skeletons/shipping-method-form-skeleton";
-import { ErrorFallback } from "@/components/error-fallback";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 
 import type { Metadata } from "next";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";

@@ -5,7 +5,7 @@ import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "react-error-boundary";
 import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
-import { ErrorFallback } from "@/components/error-fallback";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 import { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 

@@ -213,7 +213,7 @@ export const storeOrdersRouter = createTRPCRouter({
             .populate({
               path: "userId",
               model: "User",
-              select: "_id firstName lastName email phoneNumber", // Changed 'name' to 'firstName lastName'
+              select: "_id firstName lastName email phoneNumber",
             })
             .populate({
               path: "subOrders.products.productId",
@@ -223,7 +223,7 @@ export const storeOrdersRouter = createTRPCRouter({
             .populate({
               path: "subOrders.storeId",
               model: "Store",
-              select: "_id name storeEmail logoUrl", // Changed 'logo' to 'logoUrl'
+              select: "_id name storeEmail logoUrl",
             })
             .select(
               "_id userId stores totalAmount paymentStatus paymentMethod " +
@@ -232,14 +232,14 @@ export const storeOrdersRouter = createTRPCRouter({
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(input.limit)
-            .lean()
+            .lean<RawOrderDocument[]>()
             .transform((docs) => {
               // This transform filters subOrders to only include those belonging to the current store
               return docs.map((doc) => ({
                 ...doc,
                 subOrders: doc.subOrders.filter(
                   (subOrder) =>
-                    (subOrder.storeId as any)._id.toString() === storeSession.id
+                    subOrder.storeId._id.toString() === storeSession.id
                 ),
               }));
             })
@@ -256,7 +256,7 @@ export const storeOrdersRouter = createTRPCRouter({
 
         // Format each order document using the utility function
         const formattedOrders = orders.map((order) =>
-          formatStoreOrderDocument(order as any, storeSession.id)
+          formatStoreOrderDocument(order, storeSession.id)
         );
 
         console.log(

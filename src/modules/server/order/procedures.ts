@@ -11,6 +11,175 @@ import {
 import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
+// import { ProductTypeEnum } from "@/validators/product-validators";
+
+// type RawOrdersData = {
+//   _id: mongoose.Types.ObjectId;
+//   userId: mongoose.Types.ObjectId;
+//   stores: mongoose.Types.ObjectId[];
+//   totalAmount: number;
+//   paymentStatus?: string;
+//   createdAt: Date;
+//   subOrders: Array<{
+//     _id: mongoose.Types.ObjectId;
+//     storeId: {
+//       _id: string;
+//       name: string;
+//       storeEmail: string;
+//       logoUrl?: string;
+//     };
+//     products: Array<{
+//       _id: mongoose.Types.ObjectId;
+//       productId: {
+//         _id: string;
+//         name: string;
+//         images: string[];
+//         price: number;
+//         productType: ProductTypeEnum;
+//         storeId: string;
+//       };
+//       storeId: mongoose.Types.ObjectId;
+//       productSnapshot: {
+//         _id: mongoose.Schema.Types.ObjectId;
+//         name: string;
+//         images: string[];
+//         quantity: number;
+//         price: number;
+//         category?: string;
+//         subCategory?: string;
+//         selectedSize?: {
+//           size: string;
+//           price: number;
+//         };
+//       };
+//       storeSnapshot: {
+//         _id: mongoose.Schema.Types.ObjectId;
+//         name: string;
+//         logo?: string;
+//         email?: string;
+//       };
+//     }>;
+//     totalAmount: number;
+//     deliveryStatus: DeliveryStatus;
+//     shippingMethod?: {
+//       name: string;
+//       price: number;
+//       estimatedDeliveryDays?: string;
+//       description?: string;
+//     };
+//     deliveryDate?: Date;
+//     customerConfirmedDelivery: {
+//       confirmed: boolean;
+//       confirmedAt: Date;
+//       autoConfirmed: boolean;
+//     };
+//     escrow: {
+//       held: boolean;
+//       released: boolean;
+//       releasedAt?: Date;
+//       refunded: boolean;
+//       refundReason?: string;
+//     };
+//     returnWindow?: Date;
+//     settlement?: {
+//       amount: number;
+//       shippingPrice: number;
+//       commission: number;
+//       appliedPercentageFee: number;
+//       appliedFlatFee: number;
+//       notes: string;
+//     };
+//     statusHistory: Array<{
+//       status: StatusHistory;
+//       timestamp: Date;
+//       notes?: string;
+//     }>;
+//   }>;
+// };
+
+// type FormattedOrdersData = {
+//   _id: string;
+//   userId: string;
+//   stores: string[];
+//   totalAmount: number;
+//   paymentStatus?: string;
+//   createdAt: Date;
+//   subOrders: Array<{
+//     _id: string;
+//     store: {
+//       _id: string;
+//       name: string;
+//       storeEmail: string;
+//       logoUrl?: string;
+//     };
+//     products: Array<{
+//       _id: string;
+//       productId: {
+//         _id: string;
+//         name: string;
+//         images: string[];
+//         price: number;
+//         productType: ProductTypeEnum;
+//         storeId: string;
+//       };
+//       storeId: string;
+//       productSnapshot: {
+//         _id: string;
+//         name: string;
+//         images: string[];
+//         quantity: number;
+//         price: number;
+//         category?: string;
+//         subCategory?: string;
+//         selectedSize?: {
+//           size: string;
+//           price: number;
+//         };
+//       };
+//       storeSnapshot: {
+//         _id: string;
+//         name: string;
+//         logo?: string;
+//         email?: string;
+//       };
+//     }>;
+//     totalAmount: number;
+//     deliveryStatus: DeliveryStatus;
+//     shippingMethod?: {
+//       name: string;
+//       price: number;
+//       estimatedDeliveryDays?: string;
+//       description?: string;
+//     };
+//     deliveryDate?: Date;
+//     customerConfirmedDelivery: {
+//       confirmed: boolean;
+//       confirmedAt: Date;
+//       autoConfirmed: boolean;
+//     };
+//     escrow: {
+//       held: boolean;
+//       released: boolean;
+//       releasedAt?: Date;
+//       refunded: boolean;
+//       refundReason?: string;
+//     };
+//     returnWindow?: Date;
+//     settlement?: {
+//       amount: number;
+//       shippingPrice: number;
+//       commission: number;
+//       appliedPercentageFee: number;
+//       appliedFlatFee: number;
+//       notes: string;
+//     };
+//     statusHistory: Array<{
+//       status: StatusHistory;
+//       timestamp: Date;
+//       notes?: string;
+//     }>;
+//   }>;
+// };
 
 /**
  * Order Router with Type-Safe Procedures
@@ -37,93 +206,86 @@ export const orderRouter = createTRPCRouter({
    * @param input.userId - The user ID to fetch orders for
    * @returns Array of formatted orders with populated data
    */
-  getByUserId: baseProcedure
-    .input(
-      z.object({
-        userId: z.string().min(1, "User ID is required"),
-      })
-    )
-    .query(async ({ input }) => {
-      try {
-        // Ensure database connection
-        await connectToDatabase();
-        const Order = await getOrderModel();
-        await getStoreModel();
+  getByUserId: baseProcedure.query(async ({ ctx }) => {
+    try {
+      const { user } = ctx;
 
-        // Validate user ID format
-        if (!mongoose.Types.ObjectId.isValid(input.userId)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid user ID format",
-          });
-        }
-
-        /**
-         * Execute Optimized Database Query
-         *
-         * Fetch orders with comprehensive population of related documents.
-         * Uses selective field projection to optimize performance while
-         * ensuring all necessary data is available for formatting.
-         */
-        const rawOrders = await Order.find({ userId: input.userId })
-          // .populate({
-          //   path: "subOrders.products.Product",
-          //   model: "Product",
-          //   select: "_id name images price productType storeID",
-          // }) // Commented out to reduce data exposure and a more reliable source of truth for display is the productSnapshot & storeSnapshot. I am still keeping this commented out for reference purposes only.
-          .populate({
-            path: "subOrders.storeId",
-            model: "Store",
-            select: "_id name storeEmail logoUrl",
-          })
-          .select(
-            "_id userId stores totalAmount paymentStatus paymentMethod " +
-              "shippingAddress notes createdAt updatedAt subOrders"
-          )
-          .sort({ createdAt: -1 })
-          .lean<RawOrderDocument[]>()
-          .exec();
-
-        // Handle case where no orders are found
-        if (!rawOrders || rawOrders.length === 0) {
-          return []; // Return empty array instead of throwing error for better UX
-        }
-
-        /**
-         * Format Orders with Type Safety
-         *
-         * Transform raw MongoDB documents into properly typed,
-         * client-ready format. Includes error handling for any
-         * data inconsistencies or population failures.
-         */
-        const formattedOrders = formatOrderDocuments(rawOrders);
-
-        console.log(
-          `Successfully retrieved ${formattedOrders.length} orders for user ${input.userId}`
-        );
-
-        return formattedOrders;
-      } catch (error) {
-        console.error("Error in getByUserId procedure:", error);
-
-        // Handle specific error types with appropriate responses
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        if (error instanceof Error) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Failed to retrieve orders: ${error.message}`,
-          });
-        }
-
+      if (!user || !user.id) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "An unexpected error occurred while retrieving orders",
+          code: "UNAUTHORIZED",
+          message: "User must be authenticated to access orders",
         });
       }
-    }),
+
+      // Ensure database connection
+      await connectToDatabase();
+      const Order = await getOrderModel();
+      await getStoreModel();
+
+      // Validate user ID format
+      if (!mongoose.Types.ObjectId.isValid(user.id)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid user ID format",
+        });
+      }
+
+      /**
+       * Execute Optimized Database Query
+       *
+       * Fetch orders with comprehensive population of related documents.
+       * Uses selective field projection to optimize performance while
+       * ensuring all necessary data is available for formatting.
+       */
+      const rawOrders = await Order.find({ userId: user.id })
+        .populate({
+          path: "subOrders.storeId",
+          model: "Store",
+          select: "_id name storeEmail logoUrl",
+        })
+        .select(
+          "_id userId stores totalAmount paymentStatus " + "createdAt subOrders"
+        )
+        .sort({ createdAt: -1 })
+        .lean<RawOrderDocument[]>()
+        .exec();
+
+      // Handle case where no orders are found
+      if (!rawOrders || rawOrders.length === 0) {
+        return []; // Return empty array instead of throwing error for better UX
+      }
+
+      /**
+       * Format Orders with Type Safety
+       *
+       * Transform raw MongoDB documents into properly typed,
+       * client-ready format. Includes error handling for any
+       * data inconsistencies or population failures.
+       */
+      const formattedOrders = formatOrderDocuments(rawOrders);
+
+      return formattedOrders;
+    } catch (error) {
+      console.error("Error in getByUserId procedure:", error);
+
+      // Handle specific error types with appropriate responses
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to retrieve orders: ${error.message}`,
+        });
+      }
+
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred while retrieving orders",
+      });
+    }
+  }),
 
   /**
    * Get Order by Order ID Procedure

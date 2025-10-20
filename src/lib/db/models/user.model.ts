@@ -10,7 +10,7 @@ import {
  * All monetary values (if any) are assumed to be stored in kobo to avoid floating-point errors.
  */
 export interface IUser extends Document {
-  _id: mongoose.Schema.Types.ObjectId;
+  _id: mongoose.Types.ObjectId;
   firstName: string;
   lastName: string;
   otherNames: string;
@@ -22,9 +22,9 @@ export interface IUser extends Document {
   stateOfResidence: string;
   postalCode: string;
   isVerified: boolean;
-  followingStores: mongoose.Schema.Types.ObjectId[];
+  followingStores: mongoose.Types.ObjectId[];
   stores?: {
-    storeId: mongoose.Schema.Types.ObjectId;
+    storeId: mongoose.Types.ObjectId;
   }[];
   forgotpasswordToken?: string;
   forgotpasswordTokenExpiry?: Date;

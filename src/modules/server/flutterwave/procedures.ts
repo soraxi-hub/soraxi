@@ -137,7 +137,8 @@ export const flutterwaveRouter = createTRPCRouter({
         if (existingOrder) {
           throw new TRPCError({
             code: "CONFLICT",
-            message: "Duplicate Order initiated.",
+            message:
+              "It looks like this order was already initiated. Please go back to your cart and try checking out again.",
           });
         }
 

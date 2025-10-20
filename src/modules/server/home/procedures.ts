@@ -5,8 +5,8 @@ import {
   getProductModel,
   getProducts,
 } from "@/lib/db/models/product.model";
-import { TRPCError } from "@trpc/server";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 
 /**
  * tRPC Router: homeRouter
@@ -40,7 +40,6 @@ export const homeRouter = createTRPCRouter({
         limit,
         category,
         subCategory,
-        // verified,
         search,
         sort,
         priceMin,
@@ -48,41 +47,48 @@ export const homeRouter = createTRPCRouter({
         ratings,
       } = input;
 
-      const products = await getProducts({
-        visibleOnly: true,
-        limit,
-        skip: (page - 1) * limit,
-        category: category !== "all" ? category : undefined,
-        subCategory,
-        verified: true,
-        search,
-        sort,
-        priceMin,
-        priceMax,
-        ratings,
-      });
-
-      const formattedProducts = products.map((product) => ({
-        id: (product._id as string).toString(),
-        name: product.name,
-        price: product.price,
-        images: product.images,
-        category: product.category,
-        subCategory: product.subCategory,
-        rating: product.rating || 0,
-        slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
-      }));
-
-      return {
-        success: true,
-        products: formattedProducts,
-        pagination: {
-          page,
+      try {
+        const products = await getProducts({
+          visibleOnly: true,
           limit,
-          total: formattedProducts.length,
-        },
-      };
+          skip: (page - 1) * limit,
+          category: category !== "all" ? category : undefined,
+          subCategory,
+          verified: true,
+          search,
+          sort,
+          priceMin,
+          priceMax,
+          ratings,
+        });
+
+        const formattedProducts = products.map((product) => ({
+          id: (product._id as string).toString(),
+          name: product.name,
+          price: product.price,
+          images: product.images,
+          category: product.category,
+          subCategory: product.subCategory,
+          rating: product.rating || 0,
+          slug: product.slug,
+          isVerifiedProduct: product.isVerifiedProduct,
+        }));
+
+        return {
+          success: true,
+          products: formattedProducts,
+          pagination: {
+            page,
+            limit,
+            total: formattedProducts.length,
+          },
+        };
+      } catch (err: any) {
+        throw handleTRPCError(
+          err,
+          "Failed to fetch products. Please try again later."
+        );
+      }
     }),
 
   /**
@@ -102,24 +108,26 @@ export const homeRouter = createTRPCRouter({
         const product = await getProductBySlug(slug);
 
         if (!product) {
-          throw new TRPCError({
-            message: "Product not found",
-            code: "NOT_FOUND",
-          });
+          // Return a safe response indicating product not found
+          return {
+            success: false,
+            reason: "PRODUCT_NOT_FOUND",
+            product: null,
+            storeStatus: null,
+          };
         }
-
-        // Check that the store this product belongs to is still
-        // active and not susspended or any other status other than active.
-        // This will be done client side when we pass the store status to the client.
 
         const Store = await getStoreModel();
         const storeDoc = await Store.findById(product.storeId).select("status");
 
         if (!storeDoc) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Store not found",
-          });
+          // Return a safe response indicating store not found
+          return {
+            success: false,
+            reason: "STORE_NOT_FOUND",
+            product: null,
+            storeStatus: null,
+          };
         }
 
         const formattedProduct = {
@@ -146,25 +154,22 @@ export const homeRouter = createTRPCRouter({
           storeStatus: storeDoc.status,
         };
       } catch (err: any) {
-        // 🔹 Detect network-related issues
-        if (
-          err?.code === "ENOTFOUND" ||
-          err?.name === "MongoNetworkError" ||
-          err?.message?.includes("getaddrinfo")
-        ) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "NETWORK_ERROR", // <- client can detect this
-            cause: err,
-          });
-        }
+        // if (
+        //   err?.code === "ENOTFOUND" ||
+        //   err?.name === "MongoNetworkError" ||
+        //   err?.message?.includes("getaddrinfo")
+        // ) {
+        //   throw new TRPCError({
+        //     code: "INTERNAL_SERVER_ERROR",
+        //     message: "NETWORK_ERROR",
+        //     cause: err,
+        //   });
+        // }
 
-        // 🔹 Fallback: any other server error
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch product. Please try again later.",
-          cause: err,
-        });
+        throw handleTRPCError(
+          err,
+          "Failed to fetch product. Please try again later."
+        );
       }
     }),
 
@@ -180,50 +185,45 @@ export const homeRouter = createTRPCRouter({
       })
     )
     .query(async ({ input }) => {
-      const Product = await getProductModel();
+      try {
+        const Product = await getProductModel();
 
-      // Step 1: Find the current product using the slug
-      const currentProduct = await Product.findOne({
-        slug: input.slug,
-        isVerifiedProduct: true,
-        isVisible: true,
-      }).lean();
+        const currentProduct = await Product.findOne({
+          slug: input.slug,
+          isVerifiedProduct: true,
+          isVisible: true,
+        }).lean();
 
-      // If the product is not found (e.g., not visible or doesn't exist),
-      // return an empty array instead of throwing an error to avoid breaking the frontend flow.
-      if (!currentProduct) {
-        return [];
-        // throw new TRPCError({
-        //   code: "NOT_FOUND",
-        //   message: "Product not found",
-        // });
+        if (!currentProduct) {
+          return [];
+        }
+
+        const related = await Product.find({
+          slug: { $ne: currentProduct.slug },
+          isVerifiedProduct: true,
+          isVisible: true,
+          category: { $in: currentProduct.category },
+        })
+          .sort({ rating: -1 })
+          .limit(input.limit)
+          .lean();
+
+        return related.map((product) => ({
+          id: (product._id as string).toString(),
+          name: product.name,
+          images: product.images,
+          sizes: product.sizes,
+          category: product.category,
+          subCategory: product.subCategory,
+          rating: product.rating || 0,
+          storeId: product.storeId.toString(),
+          slug: product.slug,
+          isVerifiedProduct: product.isVerifiedProduct,
+          price: product.price,
+        }));
+      } catch (err: any) {
+        throw handleTRPCError(err, "Failed to fetch related products.");
       }
-
-      // Step 2: Find related products in the same category (excluding the current product)
-      const related = await Product.find({
-        slug: { $ne: currentProduct.slug },
-        isVerifiedProduct: true,
-        isVisible: true,
-        category: { $in: currentProduct.category },
-      })
-        .sort({ rating: -1 })
-        .limit(input.limit)
-        .lean();
-
-      // Step 3: Return formatted result
-      return related.map((product) => ({
-        id: (product._id as string).toString(),
-        name: product.name,
-        images: product.images,
-        sizes: product.sizes,
-        category: product.category,
-        subCategory: product.subCategory,
-        rating: product.rating || 0,
-        storeId: product.storeId.toString(),
-        slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
-        price: product.price,
-      }));
     }),
 
   /**
@@ -232,26 +232,29 @@ export const homeRouter = createTRPCRouter({
    * for use on the homepage carousel or promotion section.
    */
   getFeaturedProducts: baseProcedure.query(async () => {
-    const products = await getProducts({
-      visibleOnly: true,
-      minRating: 4, // threshold for 'featured' (can be adjusted)
-      limit: 12,
-    });
+    try {
+      const products = await getProducts({
+        visibleOnly: true,
+        minRating: 4,
+        limit: 12,
+      });
 
-    const formattedProducts = products.map((product) => ({
-      id: (product._id as string).toString(),
-      name: product.name,
-      price: product.price,
-      images: product.images,
-      category: product.category,
-      subCategory: product.subCategory,
-      rating: product.rating || 0,
-      slug: product.slug,
-      isVerifiedProduct: product.isVerifiedProduct,
-    }));
+      const formattedProducts = products.map((product) => ({
+        id: (product._id as string).toString(),
+        name: product.name,
+        price: product.price,
+        images: product.images,
+        category: product.category,
+        subCategory: product.subCategory,
+        rating: product.rating || 0,
+        slug: product.slug,
+        isVerifiedProduct: product.isVerifiedProduct,
+      }));
 
-    // Return only verified products
-    return formattedProducts.filter((p) => p.isVerifiedProduct);
+      return formattedProducts.filter((p) => p.isVerifiedProduct);
+    } catch (err: any) {
+      throw handleTRPCError(err, "Failed to fetch featured products.");
+    }
   }),
 
   /**
@@ -259,36 +262,37 @@ export const homeRouter = createTRPCRouter({
    * Uses MongoDB aggregation to count verified, visible products by category.
    */
   getCategories: baseProcedure.query(async () => {
-    const Product = await getProductModel();
+    try {
+      const Product = await getProductModel();
 
-    // Perform aggregation to get category counts
-    const categoryStats = await Product.aggregate([
-      { $match: { isVerifiedProduct: true, isVisible: true } },
-      { $unwind: "$category" },
-      { $group: { _id: "$category", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-    ]);
+      const categoryStats = await Product.aggregate([
+        { $match: { isVerifiedProduct: true, isVisible: true } },
+        { $unwind: "$category" },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]);
 
-    // Icon mapping for known categories (you can extend this list)
-    const categoryIcons: Record<string, string> = {
-      Electronics: "📱",
-      "Clothing & Fashion": "👕",
-      "Home & Garden": "🏠",
-      "Sports & Outdoors": "⚽",
-      "Books & Media": "📚",
-      "Health & Beauty": "💄",
-      "Toys & Games": "🎮",
-      Automotive: "🚗",
-      "Food & Beverages": "🍕",
-      "Art & Crafts": "🎨",
-    };
+      const categoryIcons: Record<string, string> = {
+        Electronics: "📱",
+        "Clothing & Fashion": "👕",
+        "Home & Garden": "🏠",
+        "Sports & Outdoors": "⚽",
+        "Books & Media": "📚",
+        "Health & Beauty": "💄",
+        "Toys & Games": "🎮",
+        Automotive: "🚗",
+        "Food & Beverages": "🍕",
+        "Art & Crafts": "🎨",
+      };
 
-    // Shape result for frontend consumption
-    return categoryStats.map((stat) => ({
-      name: (stat._id as string).toString(),
-      count: stat.count,
-      icon: categoryIcons[stat._id] || "📦", // Default icon
-      image: `/placeholder.svg?height=100&width=100`,
-    }));
+      return categoryStats.map((stat) => ({
+        name: (stat._id as string).toString(),
+        count: stat.count,
+        icon: categoryIcons[stat._id] || "📦",
+        image: `/placeholder.svg?height=100&width=100`,
+      }));
+    } catch (err: any) {
+      throw handleTRPCError(err, "Failed to fetch product categories.");
+    }
   }),
 });

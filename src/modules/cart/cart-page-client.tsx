@@ -346,7 +346,7 @@ export function CartPageClient({
   };
 
   return (
-    <div className="grid lg:grid-cols-3 gap-8">
+    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
       {/* Cart Items Section */}
       <div className="lg:col-span-2">
         <Card>

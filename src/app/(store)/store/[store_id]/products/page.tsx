@@ -3,6 +3,8 @@ import { StoreProductsManagement } from "@/modules/store/store-products";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
+import { ErrorBoundary } from "react-error-boundary";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 
 export async function generateMetadata(): Promise<Metadata> {
   return generateStoreMetadata(
@@ -14,13 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Page(props: { params: Promise<{ store_id: string }> }) {
   const { store_id } = await props.params;
   return (
-    <Suspense fallback={<StoreProductsManagementSkeleton />}>
-      <div className="min-h-screen bg-background py-8">
-        <div className="container mx-auto px-4">
-          <StoreProductsManagement store_id={store_id} />
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <Suspense fallback={<StoreProductsManagementSkeleton />}>
+        <div className="min-h-screen bg-background py-8">
+          <div className="container mx-auto px-4">
+            <StoreProductsManagement store_id={store_id} />
+          </div>
         </div>
-      </div>
-    </Suspense>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

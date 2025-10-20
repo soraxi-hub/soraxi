@@ -6,6 +6,7 @@ import {
   removeItemFromCart,
   updateCartItemQuantity,
   addIdempotencyKeyToCart,
+  ICartItem,
 } from "@/lib/db/models/cart.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
@@ -15,42 +16,92 @@ import { siteConfig } from "@/config/site";
 import { ProductTypeEnum } from "@/validators/product-validators";
 
 export const cartRouter = createTRPCRouter({
-  // ✅ Get cart by user ID
+  /**
+   * @procedure Get Cart by User ID
+   * @description Fetches the authenticated user's cart with all items.
+   * @throws {TRPCError} If user is not authenticated or cart not found.
+   */
   getByUserId: baseProcedure.query(async ({ ctx }) => {
-    const { user } = ctx;
+    try {
+      const { user } = ctx;
 
-    if (!user) {
+      if (!user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
+      const cart = await getCartByUserId(user.id);
+      if (!cart) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Cart for user ${user.id} not found.`,
+        });
+      }
+
+      const formattedCart = {
+        userId: cart.userId.toString(),
+        items: cart.items.map((item) => ({
+          productId: item.productId.toString(),
+          storeId: item.storeId.toString(),
+          quantity: item.quantity,
+          productType: item.productType,
+          selectedSize: item.selectedSize,
+        })),
+        createdAt: cart.createdAt,
+        updatedAt: cart.updatedAt,
+      };
+
+      return formattedCart;
+    } catch (error) {
       throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "User not authenticated",
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch user cart",
+        cause: error,
       });
     }
-
-    const cart = await getCartByUserId(user.id);
-    if (!cart) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Cart for user ${user.id} not found.`,
-      });
-    }
-
-    const formatedCart = {
-      userId: cart.userId.toString(),
-      items: cart.items.map((item) => ({
-        productId: item.productId.toString(),
-        storeId: item.storeId.toString(),
-        quantity: item.quantity,
-        productType: item.productType,
-        selectedSize: item.selectedSize,
-      })),
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    };
-
-    return formatedCart;
   }),
 
-  // ✅ Add item to cart
+  /**
+   * @procedure Cart Hydration
+   * @description Fetches minimal cart items for quick frontend hydration.
+   * Returns an empty array if user is not authenticated or has no cart.
+   */
+  cartHydration: baseProcedure.query(async ({ ctx }) => {
+    try {
+      const { user } = ctx;
+      const emptyCartItems: ICartItem[] = [];
+
+      if (!user) return emptyCartItems;
+
+      const cart = await getCartByUserId(user.id);
+      if (!cart) return emptyCartItems;
+
+      const cartItems =
+        cart.items.map((item) => ({
+          productId: item.productId.toString(),
+          storeId: item.storeId.toString(),
+          quantity: item.quantity,
+          productType: item.productType,
+          selectedSize: item.selectedSize,
+        })) || emptyCartItems;
+
+      return cartItems;
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to hydrate cart",
+        cause: error,
+      });
+    }
+  }),
+
+  /**
+   * @procedure Add Item to Cart
+   * @description Adds a new product item to the user's cart.
+   * @throws {TRPCError} If database operation fails.
+   */
   addItem: baseProcedure
     .input(
       z.object({
@@ -69,18 +120,30 @@ export const cartRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      const updatedCart = await addItemToCart(input.userId, {
-        productId: new mongoose.Types.ObjectId(input.productId),
-        storeId: new mongoose.Types.ObjectId(input.storeId),
-        quantity: input.quantity,
-        productType: input.productType,
-        selectedSize: input.selectedSize,
-      });
+      try {
+        const updatedCart = await addItemToCart(input.userId, {
+          productId: new mongoose.Types.ObjectId(input.productId),
+          storeId: new mongoose.Types.ObjectId(input.storeId),
+          quantity: input.quantity,
+          productType: input.productType,
+          selectedSize: input.selectedSize,
+        });
 
-      return updatedCart;
+        return updatedCart;
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to add item to cart",
+          cause: error,
+        });
+      }
     }),
 
-  // ✅ Remove item from cart
+  /**
+   * @procedure Remove Item from Cart
+   * @description Removes a product (optionally by size) from the user's cart.
+   * @throws {TRPCError} If user not authenticated or item not found.
+   */
   removeItem: baseProcedure
     .input(
       z.object({
@@ -89,108 +152,139 @@ export const cartRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { user } = ctx;
+      try {
+        const { user } = ctx;
 
-      if (!user) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "User not authenticated",
-        });
-      }
+        if (!user) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "User not authenticated",
+          });
+        }
 
-      const updatedCart = await removeItemFromCart(
-        user.id,
-        input.productId,
-        input.size
-      );
-      if (!updatedCart) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Cart or item not found",
-        });
-      }
-      return updatedCart;
-    }),
-
-  // ✅ Update quantity of item
-  updateQuantity: baseProcedure
-    .input(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().min(0), // 0 means remove
-        size: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      // console.log("userid", input.userId);
-      // console.log("productid", input.productId);
-      // console.log("qty", input.quantity);
-      // console.log("size", input.size);
-      const { user } = ctx;
-
-      if (!user) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "User not authenticated",
-        });
-      }
-
-      if (input.quantity === 0) {
-        const removed = await removeItemFromCart(
+        const updatedCart = await removeItemFromCart(
           user.id,
           input.productId,
           input.size
         );
-        return removed;
-      }
 
-      const updatedCart = await updateCartItemQuantity(
-        user.id,
-        input.productId,
-        input.quantity,
-        input.size
-      );
+        if (!updatedCart) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Cart or item not found",
+          });
+        }
 
-      if (!updatedCart) {
+        return updatedCart;
+      } catch (error) {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Item to update not found in cart",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to remove item from cart",
+          cause: error,
         });
       }
-
-      return updatedCart;
-    }),
-
-  getManyByIds: baseProcedure
-    .input(z.object({ ids: z.array(z.string()) })) // list of productIds
-    .query(async ({ input }) => {
-      const Product = await getProductModel();
-      const products = await Product.find({
-        _id: { $in: input.ids },
-      }).lean();
-
-      return products.map((p) => ({
-        id: p._id.toString(),
-        name: p.name,
-        slug: p.slug,
-        image: (p.images && p.images[0]) || siteConfig.placeHolderImg1,
-        price: p.price,
-        // originalPrice: p.originalPrice,
-        inStock: p.productQuantity && p.productQuantity > 0 ? true : false,
-        // storeName: "TODO", // Optional: populate store if needed
-        maxQuantity: p.productQuantity,
-        productType: p.productType,
-      }));
     }),
 
   /**
-   * Procedure for adding idempotency key to cart
-   * This can help prevent duplicate charges during checkout
+   * @procedure Update Cart Item Quantity
+   * @description Updates the quantity of a specific item in the cart.
+   * If quantity is zero, removes the item.
+   * @throws {TRPCError} If user not authenticated or item not found.
+   */
+  updateQuantity: baseProcedure
+    .input(
+      z.object({
+        productId: z.string(),
+        quantity: z.number().min(0),
+        size: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { user } = ctx;
+
+        if (!user) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "User not authenticated",
+          });
+        }
+
+        if (input.quantity === 0) {
+          const removed = await removeItemFromCart(
+            user.id,
+            input.productId,
+            input.size
+          );
+          return removed;
+        }
+
+        const updatedCart = await updateCartItemQuantity(
+          user.id,
+          input.productId,
+          input.quantity,
+          input.size
+        );
+
+        if (!updatedCart) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Item to update not found in cart",
+          });
+        }
+
+        return updatedCart;
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update cart item quantity",
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * @procedure Get Many Products by IDs
+   * @description Fetches product details for a given list of product IDs.
+   * @throws {TRPCError} If database query fails.
+   */
+  getManyByIds: baseProcedure
+    .input(z.object({ ids: z.array(z.string()) }))
+    .query(async ({ input }) => {
+      try {
+        const Product = await getProductModel();
+        const products = await Product.find({
+          _id: { $in: input.ids },
+        }).lean();
+
+        return products.map((p) => ({
+          id: p._id.toString(),
+          name: p.name,
+          slug: p.slug,
+          image: (p.images && p.images[0]) || siteConfig.placeHolderImg,
+          price: p.price,
+          inStock: p.productQuantity && p.productQuantity > 0 ? true : false,
+          maxQuantity: p.productQuantity,
+          productType: p.productType,
+        }));
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch product details",
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * @procedure Add Idempotency Key to Cart
+   * @description Adds a unique idempotency key to the user's cart to prevent duplicate checkouts.
+   * @throws {TRPCError} If user not authenticated or cart not found.
    */
   addIdempotencyKey: baseProcedure.mutation(async ({ ctx }) => {
-    const { user } = ctx;
-
     try {
+      const { user } = ctx;
+
       if (!user) {
         throw new TRPCError({
           code: "UNAUTHORIZED",

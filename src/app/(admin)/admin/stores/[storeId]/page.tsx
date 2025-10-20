@@ -1,7 +1,7 @@
 import { caller } from "@/trpc/server";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/error-fallback";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 import { serializeData } from "@/lib/utils";
 import StoreAdminDashboard, {
   AdminAction,

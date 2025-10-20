@@ -5,7 +5,7 @@ import { CartProvider } from "@/modules/cart/cart-provider";
 import { ErrorBoundary } from "react-error-boundary";
 import { Suspense } from "react";
 import { HomePageSkeleton } from "@/modules/skeletons/home-page-skeleton";
-import { ErrorFallback } from "@/components/error-fallback";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 
 /**
  * Home Page

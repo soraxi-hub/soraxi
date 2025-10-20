@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { siteConfig } from "@/config/site";
+import { getCategoryName } from "@/constants/constant";
 import { addNairaSign } from "@/lib/utils/naira";
 import { Shield, Star } from "lucide-react";
 import Image from "next/image";
@@ -35,7 +36,7 @@ export const ProductCard = ({ product }: ProductCardProps) => (
       <div className="relative overflow-hidden rounded-t-lg">
         <Image
           src={
-            (product.images && product.images[0]) || siteConfig.placeHolderImg1
+            (product.images && product.images[0]) || siteConfig.placeHolderImg
           }
           height={200}
           width={300}
@@ -67,9 +68,9 @@ export const ProductCard = ({ product }: ProductCardProps) => (
           <span className="text-2xl font-bold text-soraxi-green">
             {addNairaSign(product.price || 0)}
           </span>
-          {product.category && (
+          {product.category && getCategoryName(product.category[0]) && (
             <Badge variant="outline" className="text-xs">
-              {product.category[0]}
+              {getCategoryName(product.category[0])}
             </Badge>
           )}
         </div>
