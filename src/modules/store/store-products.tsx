@@ -52,6 +52,8 @@ import { useMutation } from "@tanstack/react-query";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
 import { ProductStatusEnum } from "@/validators/product-validators";
+import { siteConfig } from "@/config/site";
+import { truncateText } from "@/lib/utils";
 
 type Output = inferProcedureOutput<AppRouter["store"]["getStoreProducts"]>;
 type StoreProduct = Output["products"][number];
@@ -416,7 +418,9 @@ export function StoreProductsManagement({
                             <Image
                               width={100}
                               height={100}
-                              src={product.images[0] || "/placeholder.svg"}
+                              src={
+                                product.images[0] || siteConfig.placeHolderImg
+                              }
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />
@@ -424,13 +428,14 @@ export function StoreProductsManagement({
                             <Package className="w-6 h-6 text-gray-400" />
                           )}
                         </div>
-                        <div>
-                          <p className="font-medium line-clamp-1">
-                            {product.name}
+                        <div className="max-w-60">
+                          <p className="font-medium line-clamp-2">
+                            {truncateText(product.name)}
                           </p>
                         </div>
                       </div>
                     </TableCell>
+
                     <TableCell>
                       {getProductStatusBadge(product.status)}
                     </TableCell>

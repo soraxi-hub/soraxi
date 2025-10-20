@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { truncateText } from "@/lib/utils";
 
 function UserAvatar({ userName }: { userName?: string }) {
   const router = useRouter();
@@ -41,7 +42,7 @@ function UserAvatar({ userName }: { userName?: string }) {
         <DropdownMenuTrigger className="">
           {userName ? (
             <span className="hover:bg-transparent hover:text-soraxi-green delay-75 transition-all ease-in-out">
-              {userName}
+              {truncateText(userName)}
             </span>
           ) : (
             <User2Icon className="hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!" />

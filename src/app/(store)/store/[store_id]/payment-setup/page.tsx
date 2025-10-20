@@ -1,6 +1,8 @@
 import UpdatePayoutAccount from "@/modules/store/payment-setup/payout-setup-page";
 import type { Metadata } from "next";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
+import { ErrorBoundary } from "react-error-boundary";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 
 export async function generateMetadata(): Promise<Metadata> {
   return generateStoreMetadata(
@@ -12,7 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
 async function page({ params }: { params: Promise<{ store_id: string }> }) {
   const { store_id } = await params;
 
-  return <UpdatePayoutAccount storeId={store_id} />;
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <UpdatePayoutAccount storeId={store_id} />
+    </ErrorBoundary>
+  );
 }
 
 export default page;

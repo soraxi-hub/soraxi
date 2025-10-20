@@ -21,7 +21,7 @@ import type { ShippingMethod } from "@/types";
 type CheckoutOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
 >;
-type GroupedCart = CheckoutOutput["groupedCart"][number];
+type GroupedCart = NonNullable<CheckoutOutput>["groupedCart"][number];
 
 interface StoreCartGroupProps {
   storeGroup: GroupedCart;
@@ -106,10 +106,10 @@ export default function StoreCartGroup({
     <Card className="overflow-hidden border-soraxi-green/30 transition-shadow hover:shadow-md">
       {/* Store Header */}
       <CardHeader className="bg-muted/30 border-b border-soraxi-green/20">
-        <CardTitle className="text-xl flex items-center gap-3">
+        <CardTitle className="text-xl flex items-center gap-3 min-w-0">
           <ShoppingBag className="h-5 w-5 text-soraxi-green flex-shrink-0" />
-          <span className="truncate">{storeGroup.storeName}</span>
-          <span className="text-sm font-normal text-muted-foreground ml-auto">
+          <span className="truncate flex-1">{storeGroup.storeName}</span>
+          <span className="text-sm font-normal text-muted-foreground ml-auto whitespace-nowrap">
             {storeGroup.products.length} item
             {storeGroup.products.length > 1 ? "s" : ""}
           </span>
@@ -119,7 +119,7 @@ export default function StoreCartGroup({
       <CardContent className="p-6">
         {/* Products List */}
         <div
-          className="space-y-4"
+          className="space-y-4 overflow-hidden"
           role="list"
           aria-label={`Products from ${storeGroup.storeName}`}
         >
@@ -142,11 +142,13 @@ export default function StoreCartGroup({
             >
               <AccordionItem value="shipping-methods" className="border-none">
                 <AccordionTrigger className="py-2 hover:no-underline hover:bg-muted/50 rounded-md px-2 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Truck className="h-4 w-4 text-soraxi-green hidden sm:inline-flex" />
-                    <span className="font-medium">Shipping Options</span>
+                  <div className="flex items-center gap-3 truncate">
+                    <Truck className="h-4 w-4 text-soraxi-green hidden sm:inline-flex flex-shrink-0" />
+                    <span className="font-medium truncate">
+                      Shipping Options
+                    </span>
                     {selectedShippingMethod && (
-                      <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                      <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md truncate">
                         {selectedShippingMethod.name}:{" "}
                         {formatNaira(selectedShippingMethod.price)}
                       </span>
@@ -168,24 +170,24 @@ export default function StoreCartGroup({
                       {storeGroup.shippingMethods.map((method) => (
                         <div
                           key={method.name}
-                          className="flex items-center space-x-3 rounded-lg border p-4 hover:border-soraxi-green/50 hover:bg-muted/30 transition-colors"
+                          className="flex items-center space-x-3 rounded-lg border p-4 hover:border-soraxi-green/50 hover:bg-muted/30 transition-colors overflow-hidden"
                         >
                           <RadioGroupItem
                             value={method.name}
                             id={`shipping-${storeGroup.storeId}-${method.name}`}
-                            className="text-soraxi-green"
+                            className="text-soraxi-green flex-shrink-0"
                           />
                           <Label
                             htmlFor={`shipping-${storeGroup.storeId}-${method.name}`}
-                            className="flex flex-1 justify-between cursor-pointer"
+                            className="flex flex-1 justify-between cursor-pointer gap-3 min-w-0"
                           >
-                            <div className="space-y-1">
-                              <div className="font-medium text-foreground">
+                            <div className="space-y-1 overflow-hidden">
+                              <div className="font-medium text-foreground truncate">
                                 {method.name}
                               </div>
 
                               {method.estimatedDeliveryDays && (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground truncate">
                                   Estimated delivery:{" "}
                                   {method.estimatedDeliveryDays} day
                                   {method.estimatedDeliveryDays > 1 ? "s" : ""}
@@ -193,14 +195,14 @@ export default function StoreCartGroup({
                               )}
 
                               {method.description && (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground line-clamp-2">
                                   {method.description}
                                 </p>
                               )}
                             </div>
 
-                            <div className="text-right">
-                              <span className="font-semibold text-foreground">
+                            <div className="text-right flex-shrink-0">
+                              <span className="font-semibold text-foreground whitespace-nowrap">
                                 {formatNaira(method.price)}
                               </span>
                             </div>
@@ -221,14 +223,14 @@ export default function StoreCartGroup({
             storeGroup.shippingMethods.length === 0) && (
             <>
               <Separator className="my-6 border-soraxi-green/30" />
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 overflow-hidden">
                 <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-amber-600" />
-                  <p className="text-sm text-amber-800 font-medium">
+                  <Truck className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                  <p className="text-sm text-amber-800 font-medium truncate">
                     Shipping methods not available for this store
                   </p>
                 </div>
-                <p className="text-xs text-amber-700 mt-1">
+                <p className="text-xs text-amber-700 mt-1 truncate">
                   Please contact the store directly for shipping arrangements
                 </p>
               </div>
@@ -239,10 +241,10 @@ export default function StoreCartGroup({
         {!hasPhysicalProducts && (
           <>
             <Separator className="my-6 border-soraxi-green/30" />
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 overflow-hidden">
               <div className="flex items-center gap-2">
                 <svg
-                  className="h-4 w-4 text-blue-600"
+                  className="h-4 w-4 text-blue-600 flex-shrink-0"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -252,11 +254,11 @@ export default function StoreCartGroup({
                     clipRule="evenodd"
                   />
                 </svg>
-                <p className="text-sm text-blue-800 font-medium">
+                <p className="text-sm text-blue-800 font-medium truncate">
                   Digital products - No shipping required
                 </p>
               </div>
-              <p className="text-xs text-blue-700 mt-1">
+              <p className="text-xs text-blue-700 mt-1 truncate">
                 These items will be available for download after payment
               </p>
             </div>

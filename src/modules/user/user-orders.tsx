@@ -17,10 +17,10 @@ import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PaymentStatus } from "@/enums";
 
-export function UserOrders({ userId }: { userId: string }) {
+export function UserOrders() {
   const trpc = useTRPC();
   const { data: orders } = useSuspenseQuery(
-    trpc.order.getByUserId.queryOptions({ userId })
+    trpc.order.getByUserId.queryOptions()
   );
 
   return (
@@ -93,7 +93,7 @@ export function UserOrders({ userId }: { userId: string }) {
                       key={sub.store._id}
                       className="border border-border rounded-lg p-4 bg-background/50 shadow-sm"
                     >
-                      <h3 className="text-base font-semibold text-foreground mb-3">
+                      <h3 className="text-base font-semibold text-foreground mb-3 truncate">
                         Store: {sub.store.name}
                       </h3>
 
@@ -114,8 +114,8 @@ export function UserOrders({ userId }: { userId: string }) {
                                 className="object-cover"
                               />
                             </div>
-                            <div className="flex-1 space-y-1">
-                              <p className="font-medium text-foreground text-base">
+                            <div className="flex-1 space-y-1 truncate">
+                              <p className="font-medium text-foreground text-base w-full truncate">
                                 {product.productSnapshot.name}
                               </p>
                               <p className="text-sm text-muted-foreground">

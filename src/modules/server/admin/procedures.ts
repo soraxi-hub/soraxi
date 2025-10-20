@@ -96,6 +96,7 @@ export const adminProductRouter = createTRPCRouter({
         id: product._id.toString(),
         name: product.name,
         description: product.description,
+        specifications: product.specifications,
         price: product.price,
         category: product.category,
         status: product.status,

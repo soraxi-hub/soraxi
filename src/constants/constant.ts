@@ -6,16 +6,16 @@ export const playpenSans = Playpen_Sans({
 });
 
 export const categories = [
-  {
-    name: "Food & Drinks",
-    slug: "food-drinks",
-    subcategories: [
-      { name: "Cooked Meals", slug: "cooked-meals" },
-      { name: "Snacks", slug: "snacks" },
-      { name: "Drinks & Beverages", slug: "drinks-beverages" },
-      { name: "Fast Order Combos", slug: "fast-order-combos" },
-    ],
-  },
+  // {
+  //   name: "Food & Drinks",
+  //   slug: "food-drinks",
+  //   subcategories: [
+  //     { name: "Cooked Meals", slug: "cooked-meals" },
+  //     { name: "Snacks", slug: "snacks" },
+  //     { name: "Drinks & Beverages", slug: "drinks-beverages" },
+  //     { name: "Fast Order Combos", slug: "fast-order-combos" },
+  //   ],
+  // },
   {
     name: "Fashion & Accessories",
     slug: "fashion-accessories",
@@ -72,6 +72,21 @@ export const categories = [
     ],
   },
 ];
+
+/**
+ * Returns the display name of a category based on its slug.
+ *
+ * @param {CategorySlug} slug - The slug identifier of the category (e.g. `"food-drinks"`).
+ * @returns {string | undefined} The category name (e.g. `"Food & Drinks"`) if found, otherwise `undefined`.
+ *
+ * @example
+ * getCategoryName("electronics-gadgets");
+ * // => "Electronics & Gadgets"
+ */
+export const getCategoryName = (slug: string) => {
+  const foundCat = categories.find((cat) => cat.slug === slug);
+  return foundCat?.name;
+};
 
 // Helper function to get subcategories for a category
 export const getSubcategoriesForCategory = (categorySlug: string) => {

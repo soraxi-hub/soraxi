@@ -7,6 +7,15 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const renderRichText = (content: string) => {
+  return (
+    <div
+      className="prose prose-sm max-w-none dark:prose-invert"
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
+  );
+};
+
 interface ProductTabsProps {
   description: string;
   specifications: string;
@@ -37,15 +46,6 @@ export function ProductTabs({
       ratingCounts[review.rating as keyof typeof ratingCounts]++;
     }
   });
-
-  const renderRichText = (content: string) => {
-    return (
-      <div
-        className="prose prose-sm max-w-none dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-    );
-  };
 
   return (
     <Tabs defaultValue="description" className="">

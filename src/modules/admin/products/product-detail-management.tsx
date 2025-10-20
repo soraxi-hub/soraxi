@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   ShieldCheck,
   Calendar,
-  DollarSign,
   Tag,
   ImageIcon,
 } from "lucide-react";
@@ -37,6 +36,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProductAdminManager } from "@/domain/products/product-admin-manager";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
+import { renderRichText } from "@/modules/products/product-detail/product-tabs";
 
 type Product = inferProcedureOutput<AppRouter["admin"]["getById"]>;
 
@@ -214,15 +214,29 @@ export function ProductDetailManagement({
 
               <div>
                 <Label className="text-sm font-medium">Description</Label>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                  {product.description}
-                </p>
+                {product.description ? (
+                  renderRichText(product.description)
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    No description available for this product.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Specifications</Label>
+                {product.specifications ? (
+                  renderRichText(product.specifications)
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    No specifications available for this product.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
                     Price
                   </Label>
                   <p className="text-lg font-semibold mt-1">

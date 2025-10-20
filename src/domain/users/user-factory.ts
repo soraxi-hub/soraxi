@@ -1,6 +1,7 @@
 import { IUser } from "@/lib/db/models/user.model";
 import { AuthUser, PublicUser } from "./user";
 import { Admin } from "./admin";
+import { ProfileUser, ProfileUserType } from "./profile-user";
 
 export class UserFactory {
   static async createPublicUser(props: {
@@ -58,5 +59,9 @@ export class UserFactory {
       props.roles,
       props.isActive
     );
+  }
+
+  static createProfileUser(user: ProfileUserType) {
+    return new ProfileUser(user);
   }
 }

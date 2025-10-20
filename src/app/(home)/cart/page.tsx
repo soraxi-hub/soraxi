@@ -66,7 +66,7 @@ export const metadata: Metadata = {
 /**
  * Type definition for cart items to ensure type safety
  */
-interface CartItemType {
+export interface CartItemType {
   id: string;
   productId: string;
   name: string;

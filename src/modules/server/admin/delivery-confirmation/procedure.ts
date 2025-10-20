@@ -183,7 +183,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
         /**
          * Handle Search Functionality
          */
-        let userIds: mongoose.Schema.Types.ObjectId[] = [];
+        let userIds: mongoose.Types.ObjectId[] = [];
         if (search) {
           const User = await getUserModel();
           const matchingUsers = await User.find({

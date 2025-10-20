@@ -18,6 +18,8 @@ import type { ShippingMethod } from "@/types/index";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { DeliveryType } from "@/enums";
+import { EmptyCart } from "@/modules/cart/empty-cart";
+import { ProfileErrorFallback } from "@/modules/checkout/profile-error-fallback";
 
 /**
  * Type definitions for checkout data structures
@@ -99,16 +101,17 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
    * Uses tRPC mutation for real-time cart validation.
    * This ensures cart contents are still valid before payment processing.
    */
-  const validateCartMutation = useMutation({
-    ...trpc.checkout.validateUserCart.mutationOptions(),
-    onSuccess: (data) => {
-      setValidationErrors(data.validationErrors);
-    },
-    onError: (error) => {
-      console.error("Cart validation failed:", error);
-      setError("Failed to validate cart. Please try again.");
-    },
-  });
+  const validateCartMutation = useMutation(
+    trpc.checkout.validateUserCart.mutationOptions({
+      onSuccess: (data) => {
+        setValidationErrors(data ? data.validationErrors : []);
+      },
+      onError: (error) => {
+        console.error("Cart validation failed:", error);
+        setError("Failed to validate cart. Please try again.");
+      },
+    })
+  );
 
   /**
    * Calculate Total Shipping Cost Effect
@@ -167,7 +170,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
 
       const result = await validateCartMutation.mutateAsync();
 
-      return result.isValid;
+      return result ? result.isValid : false;
     } catch (err: any) {
       console.error("Validation error:", err);
 
@@ -199,11 +202,23 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
       },
       onError: (err) => {
         console.error("Payment error:", err);
-        toast.error("Something went wrong while initializing payment.");
-        setError("Unable to process payment at this time.");
+        toast.error(
+          err.message || "Something went wrong while initializing payment."
+        );
+        setError(err.message || "Unable to process payment at this time.");
       },
     })
   );
+
+  // Handle empty cart case
+  if (!cartData || cartData.totalQuantity === 0) {
+    return <EmptyCart />;
+  }
+
+  // Handle missing user data
+  if (!userData) {
+    return <ProfileErrorFallback />;
+  }
 
   /**
    * Handle Place Order Process

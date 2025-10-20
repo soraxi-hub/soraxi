@@ -1,9 +1,7 @@
-import { ErrorFallback } from "@/components/error-fallback";
-import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 import EditProfileSkeleton from "@/modules/skeletons/edit-profile-skeleton";
 import EditProfile from "@/modules/user/edit-profile";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import type { Metadata } from "next";
@@ -17,10 +15,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function Page() {
-  const userId = await getUserFromCookie();
-
-  if (!userId) return redirect(`/sign-in`);
-
   prefetch(trpc.wishlist.getByUserId.queryOptions());
   return (
     <HydrateClient>

@@ -13,6 +13,7 @@ import {
   // HeartIcon
 } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
+import { siteConfig } from "@/config/site";
 
 /**
  * Props interface for CartItem component
@@ -101,7 +102,7 @@ CartItemProps) {
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border">
         <Link href={`/products/${item.slug}`}>
           <Image
-            src={item.image || "/placeholder.svg"}
+            src={item.image || siteConfig.placeHolderImg}
             alt={item.name}
             fill
             className="object-cover hover:scale-105 transition-transform"
@@ -117,35 +118,41 @@ CartItemProps) {
       </div>
 
       {/* Product Details and Controls */}
-      <div className="flex flex-1 flex-col justify-between">
+      <div className="flex flex-1 flex-col justify-between min-w-0">
         {/* Product Information */}
-        <div className="space-y-1">
-          <div className="flex justify-between">
-            <div>
+        <div className="space-y-1 min-w-0">
+          <div className="flex justify-between items-start gap-2">
+            <div className="min-w-0 flex-1">
               <Link href={`/products/${item.slug}`}>
                 <h3 className="font-medium hover:text-primary transition-colors line-clamp-2 truncate">
                   {item.name}
                 </h3>
               </Link>
             </div>
-            <div className="text-right">
-              <p className="font-semibold">{formatNaira(subtotal)}</p>
+            <div className="text-right flex-shrink-0">
+              <p className="font-semibold truncate max-w-[100px] sm:max-w-[150px]">
+                {formatNaira(subtotal)}
+              </p>
             </div>
           </div>
 
           {/* Product Variants */}
-          <div className="flex gap-2 text-sm text-muted-foreground">
-            {item.size && <span>Size: {item.size}</span>}
+          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground truncate">
+            {item.size && (
+              <span className="truncate max-w-[120px] sm:max-w-[160px]">
+                Size: {item.size}
+              </span>
+            )}
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground truncate max-w-[160px] sm:max-w-[200px]">
             {formatNaira(item.price)} each
           </p>
         </div>
 
         {/* Quantity Controls and Actions */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Quantity Input with Controls */}
             <div className="flex items-center border rounded-md">
               <Button
@@ -183,23 +190,23 @@ CartItemProps) {
 
             {/* Low Stock Warning */}
             {item.maxQuantity <= 20 && (
-              <p className="text-xs text-orange-600 hidden sm:inline">
+              <p className="text-xs text-orange-600 hidden sm:inline truncate">
                 Only {item.maxQuantity} left
               </p>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onMoveToWishlistAction(item.id)}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <HeartIcon className="h-4 w-4 mr-1" />
-              Save
-            </Button> */}
+          variant="ghost"
+          size="sm"
+          onClick={() => onMoveToWishlistAction(item.id)}
+          className="text-muted-foreground hover:text-primary"
+        >
+          <HeartIcon className="h-4 w-4 mr-1" />
+          Save
+        </Button> */}
 
             <Button
               variant="ghost"
@@ -215,7 +222,7 @@ CartItemProps) {
 
         {/* Out of Stock Warning */}
         {!item.inStock && (
-          <p className="text-sm text-destructive mt-2">
+          <p className="text-sm text-destructive mt-2 truncate">
             This item is currently out of stock
           </p>
         )}

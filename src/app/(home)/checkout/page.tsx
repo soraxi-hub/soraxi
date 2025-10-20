@@ -1,7 +1,7 @@
 import { caller } from "@/trpc/server";
 import { CheckoutPageClient } from "./checkout-page-client";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ShoppingBag } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { redirect } from "next/navigation";
 import { CartProvider } from "@/modules/cart/cart-provider";
@@ -9,6 +9,8 @@ import Link from "next/link";
 import { serializeData } from "@/lib/utils";
 
 import type { Metadata } from "next";
+import { EmptyCart } from "@/modules/cart/empty-cart";
+import { ProfileErrorFallback } from "@/modules/checkout/profile-error-fallback";
 
 export const metadata: Metadata = {
   title: `Checkout`,
@@ -106,6 +108,16 @@ export default async function CheckoutPage() {
       caller.user.getById(),
     ]);
 
+    // Handle empty cart case
+    if (!rawCartData || rawCartData.totalQuantity === 0) {
+      return <EmptyCart />;
+    }
+
+    // Handle missing user data
+    if (!rawUserData) {
+      return <ProfileErrorFallback />;
+    }
+
     /**
      * Data Serialization
      *
@@ -126,8 +138,8 @@ export default async function CheckoutPage() {
     let initialValidationErrors: string[] = [];
     try {
       const validationResult = await caller.checkout.validateUserCart();
-      if (!validationResult.isValid) {
-        initialValidationErrors = validationResult.validationErrors;
+      if (validationResult && !validationResult.isValid) {
+        initialValidationErrors = validationResult.validationErrors ?? [];
       }
     } catch (validationError) {
       console.error("Initial cart validation failed:", validationError);
@@ -136,48 +148,12 @@ export default async function CheckoutPage() {
 
     // Handle empty cart case
     if (!cartData || cartData.totalQuantity === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <ShoppingBag className="h-16 w-16 text-muted-foreground mx-auto" />
-            <h2 className="text-2xl font-semibold">Your cart is empty</h2>
-            <p className="text-muted-foreground max-w-md">
-              Add some items to your cart before checking out. Browse our
-              collection to find products you love.
-            </p>
-            <Button
-              asChild
-              className="bg-soraxi-green hover:bg-soraxi-green-hover"
-            >
-              <Link href="/">Continue Shopping</Link>
-            </Button>
-          </div>
-        </div>
-      );
+      return <EmptyCart />;
     }
 
     // Handle missing user data
     if (!userData) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <Alert variant="destructive" className="max-w-md">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Profile Error</AlertTitle>
-            <AlertDescription>
-              Unable to load your profile information. Please try refreshing the
-              page or contact support.
-            </AlertDescription>
-          </Alert>
-          <div className="flex gap-4 mt-4">
-            <Button variant="outline" asChild>
-              <a href="/cart">Return to Cart</a>
-            </Button>
-            <Button asChild>
-              <a href="/profile">Update Profile</a>
-            </Button>
-          </div>
-        </div>
-      );
+      return <ProfileErrorFallback />;
     }
 
     /**
@@ -257,7 +233,7 @@ export default async function CheckoutPage() {
       error instanceof Error && error.message.includes("circular");
 
     if (isAuthError) {
-      redirect("/sign-in?redirect=/checkout");
+      redirect("/sign-in");
     }
 
     return (

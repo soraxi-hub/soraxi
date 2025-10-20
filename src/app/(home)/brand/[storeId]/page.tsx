@@ -3,7 +3,7 @@ import { caller, getQueryClient, trpc } from "@/trpc/server";
 import { cache, Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { PublicStoreProfile } from "@/modules/public-store/public-store-profile";
-import { ErrorFallback } from "@/components/error-fallback";
+import { ErrorFallback } from "@/components/errors/error-fallback";
 import { PublicStoreProfileSkeleton } from "@/modules/skeletons/public-store-profile-skeleton";
 import { notFound } from "next/navigation";
 

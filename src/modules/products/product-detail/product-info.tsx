@@ -15,10 +15,8 @@ import { useTRPC } from "@/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 import { useCartStore } from "@/modules/store/cart-store";
 
-type ProductsOutput = inferProcedureOutput<
-  AppRouter["home"]["getPublicProductBySlug"]
->;
-type Product = ProductsOutput["product"];
+type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
+type Product = Output["product"];
 
 interface ProductInfoProps {
   product: Product;
@@ -42,22 +40,26 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
   // Helper: check if current product is already in user's wishlist
   const isInWishlist = useMemo(() => {
-    if (!wishlist?.products) return false;
+    if (!product || !wishlist?.products) return false;
     return wishlist.products.some(
-      (item) => item.productId.toString() === product.id
+      (item) => item.productId.toString() === product!.id
     );
-  }, [wishlist, product.id]);
+  }, [wishlist, product?.id]);
 
   // React Query mutation to add an item to wishlist
   const addToWishlist = useMutation(
     trpc.wishlist.addItem.mutationOptions({
       // On success: show toast and refresh wishlist query for up-to-date data
       onSuccess: () => {
-        toast.success(`${product.name} added to wishlist`);
+        toast.success(
+          `${product?.name ?? "Unknown Product"} added to wishlist`
+        );
         refetchWishlist();
       },
       onError: () => {
-        toast.error(`Error adding ${product.name} to wishlist`);
+        toast.error(
+          `Error adding ${product?.name ?? "Unknown Product"} to wishlist`
+        );
       },
     })
   );
@@ -67,11 +69,15 @@ export function ProductInfo({ product }: ProductInfoProps) {
     trpc.wishlist.removeItem.mutationOptions({
       // On success: show toast and refresh wishlist query for up-to-date data
       onSuccess: () => {
-        toast.success(`${product.name} removed from wishlist`);
+        toast.success(
+          `${product?.name ?? "Unknown Product"} removed from wishlist`
+        );
         refetchWishlist();
       },
       onError: () => {
-        toast.error(`Error removing ${product.name} from wishlist`);
+        toast.error(
+          `Error removing ${product?.name ?? "Unknown Product"} from wishlist`
+        );
       },
     })
   );
@@ -88,18 +94,29 @@ export function ProductInfo({ product }: ProductInfoProps) {
           size: variables.selectedSize?.size,
         });
 
-        toast.success(`${product.name} added to cart`);
+        toast.success(`${product?.name ?? "Unknown Product"} added to cart`);
       },
       onError: () => {
-        toast.error(`Error adding ${product.name} to cart`);
+        toast.error(
+          `Error adding ${product?.name ?? "Unknown Product"} to cart`
+        );
       },
     })
   );
+
+  if (!product) {
+    return null;
+  }
 
   // Handler for wishlist button click
   const handleWishlistToggle = async (product: Product) => {
     if (!userId) {
       toast.error("Please Login to perform this action.");
+      return;
+    }
+
+    if (!product) {
+      toast.info("Product data is unavailable.");
       return;
     }
 
@@ -120,6 +137,11 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
   // Handler for adding to cart (unchanged)
   const handleAddToCart = async (product: Product, size?: string) => {
+    if (!product) {
+      toast.info("Product data is unavailable.");
+      return;
+    }
+
     if (!userId) {
       toast.error("Please Login to perform this action.");
       return;

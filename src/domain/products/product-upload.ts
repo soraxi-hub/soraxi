@@ -13,6 +13,9 @@ import { toast } from "sonner";
 
 export const MIN_IMAGE_NUMBER = 1;
 export const MAX_IMAGE_NUMBER = 3;
+export const MAX_IMAGE_FILE_SIZE = 4 * 1024 * 1024; // 4MB;
+
+// https://res.cloudinary.com/dhngvbjtz/image/upload/v1759401835/gy3czui69zkkhvffmzdb.jpg
 
 export class UploadProduct {
   private productToUpload: ProductFormData | null = null;

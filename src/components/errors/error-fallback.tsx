@@ -2,17 +2,17 @@
 
 import { TRPCClientErrorLike } from "@trpc/client";
 import { AppRouter } from "@/trpc/routers/_app";
-import { NetworkError } from "@/components/errors/network-error";
-import { UnauthorizedError } from "@/components/errors/unauthorized-error";
-import { NotFoundError } from "@/components/errors/not-found-error";
-import { GenericError } from "@/components/errors/generic-error";
+import { NetworkError } from "./network-error";
+import { UnauthorizedError } from "./unauthorized-error";
+import { NotFoundError } from "./not-found-error";
+import { GenericError } from "./generic-error";
 
 interface ErrorFallbackProps {
   error?: Error | TRPCClientErrorLike<AppRouter>;
   resetErrorBoundary?: () => void;
 }
 
-export default function ErrorFallback({
+export function ErrorFallback({
   error,
   resetErrorBoundary,
 }: ErrorFallbackProps) {
@@ -31,8 +31,6 @@ export default function ErrorFallback({
 
   switch (errorCode) {
     case "NETWORK_ERROR":
-      return <NetworkError onRetry={handleRetry} message={error?.message} />;
-    case "NETWORK_ERROR":
       return <NetworkError onRetry={handleRetry} />;
     case "UNAUTHORIZED":
       return <UnauthorizedError onRetry={handleRetry} />;
@@ -46,37 +44,32 @@ export default function ErrorFallback({
 // "use client";
 
 // import { Button } from "@/components/ui/button";
-// import {
-//   AlertCircleIcon,
-//   MailIcon,
-//   RefreshCwIcon,
-//   WifiOffIcon,
-// } from "lucide-react";
+// import { AlertCircle, RefreshCw, Mail, WifiOff } from "lucide-react";
 // import Link from "next/link";
 
-// export default function Error({
+// interface ErrorFallbackProps {
+//   error?: Error;
+//   resetErrorBoundary?: () => void;
+// }
+
+// export function ErrorFallback({
 //   error,
-//   reset,
-// }: {
-//   error: Error & { digest?: string };
-//   reset?: () => void;
-// }) {
+//   resetErrorBoundary,
+// }: ErrorFallbackProps) {
+//   // Prepare email link with pre-filled error details
 //   const supportEmail =
 //     process.env.NEXT_PUBLIC_SORAXI_SUPPORT_EMAIL || "mishaeljoe55@gmail.com";
 //   const mailtoLink = `mailto:${supportEmail}`;
 
-//   // 🔹 Detect network issue (from server or client)
-//   const isNetworkError =
-//     error?.message === "NETWORK_ERROR" ||
-//     (typeof window !== "undefined" && !navigator.onLine);
+//   const isNetworkError = error?.message === "NETWORK_ERROR";
 
 //   return (
 //     <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
 //       <div className="bg-white border border-red-200 rounded-lg p-6 max-w-md w-full">
 //         {isNetworkError ? (
-//           <WifiOffIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+//           <WifiOff className="h-12 w-12 text-red-500 mx-auto mb-4" />
 //         ) : (
-//           <AlertCircleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+//           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
 //         )}
 
 //         <h2 className="text-xl font-semibold text-red-800 mb-2">
@@ -90,13 +83,13 @@ export default function ErrorFallback({
 //         </p>
 
 //         <div className="flex flex-col sm:flex-row sm:items-center justify-center gap-3">
-//           {reset && (
+//           {resetErrorBoundary && (
 //             <Button
 //               onClick={() => window.location.reload()}
 //               variant="secondary"
 //               className="bg-transparent text-red-700 hover:bg-red-50 hover:underline"
 //             >
-//               <RefreshCwIcon className="h-4 w-4 mr-2" />
+//               <RefreshCw className="h-4 w-4 mr-2" />
 //               Try Again
 //             </Button>
 //           )}
@@ -108,7 +101,7 @@ export default function ErrorFallback({
 //               className="bg-transparent text-red-700 hover:bg-red-50 hover:underline"
 //             >
 //               <Link href={mailtoLink}>
-//                 <MailIcon className="h-4 w-4 mr-2" />
+//                 <Mail className="h-4 w-4 mr-2" />
 //                 Contact Support
 //               </Link>
 //             </Button>

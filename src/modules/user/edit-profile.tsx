@@ -2,7 +2,6 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Form,
   FormControl,
@@ -20,23 +19,15 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "sonner";
 import { useEffect } from "react";
-
-// Form validation schema using Zod
-const profileFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
-  address: z.string().min(5, "Address must be at least 5 characters"),
-  cityOfResidence: z.string().min(2, "City is required"),
-  stateOfResidence: z.string().min(2, "State is required"),
-  postalCode: z.string().min(4, "Postal code must be at least 4 characters"),
-});
+import {
+  EditProfileInfo,
+  editProfileValidation,
+} from "@/validators/user-signUp-info-validation";
 
 const EditProfile = () => {
   // Initialize form with default values
-  const form = useForm<z.infer<typeof profileFormSchema>>({
-    resolver: zodResolver(profileFormSchema),
+  const form = useForm<EditProfileInfo>({
+    resolver: zodResolver(editProfileValidation),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -76,7 +67,7 @@ const EditProfile = () => {
   /**
    * Handle form submission
    */
-  const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
+  const onSubmit = async (values: EditProfileInfo) => {
     updateProfile.mutate(values);
   };
 
@@ -241,7 +232,7 @@ const EditProfile = () => {
             </Button>
             <Button
               type="submit"
-              className="bg-soraxi-green hover:bg-soraxi-green-hover"
+              className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? "Saving..." : "Save Changes"}

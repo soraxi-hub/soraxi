@@ -46,7 +46,6 @@ import {
 import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { PopulatedUser } from "@/types/order";
 import { formatNaira } from "@/lib/utils/naira";
 import { Separator } from "@/components/ui/separator";
 import { getStatusBadge } from "@/lib/utils";
@@ -534,15 +533,15 @@ export default function StoreOrdersManagement({
 
                               <TableCell>
                                 <div>
-                                  <p className="font-medium">
-                                    {`${
-                                      (order.user as PopulatedUser).firstName
-                                    } ${
-                                      (order.user as PopulatedUser).lastName
-                                    }`}
+                                  <p className="font-medium truncate max-w-[180px]">
+                                    {typeof order.user === "string"
+                                      ? "Unknown User"
+                                      : `${order.user.firstName} ${order.user.lastName}`}
                                   </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {(order.user as PopulatedUser).email}
+                                  <p className="text-sm text-muted-foreground truncate max-w-[180px]">
+                                    {typeof order.user === "string"
+                                      ? ""
+                                      : order.user.email}
                                   </p>
                                 </div>
                               </TableCell>

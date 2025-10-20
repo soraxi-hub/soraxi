@@ -53,9 +53,7 @@ export function ProductItem({
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 p-0">
       <div className="relative overflow-hidden rounded-t-lg">
         <Image
-          src={
-            product.productSnapshot.images?.[0] || siteConfig.placeHolderImg1
-          }
+          src={product.productSnapshot.images?.[0] || siteConfig.placeHolderImg}
           height={200}
           width={300}
           alt={product.productSnapshot.name}
@@ -64,7 +62,7 @@ export function ProductItem({
       </div>
       <CardContent className="pb-4">
         <div className="space-y-2">
-          <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-soraxi-green transition-colors">
+          <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-soraxi-green transition-colors truncate">
             {product.productSnapshot.name}
           </h3>
           <p className="text-sm text-muted-foreground">

@@ -42,21 +42,15 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { truncateText } from "@/lib/utils";
+import { storeDescription, storeName } from "@/validators/store-validators";
 
 // Form schemas
 const StoreNameFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Store name must be at least 2 characters")
-    .max(50, "Store name must not exceed 50 characters")
-    .regex(/^[a-zA-Z0-9\s\-_&.]+$/, "Store name contains invalid characters"),
+  name: storeName,
 });
 
 const StoreDescriptionFormSchema = z.object({
-  description: z
-    .string()
-    .min(100, "Description must be at least 100 characters")
-    .max(1500, "Description must not exceed 1500 characters"),
+  description: storeDescription,
 });
 
 export default function EnhancedStoreProfile() {

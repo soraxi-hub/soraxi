@@ -4,11 +4,13 @@ import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { siteConfig } from "@/config/site";
 
 type CheckoutOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
 >;
-type CartProduct = CheckoutOutput["groupedCart"][number]["products"];
+type CartProduct =
+  NonNullable<CheckoutOutput>["groupedCart"][number]["products"];
 
 interface ProductItemProps {
   item: CartProduct[number];
@@ -67,7 +69,7 @@ export default function ProductItem({ item }: ProductItemProps) {
       {/* Product Image */}
       <div className="relative h-20 w-20 overflow-hidden rounded-md border bg-muted flex-shrink-0">
         <Image
-          src={product.images?.[0] || "/placeholder.svg"}
+          src={product.images?.[0] || siteConfig.placeHolderImg}
           alt={`${product.name} product image`}
           fill
           className="object-cover transition-transform hover:scale-105"
