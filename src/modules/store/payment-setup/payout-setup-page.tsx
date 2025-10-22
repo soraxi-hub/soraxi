@@ -57,14 +57,24 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
   const resolveAccountMutation = useMutation(
     trpc.payment.resolveAccountNumber.mutationOptions({
       onSuccess: (data) => {
+        if (data.status !== "success") {
+          toast.error(
+            data.message ||
+              "Invalid account number. Please check and try again."
+          );
+          setIsValidating(false);
+          return;
+        }
         toast.success(
           `Account Verified. Account Name: ${data.data.account_name}`
         );
         setAccountHolderName(data.data.account_name);
         setIsValidating(false);
       },
-      onError: () => {
-        toast.error("Invalid account number. Please check and try again.");
+      onError: (err) => {
+        toast.error(
+          err.message || "Invalid account number. Please check and try again."
+        );
         setIsValidating(false);
       },
     })
@@ -120,8 +130,8 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
 
     setIsValidating(true);
     resolveAccountMutation.mutate({
-      accountNumber: Number(accountNumber),
-      bankCode: Number(selectedBank.code),
+      accountNumber: accountNumber,
+      bankCode: selectedBank.code,
     });
   };
 
@@ -216,6 +226,11 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
                     onValueChange={(value) => {
                       const bank = banks.find((b) => b.name === value);
                       setSelectedBank(bank || null);
+
+                      // Only validate if we already have a 10-digit account number
+                      if (bank?.code && accountNumber.length === 10) {
+                        validateAccountNumber(new Event("submit") as any);
+                      }
                     }}
                   >
                     <SelectTrigger className="w-full">
@@ -231,7 +246,6 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
                               ? "border border-soraxi-green bg-soraxi-green/5 text-soraxi-green"
                               : "hover:border hover:border-soraxi-green/50 hover:bg-muted/50"
                           }`}
-                          onClick={validateAccountNumber}
                         >
                           {bank.name}
                         </SelectItem>

@@ -154,6 +154,11 @@ export const flutterwaveRouter = createTRPCRouter({
         const { address, city, state, postal_code, userId, deliveryType } =
           meta;
 
+        /**
+         * Critical: Please note that changing any of this data or field names may break
+         * the webhook verification and payment confirmation process. Proceed with caution.
+         * If you must change anything here, ensure you also update the webhook handler accordingly.
+         */
         const payload = {
           tx_ref: `TX-REF-${generateUniqueId(8).toUpperCase()}`,
           amount: amount,
@@ -169,7 +174,7 @@ export const flutterwaveRouter = createTRPCRouter({
           meta: {
             email: email,
             phone_number: phone_number,
-            fullname: name,
+            fullName: name,
           },
         } as const;
 

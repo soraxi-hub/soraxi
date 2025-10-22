@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
 
     if (ref === "user") {
       const User = await getUserModel();
-      const user = await User.findOne({ forgotpasswordToken: token });
+      const user = await User.findOne({ forgotpasswordToken: token }).select(
+        "password forgotpasswordToken forgotpasswordTokenExpiry"
+      );
 
       if (!user) {
         return NextResponse.json(
@@ -56,7 +58,9 @@ export async function POST(request: NextRequest) {
 
     if (ref === "store") {
       const Store = await getStoreModel();
-      const store = await Store.findOne({ forgotpasswordToken: token });
+      const store = await Store.findOne({ forgotpasswordToken: token }).select(
+        "password forgotpasswordToken forgotpasswordTokenExpiry"
+      );
 
       if (!store) {
         return NextResponse.json(

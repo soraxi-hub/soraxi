@@ -30,6 +30,9 @@ export interface IUser extends Document {
   forgotpasswordTokenExpiry?: Date;
   verifyToken?: string;
   verifyTokenExpiry?: Date;
+  otpAttempts: number; // NEW: Track failed verification attempts
+  otpAttemptsResetAt: Date; // NEW: When to reset attempt counter
+  lastOtpRequestAt: Date; // NEW: Prevent OTP spam
   createdAt: Date;
   updatedAt: Date;
 }
@@ -125,6 +128,15 @@ const UserSchema = new Schema<IUser>(
       type: String,
     },
     verifyTokenExpiry: {
+      type: Date,
+    },
+    otpAttempts: {
+      type: Number,
+    },
+    otpAttemptsResetAt: {
+      type: Date,
+    },
+    lastOtpRequestAt: {
       type: Date,
     },
   },

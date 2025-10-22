@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordValidation } from "./user-signUp-info-validation";
 
 export enum StoreStatusEnum {
   Active = "active",
@@ -33,13 +34,7 @@ export const storeDescription = z
   .max(1500, "Description must not exceed 1500 characters")
   .optional();
 
-export const storePassword = z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-    "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-  );
+export const storePassword = passwordValidation;
 
 export const storeEmail = z
   .string()
