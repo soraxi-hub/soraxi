@@ -262,7 +262,7 @@ export async function clearUserCart(userId: string): Promise<ICart | null> {
   const Cart = await getCartModel();
 
   return await Cart.findOneAndUpdate<ICart>(
-    { userId: userId },
+    { userId: new mongoose.Types.ObjectId(userId) },
     { $set: { items: [] } }, // Set items array to empty
     { new: true } // Return the updated document
   );

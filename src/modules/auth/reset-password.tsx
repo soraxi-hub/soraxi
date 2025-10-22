@@ -11,37 +11,10 @@ import { Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-import * as z from "zod";
-
-export const resetPasswordSchema = z
-  .object({
-    newPassword: z
-      .string({ required_error: "New password is required" })
-      .min(8, { message: "Minimum 8 characters" })
-      .max(16, { message: "Maximum 16 characters" })
-      .refine((val) => /[A-Z]/.test(val), {
-        message: "Must contain at least one uppercase letter",
-      })
-      .refine((val) => /[a-z]/.test(val), {
-        message: "Must contain at least one lowercase letter",
-      })
-      .refine((val) => /[0-9]/.test(val), {
-        message: "Must contain at least one number",
-      })
-      .refine((val) => /[^A-Za-z0-9]/.test(val), {
-        message: "Must contain at least one special character",
-      }),
-    confirmPassword: z.string({
-      required_error: "Confirm password is required",
-    }),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
-
-export type ResetPasswordSchemaType = z.infer<typeof resetPasswordSchema>;
+import {
+  ResetPasswordInfo,
+  resetPasswordSchema,
+} from "@/validators/user-signUp-info-validation";
 
 const ResetPassword = () => {
   const searchParams = useSearchParams();
@@ -50,19 +23,19 @@ const ResetPassword = () => {
   const ref = searchParams.get("ref") || "";
   const [showPassword, setShowPassword] = useState(false);
 
-  const form = useForm<ResetPasswordSchemaType>({
+  const form = useForm<ResetPasswordInfo>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      newPassword: "",
+      password: "",
       confirmPassword: "",
     },
   });
 
-  const onSubmit = async (values: ResetPasswordSchemaType) => {
+  const onSubmit = async (values: ResetPasswordInfo) => {
     try {
       const response = await axios.post("/api/auth/reset-password", {
         token,
-        newPassword: values.newPassword,
+        newPassword: values.password,
         ref,
       });
 
@@ -86,7 +59,7 @@ const ResetPassword = () => {
   return (
     <main className="min-h-screen flex justify-center items-center bg-background">
       <section className="w-full">
-        <div className="w-full max-w-sm mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md px-6 py-4">
+        <div className="w-full max-w-sm mx-auto bg-card border border-soraxi-green/15 rounded-lg shadow-md px-6 py-4">
           <h3 className="text-xl font-medium text-center text-gray-600 dark:text-gray-200">
             Reset My Password
           </h3>
@@ -105,11 +78,11 @@ const ResetPassword = () => {
               <Input
                 id="newPassword"
                 type={showPassword ? "text" : "password"}
-                {...form.register("newPassword")}
+                {...form.register("password")}
               />
-              {form.formState.errors.newPassword && (
+              {form.formState.errors.password && (
                 <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.newPassword.message}
+                  {form.formState.errors.password.message}
                 </p>
               )}
             </div>

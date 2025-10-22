@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
+import { Input } from "@/components/ui/input";
 
 const ForgotPassword = () => {
   const searchParams = useSearchParams();
@@ -52,10 +53,10 @@ const ForgotPassword = () => {
 
   if (ref === "user") {
     return (
-      <main className="bg-white dark:bg-[#1D1D1D] text-gray-900 dark:text-gray-100 min-h-screen flex flex-row justify-center items-center">
+      <main className="bg-slate-100 dark:bg-[#1D1D1D] text-gray-900 dark:text-gray-100 min-h-screen flex flex-row justify-center items-center">
         <section className="max-w-3xl mx-auto my-5 px-6">
           {!message ? (
-            <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md dark:bg-gray-800">
+            <div className="w-full max-w-sm mx-auto overflow-hidden bg-card border border-soraxi-green/15 rounded-lg shadow-md">
               <div className="px-6 py-4">
                 <div className="flex justify-center mx-auto">
                   <Link
@@ -76,8 +77,8 @@ const ForgotPassword = () => {
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-8 ">
-                  <input
-                    className="block w-full px-4 py-2 mt-2 text-black dark:text-white placeholder-gray-500 bg-white dark:bg-[#2d2d2d] border rounded-lg border-gray-300 dark:border-gray-600 focus:ring-soraxi-green focus:border-sorbg-soraxi-green"
+                  <Input
+                    className="mt-2"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -119,10 +120,10 @@ const ForgotPassword = () => {
 
   if (ref === "store") {
     return (
-      <main className="bg-white dark:bg-[#1D1D1D] text-gray-900 dark:text-gray-100 min-h-screen flex flex-row justify-center items-center">
+      <main className="bg-slate-100 dark:bg-[#1D1D1D] text-gray-900 dark:text-gray-100 min-h-screen flex flex-row justify-center items-center">
         <section className="max-w-3xl mx-auto my-5 px-6">
           {!message ? (
-            <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md dark:bg-gray-800">
+            <div className="w-full max-w-sm mx-auto overflow-hidden bg-card border border-soraxi-green/15 rounded-lg shadow-md">
               <div className="px-6 py-4">
                 <div className="flex justify-center mx-auto">
                   <Link
@@ -143,8 +144,8 @@ const ForgotPassword = () => {
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-8 ">
-                  <input
-                    className="block w-full px-4 py-2 mt-2 text-black dark:text-white placeholder-gray-500 bg-white dark:bg-[#2d2d2d] border rounded-lg border-gray-300 dark:border-gray-600 focus:ring-soraxi-green focus:border-sorbg-soraxi-green"
+                  <Input
+                    className="mt-2"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

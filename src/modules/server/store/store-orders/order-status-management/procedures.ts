@@ -3,13 +3,19 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getOrderById, getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { IUser } from "@/lib/db/models/user.model";
+import type { IUser } from "@/lib/db/models/user.model";
 import {
-  generateAdminOrderFailureHtml,
-  generateOrderStatusHtml,
-  sendMail,
-} from "@/services/mail.service";
-import { DeliveryStatus, deliveryStatusLabel, StatusHistory } from "@/enums";
+  DeliveryStatus,
+  deliveryStatusLabel,
+  type StatusHistory,
+} from "@/enums";
+import {
+  NotificationFactory,
+  renderTemplate,
+  OrderStatusEmail,
+  OrderFailureEmail,
+} from "@/domain/notification";
+import React from "react";
 
 export const orderStatusRouter = createTRPCRouter({
   /**
@@ -105,9 +111,7 @@ export const orderStatusRouter = createTRPCRouter({
         const statusUpdate = {
           status: input.deliveryStatus as unknown as StatusHistory,
           timestamp: new Date(),
-          notes: `Delivery updated to "${deliveryStatusLabel(
-            input.deliveryStatus
-          )}" by the store.`,
+          notes: `Delivery updated to "${deliveryStatusLabel(input.deliveryStatus)}" by the store.`,
         };
         subOrder.statusHistory.push(statusUpdate);
 
@@ -130,9 +134,7 @@ export const orderStatusRouter = createTRPCRouter({
             if (subOrder.escrow) {
               subOrder.escrow.refundReason =
                 input.notes ||
-                `Marked for review: ${deliveryStatusLabel(
-                  input.deliveryStatus
-                )}`;
+                `Marked for review: ${deliveryStatusLabel(input.deliveryStatus)}`;
             }
             break;
 
@@ -177,55 +179,61 @@ export const orderStatusRouter = createTRPCRouter({
 
             const statusSubject = isOrderFailedOrCanceled
               ? `Issue with your order "${input.subOrderId}"`
-              : `Your order is now "${deliveryStatusLabel(
-                  input.deliveryStatus
-                )}"`;
+              : `Your order is now "${deliveryStatusLabel(input.deliveryStatus)}"`;
 
-            const statusHtml = generateOrderStatusHtml({
-              status: deliveryStatusLabel(input.deliveryStatus),
-              orderId: input.orderId,
-              subOrderId: input.subOrderId,
-              storeName: storeSession.name.toUpperCase(),
-            });
-
-            await sendMail({
-              email: customerEmail,
-              emailType: "storeOrderNotification",
-              fromAddress: "orders@soraxihub.com",
-              subject: statusSubject,
-              html: statusHtml,
-              text: `Your order status has been updated to: ${deliveryStatusLabel(
-                input.deliveryStatus
-              )}`,
-            });
-
-            if (isOrderFailedOrCanceled) {
-              const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;
-              const adminHtml = generateAdminOrderFailureHtml({
-                deliveryStatus: deliveryStatusLabel(input.deliveryStatus),
+            const customerHtml = await renderTemplate(
+              React.createElement(OrderStatusEmail, {
+                customerName: undefined,
                 orderId: input.orderId,
                 subOrderId: input.subOrderId,
-                storeName: storeSession.name,
-                customerEmail: customerEmail || "Unknown",
-              });
+                status: deliveryStatusLabel(input.deliveryStatus),
+                storeName: storeSession.name.toUpperCase(),
+                trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
+              })
+            );
 
-              await sendMail({
-                email: adminEmail,
+            // Send customer notification
+            const customerNotification = NotificationFactory.create("email", {
+              recipient: customerEmail,
+              subject: statusSubject,
+              emailType: "storeOrderNotification",
+              fromAddress: "orders@soraxihub.com",
+              html: customerHtml,
+              text: `Your order status has been updated to: ${deliveryStatusLabel(input.deliveryStatus)}`,
+            });
+
+            await customerNotification.send();
+
+            // Send admin notification for failed/canceled orders
+            if (isOrderFailedOrCanceled) {
+              const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;
+
+              const adminHtml = await renderTemplate(
+                React.createElement(OrderFailureEmail, {
+                  deliveryStatus: deliveryStatusLabel(input.deliveryStatus),
+                  orderId: input.orderId,
+                  subOrderId: input.subOrderId,
+                  storeName: storeSession.name.toUpperCase(),
+                  customerEmail: customerEmail || "Unknown",
+                  reason: input.notes,
+                })
+              );
+
+              const adminNotification = NotificationFactory.create("email", {
+                recipient: adminEmail,
+                subject: `Order ${deliveryStatusLabel(input.deliveryStatus)} - ${input.subOrderId}`,
                 emailType: "storeOrderNotification",
                 fromAddress: "orders@soraxihub.com",
-                subject: `Order ${deliveryStatusLabel(
-                  input.deliveryStatus
-                )} - ${input.subOrderId}`,
                 html: adminHtml,
                 text: `Order ${input.subOrderId} for store "${
                   storeSession.name
                 }" was marked as ${deliveryStatusLabel(input.deliveryStatus)}.`,
               });
 
+              await adminNotification.send();
+
               console.log(
-                `Admin notified for ${deliveryStatusLabel(
-                  input.deliveryStatus
-                )} case`
+                `Admin notified for ${deliveryStatusLabel(input.deliveryStatus)} case`
               );
             }
           }
@@ -235,9 +243,7 @@ export const orderStatusRouter = createTRPCRouter({
 
         return {
           success: true,
-          message: `Order status updated to ${deliveryStatusLabel(
-            input.deliveryStatus
-          )}`,
+          message: `Order status updated to ${deliveryStatusLabel(input.deliveryStatus)}`,
           updates: {
             orderId: input.orderId,
             subOrderId: input.subOrderId,

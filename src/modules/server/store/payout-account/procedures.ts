@@ -7,20 +7,8 @@ import { getStoreModel } from "@/lib/db/models/store.model";
 // Define a single Bank type
 export type Bank = {
   id: number;
-  name: string;
-  slug: string;
   code: string;
-  longcode: string;
-  gateway: string | null; // Gateway can be null
-  pay_with_bank: boolean;
-  supports_transfer: boolean;
-  active: boolean;
-  country: string;
-  currency: string;
-  type: string;
-  is_deleted: boolean;
-  createdAt: string; // Date can be used if you want to handle date objects
-  updatedAt: string; // Date can be used if you want to handle date objects
+  name: string;
 };
 
 export const paymentRouter = createTRPCRouter({
@@ -76,14 +64,20 @@ export const paymentRouter = createTRPCRouter({
       });
     }
 
-    const url = "https://api.paystack.co/bank";
-    const response = await fetch(url, {
+    const options = {
       method: "GET",
       headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
       },
-    });
+    };
+
+    const response = await fetch(
+      // "https://api.flutterwave.com/v3/banks/NG?include_provider_type=1",
+      "https://api.flutterwave.com/v3/banks/NG",
+      options
+    );
 
     const banks = (await response.json()) as {
       status: true;
@@ -94,20 +88,8 @@ export const paymentRouter = createTRPCRouter({
     const formattedBanks = banks.data.map((bank) => {
       return {
         id: bank.id,
-        name: bank.name,
-        slug: bank.slug,
         code: bank.code,
-        longcode: bank.longcode,
-        gateway: bank.gateway,
-        pay_with_bank: bank.pay_with_bank,
-        supports_transfer: bank.supports_transfer,
-        active: bank.active,
-        country: bank.country,
-        currency: bank.currency,
-        type: bank.type,
-        is_deleted: bank.is_deleted,
-        createdAt: bank.createdAt,
-        updatedAt: bank.updatedAt,
+        name: bank.name,
       };
     });
 
@@ -117,21 +99,38 @@ export const paymentRouter = createTRPCRouter({
   }),
 
   resolveAccountNumber: baseProcedure
-    .input(z.object({ accountNumber: z.number(), bankCode: z.number() }))
+    .input(z.object({ accountNumber: z.string(), bankCode: z.string() }))
     .mutation(async ({ input }) => {
       const { accountNumber, bankCode } = input;
-      const url = `https://api.paystack.co/bank/resolve?account_number=${Number(
-        accountNumber
-      )}&bank_code=${Number(bankCode)}`;
-      const response = await fetch(url, {
-        method: "GET",
+
+      if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Server configuration error: Missing required FLUTTERWAVE environment variables",
+        });
+      }
+
+      const options = {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          accept: "application/json",
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          "Content-Type": "application/json",
         },
-      });
+        body: JSON.stringify({
+          account_number: accountNumber.toString(),
+          account_bank: bankCode.toString(),
+        }),
+      };
+
+      const response = await fetch(
+        "https://api.flutterwave.com/v3/accounts/resolve",
+        options
+      );
 
       const result = (await response.json()) as {
-        status: boolean;
+        status: string;
         message: string;
         data: {
           account_number: string;
@@ -139,7 +138,6 @@ export const paymentRouter = createTRPCRouter({
         };
       };
 
-      // console.log("result", result);
       return result;
     }),
 
