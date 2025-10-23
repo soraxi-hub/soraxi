@@ -55,7 +55,7 @@ export const paymentRouter = createTRPCRouter({
   }),
 
   getBanks: baseProcedure.query(async () => {
-    if (!process.env.PAYSTACK_SECRET_KEY) {
+    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
       console.error("Missing required environment variables");
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -103,7 +103,7 @@ export const paymentRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const { accountNumber, bankCode } = input;
 
-      if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+      if (!process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
@@ -115,7 +115,7 @@ export const paymentRouter = createTRPCRouter({
         method: "POST",
         headers: {
           accept: "application/json",
-          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
