@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { siteConfig } from "@/config/site";
 
 export default function ShippingReturnsPage() {
   return (
@@ -14,8 +15,8 @@ export default function ShippingReturnsPage() {
             Shipping & Returns Policy
           </h1>
           <p className="text-muted-foreground text-lg">
-            Clear guidelines on how Soraxi handles deliveries, returns, and
-            refunds.
+            Clear guidelines on how {siteConfig.name} handles deliveries,
+            returns, and refunds.
           </p>
           <Badge variant="outline" className="mt-2">
             Last updated: August 2025
@@ -32,8 +33,8 @@ export default function ShippingReturnsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Soraxi operates a hybrid shipping model to ensure flexibility
-                and efficiency:
+                {siteConfig.name} operates a hybrid shipping model to ensure
+                flexibility and efficiency:
               </p>
               <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                 <li>
@@ -42,9 +43,9 @@ export default function ShippingReturnsPage() {
                   fulfillment.
                 </li>
                 <li>
-                  <strong>Outside Campus:</strong> Soraxi partners with
-                  third-party logistics providers to deliver orders securely to
-                  your chosen location.
+                  <strong>Outside Campus:</strong> {siteConfig.name} partners
+                  with third-party logistics providers to deliver orders
+                  securely to your chosen location.
                 </li>
                 <li>
                   <strong>Delivery Timelines:</strong> 1–3 business days within
@@ -74,8 +75,8 @@ export default function ShippingReturnsPage() {
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
                 We want you to shop with confidence. Our return and refund
-                process is backed by Soraxi’s escrow system to protect both
-                buyers and sellers.
+                process is backed by {siteConfig.name}’s escrow system to
+                protect both buyers and sellers.
               </p>
               <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                 <li>
@@ -100,8 +101,8 @@ export default function ShippingReturnsPage() {
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                 <p className="text-sm text-amber-700 dark:text-amber-300">
                   Disputes between buyers and sellers may be escalated to
-                  Soraxi’s support team for resolution in line with our Terms &
-                  Conditions.
+                  {siteConfig.name}’s support team for resolution in line with
+                  our Terms & Conditions.
                 </p>
               </div>
             </CardContent>

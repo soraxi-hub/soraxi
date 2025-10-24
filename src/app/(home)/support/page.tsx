@@ -17,11 +17,11 @@ import { siteConfig } from "@/config/site";
 import ContactForm from "@/components/forms/contact-form";
 
 export const metadata: Metadata = {
-  title: `Help & Support | ${siteConfig.siteTitle}`,
+  title: `Help & Support`,
   description:
     "Find answers to common questions about shopping, orders, payments, store setup, and more. Contact our support team for further assistance.",
   keywords: [
-    "Soraxi help",
+    `${siteConfig.name} help`,
     "customer support",
     "shopping help",
     "order tracking",
@@ -32,17 +32,16 @@ export const metadata: Metadata = {
     "contact support",
   ],
   openGraph: {
-    title: "Help & Support | Soraxi",
-    description:
-      "Need assistance? Browse FAQs or reach out to Soraxi support for shopping, selling, payments, and technical issues.",
+    title: `Help & Support | ${siteConfig.name}`,
+    description: `Need assistance? Browse FAQs or reach out to ${siteConfig.name} support for shopping, selling, payments, and technical issues.`,
     url: `${process.env.NEXT_PUBLIC_APP_URL}/support`,
-    siteName: "Soraxi",
+    siteName: `${siteConfig.name}`,
     images: [
       {
         url: `${process.env.NEXT_PUBLIC_APP_URL}/og-soraxi.png`,
         width: 1200,
         height: 630,
-        alt: "Soraxi Help & Support",
+        alt: `${siteConfig.name} Help & Support`,
       },
     ],
     locale: "en_US",
@@ -50,9 +49,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Help & Support | Soraxi",
-    description:
-      "Find answers or get in touch with the Soraxi support team for fast help.",
+    title: `Help & Support | ${siteConfig.name}`,
+    description: `Find answers or get in touch with the ${siteConfig.name} support team for fast help.`,
     images: [`${process.env.NEXT_PUBLIC_APP_URL}/og-soraxi.png`],
   },
   alternates: {

@@ -20,7 +20,7 @@ export const siteConfig = {
     "Trusted student marketplace",
     "E-commerce for Nigerian universities",
   ],
-  name: "Soraxi",
+  name: "Soraxi" as const,
   logo: `/svg/soraxi.svg`,
   url: process.env.NEXT_PUBLIC_APP_URL,
   footer: [

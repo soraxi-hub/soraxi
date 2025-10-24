@@ -6,12 +6,10 @@ import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: `Payment Status`,
-  description:
-    "Your payment was successful! Thank you for shopping with Soraxi. Your order is being processed and you’ll receive updates soon.",
+  description: `Your payment was successful! Thank you for shopping with ${siteConfig.name}. Your order is being processed and you’ll receive updates soon.`,
   openGraph: {
     title: `Payment Successful | ${siteConfig.siteTitle}`,
-    description:
-      "Your payment has been confirmed. Soraxi is processing your order and will update you shortly.",
+    description: `Your payment has been confirmed. ${siteConfig.name} is processing your order and will update you shortly.`,
     url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-status`,
     siteName: `${siteConfig.siteTitle}`,
     images: [
@@ -19,7 +17,7 @@ export const metadata: Metadata = {
         url: "/og-soraxi.png",
         width: 1200,
         height: 630,
-        alt: "Payment Success on Soraxi",
+        alt: `Payment Success on ${siteConfig.name}`,
       },
     ],
     locale: "en_US",
@@ -27,9 +25,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Payment Successful | Soraxi",
-    description:
-      "Your payment was successful! Soraxi is processing your order now.",
+    title: `Payment Successful | ${siteConfig.name}`,
+    description: `Your payment was successful! ${siteConfig.name} is processing your order now.`,
     images: ["/og-soraxi.png"],
   },
   alternates: {

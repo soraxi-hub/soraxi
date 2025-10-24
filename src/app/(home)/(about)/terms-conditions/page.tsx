@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 export default function TermsAndConditionsPage() {
   return (
@@ -32,10 +33,11 @@ export default function TermsAndConditionsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                Welcome to Soraxi Marketplace (&#34;Soraxi&#34;,
-                &#34;Platform&#34;, &#34;Service&#34;, &#34;we&#34;,
+                Welcome to {siteConfig.name} Marketplace (&#34;{siteConfig.name}
+                &#34;, &#34;Platform&#34;, &#34;Service&#34;, &#34;we&#34;,
                 &#34;us&#34;, or &#34;our&#34;). These Terms and Conditions
-                (&#34;Terms&#34;) govern your access to and use of Soraxi
+                (&#34;Terms&#34;) govern your access to and use of{" "}
+                {siteConfig.name}
                 Marketplace, including our website, mobile access, and related
                 services.
               </p>

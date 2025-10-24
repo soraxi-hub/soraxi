@@ -1,4 +1,5 @@
 import type React from "react";
+import { Html, Head, Body, Container, Section } from "@react-email/components";
 import { EmailHeader } from "./email-header";
 import { EmailFooter } from "./email-footer";
 
@@ -14,10 +15,8 @@ export function EmailContainer({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <Html lang="en">
+      <Head>
         <title>{title}</title>
         <style>{`
           body {
@@ -76,14 +75,14 @@ export function EmailContainer({
             }
           }
         `}</style>
-      </head>
-      <body>
-        <div className="container">
+      </Head>
+      <Body>
+        <Container className="container">
           <EmailHeader title={title} />
-          <div className="content">{children}</div>
+          <Section className="content">{children}</Section>
           <EmailFooter />
-        </div>
-      </body>
-    </html>
+        </Container>
+      </Body>
+    </Html>
   );
 }

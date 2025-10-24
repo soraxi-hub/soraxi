@@ -94,6 +94,19 @@ export class EmailNotification extends Notification {
       options.transporter || this.createTransporter(options.emailType);
   }
 
+  private static readonly allowedFromByAccount: Record<
+    "noreply" | "admin",
+    FromAddress[]
+  > = {
+    noreply: ["noreply@soraxihub.com"],
+    admin: [
+      "admin@soraxihub.com",
+      "support@soraxihub.com",
+      "info@soraxihub.com",
+      "orders@soraxihub.com",
+    ],
+  };
+
   /**
    * Creates a Nodemailer transporter based on email type
    * Routes different email types to appropriate SMTP accounts
@@ -133,6 +146,16 @@ export class EmailNotification extends Notification {
         `Missing SMTP credentials for ${accountType} account. ` +
           `Please set SORAXI_${accountType.toUpperCase()}_EMAIL and ` +
           `SORAXI_${accountType.toUpperCase()}_APP_PASSWORD environment variables.`
+      );
+    }
+
+    if (
+      !EmailNotification.allowedFromByAccount[accountType].includes(
+        this.fromAddress
+      )
+    ) {
+      throw new Error(
+        `From address ${this.fromAddress} is not permitted for ${accountType} account`
       );
     }
 
@@ -185,6 +208,8 @@ export class EmailNotification extends Notification {
       // Prepare mail options
       const mailOptions = {
         from: this.fromAddress,
+        // If you must display a different address, prefer verified aliases or set replyTo:
+        // replyTo: this.fromAddress,
         to: this.recipient,
         subject: this.subject || "Notification",
         text: this.text || undefined,

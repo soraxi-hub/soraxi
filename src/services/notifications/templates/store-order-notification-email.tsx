@@ -1,6 +1,8 @@
-// StoreOrderNotificationEmail.tsx
-import { DeliveryType } from "@/enums";
 import { EmailContainer } from "./email-container";
+import { Section, Text, Row, Column, Button } from "@react-email/components";
+import { DeliveryType } from "@/enums";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
+import { siteConfig } from "@/config/site";
 
 export interface StoreOrderItem {
   name: string;
@@ -28,8 +30,8 @@ export function StoreOrderNotificationEmail({
   storeId: string;
   items: StoreOrderItem[];
   totalAmount: number;
-  customerName?: string;
-  customerEmail?: string;
+  customerName: string;
+  customerEmail: string;
   deliveryAddress?: {
     street: string;
     country: string;
@@ -39,116 +41,126 @@ export function StoreOrderNotificationEmail({
 }) {
   return (
     <EmailContainer title="New Order Received">
-      <p>Hi {storeName},</p>
-      <p>Great news! You&#39;ve received a new order on Soraxi.</p>
+      <Section>
+        <Text>Hi {storeName},</Text>
+        <Text>
+          Great news! You&#39;ve received a new order on {siteConfig.name}.
+        </Text>
 
-      <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-        <p>
-          <strong>Order ID:</strong> {orderId}
-        </p>
-        <p>
-          <strong>Order Date:</strong> {new Date().toLocaleDateString()}
-        </p>
-        {customerName && (
-          <p>
-            <strong>Customer:</strong> {customerName}
-          </p>
+        <Section style={{ marginTop: "20px", marginBottom: "20px" }}>
+          <Text>
+            <strong>Order ID:</strong> {orderId}
+          </Text>
+          <Text>
+            <strong>Order Date:</strong> {new Date().toLocaleDateString()}
+          </Text>
+          {customerName && (
+            <Text>
+              <strong>Customer:</strong> {customerName}
+            </Text>
+          )}
+          {customerEmail && (
+            <Text>
+              <strong>Customer Email:</strong> {customerEmail}
+            </Text>
+          )}
+        </Section>
+
+        {deliveryAddress && (
+          <Section style={{ marginBottom: "20px" }}>
+            <Text>
+              <strong>Delivery Address:</strong>
+            </Text>
+            <Text>
+              {deliveryAddress.deliveryType}
+              <br />
+              {deliveryAddress.street}, {deliveryAddress.postalCode}
+              <br />
+              {deliveryAddress.country}
+            </Text>
+          </Section>
         )}
-        {customerEmail && (
-          <p>
-            <strong>Customer Email:</strong> {customerEmail}
-          </p>
-        )}
-      </div>
 
-      {deliveryAddress && (
-        <div style={{ marginBottom: "20px" }}>
-          <h4>Delivery Address:</h4>
-          <p>
-            {deliveryAddress.deliveryType}
-            <br />
-            {deliveryAddress.street}, {deliveryAddress.postalCode}
-            <br />
-            {deliveryAddress.country}
-          </p>
-        </div>
-      )}
+        <Text style={{ fontWeight: "bold", marginBottom: "10px" }}>
+          Order Items:
+        </Text>
+        {items.map((item, index) => (
+          <Row
+            key={index}
+            style={{ borderBottom: "1px solid #eee", padding: "5px 0" }}
+          >
+            <Column style={{ width: "40%" }}>{item.name}</Column>
+            <Column style={{ width: "20%", textAlign: "center" }}>
+              {item.quantity}
+            </Column>
+            <Column style={{ width: "20%", textAlign: "right" }}>
+              {formatNaira(item.price ?? 0)}
+            </Column>
+            <Column
+              style={{ width: "20%", textAlign: "right", padding: "0 2px" }}
+            >
+              {formatNaira(
+                currencyOperations.multiply(item.price ?? 0, item.quantity)
+              )}
+            </Column>
+          </Row>
+        ))}
 
-      <h3>Order Items:</h3>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ borderBottom: "2px solid #14a800" }}>
-            <th style={{ textAlign: "left", padding: "10px" }}>Product</th>
-            <th style={{ textAlign: "center", padding: "10px" }}>Qty</th>
-            <th style={{ textAlign: "right", padding: "10px" }}>Price</th>
-            <th style={{ textAlign: "right", padding: "10px" }}>Subtotal</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: "10px" }}>{item.name}</td>
-              <td style={{ textAlign: "center", padding: "10px" }}>
-                {item.quantity}
-              </td>
-              <td style={{ textAlign: "right", padding: "10px" }}>
-                ${item.price.toFixed(2)}
-              </td>
-              <td style={{ textAlign: "right", padding: "10px" }}>
-                ${(item.price * item.quantity).toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <Section
+          style={{ marginTop: "20px", textAlign: "right", fontWeight: "bold" }}
+        >
+          Total: {formatNaira(totalAmount)}
+        </Section>
 
-      <div
-        style={{
-          marginTop: "20px",
-          textAlign: "right",
-          fontSize: "18px",
-          fontWeight: "bold",
-        }}
-      >
-        Total: ${totalAmount.toFixed(2)}
-      </div>
+        <Row>
+          <Column align="center">
+            <Button
+              href={`${process.env.NEXT_PUBLIC_APP_URL}/store/${storeId}/orders/${orderId}`}
+              style={{
+                display: "inline-block",
+                margin: "20px 0",
+                padding: "12px 24px",
+                backgroundColor: "#14a800",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: "4px",
+                fontWeight: "bold",
+              }}
+            >
+              View Order Details
+            </Button>
+          </Column>
+        </Row>
 
-      <a
-        href={`${process.env.NEXT_PUBLIC_APP_URL}/store/${storeId}/orders/${orderId}`}
-        style={{
-          display: "inline-block",
-          margin: "20px 0",
-          padding: "12px 24px",
-          backgroundColor: "#14a800",
-          color: "white",
-          textDecoration: "none",
-          borderRadius: "4px",
-          fontWeight: "bold",
-        }}
-      >
-        View Order Details
-      </a>
+        <Text>
+          Please process this order promptly and update the order status in your
+          dashboard.
+        </Text>
 
-      <p>
-        Please process this order promptly and update the order status in your
-        dashboard.
-      </p>
+        <Text>
+          <strong>Next Steps:</strong>
+        </Text>
+        <ul>
+          <li>
+            <Text>Review order details in your dashboard</Text>
+          </li>
+          <li>
+            <Text>Prepare items for shipment</Text>
+          </li>
+          <li>
+            <Text>Update order status when shipped</Text>
+          </li>
+          <li>
+            <Text>Contact support if you have any questions</Text>
+          </li>
+        </ul>
 
-      <p>
-        <strong>Next Steps:</strong>
-      </p>
-      <ul>
-        <li>Review order details in your dashboard</li>
-        <li>Prepare items for shipment</li>
-        <li>Update order status when shipped</li>
-        <li>Contact support if you have any questions</li>
-      </ul>
-
-      <p>
-        Best regards,
-        <br />
-        The Soraxi Team
-      </p>
+        <Text>
+          Best regards,
+          <br />
+          The {siteConfig.name} Team
+        </Text>
+      </Section>
     </EmailContainer>
   );
 }

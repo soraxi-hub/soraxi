@@ -11,33 +11,32 @@ import { serializeData } from "@/lib/utils";
 import type { Metadata } from "next";
 import { EmptyCart } from "@/modules/cart/empty-cart";
 import { ProfileErrorFallback } from "@/modules/checkout/profile-error-fallback";
+import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: `Checkout`,
-  description:
-    "Securely review your order and complete your purchase on Soraxi. Escrow-protected payments, fast delivery, and a seamless checkout experience.",
+  description: `Securely review your order and complete your purchase on ${siteConfig.name}. Escrow-protected payments, fast delivery, and a seamless checkout experience.`,
   keywords: [
-    "Soraxi checkout",
+    `${siteConfig.name} checkout`,
     "secure checkout",
     "order payment",
     "escrow payments",
     "buy online",
     "shopping checkout",
-    "Soraxi cart",
+    `${siteConfig.name} cart`,
     "complete purchase",
   ],
   openGraph: {
-    title: "Checkout | Soraxi",
-    description:
-      "Finalize your Soraxi order with secure escrow payments and trusted delivery.",
+    title: `Checkout | ${siteConfig.name}`,
+    description: `Finalize your ${siteConfig.name} order with secure escrow payments and trusted delivery.`,
     url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout`,
-    siteName: "Soraxi",
+    siteName: `${siteConfig.name}`,
     images: [
       {
         url: "/og-soraxi.png", // already in /public
         width: 1200,
         height: 630,
-        alt: "Soraxi Checkout",
+        alt: `${siteConfig.name} Checkout`,
       },
     ],
     locale: "en_US",
@@ -45,9 +44,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Checkout | Soraxi",
-    description:
-      "Securely complete your Soraxi order with escrow-protected payments.",
+    title: `Checkout | ${siteConfig.name}`,
+    description: `Securely complete your ${siteConfig.name} order with escrow-protected payments.`,
     images: ["/og-soraxi.png"],
   },
   alternates: {
@@ -247,15 +245,15 @@ export default async function CheckoutPage() {
             {isNetworkError
               ? "Connection Error"
               : isSerializationError
-              ? "Data Processing Error"
-              : "Checkout Error"}
+                ? "Data Processing Error"
+                : "Checkout Error"}
           </AlertTitle>
           <AlertDescription>
             {isNetworkError
               ? "Unable to connect to our servers. Please check your internet connection and try again."
               : isSerializationError
-              ? "There was an issue processing your cart data. Please try refreshing the page."
-              : "Failed to load checkout data. Please try refreshing the page or contact support if the problem persists."}
+                ? "There was an issue processing your cart data. Please try refreshing the page."
+                : "Failed to load checkout data. Please try refreshing the page or contact support if the problem persists."}
           </AlertDescription>
         </Alert>
 

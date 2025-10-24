@@ -2,4 +2,4 @@
  * Notification utilities module
  */
 
-export { renderTemplate } from "./reder-template";
+export { renderTemplate } from "./render-template";

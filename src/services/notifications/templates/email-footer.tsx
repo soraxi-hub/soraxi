@@ -1,18 +1,30 @@
+import { siteConfig } from "@/config/site";
+import { Section, Text } from "@react-email/components";
+
 /**
  * Reusable email footer component
  * Used across all email templates for consistent branding
  */
-export function EmailFooter({ year = new Date().getFullYear() }: { year?: number }) {
+export function EmailFooter({
+  year = new Date().getFullYear(),
+}: {
+  year?: number;
+}) {
   return (
-    <div
+    <Section
       style={{
         marginTop: "30px",
-        fontSize: "12px",
-        color: "#777",
         textAlign: "center",
       }}
     >
-      &copy; {year} Soraxi. All rights reserved.
-    </div>
-  )
+      <Text
+        style={{
+          fontSize: "12px",
+          color: "#777",
+        }}
+      >
+        &copy; {year} {siteConfig.name}. All rights reserved.
+      </Text>
+    </Section>
+  );
 }

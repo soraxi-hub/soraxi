@@ -1,10 +1,12 @@
+import { Section, Heading } from "@react-email/components";
+
 /**
  * Reusable email header component
  * Used across all email templates for consistent branding
  */
-export function EmailHeader({ title }: { title: string }) {
+export function EmailHeader({ title }: { title?: string }) {
   return (
-    <div
+    <Section
       style={{
         backgroundColor: "#14a800",
         padding: "20px",
@@ -13,7 +15,16 @@ export function EmailHeader({ title }: { title: string }) {
         color: "white",
       }}
     >
-      <h1 style={{ margin: 0, fontSize: "22px", fontWeight: "bold" }}>{title}</h1>
-    </div>
-  )
+      <Heading
+        as="h1"
+        style={{
+          margin: 0,
+          fontSize: "22px",
+          fontWeight: "bold",
+        }}
+      >
+        {title}
+      </Heading>
+    </Section>
+  );
 }

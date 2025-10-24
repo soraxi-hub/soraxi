@@ -1,4 +1,6 @@
+import { siteConfig } from "@/config/site";
 import { EmailContainer } from "./email-container";
+import { Section, Text, Row, Column, Link } from "@react-email/components";
 
 /**
  * Promotional email template
@@ -19,30 +21,45 @@ export function PromotionalEmail({
 }) {
   return (
     <EmailContainer title={title}>
-      <p>Hi {recipientName},</p>
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <Section>
+        <Text>Hi {recipientName},</Text>
 
-      <a
-        href={ctaUrl}
-        style={{
-          display: "inline-block",
-          margin: "20px 0",
-          padding: "12px 24px",
-          backgroundColor: "#14a800",
-          color: "white",
-          textDecoration: "none",
-          borderRadius: "4px",
-          fontWeight: "bold",
-        }}
-      >
-        {ctaText}
-      </a>
+        {/* Safely inject campaign content (already sanitized or trusted HTML) */}
+        <div dangerouslySetInnerHTML={{ __html: content }} />
 
-      <p>
-        Best regards,
-        <br />
-        The Soraxi Team
-      </p>
+        <Row style={{ marginTop: "20px", marginBottom: "20px" }}>
+          <Column align="center">
+            <Link
+              href={ctaUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              style={{
+                display: "inline-block",
+                backgroundColor: "#14a800",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "4px",
+                textDecoration: "none",
+                fontWeight: "bold",
+              }}
+            >
+              {ctaText}
+            </Link>
+          </Column>
+        </Row>
+
+        <Text>
+          Best regards,
+          <br />
+          The {siteConfig.name} Team
+        </Text>
+      </Section>
     </EmailContainer>
   );
 }
+
+/**
+ * Todo: This will be done later as we scale and not now.
+ */
+// Sanitize HTML before injecting and harden link attributes.
+// Unsanitized dangerouslySetInnerHTML is an XSS vector in web previews/log viewers.

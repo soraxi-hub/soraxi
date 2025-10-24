@@ -14,6 +14,7 @@ import { useTRPC } from "@/trpc/client";
 import { useQueryState } from "nuqs";
 import { useQuery } from "@tanstack/react-query";
 import ClientMetadata from "@/components/client-meta-data";
+import { siteConfig } from "@/config/site";
 
 interface FilterOptions {
   priceRange: [number, number];
@@ -84,7 +85,7 @@ export default function CategoryPage() {
   return (
     <>
       <ClientMetadata
-        title={`Results for "${search}" - Soraxi`}
+        title={`Results for "${search}" - ${siteConfig.name}`}
         description={`Explore products related to "${search}" in ${
           category?.name ?? "our catalog"
         }.`}
