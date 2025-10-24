@@ -12,32 +12,31 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ShoppingBag } from "lucide-react";
 import type { Metadata } from "next";
+import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: `Your Shopping Cart`,
-  description:
-    "View and manage the items in your shopping cart. Secure checkout, escrow-protected payments, and fast delivery with Soraxi.",
+  description: `View and manage the items in your shopping cart. Secure checkout, escrow-protected payments, and fast delivery with ${siteConfig.name}.`,
   keywords: [
-    "Soraxi cart",
+    `${siteConfig.name} cart`,
     "shopping cart",
     "view cart",
     "secure checkout",
     "online shopping",
     "escrow payments",
-    "Soraxi orders",
+    `${siteConfig.name} orders`,
   ],
   openGraph: {
-    title: "Your Shopping Cart | Soraxi",
-    description:
-      "Review your items and proceed to secure checkout with escrow protection on Soraxi.",
+    title: `Your Shopping Cart | ${siteConfig.name}`,
+    description: `Review your items and proceed to secure checkout with escrow protection on ${siteConfig.name}.`,
     url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
-    siteName: "Soraxi",
+    siteName: `${siteConfig.name}`,
     images: [
       {
         url: "/og-soraxi.png",
         width: 1200,
         height: 630,
-        alt: "Soraxi Shopping Cart",
+        alt: `${siteConfig.name} Shopping Cart`,
       },
     ],
     locale: "en_US",
@@ -45,8 +44,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Your Shopping Cart | Soraxi",
-    description: "Manage your cart and proceed to secure checkout on Soraxi.",
+    title: `Your Shopping Cart | ${siteConfig.name}`,
+    description: `Manage your cart and proceed to secure checkout on ${siteConfig.name}.`,
     images: ["/og-soraxi.png"],
   },
   alternates: {

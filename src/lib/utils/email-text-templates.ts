@@ -1,3 +1,6 @@
+import { siteConfig } from "@/config/site";
+import { formatNaira } from "./naira";
+
 // Utility functions for plain text email generation
 export const EmailTextTemplates = {
   /**
@@ -32,7 +35,7 @@ Please review this store submission in the admin dashboard.`;
   }): string => {
     return `Hi ${details.ownerName},
 
-Thank you for completing your store onboarding on Soraxi!
+Thank you for completing your store onboarding on ${siteConfig.name}!
 
 Your store "${details.storeName}" has been successfully submitted for admin review.
 
@@ -46,7 +49,7 @@ You can view your store here: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard/store
 If you have any questions, please don't hesitate to contact our support team.
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
   },
 
   /**
@@ -59,16 +62,16 @@ The Soraxi Team`;
   }): string => {
     return `Hi ${details.userName},
 
-Thank you for signing up for Soraxi! To complete your registration, please verify your email address using the OTP code below.
+Thank you for signing up for ${siteConfig.name}! To complete your registration, please verify your email address using the OTP code below.
 
 Your verification code: ${details.otpCode}
 
 This code will expire in ${details.expiryMinutes} minutes.
 
-If you didn't create an account with Soraxi, you can safely ignore this email.
+If you didn't create an account with ${siteConfig.name}, you can safely ignore this email.
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
   },
 
   /**
@@ -107,7 +110,7 @@ Track your order here: ${process.env.NEXT_PUBLIC_APP_URL}/orders/${details.order
 You'll receive updates as your order progresses through our fulfillment process.
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
   },
 
   /**
@@ -220,7 +223,7 @@ ${details.deliveryAddress.country}\n`;
 
     return `Hi ${details.storeName},
 
-Great news! You've received a new order on Soraxi.
+Great news! You've received a new order on ${siteConfig.name}.
 
 Order Details:
 - Order ID: ${details.orderId}
@@ -243,7 +246,7 @@ Next Steps:
 View order details: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${details.orderId}
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
   },
 
   /**
@@ -253,7 +256,7 @@ The Soraxi Team`;
     resetUrl: string;
     expiryMinutes: number;
   }): string => {
-    return `You're receiving this because you requested a password reset for your Soraxi account.
+    return `You're receiving this because you requested a password reset for your ${siteConfig.name} account.
 
 Click the link below to reset your password:
 ${details.resetUrl}
@@ -266,7 +269,7 @@ ${details.resetUrl}
 If you didn't request this password reset, you can safely ignore this email.
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
   },
 
   /**
@@ -275,7 +278,7 @@ The Soraxi Team`;
   generateWelcomeText: (details: { userName: string }): string => {
     return `Hi ${details.userName},
 
-Welcome to Soraxi! We're excited to have you on board.
+Welcome to ${siteConfig.name}! We're excited to have you on board.
 
 Your account has been successfully created. You can now:
 - Browse our marketplace
@@ -287,7 +290,7 @@ Get started here: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard
 If you have any questions, feel free to reach out to our support team.
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
   },
 
   /**
@@ -302,13 +305,6 @@ The Soraxi Team`;
     transactionId: string;
     releaseDate: Date;
   }): string => {
-    const formatNaira = (amount: number) => {
-      return new Intl.NumberFormat("en-NG", {
-        style: "currency",
-        currency: "NGN",
-      }).format(amount / 100);
-    };
-
     return `Hi ${details.storeName},
 
 Great news! Your escrow funds have been released and are now available in your wallet.
@@ -323,11 +319,23 @@ Transaction Details:
 
 The funds are now available in your wallet for withdrawal. You can proceed to initiate a payout request whenever you're ready.
 
-View your wallet balance here: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet
-
-Thank you for selling with Soraxi!
+Thank you for selling with ${siteConfig.name}!
 
 Best regards,
-The Soraxi Team`;
+The ${siteConfig.name} Team`;
+  },
+
+  /**
+   * Generate OTP Text
+   */
+  generateOTPText: (data: { otpCode: string; userName: string }) => {
+    return (
+      `Hi ${data.userName},\n\n` +
+      `Thank you for signing up for ${siteConfig.name}! To complete your registration, please verify your email address using the OTP code below.\n\n` +
+      `Your verification code: ${data.otpCode}\n\n` +
+      `This code will expire in 15 minutes.\n\n` +
+      `If you didn't create an account with ${siteConfig.name}, you can safely ignore this email.\n\n` +
+      `Best regards,\nThe ${siteConfig.name} Team`
+    );
   },
 };

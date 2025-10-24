@@ -9,8 +9,8 @@
 
 export {
   NotificationFactory,
-  type NotificationType,
-  type NotificationFactoryOptions,
+  // type NotificationType,
+  // type NotificationFactoryOptions,
 } from "./notification-factory";
 export { Notification } from "./notification";
 export {
@@ -21,5 +21,5 @@ export {
 } from "./email-notification";
 export { SMSNotification } from "./sms-notification";
 export { PushNotification } from "./push-notification";
-export { renderTemplate } from "../../services/notifications/utils/reder-template";
+export { renderTemplate } from "../../services/notifications/utils/render-template";
 export * from "../../services/notifications/templates";

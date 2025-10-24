@@ -122,10 +122,9 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
   };
 
   /**
-   * Validate account number against selected bank
+   * Core validation logic without event handling
    */
-  const validateAccountNumber = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performAccountValidation = () => {
     if (!selectedBank?.code || accountNumber.length !== 10) return;
 
     setIsValidating(true);
@@ -133,6 +132,14 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
       accountNumber: accountNumber,
       bankCode: selectedBank.code,
     });
+  };
+
+  /**
+   * Validate account number against selected bank
+   */
+  const validateAccountNumber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    performAccountValidation();
   };
 
   // Loading state
@@ -229,7 +236,7 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
 
                       // Only validate if we already have a 10-digit account number
                       if (bank?.code && accountNumber.length === 10) {
-                        validateAccountNumber(new Event("submit") as any);
+                        performAccountValidation();
                       }
                     }}
                   >

@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import { EmailContainer } from "./email-container";
 
 /**
@@ -60,7 +61,7 @@ export function AdminNotificationEmail({
       <p>
         Best regards,
         <br />
-        The Soraxi System
+        The {siteConfig.name} System
       </p>
     </EmailContainer>
   );

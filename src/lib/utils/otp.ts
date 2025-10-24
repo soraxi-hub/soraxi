@@ -1,4 +1,5 @@
-import crypto from "crypto";
+import "server-only";
+import { randomInt } from "node:crypto";
 
 // Constants
 export const OTP_CONFIG = {
@@ -14,13 +15,15 @@ export const OTP_CONFIG = {
  */
 export function generateSecureOTP(length: number = OTP_CONFIG.LENGTH): string {
   const digits = "0123456789";
+  // Guard: keep OTP lengths reasonable and non-zero
+  const len =
+    Number.isInteger(length) && length > 0 && length <= 10
+      ? length
+      : OTP_CONFIG.LENGTH;
   let otp = "";
-  const randomBytes = crypto.getRandomValues(new Uint8Array(length));
-
-  for (let i = 0; i < length; i++) {
-    otp += digits[randomBytes[i] % digits.length];
+  for (let i = 0; i < len; i++) {
+    otp += digits[randomInt(10)];
   }
-
   return otp;
 }
 

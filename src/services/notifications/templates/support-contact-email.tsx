@@ -1,6 +1,6 @@
-// SupportContactEmail.tsx
 import { siteConfig } from "@/config/site";
 import { EmailContainer } from "./email-container";
+import { Section, Text, Link } from "@react-email/components";
 
 /**
  * Support contact email template
@@ -21,81 +21,95 @@ export function SupportContactEmail({
 }) {
   return (
     <EmailContainer title="We've Received Your Support Request">
-      <p>
-        Hi <strong>{userName}</strong>,
-      </p>
+      <Section>
+        <Text>
+          Hi <strong>{userName}</strong>,
+        </Text>
 
-      <p>
-        Thank you for reaching out to our support team. We have received your
-        message and will get back to you as soon as possible.
-      </p>
+        <Text>
+          Thank you for reaching out to our support team. We have received your
+          message and will get back to you as soon as possible.
+        </Text>
 
-      <div
-        style={{
-          marginTop: "20px",
-          marginBottom: "20px",
-          padding: "20px",
-          backgroundColor: "#f9f9f9",
-          borderRadius: "8px",
-          border: "1px solid #eee",
-        }}
-      >
-        <h4 style={{ margin: "0 0 15px 0", color: "#14a800" }}>
-          Your Message Details:
-        </h4>
-
-        <div style={{ marginBottom: "10px" }}>
-          <strong>Ticket ID:</strong> {ticketId}
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <strong>Name:</strong> {userName}
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <strong>Email:</strong> {userEmail}
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <strong>Subject:</strong> {subject}
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <strong>Message:</strong>
-        </div>
-        <div
+        <Section
           style={{
-            background: "white",
-            padding: "15px",
-            borderRadius: "6px",
-            border: "1px solid #ddd",
-            lineHeight: "1.6",
+            marginTop: "20px",
+            marginBottom: "20px",
+            padding: "20px",
+            borderRadius: "8px",
+            border: "1px solid #eee",
           }}
         >
-          {message}
-        </div>
-      </div>
+          <Text
+            style={{
+              marginBottom: "10px",
+              fontWeight: "bold",
+              color: "#14a800",
+            }}
+          >
+            Your Message Details:
+          </Text>
 
-      <p>
-        <strong>What happens next:</strong>
-      </p>
-      <ul>
-        <li>Our support team will review your message</li>
-        <li>You&#39;ll receive a response within 24-48 hours</li>
-        <li>We&#39;ll contact you at {userEmail}</li>
-      </ul>
+          <Text>
+            <strong>Ticket ID:</strong> {ticketId}
+          </Text>
+          <Text>
+            <strong>Name:</strong> {userName}
+          </Text>
+          <Text>
+            <strong>Email:</strong> {userEmail}
+          </Text>
+          <Text>
+            <strong>Subject:</strong> {subject}
+          </Text>
+          <Text>
+            <strong>Message:</strong>
+          </Text>
+          <Section
+            style={{
+              padding: "15px",
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+              lineHeight: "1.6",
+              backgroundColor: "white",
+              color: "black",
+            }}
+          >
+            <Text>{message}</Text>
+          </Section>
+        </Section>
 
-      <p>
-        If you need immediate assistance, you can also reach us directly at{" "}
-        <a
-          href={`mailto:${process.env.SORAXI_SUPPORT_EMAIL}`}
-          style={{ color: "#14a800" }}
-        >
-          {process.env.SORAXI_SUPPORT_EMAIL}
-        </a>
-      </p>
+        <Text>
+          <strong>What happens next:</strong>
+        </Text>
+        <ul>
+          <li>
+            <Text>Our support team will review your message</Text>
+          </li>
+          <li>
+            <Text>You&#39;ll receive a response within 24 hours</Text>
+          </li>
+          <li>
+            <Text>We&#39;ll contact you at {userEmail}</Text>
+          </li>
+        </ul>
 
-      <p>
-        Best regards,
-        <br />
-        The {siteConfig.name} Support Team
-      </p>
+        <Text>
+          If you need immediate assistance, you can also reach us directly at{" "}
+          <Link
+            href={`mailto:${process.env.SORAXI_SUPPORT_EMAIL}`}
+            style={{ color: "#14a800" }}
+          >
+            {process.env.SORAXI_SUPPORT_EMAIL}
+          </Link>
+        </Text>
+
+        <Text>
+          Best regards,
+          <br />
+          The {siteConfig.name} Support Team
+        </Text>
+      </Section>
     </EmailContainer>
   );
 }

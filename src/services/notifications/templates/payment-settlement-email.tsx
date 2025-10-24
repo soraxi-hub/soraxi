@@ -1,4 +1,7 @@
+import { formatNaira } from "@/lib/utils/naira";
 import { EmailContainer } from "./email-container";
+import { Section, Text, Row, Column } from "@react-email/components";
+import { siteConfig } from "@/config/site";
 
 /**
  * Payment settlement email template
@@ -17,56 +20,74 @@ export function PaymentSettlementEmail({
 }) {
   return (
     <EmailContainer title="Payment Settlement Notification">
-      <p>Hi {storeName},</p>
-      <p>Your payment settlement has been processed successfully!</p>
+      <Section>
+        <Text>Hi {storeName},</Text>
+        <Text>Your payment settlement has been processed successfully!</Text>
 
-      <div
-        style={{
-          marginTop: "20px",
-          marginBottom: "20px",
-          backgroundColor: "#f9f9f9",
-          padding: "15px",
-          borderRadius: "4px",
-        }}
-      >
-        <p>
-          <strong>Settlement Amount:</strong> ${amount.toFixed(2)}
-        </p>
-        <p>
-          <strong>Settlement Date:</strong> {settlementDate}
-        </p>
-        <p>
-          <strong>Transactions Included:</strong> {transactionCount}
-        </p>
-      </div>
+        <Section
+          style={{
+            marginTop: "20px",
+            marginBottom: "20px",
+            // backgroundColor: "#f9f9f9",
+            // padding: "15px",
+            borderRadius: "4px",
+          }}
+        >
+          <Row style={{ marginBottom: "10px" }}>
+            <Column style={{ width: "40%", fontWeight: "bold" }}>
+              Settlement Amount:
+            </Column>
+            <Column>{formatNaira(amount ?? 0)}</Column>
+          </Row>
+          <Row style={{ marginBottom: "10px" }}>
+            <Column style={{ width: "40%", fontWeight: "bold" }}>
+              Settlement Date:
+            </Column>
+            <Column>{settlementDate}</Column>
+          </Row>
+          <Row style={{ marginBottom: "10px" }}>
+            <Column style={{ width: "40%", fontWeight: "bold" }}>
+              Transactions Included:
+            </Column>
+            <Column>{transactionCount}</Column>
+          </Row>
+        </Section>
 
-      <p>The funds have been transferred to your registered bank account.</p>
+        <Text>
+          The funds have been transferred to your registered bank account.
+        </Text>
 
-      <a
-        href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/payments`}
-        style={{
-          display: "inline-block",
-          margin: "20px 0",
-          padding: "12px 24px",
-          backgroundColor: "#14a800",
-          color: "white",
-          textDecoration: "none",
-          borderRadius: "4px",
-          fontWeight: "bold",
-        }}
-      >
-        View Settlement Details
-      </a>
+        {/* <Row>
+          <Column align="center">
+            <Link
+              href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/payments`}
+              style={{
+                display: "inline-block",
+                margin: "20px 0",
+                padding: "12px 24px",
+                backgroundColor: "#14a800",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: "4px",
+                fontWeight: "bold",
+              }}
+            >
+              View Settlement Details
+            </Link>
+          </Column>
+        </Row> */}
 
-      <p>
-        If you have any questions about this settlement, please contact our
-        support team.
-      </p>
-      <p>
-        Best regards,
-        <br />
-        The Soraxi Team
-      </p>
+        <Text>
+          If you have any questions about this settlement, please contact our
+          support team.
+        </Text>
+
+        <Text>
+          Best regards,
+          <br />
+          The {siteConfig.name} Team
+        </Text>
+      </Section>
     </EmailContainer>
   );
 }

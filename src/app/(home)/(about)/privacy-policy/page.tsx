@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -32,16 +33,16 @@ export default function PrivacyPolicyPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                This Privacy Policy describes how Soraxi Marketplace
-                (&#34;Soraxi&#34;, &#34;we&#34;, &#34;us&#34;, or &#34;our&#34;)
-                collects, uses, and shares your personal information when you
-                access or use our e-commerce platform.
+                This Privacy Policy describes how {siteConfig.name} Marketplace
+                (&#34;{siteConfig.name}&#34;, &#34;we&#34;, &#34;us&#34;, or
+                &#34;our&#34;) collects, uses, and shares your personal
+                information when you access or use our e-commerce platform.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Soraxi is committed to protecting your privacy and ensuring the
-                security of your personal information. This policy explains your
-                rights, how we safeguard your data, and how the law protects
-                you.
+                {siteConfig.name} is committed to protecting your privacy and
+                ensuring the security of your personal information. This policy
+                explains your rights, how we safeguard your data, and how the
+                law protects you.
               </p>
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-start gap-2">
@@ -260,8 +261,9 @@ export default function PrivacyPolicyPage() {
               <p className="text-muted-foreground mb-4">
                 We value your privacy and only share personal information when
                 necessary to provide our services, comply with the law, or
-                improve your experience on Soraxi. Below are the specific
-                circumstances under which we may share your information:
+                improve your experience on {siteConfig.name}. Below are the
+                specific circumstances under which we may share your
+                information:
               </p>
 
               <div>
@@ -287,7 +289,7 @@ export default function PrivacyPolicyPage() {
                 </h4>
                 <p className="text-muted-foreground mb-2">
                   We work with trusted third-party providers who help us operate
-                  Soraxi effectively. These include:
+                  {siteConfig.name} effectively. These include:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>
@@ -320,7 +322,7 @@ export default function PrivacyPolicyPage() {
                 <p className="text-muted-foreground mb-2">
                   We may disclose your information if required by law, or when
                   necessary to protect the rights, safety, and integrity of
-                  Soraxi, our users, or the public. This may include:
+                  {siteConfig.name}, our users, or the public. This may include:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>Complying with legal processes or government requests</li>

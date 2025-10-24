@@ -6,18 +6,24 @@ import {
 import { SMSNotification } from "./sms-notification";
 import { PushNotification } from "./push-notification";
 
-/**
- * Notification type union
- */
-export type NotificationType = "email" | "sms" | "push";
+// /**
+//  * Notification type union
+//  */
+// export type NotificationType = "email" | "sms" | "push";
 
-/**
- * Factory options for creating notifications
- */
-export interface NotificationFactoryOptions {
-  type: NotificationType;
-  options: EmailNotificationOptions | any;
-}
+// /**
+//  * Factory options for creating notifications
+//  */
+// export interface NotificationFactoryOptions {
+//   type: NotificationType;
+//   options: EmailNotificationOptions | any;
+// }
+
+export type NotificationTypeMap = {
+  email: EmailNotificationOptions;
+  sms: { recipient: string; message: string };
+  push: { recipient: string; title: string; message: string };
+};
 
 /**
  * Factory class for creating notification instances
@@ -51,26 +57,43 @@ export class NotificationFactory {
    * @returns A new Notification instance
    * @throws Error if notification type is not supported
    */
-  static create(type: NotificationType, options: any): Notification {
+  static create(type: "email", options: EmailNotificationOptions): Notification;
+  static create(
+    type: "sms",
+    options: { recipient: string; message: string }
+  ): Notification;
+  static create(
+    type: "push",
+    options: { recipient: string; title: string; message: string }
+  ): Notification;
+  static create<T extends keyof NotificationTypeMap>(
+    type: T,
+    options: NotificationTypeMap[T]
+  ): Notification {
     switch (type) {
       case "email":
         return new EmailNotification(options as EmailNotificationOptions);
 
-      case "sms":
-        return new SMSNotification(
-          options.recipient as string,
-          options.message as string
-        );
+      case "sms": {
+        const smsOptions = options as { recipient: string; message: string };
+        return new SMSNotification(smsOptions.recipient, smsOptions.message);
+      }
 
-      case "push":
+      case "push": {
+        const pushOptions = options as {
+          recipient: string;
+          title: string;
+          message: string;
+        };
         return new PushNotification(
-          options.recipient as string,
-          options.title as string,
-          options.message as string
+          pushOptions.recipient,
+          pushOptions.title,
+          pushOptions.message
         );
+      }
 
       default:
-        throw new Error(`Unsupported notification type: ${type}`);
+        throw new Error(`Unsupported notification type: ${String(type)}`);
     }
   }
 }

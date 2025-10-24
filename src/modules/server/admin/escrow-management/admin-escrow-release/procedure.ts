@@ -422,7 +422,7 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
                 .toString()
                 .substring(0, 8)
                 .toUpperCase()}`,
-              emailType: "escrowRelease",
+              emailType: "noreply",
               fromAddress: "noreply@soraxihub.com",
               html: html,
               text: EmailTextTemplates.generateEscrowReleaseText({
@@ -436,15 +436,15 @@ export const adminEscrowReleaseRouter = createTRPCRouter({
                 transactionId: walletTransaction._id.toString(),
                 releaseDate: subOrder.escrow.releasedAt || new Date(),
               }),
-              metadata: {
-                storeId: populatedStore._id?.toString() || "",
-                orderId: (
-                  orderWithSubOrder._id as mongoose.Types.ObjectId
-                ).toString(),
-                subOrderId: subOrder._id?.toString() || "",
-                amount: settlementDetails.releaseAmount,
-                notificationType: "escrow_release",
-              },
+              // metadata: {
+              //   storeId: populatedStore._id?.toString() || "",
+              //   orderId: (
+              //     orderWithSubOrder._id as mongoose.Types.ObjectId
+              //   ).toString(),
+              //   subOrderId: subOrder._id?.toString() || "",
+              //   amount: settlementDetails.releaseAmount,
+              //   notificationType: "escrow_release",
+              // },
             });
 
             await notification.send();
