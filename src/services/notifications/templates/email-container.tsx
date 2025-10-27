@@ -27,15 +27,15 @@ export function EmailContainer({
             margin: 0;
           }
           .container {
-            max-width: 600px;
+            max-width: 860px;
             margin: auto;
             background-color: #ffffff;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            padding: 30px;
+            padding: 10px;
           }
           .content {
-            margin-top: 20px;
+          padding: 0px 10px;
             line-height: 1.6;
           }
           .button {

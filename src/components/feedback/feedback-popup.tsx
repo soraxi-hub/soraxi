@@ -230,7 +230,7 @@ export function FeedbackPopup({
         <DialogHeader className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-soraxi-green/20 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-soraxi-green/20 rounded-full sm:inline-flex items-center justify-center hidden">
                 <MessageSquare className="w-4 h-4 text-soraxi-green" />
               </div>
               <DialogTitle className="text-lg font-semibold text-center">
@@ -256,7 +256,7 @@ export function FeedbackPopup({
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between pt-4">
           <Button
             variant="outline"
             onClick={onCloseAction}

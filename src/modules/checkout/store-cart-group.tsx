@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/accordion";
 import { formatNaira } from "@/lib/utils/naira";
 import { Truck, ShoppingBag } from "lucide-react";
-import ProductItem from "./product-item";
+import { ProductItem } from "./product-item";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { ShippingMethod } from "@/types";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 type CheckoutOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
@@ -29,30 +30,7 @@ interface StoreCartGroupProps {
   selectedShippingMethod: ShippingMethod | undefined;
 }
 
-/**
- * Store Cart Group Component
- *
- * Displays a cohesive group of products from a single store with:
- * - Store branding and identification
- * - Product list with individual item details
- * - Shipping method selection interface
- * - Visual feedback for selection states
- * - Responsive design for all screen sizes
- *
- * This component handles the complex logic of shipping method selection
- * while providing a clean, intuitive interface for users to make choices.
- *
- * Key Features:
- * - Automatic detection of physical vs digital products
- * - Conditional shipping method display
- * - Real-time price updates
- * - Accessibility-compliant form controls
- * - Visual hierarchy with consistent styling
- *
- * @param storeGroup - Store data with products and shipping methods
- * @param onShippingMethodChange - Callback for shipping method selection
- * @param selectedShippingMethod - Currently selected shipping method
- */
+/** Displays products from a single store with shipping options */
 export default function StoreCartGroup({
   storeGroup,
   onShippingMethodChangeAction,
@@ -65,7 +43,7 @@ export default function StoreCartGroup({
    * This analysis drives the conditional display of shipping options.
    */
   const hasPhysicalProducts = storeGroup.products.some(
-    (product) => product.productType === "Product"
+    (product) => product.productType === ProductTypeEnum.Product
   );
 
   /**
@@ -83,10 +61,6 @@ export default function StoreCartGroup({
 
     if (selectedMethod) {
       onShippingMethodChangeAction(selectedMethod);
-    } else {
-      console.warn(
-        `Shipping method "${methodName}" not found for store ${storeGroup.storeId}`
-      );
     }
   };
 

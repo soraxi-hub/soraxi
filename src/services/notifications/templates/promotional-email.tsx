@@ -1,5 +1,6 @@
 import { siteConfig } from "@/config/site";
 import { EmailContainer } from "./email-container";
+import DOMPurify from "dompurify";
 import { Section, Text, Row, Column, Link } from "@react-email/components";
 
 /**
@@ -25,12 +26,19 @@ export function PromotionalEmail({
         <Text>Hi {recipientName},</Text>
 
         {/* Safely inject campaign content (already sanitized or trusted HTML) */}
-        <div dangerouslySetInnerHTML={{ __html: content }} />
+        <div
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
+        />
 
         <Row style={{ marginTop: "20px", marginBottom: "20px" }}>
           <Column align="center">
             <Link
-              href={ctaUrl}
+              // href={ctaUrl}
+              href={
+                /^https?:\/\//i.test(ctaUrl)
+                  ? ctaUrl
+                  : `${siteConfig.url ?? ""}`
+              }
               target="_blank"
               rel="noopener noreferrer nofollow"
               style={{
@@ -57,9 +65,3 @@ export function PromotionalEmail({
     </EmailContainer>
   );
 }
-
-/**
- * Todo: This will be done later as we scale and not now.
- */
-// Sanitize HTML before injecting and harden link attributes.
-// Unsanitized dangerouslySetInnerHTML is an XSS vector in web previews/log viewers.

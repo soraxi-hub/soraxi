@@ -26,7 +26,7 @@ export function GenericError({ error, onRetry }: GenericErrorProps) {
             <AlertCircle className="h-8 w-8 text-muted-foreground" />
           </div>
           <CardTitle>Something Went Wrong</CardTitle>
-          <CardDescription>
+          <CardDescription className="break-words text-wrap">
             {error?.message || "An unexpected error occurred."}
           </CardDescription>
         </CardHeader>

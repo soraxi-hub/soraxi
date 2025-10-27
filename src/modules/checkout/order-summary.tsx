@@ -17,7 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { formatNaira } from "@/lib/utils/naira";
-import { Loader2, MapPin, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  MapPin,
+  AlertTriangle,
+  LockIcon,
+  PhoneIcon,
+  UserIcon,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -35,6 +42,8 @@ import { InfoIcon } from "lucide-react";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { DeliveryType } from "@/enums";
+// import { CouponInput } from "./coupon-input";
+// import { toast } from "sonner";
 
 export const campusLocations = [
   "Main Gate",
@@ -61,39 +70,7 @@ interface OrderSummaryProps {
   handleDeliveryTypeChangeAction: (val: DeliveryType) => void;
 }
 
-/**
- * Order Summary Component
- *
- * Provides a comprehensive overview of the customer's order including:
- * - Detailed cost breakdown with transparent pricing
- * - Customer shipping information with verification
- * - Order completion status and validation feedback
- * - Secure order placement with loading states
- * - Responsive design optimized for mobile and desktop
- *
- * Key Features:
- * - Sticky positioning for easy access during checkout
- * - Collapsible shipping information to save space
- * - Real-time total calculations
- * - Clear visual feedback for order readiness
- * - Accessibility-compliant form controls and labels
- * - Professional styling with consistent brand colors
- *
- * Security Considerations:
- * - Sensitive user data is handled securely
- * - Order totals are validated server-side
- * - Payment processing includes fraud protection
- *
- * @param subtotal - Total cost of all items before shipping
- * @param shippingCost - Total shipping cost for all selected methods
- * @param totalItems - Total number of items in the order
- * @param onPlaceOrderAction - Callback function to initiate order placement
- * @param userData - Customer profile information for shipping
- * @param isComplete - Whether all required selections have been made
- * @param isValidating - Whether cart validation is in progress
- * @param isProcessing - Whether payment processing is in progress
- * @param deliveryType - Either Campus or Off-Campus
- */
+/** Displays order summary and checkout controls */
 export default function OrderSummary({
   subtotal,
   shippingCost,
@@ -124,8 +101,8 @@ export default function OrderSummary({
   const buttonText = isValidating
     ? "Validating Cart..."
     : isProcessing
-    ? "Processing Payment..."
-    : `Place Order • ${formatNaira(total)}`;
+      ? "Processing Payment..."
+      : `Place Order • ${formatNaira(total)}`;
 
   /**
    * Shipping Information Completeness Check
@@ -209,18 +186,7 @@ export default function OrderSummary({
                     </div>
                     {/* Customer Name */}
                     <div className="flex items-center space-x-3">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-gray-500 shrink-0"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      <UserIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <span className="font-medium text-foreground">
                         {userData.firstName} {userData.lastName}
                       </span>
@@ -228,14 +194,7 @@ export default function OrderSummary({
 
                     {/* Phone Number */}
                     <div className="flex items-center space-x-3">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-gray-500 shrink-0"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                      </svg>
+                      <PhoneIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <span className="text-foreground">
                         {userData.phoneNumber}
                       </span>
@@ -315,29 +274,14 @@ export default function OrderSummary({
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Shipping</span>
           <span className="font-medium">
-            {shippingCost === 0 ? (
-              <Badge variant="secondary" className="text-xs font-normal">
-                Free
-              </Badge>
-            ) : (
-              formatNaira(shippingCost)
-            )}
+            {shippingCost === 0
+              ? // <Badge variant="secondary" className="text-xs font-normal">
+                //   Free
+                // </Badge>
+                formatNaira(shippingCost)
+              : formatNaira(shippingCost)}
           </span>
         </div>
-
-        {/* Future: Tax calculation */}
-        {/* <div className="flex justify-between items-center">
-          <span className="text-muted-foreground">Tax</span>
-          <span className="font-medium">{formatNaira(tax)}</span>
-        </div> */}
-
-        {/* Future: Discount/Coupon */}
-        {/* {discount > 0 && (
-          <div className="flex justify-between items-center text-green-600">
-            <span>Discount</span>
-            <span className="font-medium">-{formatNaira(discount)}</span>
-          </div>
-        )} */}
 
         <Separator className="border-soraxi-green/30" />
 
@@ -351,7 +295,6 @@ export default function OrderSummary({
         {!isComplete && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
             <div className="flex items-start space-x-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-amber-800">
                 Please select shipping methods for all stores to continue.
               </p>
@@ -362,7 +305,6 @@ export default function OrderSummary({
         {!hasCompleteShippingInfo && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md">
             <div className="flex items-start space-x-2">
-              <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">
                 Complete shipping information is required to place your order.
               </p>
@@ -372,7 +314,17 @@ export default function OrderSummary({
       </CardContent>
 
       {/* Place Order Button */}
-      <CardFooter className="pt-2 flex flex-col">
+      <CardFooter className="flex flex-col space-y-4">
+        {/* <CouponInput
+          orderTotal={subtotal + shippingCost}
+          storeIds={[]} // or whatever represents store IDs
+          onCouponApplied={(discount, code) => {
+            console.log(`Coupon ${code} applied with discount ₦${discount}`);
+            toast.info(`Coupon ${code} applied with discount ₦${discount}`);
+            // You can also update local checkout state here
+          }}
+        /> */}
+
         <Button
           className="w-full bg-soraxi-green text-white hover:bg-soraxi-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           size="lg"
@@ -385,13 +337,7 @@ export default function OrderSummary({
 
         {/* Security Badge */}
         <div className="flex items-center justify-center mt-3 text-xs text-muted-foreground">
-          <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <LockIcon className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
           Secure checkout powered by Flutterwave
         </div>
       </CardFooter>

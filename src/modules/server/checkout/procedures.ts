@@ -6,7 +6,7 @@ import { getStoreModel } from "@/lib/db/models/store.model";
 import { currencyOperations } from "@/lib/utils/naira";
 import { CartProduct } from "@/types";
 import mongoose from "mongoose";
-import { IProduct } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { StoreStatusEnum } from "@/validators/store-validators";
 import { ProductTypeEnum } from "@/validators/product-validators";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
@@ -31,6 +31,7 @@ export const checkoutRouter = createTRPCRouter({
 
       const Cart = await getCartModel();
       const Store = await getStoreModel();
+      await getProductModel();
 
       // 📦 Fetch the user's cart and populate product references
       const cart = await Cart.findOne<ICart>({
@@ -148,7 +149,7 @@ export const checkoutRouter = createTRPCRouter({
       };
     } catch (error) {
       // Use centralized handler for all runtime & DB errors
-      handleTRPCError(error);
+      throw handleTRPCError(error);
     }
   }),
 
@@ -286,7 +287,7 @@ export const checkoutRouter = createTRPCRouter({
         validationErrors,
       };
     } catch (error) {
-      handleTRPCError(error);
+      throw handleTRPCError(error);
     }
   }),
 });

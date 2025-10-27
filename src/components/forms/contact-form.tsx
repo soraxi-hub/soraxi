@@ -115,7 +115,7 @@ export default function ContactForm() {
         <Input
           id="subject"
           type="text"
-          placeholder="Regarding my store setup..."
+          placeholder="Regarding my order..."
           name="subject"
           value={formData.subject}
           onChange={handleChange}

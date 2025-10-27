@@ -14,7 +14,7 @@ export function StoreOnboardingEmail({
   storeName: string;
 }) {
   return (
-    <EmailContainer title="Welcome to Soraxi">
+    <EmailContainer title={`Welcome to ${siteConfig.name}`}>
       <Section>
         <Text>Hi {ownerName},</Text>
 

@@ -338,4 +338,29 @@ The ${siteConfig.name} Team`;
       `Best regards,\nThe ${siteConfig.name} Team`
     );
   },
+
+  /**
+   *
+   * @param userName string
+   * @returns  string
+   */
+  generateWelcomeEmailText: (userName: string) => {
+    return `
+      Hi ${userName},
+      
+      Welcome to Soraxi! We're excited to have you on board.
+      
+      Your account has been successfully created. You can now:
+      - Browse our marketplace
+      - Create your store (if you’re a vendor)
+      - Make purchases and track orders
+      
+      Get started by visiting your profile: ${process.env.NEXT_PUBLIC_APP_URL}/profile
+      
+      If you have any questions, our support team is here to help.
+      
+      Best regards,
+      The Soraxi Team
+      `;
+  },
 };
