@@ -13,7 +13,7 @@ export function EmailFooter({
   return (
     <Section
       style={{
-        marginTop: "30px",
+        marginTop: "5px",
         textAlign: "center",
       }}
     >

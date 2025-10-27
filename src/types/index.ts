@@ -1,3 +1,4 @@
+import { DeliveryType } from "@/enums";
 import { ProductTypeEnum } from "@/validators/product-validators";
 
 export interface Category {
@@ -83,3 +84,36 @@ export interface ShippingMethod {
   description?: string;
   estimatedDeliveryDays?: number;
 }
+
+export type PaymentData = {
+  cartItemsWithShippingMethod: {
+    selectedShippingMethod?: ShippingMethod;
+    storeId: string;
+    storeName: string;
+    products: {
+      product: CartProduct;
+      quantity: number;
+      selectedSize?: {
+        size: string;
+        price: number;
+        quantity: number;
+      };
+      productType: ProductTypeEnum;
+      storeId: string;
+    }[];
+  }[];
+  amount: number;
+  customer: {
+    name: string;
+    email: string;
+    phone_number: string;
+  };
+  meta: {
+    city: string;
+    state: string;
+    address: string;
+    postal_code: string;
+    userId: string;
+    deliveryType: DeliveryType;
+  };
+};

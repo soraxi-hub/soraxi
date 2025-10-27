@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { Notification } from "./notification";
+import { siteConfig } from "@/config/site";
 
 /**
  * Email notification type definition
@@ -207,7 +208,7 @@ export class EmailNotification extends Notification {
 
       // Prepare mail options
       const mailOptions = {
-        from: this.fromAddress,
+        from: `"${siteConfig.name}" <${this.fromAddress}>`,
         // If you must display a different address, prefer verified aliases or set replyTo:
         // replyTo: this.fromAddress,
         to: this.recipient,

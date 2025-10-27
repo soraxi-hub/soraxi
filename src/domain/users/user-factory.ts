@@ -4,7 +4,7 @@ import { Admin } from "./admin";
 import { ProfileUser, ProfileUserType } from "./profile-user";
 
 export class UserFactory {
-  static async createPublicUser(props: {
+  static createPublicUser(props: {
     email: string;
     password: string;
     firstName: string;
@@ -16,7 +16,7 @@ export class UserFactory {
     stateOfResidence: string;
     postalCode: string;
     isVerified: boolean;
-  }): Promise<PublicUser> {
+  }): PublicUser {
     return new PublicUser(
       props.email,
       props.password,

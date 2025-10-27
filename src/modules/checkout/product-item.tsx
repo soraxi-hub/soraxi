@@ -39,7 +39,7 @@ interface ProductItemProps {
  *
  * @param item - Product item data including product details and quantity
  */
-export default function ProductItem({ item }: ProductItemProps) {
+export function ProductItem({ item }: ProductItemProps) {
   const product = item.product;
 
   /**

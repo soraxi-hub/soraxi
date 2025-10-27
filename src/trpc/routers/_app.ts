@@ -30,6 +30,8 @@ import { auditLogRouter } from "@/modules/server/admin/audit-logs/procedures";
 import { storeProductRouter } from "@/modules/server/store/products/procedure";
 import { flutterwaveRouter } from "@/modules/server/flutterwave/procedures";
 import { publicStoreRouter } from "@/modules/server/public-store/public-store-procedures";
+import { adminCouponRouter } from "@/modules/server/admin/coupon/procedures";
+import { couponRouter } from "@/modules/server/coupon/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -37,6 +39,7 @@ export const appRouter = createTRPCRouter({
   cart: cartRouter,
   store: storeRouter,
   order: orderRouter,
+  coupon: couponRouter,
   payment: paymentRouter,
   wishlist: wishlistRouter,
   checkout: checkoutRouter,
@@ -46,6 +49,7 @@ export const appRouter = createTRPCRouter({
   withdrawal: withdrawalRouter,
   adminAuditLog: auditLogRouter,
   publicStore: publicStoreRouter,
+  adminCoupon: adminCouponRouter,
   adminOrders: adminOrdersRouter,
   adminRefund: adminRefundRouter,
   storeWallet: storeWalletRouter,
