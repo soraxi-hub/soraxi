@@ -4,6 +4,7 @@ import { currencyOperations } from "@/lib/utils/naira";
 import { CheckoutData } from "@/modules/checkout/checkout-page-client";
 import { PaymentData } from "@/types";
 import { DeliveryType } from "@/enums";
+import { ProductTypeEnum } from "@/validators/product-validators";
 
 /** Orchestrates checkout state and business logic */
 export class CheckoutStateManagerServerSide {
@@ -124,7 +125,7 @@ export class CheckoutStateManagerServerSide {
   isCheckoutComplete(): boolean {
     return this.cartData.groupedCart.every((group) => {
       const hasPhysical = group.products.some(
-        (p) => p.productType === "Product"
+        (p) => p.productType === ProductTypeEnum.Product
       );
       if (!hasPhysical) return true;
 

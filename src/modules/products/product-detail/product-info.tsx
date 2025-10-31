@@ -74,9 +74,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
         );
         refetchWishlist();
       },
-      onError: () => {
+      onError: (error) => {
         toast.error(
-          `Error removing ${product?.name ?? "Unknown Product"} from wishlist`
+          error.message ||
+            `Error removing ${product?.name ?? "Unknown Product"} from wishlist`
         );
       },
     })
@@ -96,9 +97,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
         toast.success(`${product?.name ?? "Unknown Product"} added to cart`);
       },
-      onError: () => {
+      onError: (error) => {
         toast.error(
-          `Error adding ${product?.name ?? "Unknown Product"} to cart`
+          error.message ||
+            `Error adding ${product?.name ?? "Unknown Product"} to cart`
         );
       },
     })
@@ -128,7 +130,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
     } else {
       // Otherwise, add it
       addToWishlist.mutate({
-        userId,
         productId: product.id,
         productType: product.productType,
       });
@@ -149,7 +150,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
     const selectedSizeData = product.sizes?.find((s) => s.size === size);
 
     addToCart.mutate({
-      userId,
       productId: product.id,
       storeId: product.storeId,
       quantity: 1,

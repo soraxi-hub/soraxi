@@ -32,7 +32,7 @@ import {
 } from "@/validators/coupon-validations";
 
 interface CouponFormProps {
-  coupon: CouponSchemaWithIdType;
+  coupon?: CouponSchemaWithIdType;
   onSuccessAction: () => void;
 }
 

@@ -26,7 +26,7 @@ export class CheckoutManager {
     this.userData = data;
   }
 
-  async validateUserCate() {
+  async validateUserCart() {
     let initialValidationErrors: string[] = [];
     try {
       const validationResult = await caller.checkout.validateUserCart();

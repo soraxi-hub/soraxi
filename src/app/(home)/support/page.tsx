@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   },
 };
 
-function FaWhatsapp(props: any) {
+function FaWhatsapp(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       stroke="currentColor"
@@ -231,7 +231,7 @@ export default function HelpPage() {
                 />
                 <ContactItem
                   icon={FaWhatsapp}
-                  text={`Chat with us on whatsApp.`}
+                  text={`Chat with us on WhatsApp.`}
                   type={`whatsApp`}
                 />
                 {/* <ContactItem icon={Phone} text="+1 (555) 123-4567" /> */}

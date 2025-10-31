@@ -5,6 +5,7 @@ import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { siteConfig } from "@/config/site";
+import { getCategoryName } from "@/constants/constant";
 
 type CheckoutOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
@@ -97,7 +98,9 @@ export function ProductItem({ item }: ProductItemProps) {
 
         {/* Product Category */}
         {product.category?.[0] && (
-          <p className="text-sm text-muted-foreground">{product.category[0]}</p>
+          <p className="text-sm text-muted-foreground hidden sm:inline-block">
+            {getCategoryName(product.category[0])}
+          </p>
         )}
 
         {/* Selected Size (if applicable) */}

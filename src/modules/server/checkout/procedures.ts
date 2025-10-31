@@ -33,7 +33,7 @@ export const checkoutRouter = createTRPCRouter({
       const Store = await getStoreModel();
       await getProductModel();
 
-      // 📦 Fetch the user's cart and populate product references
+      // Fetch the user's cart and populate product references
       const cart = await Cart.findOne<ICart>({
         userId: new mongoose.Types.ObjectId(user.id),
       })
@@ -43,7 +43,7 @@ export const checkoutRouter = createTRPCRouter({
         })
         .lean();
 
-      // 🧩 Return empty structure when cart is empty or not found
+      // Return empty structure when cart is empty or not found
       if (!cart || cart.items.length === 0) {
         return {
           success: true,
@@ -56,7 +56,7 @@ export const checkoutRouter = createTRPCRouter({
       let totalPrice = 0;
       let totalQuantity = 0;
 
-      // 🧠 Group cart items by store
+      // Group cart items by store
       const groupedByStore: Record<
         string,
         {
@@ -98,7 +98,7 @@ export const checkoutRouter = createTRPCRouter({
         totalQuantity += item.quantity;
       }
 
-      // 🚚 Fetch shipping methods per store
+      // Fetch shipping methods per store
       const storeShipping: Record<
         string,
         {
@@ -132,7 +132,7 @@ export const checkoutRouter = createTRPCRouter({
         }
       }
 
-      // 🧾 Format grouped cart by store
+      // Format grouped cart by store
       const groupedCart = Object.keys(groupedByStore).map((storeId) => ({
         storeId,
         storeName:
@@ -173,6 +173,7 @@ export const checkoutRouter = createTRPCRouter({
       // --- Step 1: Initialize models ---
       const Cart = await getCartModel();
       const Store = await getStoreModel();
+      await getProductModel();
 
       // Container for validation issues
       const validationErrors: string[] = [];

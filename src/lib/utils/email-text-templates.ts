@@ -273,27 +273,6 @@ The ${siteConfig.name} Team`;
   },
 
   /**
-   * Generate plain text for welcome email
-   */
-  generateWelcomeText: (details: { userName: string }): string => {
-    return `Hi ${details.userName},
-
-Welcome to ${siteConfig.name}! We're excited to have you on board.
-
-Your account has been successfully created. You can now:
-- Browse our marketplace
-- Create your store (if you're a vendor)
-- Make purchases and track orders
-
-Get started here: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard
-
-If you have any questions, feel free to reach out to our support team.
-
-Best regards,
-The ${siteConfig.name} Team`;
-  },
-
-  /**
    * Generate plain text for escrow release notification
    */
   generateEscrowReleaseText: (details: {
@@ -348,19 +327,19 @@ The ${siteConfig.name} Team`;
     return `
       Hi ${userName},
       
-      Welcome to Soraxi! We're excited to have you on board.
+      Welcome to ${siteConfig.name}! We're excited to have you on board.
       
       Your account has been successfully created. You can now:
       - Browse our marketplace
-      - Create your store (if you’re a vendor)
+      - Create your store (if you're a vendor)
       - Make purchases and track orders
       
       Get started by visiting your profile: ${process.env.NEXT_PUBLIC_APP_URL}/profile
       
-      If you have any questions, our support team is here to help.
+      If you have any questions, feel free to reach out to our support team.
       
       Best regards,
-      The Soraxi Team
+      The ${siteConfig.name} Team
       `;
   },
 };
