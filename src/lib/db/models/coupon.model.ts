@@ -16,6 +16,7 @@ const couponSchema = new Schema<ICoupon>(
       required: true,
       unique: true,
       trim: true,
+      set: (v: string) => v.trim().toUpperCase(),
       minlength: 3,
       maxlength: 20,
     },
@@ -71,9 +72,6 @@ const couponSchema = new Schema<ICoupon>(
     timestamps: true,
   }
 );
-
-/** Index coupon code for faster lookups */
-couponSchema.index({ code: 1 });
 
 /** Index expiration date to quickly disable expired coupons */
 couponSchema.index({ endDate: 1 });

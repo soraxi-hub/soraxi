@@ -26,7 +26,6 @@ export function CouponInput({
   onCouponApplied,
 }: CouponInputProps) {
   const [code, setCode] = useState("");
-  const [isApplying, setIsApplying] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discount: number;
@@ -62,7 +61,6 @@ export function CouponInput({
       return;
     }
 
-    setIsApplying(true);
     setError(null);
 
     applyCouponMutation.mutate({
@@ -70,8 +68,6 @@ export function CouponInput({
       orderTotal,
       storeIds,
     });
-
-    setIsApplying(false);
   }
 
   return (
@@ -82,14 +78,16 @@ export function CouponInput({
           placeholder="Enter coupon code"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          disabled={isApplying || !!appliedCoupon}
+          disabled={applyCouponMutation.isPending || !!appliedCoupon}
         />
         <Button
           variant="outline"
           onClick={handleApply}
-          disabled={isApplying || !code.trim() || !!appliedCoupon}
+          disabled={
+            applyCouponMutation.isPending || !code.trim() || !!appliedCoupon
+          }
         >
-          {isApplying ? (
+          {applyCouponMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : appliedCoupon ? (
             "Applied"

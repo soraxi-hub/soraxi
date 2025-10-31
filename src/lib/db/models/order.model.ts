@@ -343,7 +343,7 @@ const OrderSchema = new Schema<IOrder>(
       type: Date,
       default: () => new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
       index: { expires: 0 },
-    }, // TTL of 31 days, i.e., 6 months
+    }, // TTL of 180 days, i.e., 6 months
   },
   {
     timestamps: true,

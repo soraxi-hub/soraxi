@@ -151,7 +151,7 @@ export async function getCartById(
 export async function addItemToCart(
   userId: string,
   newItem: ICartItem
-): Promise<ICart | null> {
+): Promise<ICart> {
   await connectToDatabase();
   const Cart = await getCartModel();
 
@@ -163,12 +163,14 @@ export async function addItemToCart(
   //   }),
   // };
 
-  const existingCart = await Cart.findOne<ICart>({ userId: userId });
+  const existingCart = await Cart.findOne<ICart>({
+    userId: new mongoose.Types.ObjectId(userId),
+  });
 
   if (!existingCart) {
     // Create new cart
     return await Cart.create({
-      userId: userId,
+      userId: new mongoose.Types.ObjectId(userId),
       items: [newItem],
     });
   }
@@ -176,8 +178,6 @@ export async function addItemToCart(
   const itemIndex = existingCart.items.findIndex(
     (item) =>
       item.productId.toString() === newItem.productId.toString() &&
-      item.productType === newItem.productType &&
-      item.storeId.toString() === newItem.storeId.toString() &&
       item.selectedSize?.size === newItem.selectedSize?.size
   );
 

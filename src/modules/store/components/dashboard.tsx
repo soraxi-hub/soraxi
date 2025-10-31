@@ -26,6 +26,7 @@ import { useTRPC } from "@/trpc/client";
 import AlertUI from "@/modules/shared/alert";
 import { StoreDashboardSkeleton } from "@/modules/skeletons/store-dashboard-skeleton";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
+import Link from "next/link";
 
 /**
  * Store Dashboard Page
@@ -96,7 +97,9 @@ export default function StoreDashboardPage({
                   storeData.status === "active" ? "default" : "secondary"
                 }
                 className={
-                  storeData.status === "active" ? "bg-soraxi-green" : ""
+                  storeData.status === "active"
+                    ? "bg-soraxi-green text-white"
+                    : "text-white"
                 }
               >
                 {storeData.status.charAt(0).toUpperCase() +
@@ -184,8 +187,10 @@ export default function StoreDashboardPage({
                 <CardDescription>Manage your product catalog</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
-                  View Products
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href={`/store/${store_id}/products`}>
+                    View Products
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
@@ -202,8 +207,8 @@ export default function StoreDashboardPage({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
-                  View Wallet
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href={`/store/${store_id}/wallet`}>View Wallet</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -218,8 +223,10 @@ export default function StoreDashboardPage({
                 <CardDescription>Configure your store settings</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
-                  Store Settings
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href={`/store/${store_id}/profile`}>
+                    Store Settings
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

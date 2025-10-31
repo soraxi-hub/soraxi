@@ -10,10 +10,11 @@ import {
 } from "@/lib/db/models/cart.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { getProductModel } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { generateUniqueId } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { ProductTypeEnum } from "@/validators/product-validators";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 
 export const cartRouter = createTRPCRouter({
   /**
@@ -28,7 +29,7 @@ export const cartRouter = createTRPCRouter({
       if (!user) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "User not authenticated",
+          message: "Please Login to perform this action.",
         });
       }
 
@@ -55,11 +56,8 @@ export const cartRouter = createTRPCRouter({
 
       return formattedCart;
     } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch user cart",
-        cause: error,
-      });
+      console.error("error", error);
+      throw handleTRPCError(error, "Failed to fetch user cart");
     }
   }),
 
@@ -89,11 +87,8 @@ export const cartRouter = createTRPCRouter({
 
       return cartItems;
     } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to hydrate cart",
-        cause: error,
-      });
+      console.error("error", error);
+      throw handleTRPCError(error, "Failed to hydrate cart");
     }
   }),
 
@@ -105,7 +100,6 @@ export const cartRouter = createTRPCRouter({
   addItem: baseProcedure
     .input(
       z.object({
-        userId: z.string(),
         productId: z.string(),
         storeId: z.string(),
         quantity: z.number().min(1),
@@ -119,9 +113,58 @@ export const cartRouter = createTRPCRouter({
           .optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        const updatedCart = await addItemToCart(input.userId, {
+        const { user } = ctx;
+
+        if (!user || !user.id) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Please Login to perform this action.",
+          });
+        }
+
+        if (
+          !mongoose.Types.ObjectId.isValid(input.productId) ||
+          !mongoose.Types.ObjectId.isValid(input.storeId)
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid product or store ID",
+          });
+        }
+
+        // Check that product is approved and is Visible
+        const Product = await getProductModel();
+
+        const product = await Product.findById(
+          new mongoose.Types.ObjectId(input.productId)
+        )
+          .select("isVisible isVerifiedProduct")
+          .lean<IProduct>();
+
+        if (!product) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Product not found",
+          });
+        }
+
+        if (!product.isVerifiedProduct) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This product is not verified.",
+          });
+        }
+
+        if (!product.isVisible) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Could not retrive the requested Product.",
+          });
+        }
+
+        const updatedCart = await addItemToCart(user.id, {
           productId: new mongoose.Types.ObjectId(input.productId),
           storeId: new mongoose.Types.ObjectId(input.storeId),
           quantity: input.quantity,
@@ -131,11 +174,8 @@ export const cartRouter = createTRPCRouter({
 
         return updatedCart;
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to add item to cart",
-          cause: error,
-        });
+        console.error("error", error);
+        throw handleTRPCError(error, "Failed to add item to cart");
       }
     }),
 
@@ -158,7 +198,14 @@ export const cartRouter = createTRPCRouter({
         if (!user) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "User not authenticated",
+            message: "Please Login to perform this action.",
+          });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(input.productId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid product ID",
           });
         }
 
@@ -177,11 +224,8 @@ export const cartRouter = createTRPCRouter({
 
         return updatedCart;
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to remove item from cart",
-          cause: error,
-        });
+        console.error("error", error);
+        throw handleTRPCError(error, "Failed to remove item from cart");
       }
     }),
 
@@ -206,7 +250,7 @@ export const cartRouter = createTRPCRouter({
         if (!user) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "User not authenticated",
+            message: "Please Login to perform this action.",
           });
         }
 
@@ -235,11 +279,8 @@ export const cartRouter = createTRPCRouter({
 
         return updatedCart;
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update cart item quantity",
-          cause: error,
-        });
+        console.error("error", error);
+        throw handleTRPCError(error, "Failed to update cart item quantity");
       }
     }),
 
@@ -268,11 +309,8 @@ export const cartRouter = createTRPCRouter({
           productType: p.productType,
         }));
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch product details",
-          cause: error,
-        });
+        console.error("error", error);
+        throw handleTRPCError(error, "Failed to fetch product details");
       }
     }),
 
@@ -308,11 +346,8 @@ export const cartRouter = createTRPCRouter({
 
       return updatedCart;
     } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to add idempotency key",
-        cause: error,
-      });
+      console.error("error", error);
+      throw handleTRPCError(error, "Failed to add idempotency key");
     }
   }),
 });

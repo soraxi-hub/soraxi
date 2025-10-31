@@ -14,7 +14,6 @@ import OrderSummary from "@/modules/checkout/order-summary";
 import { PaymentService } from "@/domain/checkout/payment-service";
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
-import { CheckoutFactoryClientSide } from "@/domain/checkout/factories/checkout-factory.client";
 import { useCheckoutService } from "@/hooks/use-checkout-service";
 
 export type CartOutput = inferProcedureOutput<
@@ -46,15 +45,6 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
     handleShippingMethodChange,
   } = useCheckoutService(initialState.cartData, initialState.userData);
 
-  // Initialize state manager with factory pattern
-  const stateManager = useMemo(
-    () =>
-      CheckoutFactoryClientSide.createCheckoutStateManagerClientSide(
-        initialState.cartData,
-        initialState.userData
-      ),
-    [initialState.cartData, initialState.userData]
-  );
   const paymentService = useMemo(() => new PaymentService(), []);
 
   const [deliveryType, setDeliveryType] = useState<DeliveryType>(
@@ -151,9 +141,6 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
                 storeGroup={group}
                 onShippingMethodChangeAction={(method) => {
                   handleShippingMethodChange(group.storeId, method);
-                  stateManager
-                    .getShippingService()
-                    .selectMethod(group.storeId, method);
                 }}
                 selectedShippingMethod={selectedShippingMethods[group.storeId]}
               />

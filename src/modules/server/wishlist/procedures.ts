@@ -135,14 +135,22 @@ export const wishlistRouter = createTRPCRouter({
   addItem: baseProcedure
     .input(
       z.object({
-        userId: z.string(),
         productId: z.string(),
         productType: z.nativeEnum(ProductTypeEnum),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        const updated = await addItemToWishlist(input.userId, {
+        const { user } = ctx;
+
+        if (!user || !user.id) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to access your wishlist.",
+          });
+        }
+
+        const updated = await addItemToWishlist(user.id, {
           productId: new mongoose.Types.ObjectId(input.productId),
           productType: input.productType,
         });
