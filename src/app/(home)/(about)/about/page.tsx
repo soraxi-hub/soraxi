@@ -233,8 +233,8 @@ export default function AboutPage() {
             <div className="relative">
               <div className="aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
                 <Image
-                  src="/nigeria-office-collaboration.png"
-                  alt="Our team working together"
+                  src="/androd-chrome-512x512.png"
+                  alt=""
                   width={600}
                   height={600}
                   className="w-full h-full object-cover"

@@ -37,7 +37,7 @@ export default async function RootLayout({
     <SidebarProvider defaultOpen={defaultOpen}>
       <StoreSidebar store={store} />
       <SidebarInset>
-        <SidebarTrigger className="fixed top-[5rem]" />
+        <SidebarTrigger className="fixed top-[5rem] left-2 sm:left-4 text-soraxi-green hover:text-soraxi-green-hover animate-pulse" />
         <main>{children}</main>
       </SidebarInset>
     </SidebarProvider>

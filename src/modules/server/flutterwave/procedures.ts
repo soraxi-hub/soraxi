@@ -5,7 +5,6 @@ import { getOrderModel } from "@/lib/db/models/order.model";
 import { getCartByUserId } from "@/lib/db/models/cart.model";
 import { calculateEstimatedDeliveryDays } from "@/lib/utils/calculate-est-delivery-days";
 import mongoose from "mongoose";
-import { generateUniqueId } from "@/lib/utils";
 import { koboToNaira } from "@/lib/utils/naira";
 import {
   DeliveryStatus,
@@ -160,7 +159,7 @@ export const flutterwaveRouter = createTRPCRouter({
          * If you must change anything here, ensure you also update the webhook handler accordingly.
          */
         const payload = {
-          tx_ref: `TX-REF-${generateUniqueId(8).toUpperCase()}`,
+          tx_ref: idempotencyKey, // The tx_ref now uses the idempotency key for an easy query when trying to verify the transaction. Note: DO NOT CHANGE THIS.
           amount: amount,
           currency: "NGN",
           redirect_url:
@@ -313,7 +312,7 @@ export const flutterwaveRouter = createTRPCRouter({
                 idempotencyKey: idempotencyKey,
               },
               configurations: {
-                session_duration: 10, // Session timeout in minutes (maxValue: 1440)
+                session_duration: 30, // Session timeout in minutes (maxValue: 1440)
                 max_retry_attempt: 3, // Max retry (int)
               },
             }),

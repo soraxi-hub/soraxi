@@ -122,7 +122,7 @@ export default function StoreCartGroup({
                       Shipping Options
                     </span>
                     {selectedShippingMethod && (
-                      <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md truncate">
+                      <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md truncate hidden sm:inline-flex">
                         {selectedShippingMethod.name}:{" "}
                         {formatNaira(selectedShippingMethod.price)}
                       </span>

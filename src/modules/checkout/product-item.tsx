@@ -97,7 +97,7 @@ export function ProductItem({ item }: ProductItemProps) {
         </h4>
 
         {/* Product Category */}
-        {product.category?.[0] && (
+        {product.category && getCategoryName(product.category[0]) && (
           <p className="text-sm text-muted-foreground hidden sm:inline-block">
             {getCategoryName(product.category[0])}
           </p>

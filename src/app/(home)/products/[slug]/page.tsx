@@ -3,6 +3,7 @@ import { ProductDetailPage } from "@/modules/products/product-detail/product-det
 import { caller } from "@/trpc/server";
 import { cache } from "react";
 import { StoreStatusEnum } from "@/validators/store-validators";
+import { siteConfig } from "@/config/site";
 
 interface ProductPageProps {
   params: Promise<{
@@ -21,24 +22,37 @@ export async function generateMetadata({ params }: ProductPageProps) {
 
   if (!product) return {};
 
+  const plainDescription =
+    product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
+    `Buy ${product.name} online`;
+
+  const productImages = (
+    product.images && product.images.length > 0
+      ? product.images
+      : ["/og-soraxi.png"]
+  ) // fallback if no images
+    .map((url) => ({
+      url,
+      width: 1200,
+      height: 630,
+      alt: product.name,
+    }));
+
   return {
-    title: `${product.name}`,
-    description:
-      product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
-      `Buy ${product.name} online`,
+    title: product.name,
+    description: plainDescription,
     openGraph: {
+      type: "website",
+      url: `${siteConfig.url}/product/${slug}`,
       title: product.name,
-      description: product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-      images: (product.images ?? []).map((image) => ({
-        url: image,
-        alt: product.name,
-      })),
+      description: plainDescription,
+      images: productImages,
     },
     twitter: {
       card: "summary_large_image",
       title: product.name,
-      description: product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-      images: product.images,
+      description: plainDescription,
+      images: product.images?.length ? product.images : ["/og-soraxi.png"],
     },
   };
 }

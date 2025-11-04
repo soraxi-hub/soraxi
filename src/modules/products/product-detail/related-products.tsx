@@ -60,7 +60,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                 className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
               >
                 <Link href={`/products/${product.slug}`}>
-                  <Card className="group cursor-pointer hover:shadow-lg transition-shadow p-0">
+                  <Card className="group cursor-pointer hover:shadow-lg transition-shadow p-0 h-full">
                     <CardContent className="p-0">
                       <div className="relative aspect-square overflow-hidden rounded-t-lg">
                         <Image

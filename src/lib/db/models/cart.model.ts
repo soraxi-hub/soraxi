@@ -117,8 +117,10 @@ export async function getCartByUserId(
   const Cart = await getCartModel();
 
   return lean
-    ? Cart.findOne<ICart>({ userId: userId }).lean<ICart>()
-    : Cart.findOne<ICart>({ userId: userId });
+    ? Cart.findOne<ICart>({
+        userId: new mongoose.Types.ObjectId(userId),
+      }).lean<ICart>()
+    : Cart.findOne<ICart>({ userId: new mongoose.Types.ObjectId(userId) });
 }
 
 /**
@@ -213,9 +215,13 @@ export async function removeItemFromCart(
     ? { $pull: { items: { productId: productId, "selectedSize.size": size } } }
     : { $pull: { items: { productId: productId } } };
 
-  return await Cart.findOneAndUpdate<ICart>({ userId: userId }, updateQuery, {
-    new: true,
-  });
+  return await Cart.findOneAndUpdate<ICart>(
+    { userId: new mongoose.Types.ObjectId(userId) },
+    updateQuery,
+    {
+      new: true,
+    }
+  );
 }
 
 /**
@@ -235,7 +241,9 @@ export async function updateCartItemQuantity(
   await connectToDatabase();
   const Cart = await getCartModel();
 
-  const cart = await Cart.findOne<ICart>({ userId: userId });
+  const cart = await Cart.findOne<ICart>({
+    userId: new mongoose.Types.ObjectId(userId),
+  });
   if (!cart) return null;
 
   const item = cart.items.find(
@@ -281,7 +289,7 @@ export async function addIdempotencyKeyToCart(
   const Cart = await getCartModel();
 
   return await Cart.findOneAndUpdate<ICart>(
-    { userId: userId },
+    { userId: new mongoose.Types.ObjectId(userId) },
     { $set: { idempotencyKey } },
     { new: true }
   );

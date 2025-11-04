@@ -18,6 +18,8 @@ import { currencyOperations } from "@/lib/utils/naira";
 import { calculateCommission } from "@/lib/utils/calculate-commission";
 import { DeliveryStatus } from "@/enums";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { getUserModel } from "@/lib/db/models/user.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 /**
  * Admin Escrow Release Detail TRPC Router
@@ -114,6 +116,8 @@ export const adminEscrowDetailRouter = createTRPCRouter({
          * information needed for escrow release decision-making.
          */
         const Order = await getOrderModel();
+        await getUserModel();
+        await getStoreModel();
 
         /**
          * MongoDB Aggregation Pipeline for Escrow Release Detail

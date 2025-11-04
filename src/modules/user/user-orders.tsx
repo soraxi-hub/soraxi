@@ -5,17 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import Image from "next/image";
 import { formatNaira } from "@/lib/utils/naira";
-import { MoreHorizontal, XCircle } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { XCircle } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PaymentStatus } from "@/enums";
+import { capitalizeFirstLetter, cn } from "@/lib/utils";
 
 export function UserOrders() {
   const trpc = useTRPC();
@@ -43,7 +37,7 @@ export function UserOrders() {
                 className="py-6 px-4 md:px-6 bg-card dark:bg-muted/50 hover:bg-card/95 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 w-full">
                     <p className="text-sm text-muted-foreground">
                       Order Date:{" "}
                       <time dateTime={new Date(order.createdAt).toISOString()}>
@@ -57,34 +51,44 @@ export function UserOrders() {
                     <p className="text-xl font-bold text-foreground">
                       Total: {formatNaira(order.totalAmount)}
                     </p>
-                    <Badge
-                      className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        order.paymentStatus === PaymentStatus.Paid
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      Payment: {order.paymentStatus?.toUpperCase()}
-                    </Badge>
+
+                    <div className="flex items-center justify-between gap-4 w-full">
+                      <div>
+                        {order.paymentStatus && (
+                          <Badge
+                            className={cn(
+                              `text-xs font-medium px-2 py-1 rounded-full`,
+                              order.paymentStatus === PaymentStatus.Paid &&
+                                "bg-green-100 text-green-800",
+                              order.paymentStatus === PaymentStatus.Failed &&
+                                "text-soraxi-error bg-soraxi-error/30",
+                              order.paymentStatus === PaymentStatus.Pending &&
+                                "bg-yellow-100 text-yellow-800",
+                              order.paymentStatus === PaymentStatus.Cancelled &&
+                                "text-soraxi-error bg-soraxi-error/30"
+                            )}
+                          >
+                            {capitalizeFirstLetter(order.paymentStatus)}
+                          </Badge>
+                        )}
+                      </div>
+                      <Link
+                        className="text-sm text-soraxi-green hover:text-soraxi-green-hover sm:hidden"
+                        href={`/orders/${order._id}`}
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:bg-accent"
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/orders/${order._id}`}>View Details</Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="hidden sm:inline-flex w-32">
+                    <Link
+                      className="text-sm text-soraxi-green hover:text-soraxi-green-hover"
+                      href={`/orders/${order._id}`}
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="space-y-4 mt-4">

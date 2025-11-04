@@ -32,6 +32,7 @@ import { flutterwaveRouter } from "@/modules/server/flutterwave/procedures";
 import { publicStoreRouter } from "@/modules/server/public-store/public-store-procedures";
 import { adminCouponRouter } from "@/modules/server/admin/coupon/procedures";
 import { couponRouter } from "@/modules/server/coupon/procedures";
+import { flutterwavePaymentVerificationRouter } from "@/modules/server/flutterwave/payment-verification/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -67,6 +68,7 @@ export const appRouter = createTRPCRouter({
   adminDeliveryConfirmation: deliveryConfirmationRouter,
   storeWalletTransactions: storeWalletTransactionsRouter,
   adminEscrowReleaseQueue: adminEscrowReleaseQueueRouter,
+  flutterwavePaymentVerification: flutterwavePaymentVerificationRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;
