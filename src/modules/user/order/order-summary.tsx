@@ -23,6 +23,7 @@ import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { DeliveryType } from "@/enums";
 import { campusLocations } from "@/modules/checkout/order-summary";
+import { capitalizeFirstLetter } from "@/lib/utils";
 
 type Output = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -91,14 +92,19 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
             icon={<CreditCard className="h-4 w-4 text-muted-foreground" />}
             label="Payment Method"
             value={
-              orderDetails.paymentMethod?.toUpperCase().replace("_", " ") ||
-              "N/A"
+              capitalizeFirstLetter(
+                orderDetails.paymentMethod?.replace("_", " ") ?? "N/A"
+              ) || "N/A"
             }
           />
           <DetailItem
             icon={<CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
             label="Payment Status"
-            value={orderDetails.paymentStatus?.toUpperCase() || "N/A"}
+            value={
+              capitalizeFirstLetter(
+                orderDetails.paymentStatus?.replace("_", " ") ?? "N/A"
+              ) || "N/A"
+            }
           />
         </CardContent>
       </Card>
@@ -119,7 +125,8 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
                 ? `Campus Delivery (${campusLocations
                     .slice(0, 2)
                     .join(", ")}...)`
-                : orderDetails.shippingAddress?.address ?? "No address provided"
+                : (orderDetails.shippingAddress?.address ??
+                  "No address provided")
             }
           />
           {/* Postal code is hidden since delivery is only within UNICAL */}

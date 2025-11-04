@@ -160,7 +160,7 @@ export const cartRouter = createTRPCRouter({
         if (!product.isVisible) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Could not retrive the requested Product.",
+            message: "Could not retrieve the requested Product.",
           });
         }
 

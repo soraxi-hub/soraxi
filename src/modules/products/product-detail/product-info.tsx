@@ -4,16 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Star, Shield, RotateCcw } from "lucide-react";
-
+import { formatNaira } from "@/lib/utils/naira";
+import { useProductInfo } from "@/hooks/use-product-info";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
-import { formatNaira } from "@/lib/utils/naira";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
-import { toast } from "sonner";
-import { useTRPC } from "@/trpc/client";
-import { useEffect, useMemo, useState } from "react";
-import { useCartStore } from "@/modules/store/cart-store";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
@@ -23,155 +17,17 @@ interface ProductInfoProps {
 }
 
 export function ProductInfo({ product }: ProductInfoProps) {
-  const trpc = useTRPC();
-  const [isCopied, setIsCopied] = useState(false);
-
-  // State for current logged-in user ID (fetched once on component mount)
-  // You may want to manage user state globally in a real app
-  const [userId, setUserId] = useState<string | null>(null);
-  useEffect(() => {
-    getUserFromCookie().then((user) => setUserId(user?.id ?? null));
-  }, []);
-
-  // Fetch user's wishlist from backend using TRPC query
-  const { data: wishlist, refetch: refetchWishlist } = useQuery(
-    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions()
-  );
-
-  // Helper: check if current product is already in user's wishlist
-  const isInWishlist = useMemo(() => {
-    if (!product || !wishlist?.products) return false;
-    return wishlist.products.some(
-      (item) => item.productId.toString() === product!.id
-    );
-  }, [wishlist, product?.id]);
-
-  // React Query mutation to add an item to wishlist
-  const addToWishlist = useMutation(
-    trpc.wishlist.addItem.mutationOptions({
-      // On success: show toast and refresh wishlist query for up-to-date data
-      onSuccess: () => {
-        toast.success(
-          `${product?.name ?? "Unknown Product"} added to wishlist`
-        );
-        refetchWishlist();
-      },
-      onError: () => {
-        toast.error(
-          `Error adding ${product?.name ?? "Unknown Product"} to wishlist`
-        );
-      },
-    })
-  );
-
-  // React Query mutation to remove an item from wishlist
-  const removeFromWishlist = useMutation(
-    trpc.wishlist.removeItem.mutationOptions({
-      // On success: show toast and refresh wishlist query for up-to-date data
-      onSuccess: () => {
-        toast.success(
-          `${product?.name ?? "Unknown Product"} removed from wishlist`
-        );
-        refetchWishlist();
-      },
-      onError: (error) => {
-        toast.error(
-          error.message ||
-            `Error removing ${product?.name ?? "Unknown Product"} from wishlist`
-        );
-      },
-    })
-  );
-
-  // React Query mutation to add item to cart (unchanged)
-  const addToCart = useMutation(
-    trpc.cart.addItem.mutationOptions({
-      onSuccess: (_, variables) => {
-        // console.log("variables", variables);
-        // Update Zustand cart immediately
-        useCartStore.getState().addItem({
-          productId: variables.productId,
-          quantity: variables.quantity,
-          size: variables.selectedSize?.size,
-        });
-
-        toast.success(`${product?.name ?? "Unknown Product"} added to cart`);
-      },
-      onError: (error) => {
-        toast.error(
-          error.message ||
-            `Error adding ${product?.name ?? "Unknown Product"} to cart`
-        );
-      },
-    })
-  );
+  const {
+    isCopied,
+    isInWishlist,
+    handleWishlistToggle,
+    handleAddToCart,
+    handleShareProduct,
+  } = useProductInfo(product);
 
   if (!product) {
     return null;
   }
-
-  // Handler for wishlist button click
-  const handleWishlistToggle = async (product: Product) => {
-    if (!userId) {
-      toast.error("Please Login to perform this action.");
-      return;
-    }
-
-    if (!product) {
-      toast.info("Product data is unavailable.");
-      return;
-    }
-
-    if (isInWishlist) {
-      // If already in wishlist, remove it
-      removeFromWishlist.mutate({
-        productId: product.id,
-      });
-    } else {
-      // Otherwise, add it
-      addToWishlist.mutate({
-        productId: product.id,
-        productType: product.productType,
-      });
-    }
-  };
-
-  // Handler for adding to cart (unchanged)
-  const handleAddToCart = async (product: Product, size?: string) => {
-    if (!product) {
-      toast.info("Product data is unavailable.");
-      return;
-    }
-
-    if (!userId) {
-      toast.error("Please Login to perform this action.");
-      return;
-    }
-    const selectedSizeData = product.sizes?.find((s) => s.size === size);
-
-    addToCart.mutate({
-      productId: product.id,
-      storeId: product.storeId,
-      quantity: 1,
-      productType: product.productType,
-      selectedSize: selectedSizeData
-        ? {
-            size: selectedSizeData.size,
-            price: selectedSizeData.price,
-            quantity: selectedSizeData.quantity,
-          }
-        : undefined,
-    });
-  };
-
-  const handleShareProduct = () => {
-    const productUrl = `${window.location.origin}/products/${product.slug}`;
-    navigator.clipboard.writeText(productUrl);
-    setIsCopied(true);
-    toast.success(`Product slug copied to clipboard!`);
-
-    setTimeout(() => setIsCopied(false), 2000);
-  };
 
   const hasVariants = product.sizes && product.sizes.length > 0;
   const basePrice = hasVariants

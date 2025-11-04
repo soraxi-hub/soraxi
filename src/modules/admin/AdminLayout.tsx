@@ -331,7 +331,7 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
 
         {/* Main Content */}
         <SidebarInset className="flex-1">
-          <SidebarTrigger />
+          <SidebarTrigger className="left-2 sm:left-4 text-soraxi-green hover:text-soraxi-green-hover animate-pulse" />
           {/* Page Content */}
           <main className="flex-1 p-6">{children}</main>
         </SidebarInset>

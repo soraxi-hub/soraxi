@@ -33,19 +33,14 @@ export const siteConfig = {
     { name: "Visa", img: "/svg/visa-svgrepo-com.svg" },
     { name: "Mastercard", img: "/svg/mastercard-full-svgrepo-com.svg" },
     { name: "Verve", img: "/svg/verve-svgrepo-com.svg" },
-    // ... other payment methods
   ],
   links: {
-    instagram: "#",
-    linkedin: "#",
+    facebook: process.env.NEXT_PUBLIC_SORAXI_FACEBOOK_PAGE_LINK,
+    whatsapp: process.env.NEXT_PUBLIC_SORAXI_WHATSAPP_LINK,
   },
   footerLinks: [
     { name: "Home", href: "/" },
     { name: "Support", href: "/support" },
-    // { name: "Code of Conduct", href: "/code-of-conduct" },
-    // { name: "Human Rights Policy", href: "/human-rights-policy" },
   ],
   placeHolderImg: `/placeholder-img.jpg` as const,
-  // placeHolderImg1: `/svg/placeholder-img1.svg`,
-  // placeHolderImg2: `/svg/placeholder-img2.svg`,
 };

@@ -192,3 +192,15 @@ export function truncateText(
 
   return word.length > maxNumber ? word.slice(0, maxNumber) + "..." : word;
 }
+
+/**
+ * Capitalizes the first letter of a given string.
+ * Trims leading whitespace before capitalization.
+ * @param value - The input string to capitalize.
+ * @returns The string with its first letter capitalized.
+ */
+export const capitalizeFirstLetter = (value: string): string => {
+  if (!value) return "";
+  const trimmed = value.trimStart();
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};

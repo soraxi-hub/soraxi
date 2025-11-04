@@ -83,8 +83,8 @@ export function StoreOrderNotificationEmail({
               <Text>
                 Delivery Type: Campus Delivery
                 <br />
-                Campus Address: {deliveryAddress.street},{" "}
-                {deliveryAddress.postalCode}
+                Campus Address: UNICAL Library (E-Library), Main Gate, or Hostel
+                Areas.
               </Text>
             )}
 

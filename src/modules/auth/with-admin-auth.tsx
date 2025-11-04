@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Permission } from "../admin/security/permissions";
 import axios from "axios";
+import SoraxiLoadingState from "@/components/soraxi-loading-state";
 
 interface AdminAuthProps {
   requiredPermissions?: Permission[];
@@ -64,11 +65,7 @@ export function withAdminAuth<P extends object>(
     }, [router, requiredPermissions]);
 
     if (loading) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soraxi-green"></div>
-        </div>
-      );
+      return <SoraxiLoadingState />;
     }
 
     return <Component {...props} admin={admin} />;

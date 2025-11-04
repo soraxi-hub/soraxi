@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, VerifiedIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 interface ProductImageGalleryProps {
   images: string[];
@@ -49,9 +50,7 @@ export function ProductImageGallery({
           )}
         </div>
         <Image
-          src={
-            images[currentImageIndex] || "/placeholder.svg?height=600&width=600"
-          }
+          src={images[currentImageIndex] || siteConfig.placeHolderImg}
           alt={`${productName} - Image ${currentImageIndex + 1}`}
           fill
           className="object-cover"
@@ -63,7 +62,7 @@ export function ProductImageGallery({
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
+              className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity !bg-soraxi-green hover:!bg-soraxi-green-hover !text-white"
               onClick={previousImage}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -71,7 +70,7 @@ export function ProductImageGallery({
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white"
+              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity !bg-soraxi-green hover:!bg-soraxi-green-hover !text-white"
               onClick={nextImage}
             >
               <ChevronRight className="h-4 w-4" />
@@ -102,7 +101,7 @@ export function ProductImageGallery({
               )}
             >
               <Image
-                src={image || "/placeholder.svg?height=80&width=80"}
+                src={image || siteConfig.placeHolderImg}
                 alt={`${productName} thumbnail ${index + 1}`}
                 fill
                 className="object-cover"

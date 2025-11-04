@@ -12,80 +12,16 @@ import {
   StoreOrderNotificationEmail,
   renderTemplate,
 } from "@/domain/notification";
-
-export interface FlutterwaveVerifyResponse {
-  status: "success" | "error";
-  message: string;
-  data: FlutterwaveTransactionData;
-}
-
-export interface FlutterwaveTransactionData {
-  id: number;
-  tx_ref: string;
-  flw_ref: string;
-  device_fingerprint?: string;
-  amount: number;
-  currency: string;
-  charged_amount: number;
-  app_fee: number;
-  merchant_fee: number;
-  processor_response: string;
-  auth_model?: string;
-  ip?: string;
-  narration?: string;
-  status: "successful" | "failed" | "pending";
-  payment_type: "card" | "bank_transfer" | "ussd" | "account" | string;
-  created_at: string;
-  account_id?: number;
-
-  // Payment method details
-  card?: {
-    first_6digits: string;
-    last_4digits: string;
-    issuer: string;
-    country: string;
-    type: string;
-    token?: string;
-    expiry: string;
-  };
-
-  bank_transfer?: {
-    account_number: string;
-    bank_name: string;
-    bank_code?: string;
-  };
-
-  ussd?: {
-    code: string;
-    bank: string;
-  };
-
-  // Meta data - most important for your app
-  meta: {
-    __CheckoutInitAddress?: string;
-    email: string;
-    phone_number: string;
-    fullName: string;
-    orderId: string; // 👈 Your DB link
-    idempotencyKey: string; // 👈 Crucial for preventing duplicates
-    [key: string]: any; // in case Flutterwave adds new fields
-  };
-
-  amount_settled?: number;
-
-  customer?: {
-    id: number;
-    name: string;
-    phone_number: string;
-    email: string;
-    created_at: string;
-  };
-}
+import {
+  FlutterwavePaymentService,
+  type FlutterwaveTransactionData,
+} from "@/domain/payments/flutterwave/payment";
 
 export async function POST(request: Request) {
   const requestBody = await request.json();
   const headers = request.headers;
   const secretHash = process.env.FLUTTERWAVE_SECRET_HASH_KEY;
+  const flutterwaveService = new FlutterwavePaymentService();
   let session: mongoose.ClientSession | null = null;
   await connectToDatabase();
   session = await mongoose.startSession();
@@ -109,7 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const transactionId: number = requestBody?.id || requestBody?.data?.id;
+    const transactionId: string = requestBody?.id || requestBody?.data?.id;
     if (!transactionId) {
       return NextResponse.json(
         { message: "Transaction ID missing in Flutterwave webhook payload" },
@@ -118,7 +54,8 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Verify transaction with Flutterwave API
-    const verifiedTransaction = await verifyTransaction(transactionId);
+    const verifiedTransaction =
+      await flutterwaveService.verifyTransaction(transactionId);
 
     if (
       verifiedTransaction?.status.toLowerCase() !== "success" ||
@@ -216,34 +153,6 @@ export async function POST(request: Request) {
       await session.endSession();
     }
   }
-}
-
-async function verifyTransaction(
-  transactionId: number
-): Promise<FlutterwaveVerifyResponse | null> {
-  if (!process.env.FLUTTERWAVE_SECRET_KEY || !process.env.FLUTTERWAVE_API_URL) {
-    console.error("Missing required environment variables");
-    throw new Error(
-      "Server configuration error: Missing required FLUTTERWAVE environment variables"
-    );
-  }
-
-  const res = await fetch(
-    `${process.env.FLUTTERWAVE_API_URL || "https://api.flutterwave.com/v3"}/transactions/${transactionId}/verify`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
-      },
-    }
-  );
-
-  if (!res.ok) {
-    console.error("Failed to verify transaction:", res.statusText);
-    return null;
-  }
-
-  return res.json();
 }
 
 // New function to send customer notification

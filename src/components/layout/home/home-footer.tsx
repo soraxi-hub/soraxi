@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { InstagramIcon, LinkedinIcon } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { playpenSans } from "@/constants/constant";
 import { usePathname } from "next/navigation";
+import { FacebookIcon, WhatsappIcon } from "@/components/icons";
 
 export function HomeFooter() {
   const pathname = usePathname();
@@ -127,22 +127,25 @@ const SocialLinks = () => (
   <ul className="flex gap-4">
     <li>
       <Link
-        href={siteConfig.links.instagram}
+        href={
+          siteConfig.links.facebook ||
+          "https://www.facebook.com/profile.php?id=61583344972491"
+        }
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Visit our Instagram"
       >
-        <InstagramIcon className="h-5 w-5" />
+        <FacebookIcon className="h-5 w-5 hover:text-soraxi-green-hover" />
       </Link>
     </li>
     <li>
       <Link
-        href={siteConfig.links.linkedin}
+        href={siteConfig.links.whatsapp || "https://wa.me/2348148600290"}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Visit our LinkedIn"
       >
-        <LinkedinIcon className="h-5 w-5" />
+        <WhatsappIcon className="h-5 w-5 hover:text-soraxi-green-hover" />
       </Link>
     </li>
   </ul>

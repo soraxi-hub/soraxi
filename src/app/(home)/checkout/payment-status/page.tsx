@@ -3,6 +3,7 @@ import PaymentSuccess from "@/modules/checkout/success/payment-successful";
 import PaymentSuccessSkeleton from "@/modules/skeletons/payment-success-skeleton";
 import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
+import PaymentFailurePage from "@/modules/checkout/failure/payment-failure";
 
 export const metadata: Metadata = {
   title: `Payment Status`,
@@ -53,6 +54,25 @@ interface Props {
 }
 
 export default async function Page({ searchParams }: Props) {
+  const statusArr = ["successful", "completed", "success"];
+  const { status } = await searchParams;
+
+  if (!status) {
+    return (
+      <Suspense fallback={<PaymentSuccessSkeleton />}>
+        <PaymentFailurePage searchParams={await searchParams} />
+      </Suspense>
+    );
+  }
+
+  if (status && !statusArr.includes((status as string).toLowerCase())) {
+    return (
+      <Suspense fallback={<PaymentSuccessSkeleton />}>
+        <PaymentFailurePage searchParams={await searchParams} />
+      </Suspense>
+    );
+  }
+
   return (
     <Suspense fallback={<PaymentSuccessSkeleton />}>
       <PaymentSuccess searchParams={await searchParams} />
