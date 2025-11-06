@@ -236,7 +236,7 @@ export function BusinessInfoForm({
       </div> */}
 
       {/* Form Actions */}
-      <div className="flex justify-between pt-6 border-t border-border">
+      <div className="flex flex-col gap-3 sm:flex-row justify-between pt-6 border-t border-border">
         <Button
           type="button"
           variant="outline"

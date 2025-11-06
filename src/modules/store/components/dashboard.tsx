@@ -27,6 +27,8 @@ import AlertUI from "@/modules/shared/alert";
 import { StoreDashboardSkeleton } from "@/modules/skeletons/store-dashboard-skeleton";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import Link from "next/link";
+import { StoreStatusEnum } from "@/validators/store-validators";
+import { cn } from "@/lib/utils";
 
 /**
  * Store Dashboard Page
@@ -93,14 +95,16 @@ export default function StoreDashboardPage({
             </div>
             <div className="flex items-center space-x-2">
               <Badge
-                variant={
-                  storeData.status === "active" ? "default" : "secondary"
-                }
-                className={
-                  storeData.status === "active"
-                    ? "bg-soraxi-green text-white"
-                    : "text-white"
-                }
+                className={cn(
+                  `text-white`,
+                  storeData.status === StoreStatusEnum.Active &&
+                    "bg-soraxi-green",
+                  storeData.status === StoreStatusEnum.Pending &&
+                    "bg-soraxi-warning",
+                  storeData.status === StoreStatusEnum.Rejected ||
+                    (storeData.status === StoreStatusEnum.Suspended &&
+                      "bg-soraxi-error")
+                )}
               >
                 {storeData.status.charAt(0).toUpperCase() +
                   storeData.status.slice(1)}
@@ -109,7 +113,7 @@ export default function StoreDashboardPage({
           </div>
 
           {/* Store Status Alert */}
-          {storeData.status === "pending" && (
+          {storeData.status === StoreStatusEnum.Pending && (
             <Alert className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -131,7 +135,7 @@ export default function StoreDashboardPage({
             </Alert>
           )}
 
-          {storeData.status === "active" &&
+          {storeData.status === StoreStatusEnum.Active &&
             storeData.verification?.isVerified && (
               <Alert className="mb-6">
                 <CheckCircle className="h-4 w-4" />

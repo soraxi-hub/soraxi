@@ -153,14 +153,15 @@ export const cartRouter = createTRPCRouter({
         if (!product.isVerifiedProduct) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "This product is not verified.",
+            message:
+              "This product isn’t available for sale at the moment. Please check back later.",
           });
         }
 
         if (!product.isVisible) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Could not retrieve the requested Product.",
+            message: "This product is temporarily out of stock.",
           });
         }
 

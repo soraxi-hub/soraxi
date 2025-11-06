@@ -1,4 +1,9 @@
+"use client";
+
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import SoraxiLoadingState from "@/components/soraxi-loading-state";
 import {
   CancelledStatus,
   FailedStatus,
@@ -18,9 +23,30 @@ export interface PaymentStatusProps {
 }
 
 export default function PaymentSuccess({ searchParams }: PaymentStatusProps) {
-  const status = searchParams.status;
-  const transaction_reference =
-    searchParams.trxref || searchParams.transaction_id || searchParams.tx_ref;
+  const trpc = useTRPC();
+  const { transaction_id, tx_ref, status } = searchParams;
+  const withTransactionId = transaction_id && transaction_id ? true : false;
+  const { data, isLoading } = useQuery(
+    trpc.flutterwavePaymentVerification.verifyPayment.queryOptions({
+      tx_ref,
+      transaction_id,
+      withTransactionId,
+    })
+  );
+
+  const transaction_reference = transaction_id || tx_ref || searchParams.trxref;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <SoraxiLoadingState text="Verifying your transaction…" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return <UnknownStatus />;
+  }
 
   if (!status) {
     return <UnknownStatus />;

@@ -1,3 +1,4 @@
+import { clearUserCart } from "@/lib/db/models/cart.model";
 import { ProductTypeEnum } from "@/validators/product-validators";
 
 /**
@@ -21,7 +22,7 @@ export interface CartInterface {
   idempotencyKey?: string;
 }
 
-export class Cart {
+export class CartService {
   constructor(
     protected userId: CartInterface[`userId`],
     protected items: CartInterface[`items`],
@@ -34,5 +35,13 @@ export class Cart {
 
   getIdempotencyKey() {
     return this.idempotencyKey;
+  }
+
+  static async clearUserCart(userId: string) {
+    try {
+      await clearUserCart(userId);
+    } catch (clearUserCartError) {
+      console.error("Failed to clear user cart:", clearUserCartError);
+    }
   }
 }

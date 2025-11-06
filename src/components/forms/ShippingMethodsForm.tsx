@@ -176,7 +176,7 @@ export function ShippingMethodsForm({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-soraxi-green/10 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-soraxi-green/10 rounded-full items-center justify-center hidden sm:flex">
                     <Truck className="w-4 h-4 text-soraxi-green" />
                   </div>
                   <div>
@@ -184,7 +184,7 @@ export function ShippingMethodsForm({
                       {watchedMethods[index]?.name ||
                         `Shipping Method ${index + 1}`}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="hidden sm:inline-flex">
                       {watchedMethods[index]?.price !== undefined && (
                         <span className="flex items-center space-x-1">
                           <span>₦</span>
@@ -502,7 +502,7 @@ export function ShippingMethodsForm({
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-between pt-6 border-t border-border">
+      <div className="flex flex-col gap-3 sm:flex-row justify-between pt-6 border-t border-border">
         <Button
           type="button"
           variant="outline"
