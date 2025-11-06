@@ -34,67 +34,71 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-soraxi-green to-soraxi-green/80 text-white py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <motion.h1
-                className="text-5xl font-bold leading-tight"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              >
-                Discover Amazing Products from Verified Stores
-              </motion.h1>
+      {!search && (
+        <section className="relative bg-gradient-to-r from-soraxi-green to-soraxi-green/80 text-white py-20">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <motion.h1
+                  className="text-5xl font-bold leading-tight"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                >
+                  Discover Amazing Products from Verified Stores
+                </motion.h1>
 
-              <motion.p
-                className="text-xl opacity-90"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-              >
-                Shop with confidence from our curated marketplace of trusted
-                sellers offering quality products at great prices.
-              </motion.p>
+                <motion.p
+                  className="text-xl opacity-90"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+                >
+                  Shop with confidence from our curated marketplace of trusted
+                  sellers offering quality products at great prices.
+                </motion.p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Feature Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[Shield, Truck, Award, Zap].map((Icon, i) => (
-              <div className="space-y-4" key={i}>
-                <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
-                  <Icon className="w-8 h-8 text-soraxi-green" />
+      {!search && (
+        <section className="py-16 bg-muted/30">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              {[Shield, Truck, Award, Zap].map((Icon, i) => (
+                <div className="space-y-4" key={i}>
+                  <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
+                    <Icon className="w-8 h-8 text-soraxi-green" />
+                  </div>
+                  <h3 className="font-semibold text-lg">
+                    {
+                      [
+                        "Verified Sellers",
+                        "Fast Delivery",
+                        "Quality Guaranteed",
+                        "24/7 Support",
+                      ][i]
+                    }
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {
+                      [
+                        "All our sellers are verified and trusted",
+                        "Quick and reliable shipping within Campus",
+                        "Premium products with quality assurance",
+                        "Round-the-clock customer support",
+                      ][i]
+                    }
+                  </p>
                 </div>
-                <h3 className="font-semibold text-lg">
-                  {
-                    [
-                      "Verified Sellers",
-                      "Fast Delivery",
-                      "Quality Guaranteed",
-                      "24/7 Support",
-                    ][i]
-                  }
-                </h3>
-                <p className="text-muted-foreground">
-                  {
-                    [
-                      "All our sellers are verified and trusted",
-                      "Quick and reliable shipping within Campus",
-                      "Premium products with quality assurance",
-                      "Round-the-clock customer support",
-                    ][i]
-                  }
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Featured Products */}
       {/* <section className="py-16">

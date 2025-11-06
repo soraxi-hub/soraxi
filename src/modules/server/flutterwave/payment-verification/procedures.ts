@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import mongoose from "mongoose";
-import { getOrderModel } from "@/lib/db/models/order.model";
 import { PaymentStatus } from "@/enums";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { FlutterwavePaymentService } from "@/domain/payments/flutterwave/payment";
+import { OrderFactory } from "@/domain/orders/order-factory";
+import { CartService } from "@/domain/cart/cart";
 
 export const flutterwavePaymentVerificationRouter = createTRPCRouter({
   verifyPayment: baseProcedure
@@ -26,9 +27,9 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
       const { tx_ref, withTransactionId, transaction_id } = input;
       const statusArr = ["successful", "completed", "success"];
       const flutterwaveService = new FlutterwavePaymentService();
+      const processOrder = await OrderFactory.getProcessOrderInstance();
       let session: mongoose.ClientSession | null = null;
       await connectToDatabase();
-      const Order = await getOrderModel();
 
       try {
         if (withTransactionId) {
@@ -43,6 +44,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             return { ok: false, error: "Could not retrieve transaction data" };
           }
 
+          // If the payment is in a pending state, return true and do not update the order record
           if (verifiedTransaction?.data?.status.toLowerCase() === "pending") {
             return {
               ok: true,
@@ -53,6 +55,8 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
           session = await mongoose.startSession();
           session.startTransaction();
 
+          // If the verified transaction data status is not a success status,
+          // update the order record to either failed or cancelled, with a TTD of 2 weeks.
           if (
             !statusArr.includes(verifiedTransaction?.data?.status.toLowerCase())
           ) {
@@ -67,46 +71,58 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             }
 
             const { orderId } = transactionData.meta;
+            const transactionDataStatus = transactionData.status;
 
-            // find order by ID
-            const order = await Order.findById(
-              new mongoose.Types.ObjectId(orderId)
-            )
-              .session(session)
-              .select("paymentStatus expireAt");
+            const result = await processOrder.updateOrderRecordToFailureState({
+              orderId,
+              session,
+              transactionDataStatus,
+            });
 
-            if (!order) {
+            if (!result.ok) {
               await session.abortTransaction();
-              return { ok: false, error: "Order not found" };
+              return { ok: false, error: result.error };
             }
 
-            if (
-              order.paymentStatus === PaymentStatus.Failed ||
-              order.paymentStatus === PaymentStatus.Cancelled
-            ) {
-              await session.abortTransaction();
-              return { ok: true, status: order.paymentStatus };
-            }
-
-            order.expireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
-
-            if (transactionData.status.toLowerCase() === "failed") {
-              order.paymentStatus = PaymentStatus.Failed;
-            } else {
-              order.paymentStatus = PaymentStatus.Cancelled;
-            }
-
-            await order.save({ session });
             await session.commitTransaction();
-
-            return { ok: true, status: transactionData.status };
+            return { ok: true, status: result.status };
           }
 
+          // If the verified transaction data status is a success status,
+          // process the order.
           if (
             statusArr.includes(verifiedTransaction?.data?.status.toLowerCase())
           ) {
             const transactionData = verifiedTransaction.data;
+            const { orderId, idempotencyKey } = transactionData.meta;
+            const paymentMethod = transactionData.payment_type;
 
+            // Get customer info from order
+            const customerInfo = {
+              fullName: transactionData.meta.fullName,
+              email: transactionData.meta.email,
+            };
+
+            // Update the order record
+            const result = await processOrder.updateOrderRecord({
+              orderId,
+              idempotencyKey,
+              session,
+              paymentMethod,
+              customerInfo,
+            });
+
+            if (!result.ok) {
+              console.error(result.error);
+              return { ok: false, status: PaymentStatus.Failed };
+            }
+
+            // Step 4: Clear user's cart
+            if (result.userId) {
+              CartService.clearUserCart(result.userId);
+            }
+
+            await session.commitTransaction();
             return { ok: true, status: transactionData.status };
           }
 
@@ -117,34 +133,19 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
           return { ok: false, error: "tx_ref is required" };
         }
 
-        const order = await Order.findOne({
-          idempotencyKey: tx_ref,
-        })
-          .session(session)
-          .select("paymentStatus expireAt");
-
-        if (!order) {
-          return { ok: false, error: "Order not found" };
-        }
-
-        if (
-          order.paymentStatus === PaymentStatus.Paid ||
-          order.paymentStatus === PaymentStatus.Failed ||
-          order.paymentStatus === PaymentStatus.Cancelled
-        ) {
-          return { ok: true, status: order.paymentStatus };
-        }
-
         session = await mongoose.startSession();
         session.startTransaction();
 
-        order.expireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
+        const result = await processOrder.handleCancelledOrder({
+          tx_ref,
+          session,
+        });
 
-        order.paymentStatus = PaymentStatus.Cancelled;
+        if (!result.ok) {
+          return { ok: false, error: result.error };
+        }
 
-        await order.save({ session });
         await session.commitTransaction();
-
         return { ok: true, status: PaymentStatus.Cancelled };
       } catch (error) {
         // Rollback transaction if it was started

@@ -1,5 +1,5 @@
 import { DeliveryType, PaymentStatus } from "@/enums";
-import { Cart } from "../cart/cart";
+import { CartService } from "../cart/cart";
 import { SubOrder } from "./sub-order";
 
 export class Order {
@@ -39,7 +39,7 @@ export class Order {
 
   placeOrder() {}
 
-  existingOrder(cart: Cart) {
+  existingOrder(cart: CartService) {
     return cart.getIdempotencyKey() === this.idempotencyKey;
   }
 }
