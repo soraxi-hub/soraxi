@@ -48,7 +48,7 @@ export const calculateCommission = (amountInKobo: number) => {
   // Case 2: Between ₦2,500 and ₦4,999 → 5% only (no flat fee)
 
   // Calculate the settlement amount (vendor receives this after commission deduction)
-  const settleAmount = amountInKobo - commission;
+  const settleAmount = currencyOperations.subtract(amountInKobo, commission);
 
   // Return detailed breakdown for transparency
   return {

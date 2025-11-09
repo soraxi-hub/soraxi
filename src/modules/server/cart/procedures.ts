@@ -161,7 +161,7 @@ export const cartRouter = createTRPCRouter({
         if (!product.isVisible) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "This product is temporarily out of stock.",
+            message: "This product is currently unavailable.",
           });
         }
 
