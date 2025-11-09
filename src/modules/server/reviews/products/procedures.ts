@@ -4,8 +4,9 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { getProductReviewModel } from "@/lib/db/models/product-review.model";
-import { IUser } from "@/lib/db/models/user.model";
+import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import { ProductTypeEnum } from "@/validators/product-validators";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 
 type PopulatedUser = Pick<IUser, "firstName" | "email" | "lastName">;
 
@@ -87,48 +88,61 @@ export const productReviewRouter = createTRPCRouter({
             message: "You have already submitted a review for this product",
           });
         }
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Error creating review: ${error.message}`,
-        });
+        throw handleTRPCError(error, `Error creating review: ${error.message}`);
       }
     }),
 
   getReviewsByProductId: baseProcedure
     .input(z.object({ productId: z.string() }))
     .query(async ({ input }) => {
-      const { productId } = input;
+      try {
+        const { productId } = input;
 
-      if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid product ID format",
-        });
+        if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid product ID format",
+          });
+        }
+        const ProductReview = await getProductReviewModel();
+        await getUserModel();
+
+        const reviews = await ProductReview.find({ productId: productId })
+          .populate({
+            path: "customerId",
+            select: "firstName lastName email",
+          })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean();
+
+        return reviews.map((review) => ({
+          id: review._id.toString(),
+          user:
+            typeof review.customerId === "object" &&
+            "firstName" in review.customerId &&
+            "lastName" in review.customerId
+              ? `${(review.customerId as unknown as PopulatedUser)?.firstName} ${
+                  (review.customerId as unknown as PopulatedUser)?.lastName
+                }`
+              : "Anonymous",
+          rating: review.rating,
+          comment: review.reviewText,
+          date: new Date(review.createdAt).toISOString().split("T")[0],
+          verified: true,
+        }));
+      } catch (error) {
+        throw handleTRPCError(error, "Error fetching reviews.");
       }
-      const ProductReview = await getProductReviewModel();
-
-      const reviews = await ProductReview.find({ productId: productId })
-        .populate({
-          path: "customerId",
-          select: "firstName lastName email",
-        })
-        .sort({ createdAt: -1 })
-        .lean();
-
-      return reviews.map((review) => ({
-        id: review._id.toString(),
-        user:
-          typeof review.customerId === "object" &&
-          "firstName" in review.customerId &&
-          "lastName" in review.customerId
-            ? `${(review.customerId as unknown as PopulatedUser)?.firstName} ${
-                (review.customerId as unknown as PopulatedUser)?.lastName
-              }`
-            : "Anonymous",
-        rating: review.rating,
-        comment: review.reviewText,
-        date: new Date(review.createdAt).toISOString().split("T")[0],
-        verified: true,
-      }));
     }),
 });
+
+// const reviews = await ProductReview.find({ productId: productId })
+//         .populate({
+//           path: "customerId",
+//           select: "firstName lastName email",
+//         })
+//         .sort({ createdAt: -1 })
+//         .lean();
+
+// how can i select the first 15 reviews pls?

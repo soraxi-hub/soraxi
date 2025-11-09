@@ -22,7 +22,6 @@ import { formatNaira } from "@/lib/utils/naira";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { DeliveryType } from "@/enums";
-import { campusLocations } from "@/modules/checkout/order-summary";
 import { capitalizeFirstLetter } from "@/lib/utils";
 
 type Output = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
@@ -122,9 +121,7 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
             label="Shipping Address"
             value={
               orderDetails.shippingAddress?.deliveryType === DeliveryType.Campus
-                ? `Campus Delivery (${campusLocations
-                    .slice(0, 2)
-                    .join(", ")}...)`
+                ? `Campus Delivery`
                 : (orderDetails.shippingAddress?.address ??
                   "No address provided")
             }

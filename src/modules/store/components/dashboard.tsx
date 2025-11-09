@@ -101,9 +101,9 @@ export default function StoreDashboardPage({
                     "bg-soraxi-green",
                   storeData.status === StoreStatusEnum.Pending &&
                     "bg-soraxi-warning",
-                  storeData.status === StoreStatusEnum.Rejected ||
-                    (storeData.status === StoreStatusEnum.Suspended &&
-                      "bg-soraxi-error")
+                  (storeData.status === StoreStatusEnum.Rejected ||
+                    storeData.status === StoreStatusEnum.Suspended) &&
+                    "bg-soraxi-error"
                 )}
               >
                 {storeData.status.charAt(0).toUpperCase() +

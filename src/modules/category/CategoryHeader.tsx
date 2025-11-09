@@ -18,14 +18,14 @@ export function CategoryHeader({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {subcategoryName || categoryName}
           </h1>
           <p className="text-muted-foreground mt-2">
             {productCount} {productCount === 1 ? "product" : "products"} found
           </p>
         </div>
-        <Badge variant="secondary" className="text-sm">
+        <Badge variant="secondary" className="text-sm hidden sm:inline-flex">
           {categoryName}
         </Badge>
       </div>
