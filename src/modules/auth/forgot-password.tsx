@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import { Input } from "@/components/ui/input";
+import AlertUI from "../shared/alert";
 
 const ForgotPassword = () => {
   const searchParams = useSearchParams();
@@ -17,6 +18,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +42,18 @@ const ForgotPassword = () => {
         toast.error(
           `There was an error sending the reset link. Please try again.`
         );
+
         setIsLoading(false);
       }
-    } catch (error) {
-      toast.error(
-        `An error occurred while sending the reset link. Please try again.`
-      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.error?.message ??
+        "Something went wrong. Please try again.";
+      const cause =
+        error?.response?.data?.error?.cause ??
+        "Something went wrong. Please try again.";
+      toast.error(cause);
+      setError(message);
       console.error(`Error sending reset link:`, error);
       setIsLoading(false);
     }
@@ -66,6 +74,8 @@ const ForgotPassword = () => {
                     {siteConfig.name}
                   </Link>
                 </div>
+
+                {error && <AlertUI message={error} variant={`destructive`} />}
 
                 <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-200">
                   Reset My Password
@@ -133,6 +143,8 @@ const ForgotPassword = () => {
                     {siteConfig.name}
                   </Link>
                 </div>
+
+                {error && <AlertUI message={error} variant={`destructive`} />}
 
                 <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-200">
                   Reset My Password
