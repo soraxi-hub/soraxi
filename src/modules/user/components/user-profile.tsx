@@ -106,9 +106,7 @@ const Profile = () => {
         {/* Verification Section */}
         {!user.getUserIsVerified() && <VerificationSection />}
 
-        {user.getUserStores().length > 0 && (
-          <UserStores stores={user.getUserStores()} />
-        )}
+        <UserStores stores={user.getUserStores()} />
 
         {/* Recently Viewed Products */}
         {/* {recentProducts.length > 0 && (
