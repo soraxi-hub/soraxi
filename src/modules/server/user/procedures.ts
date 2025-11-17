@@ -1,10 +1,26 @@
 import { z } from "zod";
-import { getUserByEmail, getUserModel } from "@/lib/db/models/user.model";
+import {
+  getUserByEmail,
+  getUserModel,
+  IUser,
+} from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { User } from "@/types";
 import mongoose from "mongoose";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { StoreStatusEnum } from "@/validators/store-validators";
+import { getStoreModel } from "@/lib/db/models/store.model";
+
+type LeanedUser = Omit<IUser, "stores"> & {
+  stores?: {
+    storeId: {
+      _id: mongoose.Types.ObjectId;
+      name: string;
+      status: StoreStatusEnum;
+    };
+  }[];
+};
 
 /**
  * @module userRouter
@@ -41,12 +57,17 @@ export const userRouter = createTRPCRouter({
         });
 
       const User = await getUserModel();
+      await getStoreModel();
 
       const user = await User.findById(userTokenData.id)
+        .populate({
+          path: "stores.storeId",
+          select: "_id name status",
+        })
         .select(
           "_id firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode isVerified stores"
         )
-        .lean();
+        .lean<LeanedUser>();
 
       if (!user) {
         throw new TRPCError({
@@ -68,7 +89,11 @@ export const userRouter = createTRPCRouter({
         stateOfResidence: user.stateOfResidence,
         postalCode: user.postalCode,
         isVerified: user.isVerified,
-        stores: user.stores,
+        stores: user.stores?.map((store) => ({
+          storeId: store.storeId._id.toString(),
+          name: store.storeId.name,
+          status: store.storeId.status,
+        })),
       };
 
       return serializedUser;

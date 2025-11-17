@@ -7,14 +7,30 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 // import { formatNaira } from "@/lib/utils";
 // import { shimmer, toBase64 } from "@/lib/image";
-import { User, Mail, Phone, MapPin, ShieldCheck } from "lucide-react";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  ShieldCheck,
+  Store,
+  Plus,
+  Settings,
+} from "lucide-react";
 // import { useRouter } from "next/navigation";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import { UserFactory } from "@/domain/users/user-factory";
-import { truncateText } from "@/lib/utils";
+import { cn, truncateText } from "@/lib/utils";
+import { StoreStatusEnum } from "@/validators/store-validators";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 
 const Profile = () => {
   // State management
@@ -31,31 +47,6 @@ const Profile = () => {
 
   // if (data.data) return JSON.stringify(data.data, null, 2);
 
-  /**
-   * Fetches recently viewed products from localStorage
-   */
-  // const fetchRecentProducts = useCallback(async () => {
-  //   try {
-  //     const viewedIds = JSON.parse(
-  //       localStorage.getItem("recentlyViewed") || "[]"
-  //     );
-  //     if (viewedIds.length) {
-  //       const { data } = await axios.post("/api/user/recently-viewed", {
-  //         productIds: viewedIds,
-  //       });
-  //       setRecentProducts(data.products);
-  //     }
-  //   } catch (err) {
-  //     console.error("Recent products error:", err);
-  //   }
-  // }, []);
-
-  // useEffect(() => {
-  //   fetchRecentProducts();
-  // }, [fetchRecentProducts]);
-
-  // if (loading) return <ProfileSkeleton />;
-  // if (error) return <ErrorState />;
   if (isLoading) return <ProfileSkeleton />;
 
   return (
@@ -114,6 +105,10 @@ const Profile = () => {
 
         {/* Verification Section */}
         {!user.getUserIsVerified() && <VerificationSection />}
+
+        {user.getUserStores().length > 0 && (
+          <UserStores stores={user.getUserStores()} />
+        )}
 
         {/* Recently Viewed Products */}
         {/* {recentProducts.length > 0 && (
@@ -182,62 +177,107 @@ const VerificationSection = () => (
   </section>
 );
 
-// interface RecentProductsProps {
-//   products: CombinedProduct[];
-//   blurData: string;
-// }
+const UserStores = ({
+  stores,
+}: {
+  stores: Array<{ storeId: string; name: string; status: StoreStatusEnum }>;
+}) => (
+  <section className="space-y-4">
+    <div className="flex items-center justify-between">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <Store className="w-5 h-5 text-soraxi-blue" />
+        My Stores
+      </h2>
+      <Button asChild className="bg-soraxi-blue hover:bg-soraxi-blue/90">
+        <Link href="/stores/create">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Store
+        </Link>
+      </Button>
+    </div>
 
-// const RecentProductsSection = ({ products, blurData }: RecentProductsProps) => (
-//   <section className="bg-card rounded-lg p-6 shadow-xs">
-//     <div className="flex items-center gap-4 mb-6">
-//       <Eye className="w-8 h-8 text-primary" />
-//       <h2 className="text-xl font-bold">Recently Viewed</h2>
-//     </div>
+    <div className="bg-card dark:bg-muted/50 rounded-lg p-6 shadow-xs border border-soraxi-blue/20">
+      {stores.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {stores.map((store, index) => (
+            <StoreCard key={store.storeId} store={store} index={index} />
+          ))}
+        </div>
+      ) : (
+        <EmptyStoresState />
+      )}
+    </div>
+  </section>
+);
 
-//     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-//       {products.map((product) => (
-//         <ProductCard key={product._id} product={product} blurData={blurData} />
-//       ))}
-//     </div>
-//   </section>
-// );
+// Store Card Component
+const StoreCard = ({
+  store,
+}: {
+  store: { storeId: string; name: string; status: StoreStatusEnum };
+  index: number;
+}) => (
+  <Card className="gap-1">
+    <CardHeader className="flex items-start justify-between mb-3">
+      <div className="bg-soraxi-green p-2 rounded-lg">
+        <Store className="w-4 h-4 text-white" />
+      </div>
+      <Badge
+        className={cn(
+          `text-white`,
+          store.status === StoreStatusEnum.Active && "bg-soraxi-green",
+          store.status === StoreStatusEnum.Pending && "bg-soraxi-warning",
+          (store.status === StoreStatusEnum.Rejected ||
+            store.status === StoreStatusEnum.Suspended) &&
+            "bg-soraxi-error"
+        )}
+      >
+        {store.status.charAt(0).toUpperCase() + store.status.slice(1)}
+      </Badge>
+    </CardHeader>
 
-// interface ProductCardProps {
-//   product: CombinedProduct;
-//   blurData: string;
-// }
+    <CardContent>
+      <h3 className="font-semibold text-lg mb-2 group-hover:text-soraxi-blue transition-colors">
+        {truncateText(store.name)}
+      </h3>
 
-// const ProductCard = ({ product, blurData }: ProductCardProps) => {
-//   const isPhysical = product.productType === "physicalproducts";
-//   const imageUrl = isPhysical ? product.images[0] : product.coverIMG[0];
-//   const title = isPhysical ? product.name : product.title;
-//   const price = isPhysical
-//     ? product.price ?? product.sizes?.[0]?.price
-//     : product.price;
+      <p className="text-sm text-muted-foreground mb-4">
+        Store ID: {truncateText(store.storeId, 12)}
+      </p>
+    </CardContent>
+    <CardFooter className="flex gap-2">
+      <Button asChild variant="outline" size="sm" className="flex-1">
+        <Link href={`/store/${store.storeId}/dashboard`}>
+          <Settings className="w-3 h-3 mr-1" />
+          Manage
+        </Link>
+      </Button>
+    </CardFooter>
+  </Card>
+);
 
-//   return (
-//     <Link
-//       href={`/product/${product._id}`}
-//       className="group relative bg-background rounded-lg border p-3 hover:shadow-md transition-shadow"
-//     >
-//       <div className="aspect-square relative overflow-hidden rounded-md bg-muted">
-//         <Image
-//           src={imageUrl}
-//           alt={title}
-//           fill
-//           className="object-cover group-hover:scale-105 transition-transform"
-//           placeholder="blur"
-//           blurDataURL={blurData}
-//           sizes="(max-width: 768px) 50vw, 25vw"
-//         />
-//       </div>
-//       <div className="mt-3 space-y-1">
-//         <h3 className="font-medium line-clamp-2 text-sm">{title}</h3>
-//         {price && <p className="text-sm font-semibold">{formatNaira(price)}</p>}
-//       </div>
-//     </Link>
-//   );
-// };
+// Empty State Component
+const EmptyStoresState = () => (
+  <div className="text-center py-8">
+    <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+      <Store className="w-8 h-8 text-muted-foreground" />
+    </div>
+    <h3 className="font-semibold text-lg mb-2">No stores yet</h3>
+    <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+      Start listing your products by creating your first store and reach
+      thousands of customers.
+    </p>
+    <Button
+      asChild
+      className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+    >
+      <Link href="/store/onboarding/">
+        <Plus className="w-4 h-4 mr-2" />
+        Create Your First Store
+      </Link>
+    </Button>
+  </div>
+);
 
 // Loading and Error States
 const ProfileSkeleton = () => (
@@ -251,20 +291,5 @@ const ProfileSkeleton = () => (
     </div>
   </div>
 );
-
-// const ErrorState = () => (
-//   <div className="h-screen flex items-center justify-center text-center p-4">
-//     <div className="max-w-md space-y-4">
-//       <h2 className="text-xl font-bold text-destructive">
-//         Failed to Load Profile
-//       </h2>
-//       <p className="text-muted-foreground">
-//         We couldn't load your profile information. Please check your connection
-//         and try again.
-//       </p>
-//       <Button onClick={() => window.location.reload()}>Retry</Button>
-//     </div>
-//   </div>
-// );
 
 export default Profile;
