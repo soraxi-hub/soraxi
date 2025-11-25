@@ -5,33 +5,15 @@ import {
 } from "./modules/admin/jwt-utils";
 import { ROUTE_PERMISSIONS } from "./modules/admin/security/route-permissions";
 import { hasPermission } from "./modules/admin/security/access-control";
+import { publicPaths } from "./constants/constant";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const userToken = request.cookies.get("user")?.value;
   const storeToken = request.cookies.get("store")?.value;
   const adminToken = request.cookies.get("adminToken")?.value;
-  console.log("Middleware triggered for path:", pathname);
+  console.log("proxy triggered for path:", pathname);
   //   console.log("User token:", userToken);
-
-  const publicPaths = [
-    "/",
-    "/sign-in",
-    "/sign-up",
-    "/about",
-    "/privacy-policy",
-    "/shipping-return-policy",
-    "/terms-conditions",
-    "/support",
-    "/cart",
-    "/admin-sign-in",
-    "/products/:path*",
-    "/category/:path*",
-    "/checkout/payment-status",
-    "/forgot-password",
-    "/reset-password",
-    "/store/onboarding",
-  ];
 
   const isPublicPath = publicPaths.some((path) => {
     if (path.includes(":path*")) {

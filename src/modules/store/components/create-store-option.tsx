@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,8 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Plus, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
-import { Button } from "react-day-picker";
 
 function CreateStoreOption() {
   const router = useRouter();

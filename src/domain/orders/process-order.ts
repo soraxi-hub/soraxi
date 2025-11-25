@@ -26,7 +26,7 @@ type UpdateOrderRecordProps = {
 
 export class ProcessOrder {
   private Order!: Model<IOrder>;
-  private readonly expireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days i.e, 2 weeks.
+  // private readonly expireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days i.e, 2 weeks.
 
   private constructor() {}
 
@@ -128,7 +128,7 @@ export class ProcessOrder {
       return { ok: true, status: order.paymentStatus };
     }
 
-    order.expireAt = this.expireAt;
+    // order.expireAt = this.expireAt;
 
     if (transactionDataStatus.toLowerCase() === "failed") {
       order.paymentStatus = PaymentStatus.Failed;
@@ -172,7 +172,7 @@ export class ProcessOrder {
       return { ok: true, status: order.paymentStatus };
     }
 
-    order.expireAt = this.expireAt;
+    // order.expireAt = this.expireAt;
     order.paymentStatus = PaymentStatus.Cancelled;
 
     const updatedOrder = await order.save({ session });

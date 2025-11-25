@@ -40,6 +40,7 @@ export const siteConfig = {
   },
   footerLinks: [
     { name: "Home", href: "/" },
+    { name: "Docs", href: "/docs" },
     { name: "Support", href: "/support" },
   ],
   placeHolderImg: `/placeholder-img.jpg` as const,

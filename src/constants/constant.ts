@@ -5,6 +5,27 @@ export const playpenSans = Playpen_Sans({
   subsets: ["latin"],
 });
 
+export const publicPaths = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/about",
+  "/privacy-policy",
+  "/shipping-return-policy",
+  "/terms-conditions",
+  "/support",
+  "/cart",
+  "/admin-sign-in",
+  "/products/:path*",
+  "/category/:path*",
+  "/docs/:path*",
+  "/docs/",
+  "/checkout/payment-status",
+  "/forgot-password",
+  "/reset-password",
+  "/store/onboarding",
+];
+
 export const categories = [
   // {
   //   name: "Food & Drinks",
