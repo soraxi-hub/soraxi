@@ -128,7 +128,7 @@ export interface IOrder extends Document {
   notes?: string;
   discount?: number;
   taxAmount?: number;
-  expireAt?: Date;
+  // expireAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -339,11 +339,11 @@ const OrderSchema = new Schema<IOrder>(
     notes: { type: String },
     discount: { type: Number },
     taxAmount: { type: Number },
-    expireAt: {
-      type: Date,
-      default: () => new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
-      index: { expires: 0 },
-    }, // TTL of 180 days, i.e., 6 months
+    // expireAt: {
+    //   type: Date,
+    //   default: () => new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+    //   index: { expires: 0 },
+    // }, // TTL of 180 days, i.e., 6 months
   },
   {
     timestamps: true,

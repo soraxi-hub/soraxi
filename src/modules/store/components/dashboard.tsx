@@ -20,6 +20,7 @@ import {
   AlertCircle,
   CheckCircle,
   WalletIcon,
+  BookOpen,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
@@ -230,6 +231,30 @@ export default function StoreDashboardPage({
                 <Button variant="outline" className="w-full" asChild>
                   <Link href={`/store/${store_id}/profile`}>
                     Store Settings
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Documentation Help */}
+            <Card className="hover:shadow-md transition-shadow cursor-pointer border-soraxi-green/20">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BookOpen className="w-5 h-5 text-soraxi-green" />
+                  <span>Learn & Guides</span>
+                </CardTitle>
+                <CardDescription>
+                  Learn how to operate your store
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  className="w-full border-soraxi-green text-soraxi-green hover:bg-soraxi-green/10"
+                  asChild
+                >
+                  <Link href="/docs" target="_blank">
+                    View Documentation
                   </Link>
                 </Button>
               </CardContent>

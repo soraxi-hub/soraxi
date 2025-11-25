@@ -6,9 +6,9 @@ import UserAvatar from "@/components/user-avater";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
 import SearchBar from "@/components/search-bar";
-import Categories from "@/components/categories";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import Image from "next/image";
+import { RouteBasedCategories } from "@/components/route-based-categories";
 
 /**
  * Main header component with responsive design
@@ -77,11 +77,7 @@ export async function HomeHeader() {
       </div>
 
       {/* Category Navigation */}
-      <div className="border-t bg-background/50">
-        <div className="mx-auto max-w-7xl px-6 py-3">
-          <Categories />
-        </div>
-      </div>
+      <RouteBasedCategories />
     </header>
   );
 }

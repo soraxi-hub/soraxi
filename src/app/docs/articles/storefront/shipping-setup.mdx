@@ -1,0 +1,263 @@
+export const metadata = {
+  title: "Managing Your Store's Shipping Methods",
+  description:
+    "Complete guide to setting up and managing shipping methods for your Soraxi storefront",
+};
+
+# Managing Your Store's Shipping Methods
+
+This guide will walk you through setting up and managing shipping methods for your Soraxi store. Proper shipping configuration ensures your customers have clear delivery expectations and helps you manage logistics efficiently.
+
+## Accessing Shipping Settings
+
+1. Navigate to your **Store Dashboard**:
+   - In the left sidebar, find the **"Store Settings"** section
+   - Click on **"Shipping"** to access your Store's shipping page
+
+<Screenshot
+  src="/docs-images/storefront/soraxi-storefront-product-management-step-8.png"
+  alt="Shipping option in sidebar navigation"
+  caption="Access shipping settings from the Store Settings section in your sidebar"
+/>
+
+## Understanding Shipping Methods
+
+Shipping methods define how you deliver products to customers. Each method includes:
+
+- **Delivery name** (e.g., "Standard Delivery", "Express Shipping")
+- **Shipping cost** in Naira
+- **Estimated delivery timeframe**
+- **Active/inactive status**
+- **Detailed description** for customers
+
+<Note type="info">
+  You can create up to 1 shipping method initially. Additional methods may be
+  available as your store grows.
+</Note>
+
+## Viewing Existing Shipping Methods
+
+When you first access the Shipping page, you'll see:
+
+- **Current shipping methods** displayed as cards
+- **Active/Inactive status** badges
+- **Pricing and delivery day information**
+- **Edit buttons** for each method
+
+<Screenshot
+  src="/docs-images/storefront/soraxi-storefront-product-management-step-9.png"
+  alt="Shipping methods overview"
+  caption="View all your configured shipping methods in one place"
+/>
+
+## Adding a New Shipping Method
+
+### Step 1: Access the Add Form
+
+1. Scroll to the **"Add Shipping Method"** section
+2. If you haven't reached the maximum limit, the form will be active and ready for input
+
+<Warning>
+  You can only create 1 shipping method initially. If the form is disabled,
+  you've reached the maximum limit.
+</Warning>
+
+### Step 2: Fill in Basic Information
+
+**Method Name** (Required):
+
+- Choose a clear, descriptive name
+- Examples: "Standard Delivery", "Express Shipping", "Free Shipping"
+
+**Price** (Required):
+
+- Set the shipping cost in Naira
+- Must be 0 or positive value
+- Use whole numbers or decimals (e.g., 500, 750.50)
+
+**Estimated Delivery Days** (Required):
+
+- Minimum of 2 days
+- Be realistic about your processing and delivery times
+- Example: 3-5 business days would be entered as "5"
+
+<Screenshot
+  src="/docs-images/storefront/soraxi-storefront-product-management-step-10.png"
+  alt="Shipping basic information form"
+  caption="Fill in the essential details for your shipping method"
+/>
+
+### Step 3: Set Method Status
+
+**Active/Inactive Toggle**:
+
+- **Active**: Method is available to customers at checkout
+- **Inactive**: Method is hidden from customers but saved in your settings
+
+<Tip>
+  Start with your method inactive until you're ready to go live, or use inactive
+  status to temporarily disable a shipping option.
+</Tip>
+
+### Step 4: Add Description
+
+**Method Description** (Required - minimum 25 characters):
+
+- Provide clear details about the shipping service
+- Include any special conditions or information
+- Set customer expectations accurately
+
+**Good Description Example**:
+"We deliver within 3-5 business days via our trusted logistics partners. Orders placed before 2 PM are processed same day."
+
+### Step 5: Create the Method
+
+1. Click **"Create Method"** to save your configuration
+2. You'll see a success message confirming the method was created
+3. The new method will appear in your existing methods list
+
+## Editing Existing Shipping Methods
+
+### Step 1: Access Edit Mode
+
+1. Find the shipping method you want to edit
+2. Click the **"Edit Method"** button on the method card
+3. The form will populate with current values
+
+<Screenshot
+  src="/docs-images/storefront/soraxi-storefront-product-management-step-11.png"
+  alt="Edit shipping method button"
+  caption="Click the Edit Method button to modify an existing shipping method"
+/>
+
+### Step 2: Make Your Changes
+
+- Update any field as needed
+- Change status from active to inactive (or vice versa)
+- Modify pricing or delivery estimates
+
+### Step 3: Save or Cancel
+
+- Click **"Update Method"** to save changes
+- Click **"Cancel Edit"** to discard changes
+
+<Warning>
+  Price and delivery time changes will affect all new orders immediately.
+  Consider how this impacts existing customer expectations.
+</Warning>
+
+## Shipping Best Practices
+
+### Pricing Strategy
+
+**Competitive Pricing Tips**:
+
+- Research similar stores' shipping costs
+- Consider offering free shipping above a certain order value
+- Factor in your packaging materials cost
+- Remember Soraxi commission when calculating profitability
+
+### Delivery Timeframes
+
+**Realistic Time Estimates**:
+
+- **Processing time**: 1-2 business days to prepare orders
+- **Transit time**: 2-5 business days depending on location
+- **Total estimate**: Add processing + transit time
+
+<Tip>
+  Under-promise and over-deliver. If you can deliver in 3 days, set the
+  expectation at 4-5 days to account for unexpected delays.
+</Tip>
+
+### Customer Communication
+
+**Clear Descriptions Should Include**:
+
+- Exact delivery process
+- Order cutoff times for same-day processing
+- What happens if delivery attempts fail
+- Contact information for shipping inquiries
+
+## Troubleshooting Common Issues
+
+### "Price cannot be negative" Error
+
+**Solution**:
+
+- Ensure shipping price is 0 or higher
+- Remove any negative symbols
+- For free shipping, set price to 0
+
+### "Description must be at least 25 characters" Error
+
+**Solution**:
+
+- Add more details about your shipping process
+
+### Method Not Appearing at Checkout
+
+**Possible Causes**:
+
+- Method is set to "Inactive"
+- Browser cache issues
+- Store verification not complete
+
+**Solutions**:
+
+- Check method status in shipping settings
+- Clear browser cache and refresh
+- Ensure your store is fully verified
+
+### Can't Edit Shipping Method
+
+**If the edit button isn't working**:
+
+- Refresh the page and try again
+- Check your internet connection
+- Contact support if issue persists
+
+## Shipping Tips from Successful Sellers
+
+<Note type="success">
+  **Pro Tips**: - **Bundle shipping**: Offer reduced shipping on multiple items
+  - **Seasonal adjustments**: Increase delivery estimates during holiday seasons
+  - **Packaging matters**: Invest in quality packaging to reduce damage during
+  transit
+</Note>
+
+## FAQs
+
+**Q: Can I offer free shipping?**
+A: Yes! Set the price to 0 and clearly describe it as "Free Shipping" in the method name.
+
+**Q: What if my actual delivery costs are higher than what I charge?**
+A: Factor the average shipping cost into your product pricing to avoid losses.
+
+**Q: Can I change shipping methods after orders are placed?**
+A: No, existing orders will keep the shipping method selected at checkout.
+
+**Q: How do I handle delivery to hard-to-reach areas?**
+A: Mention in your description that remote areas may incur additional delays or costs.
+
+**Q: What's the maximum delivery days I can set?**
+A: There's no maximum, but be realistic. Customers prefer faster delivery options.
+
+**Q: Can I temporarily disable shipping without deleting the method?**
+A: Yes! Use the inactive status to hide the method from customers while keeping it saved.
+
+## Next Steps After Setup
+
+After configuring your shipping methods:
+
+1. **Test the checkout process** from a customer's perspective
+2. **Review your product pricing** to ensure it covers shipping costs
+3. **Set up your payment methods** in Store Settings
+4. **Add your products** with accurate weight and dimensions
+
+You're now ready to handle shipping for your Soraxi store! Proper shipping setup helps build customer trust and reduces order-related issues.
+
+<Note type="info">
+  Need help with shipping? Contact our support team through the Support section
+  in your sidebar.
+</Note>
