@@ -14,9 +14,7 @@ async function getArticleComponent(slug: string[]) {
   try {
     const category = slug[0];
     const page = slug[1];
-    const modulePath = `@/app/docs/articles/${category}/${page}.mdx`;
-    const module = await import(modulePath);
-    // const module = await import(`../articles/${category}/${page}.mdx`);
+    const module = await import(`../articles/${category}/${page}.mdx`);
     return module.default;
   } catch (error) {
     return null;

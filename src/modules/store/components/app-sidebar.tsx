@@ -273,11 +273,14 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
               <ThemeSwitcher page="store" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <Link href={`/docs/`}>
-              <DropdownMenuItem className="flex items-center justify-between gap-2 cursor-pointer">
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/docs/`}
+                className="flex items-center justify-between gap-2 cursor-pointer"
+              >
                 <span>Resources</span>
-              </DropdownMenuItem>
-            </Link>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
