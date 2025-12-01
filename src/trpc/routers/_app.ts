@@ -33,6 +33,8 @@ import { publicStoreRouter } from "@/modules/server/public-store/public-store-pr
 import { adminCouponRouter } from "@/modules/server/admin/coupon/procedures";
 import { couponRouter } from "@/modules/server/coupon/procedures";
 import { flutterwavePaymentVerificationRouter } from "@/modules/server/flutterwave/payment-verification/procedures";
+import { storeFundReleaseRouter } from "@/modules/server/store/fund-release/procedures";
+import { adminFundReleaseRouter } from "@/modules/server/admin/admin-fund-release/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -62,6 +64,8 @@ export const appRouter = createTRPCRouter({
   storeShipping: storeShippingRouter,
   productReview: productReviewRouter,
   adminManagement: adminManagementRouter,
+  storeFundRelease: storeFundReleaseRouter,
+  adminFundRelease: adminFundReleaseRouter,
   adminRefundDetail: adminRefundDetailRouter,
   adminEscrowDetail: adminEscrowDetailRouter,
   adminEscrowRelease: adminEscrowReleaseRouter,

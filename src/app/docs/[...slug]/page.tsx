@@ -1,3 +1,6 @@
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { MDXComponents } from "@/lib/utils/mdx-utils/mdx-components";
 import { TableOfContents } from "@/lib/utils/mdx-utils/table-of-contents";

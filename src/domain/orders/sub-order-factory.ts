@@ -1,4 +1,4 @@
-import { flutterwaveInputSchema } from "@/modules/server/flutterwave/procedures";
+import { flutterwaveInputSchema } from "@/validators/order-input-validators";
 import { z } from "zod";
 import { SubOrder } from "./sub-order";
 import { DeliveryStatus, StatusHistory } from "@/enums";

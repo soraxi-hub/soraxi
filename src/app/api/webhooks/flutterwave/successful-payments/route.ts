@@ -1,7 +1,7 @@
 import { connectToDatabase } from "@/lib/db/mongoose";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
-import { FlutterwavePaymentService } from "@/domain/payments/flutterwave/payment";
+import { FlutterwavePayment } from "@/domain/payments/flutterwave/payment";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/domain/cart/cart";
 
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const requestBody = await request.json();
   const headers = request.headers;
   const secretHash = process.env.FLUTTERWAVE_SECRET_HASH_KEY;
-  const flutterwaveService = new FlutterwavePaymentService();
+  const flutterwaveService = new FlutterwavePayment();
   const processOrder = await OrderFactory.getProcessOrderInstance();
   let session: mongoose.ClientSession | null = null;
   await connectToDatabase();
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     };
 
     // Update the order record
-    const result = await processOrder.updateOrderRecord({
+    const result = await processOrder.updateOrderRecordToSuccessState({
       orderId,
       idempotencyKey,
       session,

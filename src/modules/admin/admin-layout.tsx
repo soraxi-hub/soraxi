@@ -157,12 +157,12 @@ const navigationItems = [
         icon: RefreshCcw,
         permissions: [PERMISSIONS.VIEW_REFUNDS],
       },
-      // {
-      //   title: "Financial Reports",
-      //   url: "/admin/finance/reports",
-      //   icon: BarChart3,
-      //   permissions: ["view_financial_reports"],
-      // },
+      {
+        title: "Fund Releases",
+        url: "/admin/fund-release",
+        icon: BarChart3,
+        permissions: ["view_financial_reports"],
+      },
     ],
   },
   {

@@ -1,15 +1,12 @@
 import { PaymentStatus } from "@/enums";
-import { getOrderModel, IOrder } from "@/lib/db/models/order.model";
-import { getStoreModel } from "@/lib/db/models/store.model";
-import mongoose, { Model } from "mongoose";
-import {
-  NotificationFactory,
-  OrderConfirmationEmail,
-  renderTemplate,
-  StoreOrderNotificationEmail,
-} from "../notification";
-import React from "react";
-import { FlutterwaveTransactionData } from "../payments/flutterwave/payment";
+import { getOrderModel, type IOrder } from "@/lib/db/models/order.model";
+import { getStoreModel, IStore } from "@/lib/db/models/store.model";
+import { createFundRelease } from "@/lib/test-services/fund-release-service";
+import { getWalletModel } from "@/lib/db/models/wallet.model";
+import mongoose, { type Model } from "mongoose";
+import type { FlutterwaveTransactionData } from "../payments/flutterwave/payment";
+import { OrderNotificationService } from "@/services/order-notification.service";
+import { currencyOperations } from "@/lib/utils/naira";
 
 type CustomerInfo = {
   fullName: string;
@@ -26,7 +23,7 @@ type UpdateOrderRecordProps = {
 
 export class ProcessOrder {
   private Order!: Model<IOrder>;
-  // private readonly expireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days i.e, 2 weeks.
+  private orderNotificationService = new OrderNotificationService();
 
   private constructor() {}
 
@@ -37,7 +34,7 @@ export class ProcessOrder {
     return service;
   }
 
-  async updateOrderRecord({
+  async updateOrderRecordToSuccessState({
     orderId,
     idempotencyKey,
     session,
@@ -50,6 +47,7 @@ export class ProcessOrder {
     userId?: string;
   }> {
     const statusArr = [PaymentStatus.Failed, PaymentStatus.Cancelled];
+
     // find order by ID
     const order = await this.Order.findById(
       new mongoose.Types.ObjectId(orderId)
@@ -83,10 +81,21 @@ export class ProcessOrder {
     order.paymentMethod = paymentMethod;
     await order.save({ session });
 
+    try {
+      await this.createFundReleasesForOrder(order, session);
+    } catch (error) {
+      console.error("Error creating fund releases:", error);
+      // Log error but don't fail the order - fund releases can be retried
+      // In production, you'd want to trigger an admin alert here
+    }
+
     // Send notifications
     await Promise.all([
-      this.sendCustomerNotification(order, customerInfo),
-      this.sendStoreNotifications(order, customerInfo),
+      this.orderNotificationService.sendCustomerNotification(
+        order,
+        customerInfo
+      ),
+      this.orderNotificationService.sendStoreNotifications(order, customerInfo),
     ]);
 
     return {
@@ -94,6 +103,52 @@ export class ProcessOrder {
       message: "Order record updated successfully",
       userId: order.userId.toString(),
     };
+  }
+
+  private async createFundReleasesForOrder(
+    order: IOrder,
+    session: mongoose.ClientSession | null
+  ): Promise<void> {
+    const Wallet = await getWalletModel();
+
+    for (const subOrder of order.subOrders) {
+      // Get the store object (populated in the query above)
+      const store = (subOrder.storeId as unknown as IStore) || null;
+
+      if (!store) {
+        console.warn(`Store not found for subOrder ${subOrder._id}`);
+        continue;
+      }
+
+      // Create the fund release record
+      const fundRelease = await createFundRelease(
+        store,
+        order,
+        subOrder,
+        session
+      );
+
+      console.log(
+        `Fund release created for subOrder ${subOrder._id}: ${fundRelease._id}`
+      );
+
+      // Update the store's wallet - add to pending funds
+      if (store.walletId) {
+        const wallet = await Wallet.findById(store.walletId).session(session);
+        if (wallet) {
+          // wallet.pending = (wallet.pending || 0) + (amount - commission);
+          wallet.pending = currencyOperations.add(
+            wallet.pending || 0,
+            fundRelease.settlement.amount,
+            fundRelease.settlement.shippingPrice
+          );
+          await wallet.save({ session });
+          console.log(
+            `Updated wallet ${store.walletId} - pending funds: ${wallet.pending}`
+          );
+        }
+      }
+    }
   }
 
   async updateOrderRecordToFailureState({
@@ -111,7 +166,6 @@ export class ProcessOrder {
   }> {
     const failedStatusArr = [PaymentStatus.Failed, PaymentStatus.Cancelled];
 
-    // find order by ID
     const order = await this.Order.findById(
       new mongoose.Types.ObjectId(orderId)
     )
@@ -122,13 +176,9 @@ export class ProcessOrder {
       return { ok: false, error: "Order not found" };
     }
 
-    // If already in a teminal state, return.
-    // else, the order payment status is in the pending state, thus update it
     if (failedStatusArr.includes(order.paymentStatus)) {
       return { ok: true, status: order.paymentStatus };
     }
-
-    // order.expireAt = this.expireAt;
 
     if (transactionDataStatus.toLowerCase() === "failed") {
       order.paymentStatus = PaymentStatus.Failed;
@@ -172,137 +222,9 @@ export class ProcessOrder {
       return { ok: true, status: order.paymentStatus };
     }
 
-    // order.expireAt = this.expireAt;
     order.paymentStatus = PaymentStatus.Cancelled;
 
     const updatedOrder = await order.save({ session });
     return { ok: true, status: updatedOrder.paymentStatus };
-  }
-
-  async sendCustomerNotification(
-    order: IOrder,
-    customerInfo: CustomerInfo
-  ): Promise<boolean> {
-    try {
-      // Prepare all order items for customer email
-      const allOrderItems = order.subOrders.flatMap((subOrder) =>
-        subOrder.products.map((p) => ({
-          name: p.productSnapshot.name,
-          quantity: p.productSnapshot.quantity,
-          price: p.productSnapshot.price || 0,
-        }))
-      );
-
-      // Calculate total for entire order
-      const totalAmount = allOrderItems.reduce(
-        (sum: number, item) => sum + item.price * item.quantity,
-        0
-      );
-
-      // Render customer order confirmation email
-      const customerHtml = await renderTemplate(
-        React.createElement(OrderConfirmationEmail, {
-          customerName: customerInfo.fullName || "Customer",
-          orderId: (order._id as { toString: () => string }).toString(),
-          items: allOrderItems,
-          totalAmount: totalAmount,
-          deliveryDate: undefined, // I can't really do this since the order contains multiple stores with different delivery estimates
-        })
-      );
-
-      // Send customer notification
-      const customerNotification = NotificationFactory.create("email", {
-        recipient: customerInfo.email,
-        subject: `Order Confirmation - ${(order._id as { toString: () => string }).toString()}`,
-        emailType: "orderConfirmation",
-        fromAddress: "orders@soraxihub.com",
-        html: customerHtml,
-        text: `Thank you for your order! Your order ID is ${(order._id as { toString: () => string }).toString()}. We'll notify you when your order ships.`,
-      });
-
-      await customerNotification.send();
-      return true;
-    } catch (error) {
-      console.error("Failed to send customer notification:", error);
-      return false;
-    }
-  }
-
-  async sendStoreNotifications(
-    order: IOrder,
-    customerInfo: CustomerInfo
-  ): Promise<number> {
-    let successfulNotifications = 0;
-
-    try {
-      const Store = await getStoreModel();
-
-      for (const subOrder of order.subOrders) {
-        const storeDoc = await Store.findById(subOrder.storeId)
-          .select("name storeEmail _id")
-          .lean<{
-            _id: mongoose.Types.ObjectId;
-            name: string;
-            storeEmail: string;
-          }>();
-
-        if (!storeDoc?.storeEmail) continue;
-
-        // Prepare store-specific order items
-        const storeOrderItems = subOrder.products.map((p) => ({
-          name: p.productSnapshot.name,
-          quantity: p.productSnapshot.quantity,
-          price: p.productSnapshot.price || 0,
-          productId: p.productId.toString(),
-        }));
-
-        // Calculate total for this store's sub-order
-        const storeTotalAmount = storeOrderItems.reduce(
-          (sum: number, item) => sum + item.price * item.quantity,
-          0
-        );
-
-        // Get delivery address from order
-        const deliveryAddress = order.shippingAddress
-          ? {
-              street: order.shippingAddress.address,
-              deliveryType: order.shippingAddress.deliveryType,
-              country: "Nigeria",
-              postalCode: order.shippingAddress.postalCode,
-            }
-          : undefined;
-
-        // Render store notification email
-        const storeHtml = await renderTemplate(
-          React.createElement(StoreOrderNotificationEmail, {
-            storeName: storeDoc.name,
-            storeId: storeDoc._id.toString(),
-            orderId: (order._id as { toString: () => string }).toString(),
-            items: storeOrderItems,
-            totalAmount: storeTotalAmount,
-            customerName: customerInfo.fullName,
-            customerEmail: customerInfo.email,
-            deliveryAddress: deliveryAddress,
-          })
-        );
-
-        // Send store notification
-        const storeNotification = NotificationFactory.create("email", {
-          recipient: storeDoc.storeEmail,
-          subject: `New Order Received - ${(order._id as { toString: () => string }).toString()}`,
-          emailType: "storeOrderNotification",
-          fromAddress: "orders@soraxihub.com",
-          html: storeHtml,
-          text: `You have received a new order with ID: ${(order._id as { toString: () => string }).toString()}. Please log in to your dashboard to view details.`,
-        });
-
-        await storeNotification.send();
-        successfulNotifications++;
-      }
-    } catch (error) {
-      console.error("Failed to send store notifications:", error);
-    }
-
-    return successfulNotifications;
   }
 }

@@ -21,6 +21,7 @@ export enum WalletTransactionRelatedDocumentType {
   WithdrawalRequest = "WithdrawalRequest",
   Refund = "Refund",
   Adjustment = "Adjustment",
+  FundRelease = "FundRelease",
 }
 
 /**
@@ -62,8 +63,8 @@ const WalletSchema = new Schema<IWallet>(
       index: true,
     },
     balance: { type: Number, default: 0 }, // in kobo
-    pending: { type: Number, default: 0 },
-    totalEarned: { type: Number, default: 0 },
+    pending: { type: Number, default: 0 }, // in kobo
+    totalEarned: { type: Number, default: 0 }, // in kobo
     currency: { type: String, default: "NGN" },
   },
   { timestamps: true }

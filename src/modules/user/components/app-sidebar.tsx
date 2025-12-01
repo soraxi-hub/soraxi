@@ -157,7 +157,7 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
       // variant={`inset`}
       collapsible={`offcanvas`}
       // className="absolute top-[7rem]"
-      className="fixed top-[7rem] h-[calc(100vh-7rem)]"
+      className="fixed top-[4rem] h-[calc(100vh-4rem)]"
     >
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center space-x-2">
