@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { PaymentStatus } from "@/enums";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { FlutterwavePaymentService } from "@/domain/payments/flutterwave/payment";
+import { FlutterwavePayment } from "@/domain/payments/flutterwave/payment";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/domain/cart/cart";
 
@@ -26,7 +26,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const { tx_ref, withTransactionId, transaction_id } = input;
       const statusArr = ["successful", "completed", "success"];
-      const flutterwaveService = new FlutterwavePaymentService();
+      const flutterwaveService = new FlutterwavePayment();
       const processOrder = await OrderFactory.getProcessOrderInstance();
       let session: mongoose.ClientSession | null = null;
       await connectToDatabase();
@@ -104,7 +104,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             };
 
             // Update the order record
-            const result = await processOrder.updateOrderRecord({
+            const result = await processOrder.updateOrderRecordToSuccessState({
               orderId,
               idempotencyKey,
               session,

@@ -3,7 +3,7 @@
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
-import { AdminLayout } from "@/modules/admin/AdminLayout";
+import { AdminLayout } from "@/modules/admin/admin-layout";
 import { FinancePanel } from "@/modules/admin/finance/finance-panel";
 
 /**

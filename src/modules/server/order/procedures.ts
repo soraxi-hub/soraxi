@@ -11,6 +11,7 @@ import {
 import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { getFundReleaseModel } from "@/lib/db/models/fund-release.model";
 // import { ProductTypeEnum } from "@/validators/product-validators";
 
 // type RawOrdersData = {
@@ -386,6 +387,7 @@ export const orderRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const { mainOrderId, subOrderId, deliveryStatus } = input;
+      const now = new Date();
 
       // Validate user ID format
       if (
@@ -450,7 +452,7 @@ export const orderRouter = createTRPCRouter({
       const currentDate = new Date();
 
       subOrder.customerConfirmedDelivery.confirmed = true;
-      subOrder.customerConfirmedDelivery.confirmedAt = new Date();
+      subOrder.customerConfirmedDelivery.confirmedAt = now;
 
       // Store previous status for logging
       const previousStatus = subOrder.deliveryStatus;
@@ -471,6 +473,25 @@ export const orderRouter = createTRPCRouter({
         ); // 2 days in milliseconds
       }
 
+      const FundRelease = await getFundReleaseModel();
+
+      // Update the fund release record associated with this sub-order
+      const fundRelease = await FundRelease.findOne({
+        orderId: order._id,
+        subOrderId: subOrder._id,
+      });
+
+      if (!fundRelease) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Fund release record not found for order ID ${order._id} and sub-order ID ${subOrder._id}.`,
+        });
+      }
+
+      fundRelease.conditionsMet.deliveryConfirmed = true;
+      fundRelease.conditionsMet.deliveryConfirmedAt = now;
+
+      await fundRelease.save();
       await order.save();
 
       return {

@@ -16,7 +16,7 @@ import {
   ChevronDownIcon,
   WalletIcon,
   LogOutIcon,
-  // RefreshCwIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 
 import {
@@ -82,6 +82,11 @@ const sidebarItems = (storeId: string) => [
       //   url: `/store/${storeId}/returns`,
       //   icon: RefreshCwIcon,
       // },
+      {
+        title: "My Escrow",
+        url: `/store/${storeId}/escrow`,
+        icon: RefreshCwIcon,
+      },
       {
         title: "Wallet",
         url: `/store/${storeId}/wallet`,
