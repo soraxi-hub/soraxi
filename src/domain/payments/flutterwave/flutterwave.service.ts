@@ -64,13 +64,6 @@ export class FlutterwavePaymentService {
       });
     }
 
-    // Create pending order
-    const order = await this.orderService.createPendingOrder({
-      user,
-      cart,
-      input,
-    });
-
     const { amount, customer } = input;
     const idempotencyKey = cart.idempotencyKey;
 
@@ -81,6 +74,13 @@ export class FlutterwavePaymentService {
         message: "Idempotency key is missing from the cart.",
       });
     }
+
+    // Create pending order
+    const order = await this.orderService.createPendingOrder({
+      user,
+      cart,
+      input,
+    });
 
     /**
      * Critical: Please note that changing any of this data or field names may break
