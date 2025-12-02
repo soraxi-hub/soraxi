@@ -381,9 +381,8 @@ export const withdrawalRouter = createTRPCRouter({
 
         // Count total documents
         const countPipeline = [...pipeline, { $count: "total" }];
-        const countResult = await WithdrawalRequestModel.aggregate(
-          countPipeline
-        );
+        const countResult =
+          await WithdrawalRequestModel.aggregate(countPipeline);
         const totalRequests = countResult[0]?.total || 0;
 
         // Add pagination
@@ -418,21 +417,21 @@ export const withdrawalRouter = createTRPCRouter({
           ]);
         const totalApprovedAmount = totalApprovedAmountResult[0]?.total || 0;
 
-        // Log audit action
-        await logAdminAction({
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles as Role[],
-          action: AUDIT_ACTIONS.VIEW_SETTLEMENTS, // Closest action
-          module: AUDIT_MODULES.FINANCE,
-          details: {
-            viewType: "withdrawal_requests_list",
-            filters: input,
-            resultCount: formattedRequests.length,
-            totalRequests,
-          },
-        });
+        // // Log audit action
+        // await logAdminAction({
+        //   adminId: admin.id,
+        //   adminName: admin.name,
+        //   adminEmail: admin.email,
+        //   adminRoles: admin.roles as Role[],
+        //   action: AUDIT_ACTIONS.VIEW_SETTLEMENTS, // Closest action
+        //   module: AUDIT_MODULES.FINANCE,
+        //   details: {
+        //     viewType: "withdrawal_requests_list",
+        //     filters: input,
+        //     resultCount: formattedRequests.length,
+        //     totalRequests,
+        //   },
+        // });
 
         return {
           success: true,
@@ -719,9 +718,8 @@ export const withdrawalRouter = createTRPCRouter({
           session.startTransaction();
 
           // Find request and store
-          const withdrawalRequest = await WithdrawalRequestModel.findById(
-            requestId
-          ).session(session);
+          const withdrawalRequest =
+            await WithdrawalRequestModel.findById(requestId).session(session);
           if (!withdrawalRequest) {
             throw new TRPCError({
               code: "NOT_FOUND",
@@ -918,9 +916,8 @@ export const withdrawalRouter = createTRPCRouter({
           session.startTransaction();
 
           // Find request and store
-          const withdrawalRequest = await WithdrawalRequestModel.findById(
-            requestId
-          ).session(session);
+          const withdrawalRequest =
+            await WithdrawalRequestModel.findById(requestId).session(session);
           if (!withdrawalRequest) {
             throw new TRPCError({
               code: "NOT_FOUND",

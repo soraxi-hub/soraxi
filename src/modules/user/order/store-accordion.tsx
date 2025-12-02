@@ -256,7 +256,7 @@ export function StoreAccordion({
                     {/* Products Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subOrder.products.map(
-                        (product: any, productIndex: number) => (
+                        (product, productIndex: number) => (
                           <ProductItem
                             key={`${productIndex}`}
                             product={product}
@@ -266,7 +266,6 @@ export function StoreAccordion({
                             }
                             deliveryStatus={subOrder.deliveryStatus}
                             subOrderId={subOrder._id}
-                            returnWindow={subOrder.returnWindow}
                           />
                         )
                       )}

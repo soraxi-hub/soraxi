@@ -61,22 +61,6 @@ export interface ISubOrder {
     confirmedAt?: Date; // when the customer confirmed
     autoConfirmed: boolean; // true if system auto-confirmed
   };
-  settlement?: {
-    amount: number; // Amount after commission has been deducted
-    shippingPrice: number; // Gotten from the selected Shipping method and added to the amount to reflect the total settlement for the store.
-    commission: number; // Total commission amount deducted
-    appliedPercentageFee: number;
-    appliedFlatFee: number;
-    notes: string;
-  };
-  escrow: {
-    held: boolean; // money is currently in escrow
-    released: boolean; // money has been paid to seller
-    releasedAt: Date; // when escrow was released
-    refunded: boolean; // for returned or refunded orders
-    refundReason: string; // optional reason
-  };
-  returnWindow: Date; // to track deadline for returns before releasing escrow
 
   // <CHANGE> Add returns tracking for individual product returns
   returns?: {
@@ -220,22 +204,6 @@ const SubOrderSchema = new Schema<ISubOrder>({
     confirmedAt: { type: Date },
     autoConfirmed: { type: Boolean, default: false },
   },
-  settlement: {
-    amount: { type: Number },
-    shippingPrice: { type: Number },
-    commission: { type: Number },
-    appliedPercentageFee: { type: Number },
-    appliedFlatFee: { type: Number },
-    notes: { type: String },
-  },
-  escrow: {
-    held: { type: Boolean, default: true }, // money is currently in escrow
-    released: { type: Boolean, default: false }, // money has been paid to seller
-    releasedAt: { type: Date }, // when escrow was released
-    refunded: { type: Boolean, default: false }, // for returned or refunded orders
-    refundReason: { type: String }, // optional reason
-  },
-  returnWindow: { type: Date }, // set at delivery, e.g., +2 days
   // <CHANGE> Add returns schema for tracking individual product returns
   returns: [
     {

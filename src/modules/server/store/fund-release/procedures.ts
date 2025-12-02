@@ -56,7 +56,7 @@ export const storeFundReleaseRouter = createTRPCRouter({
             : input.sort === "oldest"
               ? { field: "createdAt" as const, order: "asc" as const }
               : {
-                  field: "scheduledReleaseTime" as const,
+                  field: "settlement.amount" as const,
                   order: "desc" as const,
                 };
 

@@ -1,7 +1,7 @@
 import { PaymentStatus } from "@/enums";
 import { getOrderModel, type IOrder } from "@/lib/db/models/order.model";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
-import { createFundRelease } from "@/lib/test-services/fund-release-service";
+import { createFundRelease } from "@/lib/utils/fund-release-service";
 import { getWalletModel } from "@/lib/db/models/wallet.model";
 import mongoose, { type Model } from "mongoose";
 import type { FlutterwaveTransactionData } from "../payments/flutterwave/payment";
@@ -87,6 +87,9 @@ export class ProcessOrder {
       console.error("Error creating fund releases:", error);
       // Log error but don't fail the order - fund releases can be retried
       // In production, you'd want to trigger an admin alert here
+      // Track failed fund releases for retry/reconciliation
+      // Consider: queue for retry, flag order for admin review, or emit alert
+      // At minimum, persist the failure state for later recovery
     }
 
     // Send notifications
@@ -110,6 +113,10 @@ export class ProcessOrder {
     session: mongoose.ClientSession | null
   ): Promise<void> {
     const Wallet = await getWalletModel();
+
+    if (!session) {
+      throw new Error("Session required for fund release creation");
+    }
 
     for (const subOrder of order.subOrders) {
       // Get the store object (populated in the query above)

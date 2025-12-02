@@ -468,9 +468,6 @@ export const orderRouter = createTRPCRouter({
       if (previousStatus === DeliveryStatus.OutForDelivery) {
         // Set delivery date and calculate return window
         subOrder.deliveryDate = currentDate;
-        subOrder.returnWindow = new Date(
-          currentDate.getTime() + 2 * 24 * 60 * 60 * 1000
-        ); // 2 days in milliseconds
       }
 
       const FundRelease = await getFundReleaseModel();

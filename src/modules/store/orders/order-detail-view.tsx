@@ -12,7 +12,6 @@ import {
   Mail,
   Calendar,
   AlertCircle,
-  InfoIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,16 +29,11 @@ import {
 // import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { currencyOperations, formatNaira } from "@/lib/utils/naira";
+import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { isPopulatedUser } from "@/lib/utils/order-formatter";
 import { cn, getStatusBadge } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -287,11 +281,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               {order.subOrders.map((subOrder, index) => {
                 const statusConfig = getStatusBadge(subOrder.deliveryStatus);
                 const StatusIcon = statusConfig.icon;
-                const returnWindowExpiration = subOrder.returnWindow
-                  ? new Date(subOrder.returnWindow)
-                  : null;
-                const returnWindowActive =
-                  returnWindowExpiration && returnWindowExpiration > new Date();
                 return (
                   <div key={index} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
@@ -345,173 +334,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                       updating={updating}
                       handleStatusUpdateAction={handleStatusUpdate}
                     />
-
-                    {/* Escrow Information */}
-                    {subOrder.escrow && (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <h4 className="font-medium mb-2">Escrow Status</h4>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                          {/* Held */}
-                          <div className="flex flex-wrap items-center">
-                            <span className="text-muted-foreground">Held:</span>
-                            <span
-                              className={`ml-2 ${
-                                subOrder.escrow.held
-                                  ? "text-orange-600"
-                                  : "text-green-600"
-                              }`}
-                            >
-                              {subOrder.escrow.held ? "Yes" : "No"}
-                            </span>
-                          </div>
-
-                          {/* Released */}
-                          <div className="flex flex-wrap items-center">
-                            <span className="text-muted-foreground">
-                              Released:
-                            </span>
-                            <span
-                              className={`ml-2 ${
-                                subOrder.escrow.released
-                                  ? "text-green-600"
-                                  : "text-orange-600"
-                              }`}
-                            >
-                              {subOrder.escrow.released ? "Yes" : "No"}
-                            </span>
-                          </div>
-
-                          {/* Return Window Info */}
-                          {subOrder.returnWindow && (
-                            <>
-                              <div className="flex flex-wrap items-center">
-                                <span className="text-muted-foreground">
-                                  <Popover>
-                                    <PopoverTrigger className="inline-flex items-center cursor-pointer">
-                                      <InfoIcon
-                                        width={12}
-                                        height={12}
-                                        className="mr-1"
-                                      />
-                                      Return Window:
-                                    </PopoverTrigger>
-                                    <PopoverContent className="max-w-xs text-sm dark:bg-muted">
-                                      <p className="text-sm">
-                                        Escrow will be released once the return
-                                        window expires on{" "}
-                                        {format(
-                                          new Date(subOrder.returnWindow),
-                                          "MMM dd, yyyy"
-                                        )}
-                                        .
-                                      </p>
-                                    </PopoverContent>
-                                  </Popover>
-                                </span>
-                                <span className="ml-2">
-                                  {returnWindowActive ? "Active" : "Expired"}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center">
-                                <span className="text-muted-foreground">
-                                  {returnWindowActive
-                                    ? "Expires on:"
-                                    : "Expired on:"}
-                                </span>
-                                <span className="ml-2">
-                                  {returnWindowExpiration
-                                    ? format(
-                                        new Date(subOrder.returnWindow),
-                                        "MMM dd, yyyy"
-                                      )
-                                    : "N/A"}
-                                </span>
-                              </div>
-                            </>
-                          )}
-
-                          {/* Released At */}
-                          {subOrder.escrow.releasedAt && (
-                            <div className="flex flex-wrap items-center">
-                              <span className="text-muted-foreground">
-                                Released At:
-                              </span>
-                              <span className="ml-2">
-                                {format(
-                                  new Date(subOrder.escrow.releasedAt),
-                                  "MMM dd, yyyy"
-                                )}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Settlement Info */}
-                          {subOrder.settlement && (
-                            <>
-                              <div className="flex flex-wrap items-center">
-                                <span className="text-muted-foreground">
-                                  Settlement Amount:
-                                </span>
-                                <span className="ml-2">
-                                  {formatNaira(subOrder.settlement.amount)}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center">
-                                <span className="text-muted-foreground">
-                                  Shipping Cost:
-                                </span>
-                                <span className="ml-2">
-                                  {formatNaira(
-                                    subOrder.settlement.shippingPrice
-                                  )}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center">
-                                <span className="text-muted-foreground">
-                                  <Popover>
-                                    <PopoverTrigger className="inline-flex items-center cursor-pointer">
-                                      <InfoIcon
-                                        width={12}
-                                        height={12}
-                                        className="mr-1"
-                                      />
-                                      Total:
-                                    </PopoverTrigger>
-                                    <PopoverContent className="max-w-xs text-sm dark:bg-muted">
-                                      <p className="text-sm">
-                                        Total = Settlement Amount + Shipping
-                                        Cost.
-                                      </p>
-                                    </PopoverContent>
-                                  </Popover>
-                                </span>
-                                <span className="ml-2">
-                                  {formatNaira(
-                                    currencyOperations.add(
-                                      subOrder.settlement.amount,
-                                      subOrder.settlement.shippingPrice
-                                    )
-                                  )}
-                                </span>
-                              </div>
-
-                              <div className="col-span-1 sm:col-span-2 flex items-center">
-                                <span className="text-muted-foreground">
-                                  Notes:
-                                </span>
-                                <p className="ml-2 mt-1 break-words">
-                                  {subOrder.settlement.notes}
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -640,7 +462,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                 <p className="text-sm text-muted-foreground">
                   {order.shippingAddress?.deliveryType === DeliveryType.Campus
                     ? `Campus Delivery (${campusLocations.join(", ")})`
-                    : order.shippingAddress?.address ?? "Unknown"}
+                    : (order.shippingAddress?.address ?? "Unknown")}
                 </p>
                 {/* Postal code is hidden since delivery is only within UNICAL */}
                 {/* <p className="text-sm text-muted-foreground">

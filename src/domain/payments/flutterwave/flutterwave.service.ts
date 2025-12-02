@@ -74,6 +74,14 @@ export class FlutterwavePaymentService {
     const { amount, customer } = input;
     const idempotencyKey = cart.idempotencyKey;
 
+    // Ensure idempotency key exists
+    if (!idempotencyKey) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Idempotency key is missing from the cart.",
+      });
+    }
+
     /**
      * Critical: Please note that changing any of this data or field names may break
      * the webhook verification and payment confirmation process. Proceed with caution.

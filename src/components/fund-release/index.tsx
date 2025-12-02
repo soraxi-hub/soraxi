@@ -28,7 +28,7 @@ import Image from "next/image";
 import { siteConfig } from "@/config/site";
 import { IStore } from "@/lib/db/models/store.model";
 import { JSX } from "react";
-import { getTriggerLabel } from "@/lib/test-services/fund-release-logic";
+import { getTriggerLabel } from "@/lib/utils/fund-release-logic";
 
 /**
  * Status Overview Card

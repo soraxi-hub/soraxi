@@ -135,8 +135,8 @@ const navigationItems = [
     title: "Escrow Management",
     items: [
       {
-        title: "Escrow Release Queue",
-        url: "/admin/escrow/release-queue",
+        title: "Escrow Release",
+        url: "/admin/escrow",
         icon: Wallet,
         permissions: [PERMISSIONS.VIEW_ESCROW],
       },
@@ -156,12 +156,6 @@ const navigationItems = [
         url: "/admin/refunds/queue",
         icon: RefreshCcw,
         permissions: [PERMISSIONS.VIEW_REFUNDS],
-      },
-      {
-        title: "Fund Releases",
-        url: "/admin/fund-release",
-        icon: BarChart3,
-        permissions: ["view_financial_reports"],
       },
     ],
   },

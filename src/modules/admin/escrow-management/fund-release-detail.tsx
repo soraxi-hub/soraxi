@@ -30,7 +30,7 @@ import {
   SettlementCard,
   StatusOverviewCard,
   TimelineCard,
-} from "../fund-release";
+} from "../../../components/fund-release";
 
 type AdminActionsType = "approve" | "force-release" | "reverse" | "add-notes";
 

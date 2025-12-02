@@ -95,7 +95,6 @@ export class OrderService {
             ),
             description: store.selectedShippingMethod?.description,
           },
-          escrow: { held: true, released: false, refunded: false },
           statusHistory: [
             {
               status: StatusHistory.OrderPlaced,

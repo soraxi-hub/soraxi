@@ -15,16 +15,11 @@ import { storeShippingRouter } from "@/modules/server/store/shipping/procedures"
 import { adminStoreRouter } from "@/modules/server/admin/store/procedures";
 import { adminOrdersRouter } from "@/modules/server/admin/orders/procedures";
 import { deliveryConfirmationRouter } from "@/modules/server/admin/delivery-confirmation/procedure";
-import { adminEscrowReleaseQueueRouter } from "@/modules/server/admin/escrow-management/escrow-release-queue/procedure";
-import { adminEscrowDetailRouter } from "@/modules/server/admin/escrow-management/admin-escrow-detail/procedure";
-import { adminEscrowReleaseRouter } from "@/modules/server/admin/escrow-management/admin-escrow-release/procedure";
 import { storeWalletRouter } from "@/modules/server/store/wallet-management/fetch-wallet/procedures";
 import { storeWalletTransactionsRouter } from "@/modules/server/store/wallet-management/store-wallet-transactions/procedures";
 import { withdrawalRouter } from "@/modules/server/withdrawal-router/procedure";
 import { productReviewRouter } from "@/modules/server/reviews/products/procedures";
 import { orderStatusRouter } from "@/modules/server/store/store-orders/order-status-management/procedures";
-import { adminRefundRouter } from "@/modules/server/admin/admin-refund-management/fetch-eligible-refunds/procedures";
-import { adminRefundDetailRouter } from "@/modules/server/admin/admin-refund-management/refund-details/procedures";
 import { adminManagementRouter } from "@/modules/server/admin/admin-management/procedures";
 import { auditLogRouter } from "@/modules/server/admin/audit-logs/procedures";
 import { storeProductRouter } from "@/modules/server/store/products/procedure";
@@ -54,7 +49,6 @@ export const appRouter = createTRPCRouter({
   publicStore: publicStoreRouter,
   adminCoupon: adminCouponRouter,
   adminOrders: adminOrdersRouter,
-  adminRefund: adminRefundRouter,
   storeWallet: storeWalletRouter,
   orderStatus: orderStatusRouter,
   storeOrders: storeOrdersRouter,
@@ -66,12 +60,8 @@ export const appRouter = createTRPCRouter({
   adminManagement: adminManagementRouter,
   storeFundRelease: storeFundReleaseRouter,
   adminFundRelease: adminFundReleaseRouter,
-  adminRefundDetail: adminRefundDetailRouter,
-  adminEscrowDetail: adminEscrowDetailRouter,
-  adminEscrowRelease: adminEscrowReleaseRouter,
   adminDeliveryConfirmation: deliveryConfirmationRouter,
   storeWalletTransactions: storeWalletTransactionsRouter,
-  adminEscrowReleaseQueue: adminEscrowReleaseQueueRouter,
   flutterwavePaymentVerification: flutterwavePaymentVerificationRouter,
 });
 // export type definition of API
