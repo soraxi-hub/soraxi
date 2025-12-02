@@ -52,11 +52,7 @@ export default function AdminFundReleasesList() {
   const [sort, setSort] = useState<SortaOptions>("newest");
 
   // --- TRPC Query ----------------------------------------------
-  const {
-    data,
-    isLoading,
-    refetch: triggerRefresh,
-  } = useSuspenseQuery(
+  const { data } = useSuspenseQuery(
     trpc.adminFundRelease.getAll.queryOptions({
       sort,
       page,
@@ -68,41 +64,25 @@ export default function AdminFundReleasesList() {
   );
 
   // --- Filters --------------------------------------------------
-  const handleStatusChange = useCallback(
-    (value: string) => {
-      setStatus(value as FundReleaseStatus | "all");
-      setPage(1);
-      triggerRefresh();
-    },
-    [triggerRefresh]
-  );
+  const handleStatusChange = useCallback((value: string) => {
+    setStatus(value as FundReleaseStatus | "all");
+    setPage(1);
+  }, []);
 
-  const handleStoreTierChange = useCallback(
-    (value: string) => {
-      setStoreTier(value as StoreTierEnum | "all");
-      setPage(1);
-      triggerRefresh();
-    },
-    [triggerRefresh]
-  );
+  const handleStoreTierChange = useCallback((value: string) => {
+    setStoreTier(value as StoreTierEnum | "all");
+    setPage(1);
+  }, []);
 
-  const handleRiskLevelChange = useCallback(
-    (value: string) => {
-      setRiskLevel(value as "high" | "medium" | "low" | "all");
-      setPage(1);
-      triggerRefresh();
-    },
-    [triggerRefresh]
-  );
+  const handleRiskLevelChange = useCallback((value: string) => {
+    setRiskLevel(value as "high" | "medium" | "low" | "all");
+    setPage(1);
+  }, []);
 
-  const handleSortChange = useCallback(
-    (value: SortaOptions) => {
-      setSort(value);
-      setPage(1);
-      triggerRefresh();
-    },
-    [triggerRefresh]
-  );
+  const handleSortChange = useCallback((value: SortaOptions) => {
+    setSort(value);
+    setPage(1);
+  }, []);
 
   const handleClearFilters = () => {
     setStatus("all");
@@ -110,7 +90,6 @@ export default function AdminFundReleasesList() {
     setRiskLevel("all");
     setSort("newest");
     setPage(1);
-    triggerRefresh();
   };
 
   // --- Data -----------------------------------------------------
@@ -230,13 +209,7 @@ export default function AdminFundReleasesList() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 rounded bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : fundReleases.length === 0 ? (
+          {fundReleases.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <p className="text-muted-foreground">No fund releases found</p>
             </div>
@@ -302,7 +275,7 @@ export default function AdminFundReleasesList() {
 
                       <TableCell>
                         <Link
-                          href={`/admin/fund-release/${release._id}`}
+                          href={`/admin/escrow/${release._id}`}
                           className="text-xs font-medium text-green-600 hover:text-green-700"
                         >
                           View <ChevronRight className="inline h-3 w-3" />

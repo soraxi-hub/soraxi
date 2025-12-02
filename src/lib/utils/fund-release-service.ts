@@ -40,7 +40,7 @@ import {
 import type { IOrder, ISubOrder } from "../db/models/order.model";
 import type { IStore } from "../db/models/store.model";
 import { CommissionService } from "@/services/commission.service";
-import { currencyOperations } from "../utils/naira";
+import { currencyOperations } from "./naira";
 import { WalletTransactionService } from "@/services/wallet-transaction.service";
 
 /**

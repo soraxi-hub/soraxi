@@ -26,7 +26,11 @@ interface QueryFilters {
 }
 
 interface SortOptions {
-  field: "createdAt" | "scheduledReleaseTime" | "actualReleasedAt" | "amount";
+  field:
+    | "createdAt"
+    | "scheduledReleaseTime"
+    | "actualReleasedAt"
+    | "settlement.amount";
   order: "asc" | "desc";
 }
 

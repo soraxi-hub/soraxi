@@ -160,8 +160,6 @@ export function formatOrderDocument(
       shippingMethod: subOrder.shippingMethod,
       deliveryDate: subOrder.deliveryDate,
       customerConfirmedDelivery: subOrder.customerConfirmedDelivery,
-      escrow: subOrder.escrow,
-      returnWindow: subOrder.returnWindow,
       statusHistory: subOrder.statusHistory.map((statusItem) => ({
         status: statusItem.status,
         timestamp: statusItem.timestamp,
@@ -436,9 +434,6 @@ export function formatStoreOrderDocument(
       shippingMethod: subOrder.shippingMethod,
       deliveryDate: subOrder.deliveryDate,
       customerConfirmedDelivery: subOrder.customerConfirmedDelivery,
-      escrow: subOrder.escrow,
-      returnWindow: subOrder.returnWindow,
-      settlement: subOrder.settlement,
       statusHistory: subOrder.statusHistory.map((statusItem) => ({
         status: statusItem.status,
         timestamp: statusItem.timestamp,

@@ -122,30 +122,17 @@ export const orderStatusRouter = createTRPCRouter({
           case DeliveryStatus.Delivered:
             // Set delivery date and calculate return window
             subOrder.deliveryDate = currentDate;
-            subOrder.returnWindow = new Date(
-              currentDate.getTime() + 2 * 24 * 60 * 60 * 1000
-            ); // 2 days
             break;
 
           case DeliveryStatus.Canceled:
           case DeliveryStatus.Returned:
           case DeliveryStatus.FailedDelivery:
             // Mark for review — admin must manually trigger refund later
-            if (subOrder.escrow) {
-              subOrder.escrow.refundReason =
-                input.notes ||
-                `Marked for review: ${deliveryStatusLabel(input.deliveryStatus)}`;
-            }
             break;
 
           case DeliveryStatus.Refunded:
             // Complete refund — this is the only place refund actually happens
-            if (subOrder.escrow) {
-              subOrder.escrow.held = false;
-              subOrder.escrow.released = false;
-              subOrder.escrow.refunded = true;
-              subOrder.escrow.refundReason = input.notes || "Order refunded";
-            }
+
             break;
         }
 
@@ -340,12 +327,6 @@ export const orderStatusRouter = createTRPCRouter({
           subOrderIndex: index + 1,
           currentStatus: subOrder.deliveryStatus,
           deliveryDate: subOrder.deliveryDate?.toISOString() || null,
-          escrowStatus: {
-            held: subOrder.escrow?.held || false,
-            released: subOrder.escrow?.released || false,
-            refunded: subOrder.escrow?.refunded || false,
-          },
-          returnWindow: subOrder.returnWindow?.toISOString() || null,
         }));
 
         return {

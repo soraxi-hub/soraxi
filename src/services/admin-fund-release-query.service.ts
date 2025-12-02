@@ -17,7 +17,7 @@ import { AdminTokenData } from "@/lib/helpers/get-admin-from-cookie";
 import {
   processFundRelease,
   reverseProcessedFundRelease,
-} from "@/lib/test-services/fund-release-service";
+} from "@/lib/utils/fund-release-service";
 import { TRPCError } from "@trpc/server";
 import type { FilterQuery, QueryOptions } from "mongoose";
 import { AuditLogService } from "./audit-log.service";
