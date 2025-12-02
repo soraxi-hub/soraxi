@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
-import { BusinessInfoForm } from "@/components/forms/BusinessInfoForm";
+import { BusinessInfoForm } from "@/components/forms/business-info-form";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 
 /**

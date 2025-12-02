@@ -12,6 +12,8 @@ export async function generateStoreMetadata(
     | "Withdrawal Details"
     | "Product Management"
     | "Edit Product"
+    | "Escrow Management"
+    | "Escrow Release Details"
     | "Upload Product",
   description: string
 ): Promise<Metadata> {

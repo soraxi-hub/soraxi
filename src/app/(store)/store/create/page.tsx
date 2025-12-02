@@ -1,3 +1,6 @@
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import CreateStoreSkeleton from "@/modules/skeletons/create-store-skeleton";

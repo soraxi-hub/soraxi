@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
         throw new AppError(
           "User not found",
           404,
-          "Make sure you provide the right Email",
-          "User not found"
+          "User not found",
+          "Make sure you provide the right Email"
         );
       }
 
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
         throw new AppError(
           "Store not found",
           404,
-          "Make sure you provide the right Email",
-          "Store not found"
+          "Store not found",
+          "Make sure you provide the right Email"
         );
       }
 

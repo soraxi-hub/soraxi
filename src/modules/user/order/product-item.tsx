@@ -31,7 +31,6 @@ interface ProductItemProps {
   }) => void;
   deliveryStatus?: string;
   subOrderId?: string;
-  returnWindow?: Date;
 }
 
 export function ProductItem({
@@ -39,15 +38,8 @@ export function ProductItem({
   onReviewInitAction,
   // onReturnInitAction,
   deliveryStatus,
-  returnWindow,
 }: ProductItemProps) {
   if (!product.productSnapshot) return null;
-
-  // Check if return window is still valid
-  const isReturnWindowValid = returnWindow
-    ? new Date() <= new Date(returnWindow)
-    : false;
-  // const canReturn = deliveryStatus === "Delivered" && isReturnWindowValid;
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 p-0">
@@ -82,33 +74,6 @@ export function ProductItem({
                 Write Review
               </Button>
             )}
-
-            {/* {!canReturn && (
-              <Button
-                variant="outline"
-                className="w-full text-sm flex items-center gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 bg-transparent"
-                onClick={() =>
-                  onReturnInitAction({
-                    _id: product.productSnapshot._id,
-                    name: product.productSnapshot.name,
-                    quantity: product.productSnapshot.quantity,
-                    images: product.productSnapshot.images,
-                  })
-                }
-                aria-label="Request return"
-                size="sm"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Request Return
-              </Button>
-            )} */}
-
-            {deliveryStatus === DeliveryStatus.Delivered &&
-              !isReturnWindowValid && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Return window expired
-                </p>
-              )}
           </div>
         </div>
       </CardContent>

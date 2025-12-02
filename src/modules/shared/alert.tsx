@@ -1,7 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { AlertCircleIcon } from "lucide-react";
-import React from "react";
 
 interface AlertUIProps {
   message: string;

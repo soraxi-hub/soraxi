@@ -14,6 +14,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
+import Autoplay from "embla-carousel-autoplay";
+
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { formatNaira } from "@/lib/utils/naira";
@@ -45,6 +47,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
           align: "start",
           slidesToScroll: 1,
         }}
+        plugins={[Autoplay()]}
         className="w-full px-4"
       >
         <CarouselContent>

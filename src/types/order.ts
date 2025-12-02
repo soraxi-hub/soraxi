@@ -93,22 +93,6 @@ export interface SubOrder {
     confirmedAt: Date;
     autoConfirmed: boolean;
   };
-  escrow: {
-    held: boolean;
-    released: boolean;
-    releasedAt?: Date;
-    refunded: boolean;
-    refundReason?: string;
-  };
-  returnWindow?: Date;
-  settlement?: {
-    amount: number;
-    shippingPrice: number;
-    commission: number;
-    appliedPercentageFee: number;
-    appliedFlatFee: number;
-    notes: string;
-  };
   statusHistory: Array<{
     status: StatusHistory;
     timestamp: Date;
@@ -278,22 +262,6 @@ export interface RawOrderDocument {
       confirmedAt: Date;
       autoConfirmed: boolean;
     };
-    escrow: {
-      held: boolean;
-      released: boolean;
-      releasedAt?: Date;
-      refunded: boolean;
-      refundReason?: string;
-    };
-    returnWindow?: Date;
-    settlement?: {
-      amount: number;
-      shippingPrice: number;
-      commission: number;
-      appliedPercentageFee: number;
-      appliedFlatFee: number;
-      notes: string;
-    };
     statusHistory: Array<{
       status: StatusHistory;
       timestamp: Date;
@@ -367,20 +335,6 @@ export const FormattedSubOrderSchema = z.object({
     confirmedAt: z.string().datetime().optional(),
     autoConfirmed: z.boolean(),
   }),
-  settlement: z
-    .object({
-      amount: z.number(),
-      shippingPrice: z.number(),
-    })
-    .optional(),
-  escrow: z.object({
-    held: z.boolean(),
-    released: z.boolean(),
-    releasedAt: z.string().datetime().optional(),
-    refunded: z.boolean(),
-    refundReason: z.string().optional(),
-  }),
-  returnWindow: z.string().datetime().optional(),
   statusHistory: z.array(
     z.object({
       status: z.nativeEnum(StatusHistory),

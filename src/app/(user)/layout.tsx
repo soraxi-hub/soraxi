@@ -38,7 +38,7 @@ export default async function RootLayout({
       <SidebarProvider defaultOpen={defaultOpen}>
         <AppSidebar user={user} />
         <SidebarInset>
-          <SidebarTrigger className="fixed md:top-[8rem] top-[12rem] left-2 sm:left-4 text-soraxi-green hover:text-soraxi-green-hover animate-pulse" />
+          <SidebarTrigger className="fixed md:top-[5rem] top-[7rem] left-2 sm:left-4 text-soraxi-green hover:text-soraxi-green-hover animate-pulse" />
           <main className="px-6 lg:px-14">{children}</main>
         </SidebarInset>
       </SidebarProvider>

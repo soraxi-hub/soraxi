@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -204,7 +203,6 @@ function DeliveryConfirmationQueue() {
                 <TableHead>Customer</TableHead>
                 <TableHead>Store</TableHead>
                 <TableHead>Delivery Date</TableHead>
-                <TableHead>Escrow Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -246,15 +244,6 @@ function DeliveryConfirmationQueue() {
                     </TableCell>
                     <TableCell>
                       {format(new Date(item.deliveryDate), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      {item.escrow.held ? (
-                        <Badge variant="destructive">Held</Badge>
-                      ) : (
-                        <Badge className="bg-soraxi-green text-white">
-                          Released
-                        </Badge>
-                      )}
                     </TableCell>
                     <TableCell>
                       <Button

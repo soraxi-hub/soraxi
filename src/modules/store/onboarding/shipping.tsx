@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
-import { ShippingMethodsForm } from "@/components/forms/ShippingMethodsForm";
+import { ShippingMethodsForm } from "@/components/forms/shipping-methods-form";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 
 /**

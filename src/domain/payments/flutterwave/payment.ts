@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { FlutterwavePayload } from "./flutterwave.service";
 
 export interface FlutterwaveVerifyResponse {
   status: "success" | "error";
@@ -69,7 +70,7 @@ export interface FlutterwaveTransactionData {
   };
 }
 
-export class FlutterwavePaymentService {
+export class FlutterwavePayment {
   private readonly apiUrl: string;
   private readonly secretKey: string;
   private readonly maxRetries = 3;
@@ -131,5 +132,33 @@ export class FlutterwavePaymentService {
     }
 
     return null;
+  }
+
+  async initializePayment(payload: FlutterwavePayload) {
+    const response = await fetch(`${this.apiUrl}/payments`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.secretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = (await response.json()) as {
+      status: string;
+      message: string;
+      data: {
+        link: string;
+      };
+    };
+
+    if (!response.ok || !result.status) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: result.message || "Flutterwave initialization failed",
+      });
+    }
+
+    return result;
   }
 }

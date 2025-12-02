@@ -36,7 +36,6 @@ interface FormattedDeliveryConfirmation {
   };
   deliveryDate: string;
   deliveryStatus: ISubOrder["deliveryStatus"]; // Using the type from ISubOrder interface
-  escrow: ISubOrder["escrow"]; // Using the type from ISubOrder interface
 }
 
 /**
@@ -304,7 +303,6 @@ export const deliveryConfirmationRouter = createTRPCRouter({
               item.subOrder.deliveryDate?.toISOString() ||
               new Date().toISOString(),
             deliveryStatus: item.subOrder.deliveryStatus,
-            escrow: item.subOrder.escrow,
           })
         );
 
@@ -497,7 +495,6 @@ export const deliveryConfirmationRouter = createTRPCRouter({
             id: updatedSubOrder._id.toString(),
             customerConfirmedDelivery:
               updatedSubOrder.customerConfirmedDelivery,
-            escrow: updatedSubOrder.escrow,
           },
           message: `Delivery for sub-order ${updatedSubOrder._id.toString()} has been manually confirmed by admin.`,
         };

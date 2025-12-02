@@ -4,6 +4,7 @@ import { caller } from "@/trpc/server";
 import { cache } from "react";
 import { StoreStatusEnum } from "@/validators/store-validators";
 import { siteConfig } from "@/config/site";
+import { Metadata } from "next";
 
 interface ProductPageProps {
   params: Promise<{
@@ -16,7 +17,9 @@ const getProduct = cache(async (slug: string) => {
   return data;
 });
 
-export async function generateMetadata({ params }: ProductPageProps) {
+export async function generateMetadata({
+  params,
+}: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const { product } = await getProduct(slug);
 

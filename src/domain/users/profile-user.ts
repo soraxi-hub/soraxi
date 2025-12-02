@@ -61,9 +61,7 @@ export class ProfileUser {
   }
 
   getUserStores() {
-    const stores = this.UserProfile?.stores?.map((store) =>
-      store.storeId.toString()
-    );
+    const stores = this.UserProfile?.stores || [];
     return stores;
   }
 }

@@ -1,6 +1,9 @@
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import "../globals.css";
-import { AdminLayout } from "@/modules/admin/AdminLayout";
+import { AdminLayout } from "@/modules/admin/admin-layout";
 import { getAdminFromCookie } from "@/lib/helpers/get-admin-from-cookie";
 
 export const metadata: Metadata = {

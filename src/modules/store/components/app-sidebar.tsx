@@ -16,7 +16,7 @@ import {
   ChevronDownIcon,
   WalletIcon,
   LogOutIcon,
-  // RefreshCwIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 
 import {
@@ -56,6 +56,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { siteConfig } from "@/config/site";
 import { truncateText } from "@/lib/utils";
+import Link from "next/link";
 
 const sidebarItems = (storeId: string) => [
   {
@@ -81,6 +82,11 @@ const sidebarItems = (storeId: string) => [
       //   url: `/store/${storeId}/returns`,
       //   icon: RefreshCwIcon,
       // },
+      {
+        title: "My Escrow",
+        url: `/store/${storeId}/escrow`,
+        icon: RefreshCwIcon,
+      },
       {
         title: "Wallet",
         url: `/store/${storeId}/wallet`,
@@ -272,9 +278,15 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
               <ThemeSwitcher page="store" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <Link href={`/docs/`}>
+              <DropdownMenuItem className="flex items-center justify-between gap-2 cursor-pointer">
+                <span>Resources</span>
+              </DropdownMenuItem>
+            </Link>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-destructive"
+              className="text-destructive cursor-pointer"
             >
               <LogOutIcon className="w-4 h-4 mr-2" />
               Logout
