@@ -43,6 +43,7 @@ import {
   LogOut,
   Shield,
   BarChart3,
+  Ticket,
   Bell,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
@@ -77,6 +78,12 @@ const navigationItems = [
         url: "/admin/dashboard",
         icon: BarChart3,
         permissions: [],
+      },
+      {
+        title: "Coupons",
+        url: "/admin/coupons",
+        icon: Ticket,
+        permissions: [PERMISSIONS.VIEW_COUPONS],
       },
     ],
   },
@@ -268,7 +275,9 @@ export function AdminLayout({ children, admin }: AdminLayoutProps) {
                   <Button variant="ghost" className="w-full justify-start p-2">
                     <div className="flex items-center space-x-3">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={admin.avatar || "/placeholder.svg"} />
+                        <AvatarImage
+                          src={admin.avatar || siteConfig.placeHolderImg}
+                        />
                         <AvatarFallback className="bg-soraxi-green text-white text-xs">
                           {getInitials(admin.name)}
                         </AvatarFallback>

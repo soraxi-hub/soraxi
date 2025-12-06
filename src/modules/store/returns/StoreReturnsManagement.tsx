@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
+import { siteConfig } from "@/config/site";
 
 interface ReturnRequest {
   _id: string;
@@ -318,7 +319,7 @@ export function StoreReturnsManagement({
                               width={40}
                               src={
                                 returnItem.productId.images[0] ||
-                                "/placeholder.svg"
+                                siteConfig.placeHolderImg
                               }
                               alt={returnItem.productId.name}
                               className="h-10 w-10 rounded object-cover"

@@ -32,7 +32,7 @@ import {
 } from "@/validators/coupon-validations";
 
 interface CouponFormProps {
-  coupon?: CouponSchemaWithIdType;
+  coupon?: CouponSchemaWithIdType | null;
   onSuccessAction: () => void;
 }
 
@@ -77,10 +77,12 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
           maxRedemptions: coupon.maxRedemptions,
           minOrderValue: coupon.minOrderValue,
           stackable: coupon.stackable,
+          isHomepageFeatured: coupon.isHomepageFeatured,
         }
       : {
           type: CouponTypeEnum.Percentage,
           isActive: true,
+          isHomepageFeatured: true,
           stackable: false,
           code: "",
           value: 0,
@@ -311,6 +313,22 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
                   />
                 </FormControl>
                 <FormLabel className="mb-0">Active</FormLabel>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isHomepageFeatured"
+            render={({ field }) => (
+              <FormItem className="flex items-center gap-2">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel className="mb-0">Home page Active</FormLabel>
               </FormItem>
             )}
           />

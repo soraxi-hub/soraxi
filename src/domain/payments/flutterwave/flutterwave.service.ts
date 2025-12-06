@@ -35,19 +35,9 @@ export class FlutterwavePaymentService {
   private flutterwave = new FlutterwavePayment();
   private orderService = new OrderService();
 
-  async initializePayment(input: FlutterwaveInput, user: TokenData | null) {
+  async initializePayment(input: FlutterwaveInput, user: TokenData) {
     /**
-     * Step 1: Validate User
-     */
-    if (!user) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "User not authenticated",
-      });
-    }
-
-    /**
-     * Step 2: Validate Cart
+     * Step 1: Validate Cart
      */
     const cart = await getCartByUserId(user.id);
     if (!cart) {

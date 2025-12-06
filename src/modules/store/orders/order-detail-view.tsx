@@ -46,12 +46,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { campusLocations } from "@/modules/checkout/order-summary";
 import {
   DeliveryStatus,
-  DeliveryStatusLabel,
   deliveryStatusLabel,
   DeliveryType,
   statusHistoryLabel,
 } from "@/enums";
 import { siteConfig } from "@/config/site";
+import {
+  allowedNextStatuses,
+  allStatuses,
+} from "../components/order-details.index";
 
 /**
  * Order Detail View Component Props
@@ -189,15 +192,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
   if (loading) {
     return (
       <div className="space-y-6">
-        {/* <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/store/orders">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Orders
-            </Link>
-          </Button>
-        </div> */}
-
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading order details...</p>
@@ -215,15 +209,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
   if (error || !order) {
     return (
       <div className="space-y-6">
-        {/* <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/store/orders">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Orders
-            </Link>
-          </Button>
-        </div> */}
-
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Error Loading Order</h3>
@@ -248,15 +233,10 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* <Button variant="outline" size="sm" asChild>
-            <Link href="/store/orders">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Orders
-            </Link>
-          </Button> */}
           <div>
-            <h1 className="text-2xl font-bold">
-              Order #{order._id.slice(-8).toUpperCase()}
+            <h1 className="text-lg md:text-2xl font-semibold flex sm:gap-2 flex-col sm:flex-row">
+              <span>Order Id:</span>
+              <span className="font-mono">{order._id}</span>
             </h1>
             <p className="text-muted-foreground">
               Placed on{" "}
@@ -300,33 +280,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                         {deliveryStatusLabel(subOrder.deliveryStatus)}
                       </Badge>
                     </div>
-
-                    {/* Tracking Number Management */}
-                    {/* <div className="space-y-2">
-                      <Label htmlFor={`tracking-${index}`}>
-                        Tracking Number
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id={`tracking-${index}`}
-                          placeholder="Enter tracking number"
-                          value={trackingNumber}
-                          onChange={(e) => setTrackingNumber(e.target.value)}
-                        />
-                        <Button
-                          onClick={() => handleTrackingUpdate(subOrder._id)}
-                          disabled={updating}
-                          size="sm"
-                        >
-                          Update
-                        </Button>
-                      </div>
-                      {subOrder.trackingNumber && (
-                        <p className="text-sm text-muted-foreground">
-                          Current: {subOrder.trackingNumber}
-                        </p>
-                      )}
-                    </div> */}
 
                     {/* Status Update Controls */}
                     <SellerStatusUpdate
@@ -410,43 +363,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Sidebar Information */}
-        <div className="space-y-6">
-          {/* Customer Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Customer Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {isPopulatedUser(order.user) && order.user.firstName && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">
-                      {order.user.firstName} {order.user.lastName}
-                    </span>
-                  </div>
-                )}
-                {isPopulatedUser(order.user) && order.user.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{order.user.email}</span>
-                  </div>
-                )}
-                {isPopulatedUser(order.user) && order.user.phoneNumber && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{order.user.phoneNumber}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Shipping Information */}
           <Card>
@@ -494,6 +410,43 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Sidebar Information */}
+        <div className="space-y-6">
+          {/* Customer Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Customer Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {isPopulatedUser(order.user) && order.user.firstName && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {order.user.firstName} {order.user.lastName}
+                    </span>
+                  </div>
+                )}
+                {isPopulatedUser(order.user) && order.user.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{order.user.email}</span>
+                  </div>
+                )}
+                {isPopulatedUser(order.user) && order.user.phoneNumber && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{order.user.phoneNumber}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Payment Information */}
           <Card>
@@ -508,7 +461,8 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Method:</span>
                   <span className="font-medium">
-                    {order.paymentMethod?.toUpperCase()}
+                    {`${order.paymentMethod?.charAt(0)?.toUpperCase()}` +
+                      order.paymentMethod?.slice(1).replace("_", " ")}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -516,16 +470,70 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                   <Badge
                     variant={
                       order.paymentStatus?.toLowerCase() === "paid"
-                        ? "default"
-                        : "secondary"
+                        ? "success"
+                        : "error"
                     }
                   >
-                    {order.paymentStatus?.toUpperCase()}
+                    {`${order.paymentStatus?.charAt(0).toUpperCase()}` +
+                      order.paymentStatus?.slice(1)}
                   </Badge>
                 </div>
               </div>
 
               <Separator />
+
+              {order.subOrders.map((subOrder, index) => {
+                if (!subOrder.discount) return null;
+
+                return (
+                  <div key={index} className="space-y-3">
+                    {order.subOrders.length > 1 && (
+                      <div className="flex justify-between text-sm font-medium text-muted-foreground">
+                        <span>Sub-order {index + 1} Discount:</span>
+                      </div>
+                    )}
+                    <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 space-y-2 border border-green-200 dark:border-green-800">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-green-700 dark:text-green-300 text-sm">
+                            Discount Applied
+                          </p>
+                          {subOrder.discount.couponCode && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              Code:{" "}
+                              <span className="font-semibold">
+                                {subOrder.discount.couponCode}
+                              </span>
+                            </p>
+                          )}
+                          {subOrder.discount.type && (
+                            <p className="text-xs text-green-600 dark:text-green-400">
+                              Type:{" "}
+                              <span className="font-semibold capitalize">
+                                {subOrder.discount.type}
+                              </span>
+                            </p>
+                          )}
+                          {subOrder.discount.description && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              {subOrder.discount.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-700 dark:text-green-300">
+                            -{formatNaira(subOrder.discount.amount)}
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            Your benefit
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                  </div>
+                );
+              })}
 
               <div className="space-y-2">
                 <div className="flex justify-between font-medium text-lg">
@@ -637,34 +645,6 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
     </div>
   );
 }
-
-// All possible delivery statuses
-const allStatuses = [
-  DeliveryStatus.Processing,
-  DeliveryStatus.Shipped,
-  DeliveryStatus.OutForDelivery,
-  DeliveryStatus.Delivered,
-  DeliveryStatus.Canceled,
-  DeliveryStatus.FailedDelivery,
-];
-
-// Valid transitions from each current status
-const allowedNextStatuses: Record<DeliveryStatusLabel, DeliveryStatus[]> = {
-  [DeliveryStatus.OrderPlaced]: [
-    DeliveryStatus.Processing,
-    DeliveryStatus.Canceled,
-  ],
-  [DeliveryStatus.Processing]: [
-    DeliveryStatus.Shipped,
-    DeliveryStatus.Canceled,
-  ],
-  [DeliveryStatus.Shipped]: [DeliveryStatus.OutForDelivery],
-  [DeliveryStatus.OutForDelivery]: [
-    DeliveryStatus.Delivered,
-    DeliveryStatus.FailedDelivery,
-  ],
-  [DeliveryStatus.FailedDelivery]: [DeliveryStatus.Delivered], // if seller reattempts delivery
-};
 
 interface Props {
   subOrder: {

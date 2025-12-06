@@ -67,7 +67,7 @@ export async function createFundRelease(
   // Calculate financial Details
   // Calculate commission (we will make this dynamic in the future based on store tier)
   const commissionResult = commissionService.calculateCommission(
-    subOrder.totalAmount
+    subOrder.originalAmount
   );
 
   const settlementDetails = {

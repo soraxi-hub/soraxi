@@ -1,40 +1,53 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Users, Package, Share2, Star, Calendar, Store, CheckCircle2, Heart, MapPin } from "lucide-react"
-import { useState } from "react"
-import { useTRPC } from "@/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import Link from "next/link"
-import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Users,
+  Package,
+  Share2,
+  Star,
+  Calendar,
+  Store,
+  CheckCircle2,
+  Heart,
+  MapPin,
+} from "lucide-react";
+import { useState } from "react";
+import { useTRPC } from "@/trpc/client";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import Link from "next/link";
+import Image from "next/image";
+import { siteConfig } from "@/config/site";
 
 interface PublicStoreProfileProps {
-  storeId: string
+  storeId: string;
 }
 
 export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
-  const [isCopied, setIsCopied] = useState(false)
-  const [isFollowing, setIsFollowing] = useState(false)
+  const [isCopied, setIsCopied] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
-  const trpc = useTRPC()
-  const { data: store } = useSuspenseQuery(trpc.publicStore.getStoreProfilePublic.queryOptions({ storeId }))
+  const trpc = useTRPC();
+  const { data: store } = useSuspenseQuery(
+    trpc.publicStore.getStoreProfilePublic.queryOptions({ storeId })
+  );
 
   const handleShareStore = () => {
-    const storeUrl = `${window.location.origin}/brand/${store._id}`
-    navigator.clipboard.writeText(storeUrl)
-    setIsCopied(true)
-    toast.success("Store link copied to clipboard!")
-    setTimeout(() => setIsCopied(false), 2000)
-  }
+    const storeUrl = `${window.location.origin}/brand/${store._id}`;
+    navigator.clipboard.writeText(storeUrl);
+    setIsCopied(true);
+    toast.success("Store link copied to clipboard!");
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   const handleFollowStore = () => {
-    setIsFollowing(!isFollowing)
-    toast.success(isFollowing ? "Unfollowed store" : "Following store!")
-  }
+    setIsFollowing(!isFollowing);
+    toast.success(isFollowing ? "Unfollowed store" : "Following store!");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,7 +56,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
         <div className="h-64 md:h-80 bg-gradient-to-br from-primary/10 via-background to-muted/20 relative overflow-hidden">
           {store.bannerUrl ? (
             <Image
-              src={store.bannerUrl || "/placeholder.svg"}
+              src={store.bannerUrl || siteConfig.placeHolderImg}
               alt={`${store.name} banner`}
               fill
               className="object-cover"
@@ -65,7 +78,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-muted border-4 border-background shadow-lg overflow-hidden">
                     {store.logoUrl ? (
                       <Image
-                        src={store.logoUrl || "/placeholder.svg"}
+                        src={store.logoUrl || siteConfig.placeHolderImg}
                         alt={`${store.name} logo`}
                         width={96}
                         height={96}
@@ -82,7 +95,9 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                 {/* Store Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                    <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">{store.name}</h1>
+                    <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
+                      {store.name}
+                    </h1>
                     {store.verification.isVerified && (
                       <Badge className="bg-primary/10 text-primary border-primary/20 gap-1">
                         <CheckCircle2 className="w-3 h-3" />
@@ -97,13 +112,17 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                       <div className="text-2xl font-bold text-foreground">
                         {store.stats.followersCount.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Followers</div>
+                      <div className="text-sm text-muted-foreground">
+                        Followers
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-foreground">
                         {store.stats.productsCount.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Products</div>
+                      <div className="text-sm text-muted-foreground">
+                        Products
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -112,22 +131,38 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                           {store.ratings.averageRating.toFixed(1)}
                         </span>
                       </div>
-                      <div className="text-sm text-muted-foreground">{store.ratings.reviewCount} reviews</div>
+                      <div className="text-sm text-muted-foreground">
+                        {store.ratings.reviewCount} reviews
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-foreground">{store.stats.establishedDate}</div>
-                      <div className="text-sm text-muted-foreground">Established</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {store.stats.establishedDate}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Established
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button onClick={handleFollowStore} variant={isFollowing ? "outline" : "default"} className="gap-2">
-                    <Heart className={`w-4 h-4 ${isFollowing ? "fill-current" : ""}`} />
+                  <Button
+                    onClick={handleFollowStore}
+                    variant={isFollowing ? "outline" : "default"}
+                    className="gap-2"
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${isFollowing ? "fill-current" : ""}`}
+                    />
                     {isFollowing ? "Following" : "Follow"}
                   </Button>
-                  <Button variant="outline" onClick={handleShareStore} className="gap-2 bg-transparent">
+                  <Button
+                    variant="outline"
+                    onClick={handleShareStore}
+                    className="gap-2 bg-transparent"
+                  >
                     <Share2 className="w-4 h-4" />
                     {isCopied ? "Copied!" : "Share"}
                   </Button>
@@ -146,11 +181,15 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
             {store.description && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl font-serif">About {store.name}</CardTitle>
+                  <CardTitle className="text-2xl font-serif">
+                    About {store.name}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-neutral dark:prose-invert max-w-none">
-                    <p className="text-muted-foreground leading-relaxed text-lg">{store.description}</p>
+                    <p className="text-muted-foreground leading-relaxed text-lg">
+                      {store.description}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -165,7 +204,8 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                     Our Products
                   </CardTitle>
                   <Badge variant="secondary">
-                    {store.products.length} {store.products.length === 1 ? "item" : "items"}
+                    {store.products.length}{" "}
+                    {store.products.length === 1 ? "item" : "items"}
                   </Badge>
                 </div>
               </CardHeader>
@@ -173,18 +213,28 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                 {store.products.length === 0 ? (
                   <div className="text-center py-12">
                     <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No products yet</h3>
-                    <p className="text-muted-foreground">This store is still setting up their product catalog.</p>
+                    <h3 className="text-lg font-semibold mb-2">
+                      No products yet
+                    </h3>
+                    <p className="text-muted-foreground">
+                      This store is still setting up their product catalog.
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {store.products.map((product) => (
-                      <Link key={product._id} href={`/products/${product.slug}`} className="group">
+                      <Link
+                        key={product._id}
+                        href={`/products/${product.slug}`}
+                        className="group"
+                      >
                         <Card className="overflow-hidden transition-all duration-200 group-hover:shadow-lg group-hover:-translate-y-1">
                           <div className="aspect-square relative overflow-hidden bg-muted">
                             {product.images && product.images.length > 0 ? (
                               <Image
-                                src={product.images[0] || "/placeholder.svg"}
+                                src={
+                                  product.images[0] || siteConfig.placeHolderImg
+                                }
                                 alt={product.name}
                                 fill
                                 className="object-cover transition-transform duration-200 group-hover:scale-105"
@@ -196,9 +246,13 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                             )}
                           </div>
                           <CardContent className="p-4">
-                            <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{product.name}</h3>
+                            <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
+                              {product.name}
+                            </h3>
                             <div className="flex items-center justify-between">
-                              <span className="text-lg font-bold text-primary">₦{product.price.toLocaleString()}</span>
+                              <span className="text-lg font-bold text-primary">
+                                ₦{product.price.toLocaleString()}
+                              </span>
                               <Badge variant="outline" className="text-xs">
                                 {product.category}
                               </Badge>
@@ -224,24 +278,36 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm text-muted-foreground">Established</div>
-                    <div className="font-medium">{store.stats.establishedDate}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Established
+                    </div>
+                    <div className="font-medium">
+                      {store.stats.establishedDate}
+                    </div>
                   </div>
                 </div>
                 <Separator />
                 <div className="flex items-center gap-3">
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm text-muted-foreground">Followers</div>
-                    <div className="font-medium">{store.stats.followersCount.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Followers
+                    </div>
+                    <div className="font-medium">
+                      {store.stats.followersCount.toLocaleString()}
+                    </div>
                   </div>
                 </div>
                 <Separator />
                 <div className="flex items-center gap-3">
                   <Package className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm text-muted-foreground">Products</div>
-                    <div className="font-medium">{store.stats.productsCount.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Products
+                    </div>
+                    <div className="font-medium">
+                      {store.stats.productsCount.toLocaleString()}
+                    </div>
                   </div>
                 </div>
                 {store.ratings.reviewCount > 0 && (
@@ -250,10 +316,14 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                     <div className="flex items-center gap-3">
                       <Star className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <div className="text-sm text-muted-foreground">Rating</div>
+                        <div className="text-sm text-muted-foreground">
+                          Rating
+                        </div>
                         <div className="font-medium flex items-center gap-1">
                           {store.ratings.averageRating.toFixed(1)}
-                          <span className="text-sm text-muted-foreground">({store.ratings.reviewCount} reviews)</span>
+                          <span className="text-sm text-muted-foreground">
+                            ({store.ratings.reviewCount} reviews)
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -273,7 +343,9 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                   variant={isFollowing ? "outline" : "default"}
                   className="w-full justify-start gap-2"
                 >
-                  <Heart className={`w-4 h-4 ${isFollowing ? "fill-current" : ""}`} />
+                  <Heart
+                    className={`w-4 h-4 ${isFollowing ? "fill-current" : ""}`}
+                  />
                   {isFollowing ? "Following" : "Follow Store"}
                 </Button>
                 <Button
@@ -284,7 +356,11 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                   <Share2 className="w-4 h-4" />
                   Share Store
                 </Button>
-                <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2 bg-transparent"
+                  asChild
+                >
                   <Link href={`/stores/${store._id}/contact`}>
                     <MapPin className="w-4 h-4" />
                     Contact Store
@@ -296,5 +372,5 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

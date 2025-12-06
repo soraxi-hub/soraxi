@@ -256,43 +256,4 @@ export const homeRouter = createTRPCRouter({
       throw handleTRPCError(err, "Failed to fetch featured products.");
     }
   }),
-
-  /**
-   * Public: Get Categories with Product Count
-   * Uses MongoDB aggregation to count verified, visible products by category.
-   */
-  getCategories: baseProcedure.query(async () => {
-    try {
-      const Product = await getProductModel();
-
-      const categoryStats = await Product.aggregate([
-        { $match: { isVerifiedProduct: true, isVisible: true } },
-        { $unwind: "$category" },
-        { $group: { _id: "$category", count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-      ]);
-
-      const categoryIcons: Record<string, string> = {
-        Electronics: "📱",
-        "Clothing & Fashion": "👕",
-        "Home & Garden": "🏠",
-        "Sports & Outdoors": "⚽",
-        "Books & Media": "📚",
-        "Health & Beauty": "💄",
-        "Toys & Games": "🎮",
-        Automotive: "🚗",
-        "Food & Beverages": "🍕",
-        "Art & Crafts": "🎨",
-      };
-
-      return categoryStats.map((stat) => ({
-        name: (stat._id as string).toString(),
-        count: stat.count,
-        icon: categoryIcons[stat._id] || "📦",
-        image: `/placeholder.svg?height=100&width=100`,
-      }));
-    } catch (err: any) {
-      throw handleTRPCError(err, "Failed to fetch product categories.");
-    }
-  }),
 });

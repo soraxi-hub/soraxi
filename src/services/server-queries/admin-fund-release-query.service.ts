@@ -20,7 +20,7 @@ import {
 } from "@/lib/utils/fund-release-service";
 import { TRPCError } from "@trpc/server";
 import type { FilterQuery, QueryOptions } from "mongoose";
-import { AuditLogService } from "./audit-log.service";
+import { AuditLogService } from "../audit-log.service";
 
 interface PaginationParams {
   page: number;

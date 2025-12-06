@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { formatNaira } from "@/lib/utils/naira";
+import { currencyOperations, formatNaira } from "@/lib/utils/naira";
 import {
   Loader2,
   MapPin,
@@ -42,8 +42,9 @@ import { InfoIcon } from "lucide-react";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { DeliveryType } from "@/enums";
-// import { CouponInput } from "./coupon-input";
-// import { toast } from "sonner";
+import { CouponInput } from "./coupon-input";
+import { toast } from "sonner";
+import { CouponTypeEnum } from "@/validators/coupon-validations";
 
 export const campusLocations = [
   "Main Gate",
@@ -57,11 +58,20 @@ export const campusLocations = [
 
 type User = inferProcedureOutput<AppRouter["user"]["getById"]>;
 
+type Coupon = {
+  code: string;
+  discount: number;
+  type: CouponTypeEnum;
+  value: number;
+};
+
 interface OrderSummaryProps {
   subtotal: number;
+  discount?: number;
   shippingCost: number;
   totalItems: number;
   onPlaceOrderAction: () => void;
+  setAppliedCoupon: (val: Coupon) => void;
   userData: User;
   isComplete: boolean;
   isValidating: boolean;
@@ -73,6 +83,7 @@ interface OrderSummaryProps {
 /** Displays order summary and checkout controls */
 export default function OrderSummary({
   subtotal,
+  discount,
   shippingCost,
   totalItems,
   onPlaceOrderAction,
@@ -82,6 +93,7 @@ export default function OrderSummary({
   isProcessing,
   deliveryType,
   handleDeliveryTypeChangeAction,
+  setAppliedCoupon,
 }: OrderSummaryProps) {
   /**
    * Order Total Calculation
@@ -89,7 +101,11 @@ export default function OrderSummary({
    * Calculate the final order total including all costs.
    * This calculation is also performed server-side for security.
    */
-  const total = subtotal + shippingCost;
+  const discountedSubtotal = currencyOperations.subtract(
+    subtotal,
+    discount || 0
+  );
+  const total = currencyOperations.add(discountedSubtotal, shippingCost);
 
   /**
    * Loading State Management
@@ -267,8 +283,15 @@ export default function OrderSummary({
           <span className="text-muted-foreground">
             Subtotal ({totalItems} item{totalItems > 1 ? "s" : ""})
           </span>
-          <span className="font-medium">{formatNaira(subtotal)}</span>
+          <span className="font-medium">{formatNaira(discountedSubtotal)}</span>
         </div>
+
+        {discount && discount > 0 && (
+          <div className="flex justify-between items-center text-soraxi-green">
+            <span>Discount</span>
+            <span>-{formatNaira(discount)} off</span>
+          </div>
+        )}
 
         {/* Shipping Cost */}
         <div className="flex justify-between items-center">
@@ -315,15 +338,14 @@ export default function OrderSummary({
 
       {/* Place Order Button */}
       <CardFooter className="flex flex-col space-y-4">
-        {/* <CouponInput
+        <CouponInput
           orderTotal={subtotal + shippingCost}
           storeIds={[]} // or whatever represents store IDs
-          onCouponApplied={(discount, code) => {
-            console.log(`Coupon ${code} applied with discount ₦${discount}`);
-            toast.info(`Coupon ${code} applied with discount ₦${discount}`);
-            // You can also update local checkout state here
+          onCouponApplied={(coupon) => {
+            setAppliedCoupon(coupon);
+            toast.success(`${coupon.code} applied!`);
           }}
-        /> */}
+        />
 
         <Button
           className="w-full bg-soraxi-green text-white hover:bg-soraxi-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"

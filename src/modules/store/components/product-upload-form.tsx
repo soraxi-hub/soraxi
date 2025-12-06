@@ -58,6 +58,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProductFactory } from "@/domain/products/product-factory";
 import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
+import { siteConfig } from "@/config/site";
 
 interface ProductUploadFormProps {
   storeId: string;
@@ -983,7 +984,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                     {imagePreviews.map((src, index) => (
                       <div key={index} className="relative group">
                         <Image
-                          src={src || "/placeholder.svg"}
+                          src={src || siteConfig.placeHolderImg}
                           alt={`Product preview ${index + 1}`}
                           width={150}
                           height={150}

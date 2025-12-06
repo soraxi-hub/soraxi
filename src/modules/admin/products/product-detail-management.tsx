@@ -37,6 +37,7 @@ import { ProductAdminManager } from "@/domain/products/product-admin-manager";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
 import { renderRichText } from "@/modules/products/product-detail/product-tabs";
+import { siteConfig } from "@/config/site";
 
 type Product = inferProcedureOutput<AppRouter["admin"]["getById"]>;
 
@@ -183,7 +184,7 @@ export function ProductDetailManagement({
                       <Image
                         width={200}
                         height={200}
-                        src={image || "/placeholder.svg"}
+                        src={image || siteConfig.placeHolderImg}
                         alt={`${product.name} ${index + 1}`}
                         className="w-full h-full object-cover"
                       />

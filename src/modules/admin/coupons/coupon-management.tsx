@@ -34,17 +34,20 @@ import { toast } from "sonner";
 import { CouponForm } from "./coupon-form";
 import { CouponUsageDialog } from "./coupon-usage-dialog";
 import { CouponAdminManager } from "@/domain/coupons/coupon-admin-manager";
+import { CouponSchemaWithIdType } from "@/validators/coupon-validations";
+import Link from "next/link";
+
+type StatusOption = "all" | "active" | "inactive" | "expired";
 
 export function CouponManagement() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<
-    "all" | "active" | "inactive" | "expired"
-  >("all");
+  const [status, setStatus] = useState<StatusOption>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUsageOpen, setIsUsageOpen] = useState(false);
-  const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
+  const [selectedCoupon, setSelectedCoupon] =
+    useState<CouponSchemaWithIdType | null>(null);
 
   const trpc = useTRPC();
 
@@ -84,10 +87,10 @@ export function CouponManagement() {
     setIsEditOpen(true);
   };
 
-  const handleViewUsage = (coupon: any) => {
-    setSelectedCoupon(coupon);
-    setIsUsageOpen(true);
-  };
+  // const handleViewUsage = (coupon: any) => {
+  //   setSelectedCoupon(coupon);
+  //   setIsUsageOpen(true);
+  // };
 
   const getStatusBadge = (coupon: any) => {
     const manager = new CouponAdminManager(coupon);
@@ -137,7 +140,7 @@ export function CouponManagement() {
             </div>
             <Select
               value={status}
-              onValueChange={(value: any) => {
+              onValueChange={(value: StatusOption) => {
                 setStatus(value);
                 setPage(1);
               }}
@@ -184,7 +187,7 @@ export function CouponManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {couponsData?.coupons?.map((coupon: any) => (
+                    {couponsData?.coupons?.map((coupon) => (
                       <TableRow key={coupon._id}>
                         <TableCell className="font-mono font-semibold">
                           {coupon.code}
@@ -211,9 +214,14 @@ export function CouponManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleViewUsage(coupon)}
+                              // onClick={() => handleViewUsage(coupon)}
+                              asChild
                             >
-                              <Eye className="w-4 h-4" />
+                              <Link
+                                href={`/admin/coupons/${coupon.code.toLowerCase()}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Link>
                             </Button>
                             <Button
                               variant="ghost"

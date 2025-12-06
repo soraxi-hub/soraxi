@@ -2,7 +2,7 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { FundReleaseQueryService } from "@/services/fund-release-query.service";
+import { FundReleaseQueryService } from "@/services/server-queries/fund-release-query.service";
 import { FundReleaseStatus } from "@/lib/db/models/fund-release.model";
 import mongoose from "mongoose";
 
@@ -36,11 +36,32 @@ export const storeFundReleaseRouter = createTRPCRouter({
       try {
         const { store } = ctx;
 
+        /**
+         * Safe SSR fallback for Suspense-rendered queries.
+         *
+         * During server-side rendering, `ctx.store` may be undefined because cookies
+         * are not always available yet. Throwing a TRPCError here would crash SSR
+         * and cause Next.js to switch to client rendering, producing unwanted logs.
+         *
+         * Returning empty data ensures:
+         *  - SSR does not crash
+         *  - Suspense fallback works correctly
+         *  - No sensitive data is exposed if the user is not logged in
+         *  - The middleware still protects the route and handles real auth failures
+         *
+         * Once hydration occurs on the client, the query will re-run with actual cookies.
+         */
         if (!store) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Please login to view fund releases.",
-          });
+          return {
+            success: false,
+            data: [],
+            pagination: {
+              page: input.page,
+              pageSize: input.pageSize,
+              total: 0,
+              totalPages: 0,
+            },
+          };
         }
 
         // Pagination (using service helper for safety)

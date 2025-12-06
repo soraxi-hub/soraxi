@@ -37,7 +37,10 @@ export async function proxy(request: NextRequest) {
   if (!userToken && !isPublicPath) {
     // Redirect to sign-in page with redirect parameter
     const signInUrl = new URL("/sign-in", request.url);
-    signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    signInUrl.searchParams.set(
+      "redirect",
+      encodeURIComponent(request.nextUrl.pathname)
+    );
     return NextResponse.redirect(signInUrl);
   }
 
@@ -60,7 +63,10 @@ export async function proxy(request: NextRequest) {
   ) {
     // If the user is authenticated but does not have a store token, redirect to store login
     const signInUrl = new URL("/login", request.url);
-    signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    signInUrl.searchParams.set(
+      "redirect",
+      encodeURIComponent(request.nextUrl.pathname)
+    );
     return NextResponse.redirect(signInUrl);
   }
 
@@ -76,7 +82,7 @@ export async function proxy(request: NextRequest) {
       const signInUrl = new URL("/admin-sign-in", request.url);
       signInUrl.searchParams.set(
         "redirect",
-        request.nextUrl.pathname || "/admin/dashboard"
+        encodeURIComponent(request.nextUrl.pathname) || "/admin/dashboard"
       );
       return NextResponse.redirect(signInUrl);
     }
@@ -87,7 +93,10 @@ export async function proxy(request: NextRequest) {
     if (!adminData) {
       // Invalid token, redirect to admin sign-in
       const signInUrl = new URL("/admin-sign-in", request.url);
-      signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      signInUrl.searchParams.set(
+        "redirect",
+        encodeURIComponent(request.nextUrl.pathname)
+      );
       return NextResponse.redirect(signInUrl);
     }
 

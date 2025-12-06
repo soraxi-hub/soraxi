@@ -88,7 +88,7 @@ function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/"; // Default to Home-page
+  const redirect = decodeURIComponent(searchParams.get("redirect") || "/"); // Default to Home-page
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const form = useForm<z.infer<typeof userSignInInfoValidation>>({

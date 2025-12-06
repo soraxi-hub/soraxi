@@ -49,6 +49,7 @@ import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
 import Link from "next/link";
 import { truncateText } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 type Status = IProduct["status"];
 
@@ -240,7 +241,9 @@ export function ProductModeration() {
                             <Image
                               width={100}
                               height={100}
-                              src={product.images[0] || "/placeholder.svg"}
+                              src={
+                                product.images[0] || siteConfig.placeHolderImg
+                              }
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />

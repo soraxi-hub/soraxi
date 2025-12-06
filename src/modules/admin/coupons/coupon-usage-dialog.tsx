@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { CouponSchemaWithIdType } from "@/validators/coupon-validations";
 
 interface CouponUsageDialogProps {
-  coupon: any;
+  coupon?: CouponSchemaWithIdType | null;
   open: boolean;
   onOpenChangeAction: (open: boolean) => void;
 }
@@ -38,7 +39,7 @@ export function CouponUsageDialog({
 
   const { data: usageData, isLoading } = useQuery(
     trpc.adminCoupon.getCouponUsage.queryOptions({
-      couponId: coupon._id,
+      couponId: coupon?.code ?? "-",
       page,
       limit: 10,
     })
@@ -48,7 +49,7 @@ export function CouponUsageDialog({
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Coupon Usage: {coupon.code}</DialogTitle>
+          <DialogTitle>Coupon Usage: {coupon?.code ?? "-"}</DialogTitle>
           <DialogDescription>
             View redemption history for this coupon
           </DialogDescription>

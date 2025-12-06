@@ -3,7 +3,7 @@ import type React from "react";
  * Order Summary Component
  *
  * Displays comprehensive order information including:
- * - Order overview (date, total amount)
+ * - Order overview (date, total amount, discount)
  * - Payment information (method, status)
  * - Delivery information (address, postal code, stores count)
  */
@@ -16,6 +16,7 @@ import {
   MapPin,
   Store,
   ShoppingBag,
+  Tag,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNaira } from "@/lib/utils/naira";
@@ -56,6 +57,11 @@ const DetailItem = ({
 );
 
 export function OrderSummary({ orderDetails }: OrderSummaryProps) {
+  const subtotal = orderDetails.discount?.amount
+    ? orderDetails.totalAmount + orderDetails.discount.amount
+    : orderDetails.totalAmount;
+  const discount = orderDetails.discount?.amount || 0;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <Card className="bg-muted/50">
@@ -71,10 +77,26 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
             label="Order Date"
             value={new Date(orderDetails.createdAt).toLocaleString()}
           />
+          {discount > 0 && (
+            <DetailItem
+              icon={null}
+              label="Subtotal"
+              value={formatNaira(subtotal)}
+            />
+          )}
+          {discount > 0 && (
+            <DetailItem
+              icon={<Tag className="h-4 w-4 text-soraxi-green" />}
+              label={`Discount${orderDetails.discount?.couponCode ? ` (${orderDetails.discount.couponCode})` : ""}`}
+              value={`-${formatNaira(discount)}`}
+              valueClassName="text-soraxi-green font-semibold"
+            />
+          )}
           <DetailItem
             icon={null}
             label="Total Amount"
             value={formatNaira(orderDetails.totalAmount)}
+            valueClassName={discount > 0 ? "text-primary font-semibold" : ""}
           />
         </CardContent>
       </Card>
@@ -126,15 +148,6 @@ export function OrderSummary({ orderDetails }: OrderSummaryProps) {
                   "No address provided")
             }
           />
-          {/* Postal code is hidden since delivery is only within UNICAL */}
-          {/* <DetailItem
-            icon={<MapPin className="h-4 w-4 text-muted-foreground" />}
-            label="Postal Code"
-            value={
-              orderDetails.shippingAddress?.postalCode ??
-              "No postal code provided"
-            }
-          /> */}
           <DetailItem
             icon={<Store className="h-4 w-4 text-muted-foreground" />}
             label="Stores"

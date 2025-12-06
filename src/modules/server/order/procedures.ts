@@ -12,175 +12,7 @@ import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getFundReleaseModel } from "@/lib/db/models/fund-release.model";
-// import { ProductTypeEnum } from "@/validators/product-validators";
-
-// type RawOrdersData = {
-//   _id: mongoose.Types.ObjectId;
-//   userId: mongoose.Types.ObjectId;
-//   stores: mongoose.Types.ObjectId[];
-//   totalAmount: number;
-//   paymentStatus?: string;
-//   createdAt: Date;
-//   subOrders: Array<{
-//     _id: mongoose.Types.ObjectId;
-//     storeId: {
-//       _id: string;
-//       name: string;
-//       storeEmail: string;
-//       logoUrl?: string;
-//     };
-//     products: Array<{
-//       _id: mongoose.Types.ObjectId;
-//       productId: {
-//         _id: string;
-//         name: string;
-//         images: string[];
-//         price: number;
-//         productType: ProductTypeEnum;
-//         storeId: string;
-//       };
-//       storeId: mongoose.Types.ObjectId;
-//       productSnapshot: {
-//         _id: mongoose.Schema.Types.ObjectId;
-//         name: string;
-//         images: string[];
-//         quantity: number;
-//         price: number;
-//         category?: string;
-//         subCategory?: string;
-//         selectedSize?: {
-//           size: string;
-//           price: number;
-//         };
-//       };
-//       storeSnapshot: {
-//         _id: mongoose.Schema.Types.ObjectId;
-//         name: string;
-//         logo?: string;
-//         email?: string;
-//       };
-//     }>;
-//     totalAmount: number;
-//     deliveryStatus: DeliveryStatus;
-//     shippingMethod?: {
-//       name: string;
-//       price: number;
-//       estimatedDeliveryDays?: string;
-//       description?: string;
-//     };
-//     deliveryDate?: Date;
-//     customerConfirmedDelivery: {
-//       confirmed: boolean;
-//       confirmedAt: Date;
-//       autoConfirmed: boolean;
-//     };
-//     escrow: {
-//       held: boolean;
-//       released: boolean;
-//       releasedAt?: Date;
-//       refunded: boolean;
-//       refundReason?: string;
-//     };
-//     returnWindow?: Date;
-//     settlement?: {
-//       amount: number;
-//       shippingPrice: number;
-//       commission: number;
-//       appliedPercentageFee: number;
-//       appliedFlatFee: number;
-//       notes: string;
-//     };
-//     statusHistory: Array<{
-//       status: StatusHistory;
-//       timestamp: Date;
-//       notes?: string;
-//     }>;
-//   }>;
-// };
-
-// type FormattedOrdersData = {
-//   _id: string;
-//   userId: string;
-//   stores: string[];
-//   totalAmount: number;
-//   paymentStatus?: string;
-//   createdAt: Date;
-//   subOrders: Array<{
-//     _id: string;
-//     store: {
-//       _id: string;
-//       name: string;
-//       storeEmail: string;
-//       logoUrl?: string;
-//     };
-//     products: Array<{
-//       _id: string;
-//       productId: {
-//         _id: string;
-//         name: string;
-//         images: string[];
-//         price: number;
-//         productType: ProductTypeEnum;
-//         storeId: string;
-//       };
-//       storeId: string;
-//       productSnapshot: {
-//         _id: string;
-//         name: string;
-//         images: string[];
-//         quantity: number;
-//         price: number;
-//         category?: string;
-//         subCategory?: string;
-//         selectedSize?: {
-//           size: string;
-//           price: number;
-//         };
-//       };
-//       storeSnapshot: {
-//         _id: string;
-//         name: string;
-//         logo?: string;
-//         email?: string;
-//       };
-//     }>;
-//     totalAmount: number;
-//     deliveryStatus: DeliveryStatus;
-//     shippingMethod?: {
-//       name: string;
-//       price: number;
-//       estimatedDeliveryDays?: string;
-//       description?: string;
-//     };
-//     deliveryDate?: Date;
-//     customerConfirmedDelivery: {
-//       confirmed: boolean;
-//       confirmedAt: Date;
-//       autoConfirmed: boolean;
-//     };
-//     escrow: {
-//       held: boolean;
-//       released: boolean;
-//       releasedAt?: Date;
-//       refunded: boolean;
-//       refundReason?: string;
-//     };
-//     returnWindow?: Date;
-//     settlement?: {
-//       amount: number;
-//       shippingPrice: number;
-//       commission: number;
-//       appliedPercentageFee: number;
-//       appliedFlatFee: number;
-//       notes: string;
-//     };
-//     statusHistory: Array<{
-//       status: StatusHistory;
-//       timestamp: Date;
-//       notes?: string;
-//     }>;
-//   }>;
-// };
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 
 /**
  * Order Router with Type-Safe Procedures
@@ -245,7 +77,7 @@ export const orderRouter = createTRPCRouter({
           select: "_id name storeEmail logoUrl",
         })
         .select(
-          "_id userId stores totalAmount paymentStatus " + "createdAt subOrders"
+          "_id userId stores totalAmount paymentStatus discount createdAt subOrders"
         )
         .sort({ createdAt: -1 })
         .lean<RawOrderDocument[]>()
@@ -267,24 +99,7 @@ export const orderRouter = createTRPCRouter({
 
       return formattedOrders;
     } catch (error) {
-      console.error("Error in getByUserId procedure:", error);
-
-      // Handle specific error types with appropriate responses
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      if (error instanceof Error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to retrieve orders: ${error.message}`,
-        });
-      }
-
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "An unexpected error occurred while retrieving orders",
-      });
+      throw handleTRPCError(error, "Error in getByUserId procedure.");
     }
   }),
 
@@ -356,24 +171,7 @@ export const orderRouter = createTRPCRouter({
 
         return formattedOrder;
       } catch (error) {
-        console.error("Error in getByOrderId procedure:", error);
-
-        // Handle specific error types with appropriate responses
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        if (error instanceof Error) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Failed to retrieve order: ${error.message}`,
-          });
-        }
-
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "An unexpected error occurred while retrieving the order",
-        });
+        throw handleTRPCError(error, "Error in getByOrderId procedure.");
       }
     }),
 

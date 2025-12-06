@@ -142,4 +142,13 @@ export const currencyOperations = {
   percentage: (koboValue: number, percent: number): number => {
     return Math.round(koboValue * (percent / 100));
   },
+
+  /**
+   * Always round DOWN (safe for coupons & payouts)
+   * Calculate percentage of a monetary value (in kobo) and ALWAYS round down.
+   * This favors the business and prevents over-discounting.
+   */
+  roundDownPercentage: (koboValue: number, percent: number): number => {
+    return Math.floor(koboValue * (percent / 100));
+  },
 };

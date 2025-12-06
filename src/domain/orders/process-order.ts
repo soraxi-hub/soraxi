@@ -7,6 +7,11 @@ import mongoose, { type Model } from "mongoose";
 import type { FlutterwaveTransactionData } from "../payments/flutterwave/payment";
 import { OrderNotificationService } from "@/services/order-notification.service";
 import { currencyOperations } from "@/lib/utils/naira";
+import { CouponService } from "@/services/coupon.service";
+import { NotificationFactory, renderTemplate } from "../notification";
+import React from "react";
+import { CouponRedemptionFailureEmail } from "@/services/notifications/templates/coupon-redemption-failure-email-admin";
+import { FundReleaseFailureEmail } from "@/services/notifications/templates/fund-release-failure-email-admin";
 
 type CustomerInfo = {
   fullName: string;
@@ -76,6 +81,50 @@ export class ProcessOrder {
       // else → pending, allow update to continue
     }
 
+    // Redeem coupon for this user
+    const couponCode = order.couponCode;
+    if (couponCode) {
+      const couponService = await CouponService.init();
+
+      try {
+        await couponService.redeemCoupon(
+          couponCode,
+          order.userId.toString(),
+          (order._id as mongoose.Types.ObjectId).toString()
+        );
+      } catch (error: any) {
+        // don't throw the error but log it instead.
+        console.error(
+          "[TRPC or Webhook] Coupon Redemption Error:",
+          error.message ||
+            `Failed to redeem coupon for code: ${couponCode}, user: ${order.userId}, order: ${order._id}`
+        );
+
+        await (async () => {
+          const subject = `Admin Alert: Coupon Redemption Failed`;
+          const html = await renderTemplate(
+            React.createElement(CouponRedemptionFailureEmail, {
+              orderId: (order._id as mongoose.Types.ObjectId).toString(),
+              customerEmail: order.userId.toString(), // or actual email if you have it
+              couponCode,
+              reason: error.message,
+            })
+          );
+
+          const notification = NotificationFactory.create("email", {
+            recipient: "admin@soraxihub.com",
+            subject,
+            emailType: "noreply",
+            fromAddress: "noreply@soraxihub.com",
+            html,
+            text: `Coupon redemption failed for order ${order._id}`,
+          });
+
+          await notification.send();
+        })();
+      }
+    }
+
     // update payment status
     order.paymentStatus = PaymentStatus.Paid;
     order.paymentMethod = paymentMethod;
@@ -85,6 +134,11 @@ export class ProcessOrder {
       await this.createFundReleasesForOrder(order, session);
     } catch (error) {
       console.error("Error creating fund releases:", error);
+      console.error(
+        "Critical fund release system failure for order:",
+        order._id,
+        error
+      );
       // Log error but don't fail the order - fund releases can be retried
       // In production, you'd want to trigger an admin alert here
       // Track failed fund releases for retry/reconciliation
@@ -128,32 +182,57 @@ export class ProcessOrder {
       }
 
       // Create the fund release record
-      const fundRelease = await createFundRelease(
-        store,
-        order,
-        subOrder,
-        session
-      );
+      try {
+        const fundRelease = await createFundRelease(
+          store,
+          order,
+          subOrder,
+          session
+        );
 
-      console.log(
-        `Fund release created for subOrder ${subOrder._id}: ${fundRelease._id}`
-      );
+        console.log(
+          `Fund release created for subOrder ${subOrder._id}: ${fundRelease._id}`
+        );
 
-      // Update the store's wallet - add to pending funds
-      if (store.walletId) {
-        const wallet = await Wallet.findById(store.walletId).session(session);
-        if (wallet) {
-          // wallet.pending = (wallet.pending || 0) + (amount - commission);
-          wallet.pending = currencyOperations.add(
-            wallet.pending || 0,
-            fundRelease.settlement.amount,
-            fundRelease.settlement.shippingPrice
-          );
-          await wallet.save({ session });
-          console.log(
-            `Updated wallet ${store.walletId} - pending funds: ${wallet.pending}`
-          );
+        // Update the store's wallet - add to pending funds
+        if (store.walletId) {
+          const wallet = await Wallet.findById(store.walletId).session(session);
+          if (wallet) {
+            // wallet.pending = (wallet.pending || 0) + (amount - commission);
+            wallet.pending = currencyOperations.add(
+              wallet.pending || 0,
+              fundRelease.settlement.amount,
+              fundRelease.settlement.shippingPrice
+            );
+            await wallet.save({ session });
+            console.log(
+              `Updated wallet ${store.walletId} - pending funds: ${wallet.pending}`
+            );
+          }
         }
+      } catch (error: any) {
+        await (async () => {
+          const subject = `Admin Alert: Fund Release Failed`;
+          const html = await renderTemplate(
+            React.createElement(FundReleaseFailureEmail, {
+              orderId: (order._id as mongoose.Types.ObjectId).toString(),
+              subOrderId: subOrder._id.toString(),
+              storeName: store.name,
+              reason: error.message,
+            })
+          );
+
+          const notification = NotificationFactory.create("email", {
+            recipient: "admin@soraxihub.com", // ✅ admin inbox
+            subject,
+            emailType: "noreply",
+            fromAddress: "noreply@soraxihub.com",
+            html,
+            text: `Fund release failed for order ${order._id}`,
+          });
+
+          await notification.send();
+        })();
       }
     }
   }

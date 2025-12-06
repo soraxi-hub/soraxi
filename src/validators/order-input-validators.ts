@@ -62,6 +62,7 @@ export const flutterwaveInputSchema = z.object({
     state: z.string(),
     postal_code: z.string(),
     userId: z.string(),
+    couponCode: z.string().nullable().optional(),
     deliveryType: z.nativeEnum(DeliveryType),
   }),
 });
