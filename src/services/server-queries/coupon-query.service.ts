@@ -248,11 +248,11 @@ export class CouponQueryService {
     await getUserModel();
     await getOrderModel();
 
-    const coupon = await Coupon.find({
+    const coupons = await Coupon.find({
       code: couponId.toUpperCase(),
     }).lean<ICoupon[]>();
 
-    if (!coupon) {
+    if (coupons.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Coupon not found",
@@ -297,7 +297,7 @@ export class CouponQueryService {
     });
 
     return {
-      coupon,
+      coupons,
       redemptions: nomalizedRedemptions,
       total,
       page: pagination.page,

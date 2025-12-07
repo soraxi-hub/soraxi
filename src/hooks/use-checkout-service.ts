@@ -242,6 +242,7 @@ export function useCheckoutService(
         totalAmount,
         appliedCoupon.discount
       );
+      totalAmount = Math.max(0, totalAmount);
     }
 
     return {

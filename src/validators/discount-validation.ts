@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { Document } from "mongoose";
 
 export const DiscountSchema = z.object({
   amount: z.number().min(0, "Discount amount must be non-negative"), // The discount amount applied

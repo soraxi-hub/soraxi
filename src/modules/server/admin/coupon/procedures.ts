@@ -164,11 +164,18 @@ export const adminCouponRouter = createTRPCRouter({
    */
   updateCoupon: baseProcedure
     .input(
-      z
-        .object({
-          couponId: z.string(),
-        })
-        .passthrough()
+      z.object({
+        couponId: z.string(),
+        code: z.string().min(3).max(20).optional(),
+        type: z.nativeEnum(CouponTypeEnum).optional(),
+        value: z.number().positive().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        isActive: z.boolean().optional(),
+        isHomepageFeatured: z.boolean().optional(),
+        maxRedemptions: z.number().nullable().optional(),
+        minOrderValue: z.number().nullable().optional(),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -264,9 +271,9 @@ export const adminCouponRouter = createTRPCRouter({
         return {
           success: true,
           coupon: {
-            code: result.coupon[0].code,
-            type: result.coupon[0].type,
-            maxRedemptions: result.coupon[0].maxRedemptions,
+            code: result.coupons[0].code,
+            type: result.coupons[0].type,
+            maxRedemptions: result.coupons[0].maxRedemptions,
             totalRedemptions: result.total,
           },
           redemptions: result.redemptions,
