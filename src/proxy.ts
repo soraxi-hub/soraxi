@@ -74,10 +74,7 @@ export async function proxy(request: NextRequest) {
     // If no admin token, redirect to admin sign-in
     if (!adminToken) {
       const signInUrl = new URL("/admin-sign-in", request.url);
-      signInUrl.searchParams.set(
-        "redirect",
-        request.nextUrl.pathname || "/admin/dashboard"
-      );
+      signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
       return NextResponse.redirect(signInUrl);
     }
 

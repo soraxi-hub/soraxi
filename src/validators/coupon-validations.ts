@@ -32,6 +32,9 @@ export const CouponSchema = z.object({
   /** Whether this coupon is currently active or disabled by admin */
   isActive: z.boolean().default(true),
 
+  /** Whether this coupon should be displayed on the homepage banner */
+  isHomepageFeatured: z.boolean().default(false),
+
   /**
    * Maximum number of total redemptions allowed.
    * `null` means unlimited usage.

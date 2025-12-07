@@ -3,7 +3,7 @@ import { type Model, Schema, model, models } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 
 /**
- * 🧾 Coupon Redemption Schema (Mongoose)
+ * Coupon Redemption Schema (Mongoose)
  *
  * Tracks each time a coupon is redeemed.
  * Useful for analytics, fraud prevention, and enforcing max usage limits.
@@ -16,14 +16,16 @@ const couponRedemptionSchema = new Schema<ICouponRedemption>(
       index: true,
     },
     userId: {
-      type: String,
-      required: true,
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "UserId is required for reference"],
       index: true,
     },
     orderId: {
-      type: String,
-      required: true,
+      type: Schema.Types.ObjectId,
+      required: [true, "orderId is required for reference"],
       index: true,
+      ref: "Order",
     },
     redeemedAt: {
       type: Date,

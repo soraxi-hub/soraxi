@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Document } from "mongoose";
+import { Types } from "mongoose";
 
 /**
  * Zod schema for Coupon Redemption
@@ -24,4 +25,16 @@ export const CouponRedemptionSchema = z.object({
 export type CouponRedemptionType = z.infer<typeof CouponRedemptionSchema>;
 
 /** Mongoose document interface for coupon redemptions */
-export interface ICouponRedemption extends CouponRedemptionType, Document {}
+export interface ICouponRedemption extends Document {
+  /** Reference to the redeemed coupon (MongoDB ObjectId) */
+  couponId: string;
+
+  /** Reference to the user who redeemed the coupon (MongoDB ObjectId) */
+  userId: Types.ObjectId;
+
+  /** Reference to the order associated with this redemption (MongoDB ObjectId) */
+  orderId: Types.ObjectId;
+
+  /** Timestamp indicating when the coupon was redeemed */
+  redeemedAt: Date;
+}

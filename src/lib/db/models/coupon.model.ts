@@ -29,7 +29,11 @@ const couponSchema = new Schema<ICoupon>(
       type: Number,
       required: true,
       min: 0,
-      set: (value: number) => nairaToKobo(value),
+      set: function (value: number) {
+        return this.type === CouponTypeEnum.Percentage
+          ? value
+          : nairaToKobo(value);
+      },
     },
     startDate: {
       type: Date,
@@ -42,6 +46,10 @@ const couponSchema = new Schema<ICoupon>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isHomepageFeatured: {
+      type: Boolean,
+      default: false,
     },
     maxRedemptions: {
       type: Number,
@@ -62,6 +70,10 @@ const couponSchema = new Schema<ICoupon>(
     minOrderValue: {
       type: Number,
       default: null,
+      set: (value: number | null) => {
+        if (value === null) return null;
+        return nairaToKobo(value);
+      },
     },
     stackable: {
       type: Boolean,
@@ -75,6 +87,12 @@ const couponSchema = new Schema<ICoupon>(
 
 /** Index expiration date to quickly disable expired coupons */
 couponSchema.index({ endDate: 1 });
+couponSchema.index({
+  isHomepageFeatured: 1,
+  isActive: 1,
+  startDate: 1,
+  endDate: 1,
+});
 
 /**
  * Helper function to check coupon validity

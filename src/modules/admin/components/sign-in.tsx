@@ -28,7 +28,9 @@ function AdminSignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("redirect") || "/admin/dashboard";
+  const callbackUrl = decodeURIComponent(
+    searchParams.get("redirect") || "/admin/dashboard"
+  );
 
   const form = useForm<z.infer<typeof adminSignInInfoValidation>>({
     resolver: zodResolver(adminSignInInfoValidation),

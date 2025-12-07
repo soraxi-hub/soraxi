@@ -1,14 +1,16 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { TRPCError } from "@trpc/server";
-import { getCouponModel } from "@/lib/db/models/coupon.model";
-import { getCouponRedemptionModel } from "@/lib/db/models/coupon-redemption.model";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { CouponTypeEnum } from "@/validators/coupon-validations";
-import mongoose from "mongoose";
+import { CouponQueryService } from "@/services/server-queries/coupon-query.service";
+import { koboToNaira } from "@/lib/utils/naira";
+import { checkAdminPermission } from "@/modules/admin/security/access-control";
+import { TRPCError } from "@trpc/server";
+import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 export const adminCouponRouter = createTRPCRouter({
   /**
-   * List all coupons with pagination and filtering
+   * List all coupons (admin)
    */
   listCoupons: baseProcedure
     .input(
@@ -19,123 +21,100 @@ export const adminCouponRouter = createTRPCRouter({
         status: z.enum(["active", "inactive", "expired", "all"]).optional(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const { page, limit, search, status } = input;
-        const Coupon = await getCouponModel();
+        const { admin } = ctx;
 
-        const query: any = {};
-
-        if (search) {
-          query.code = { $regex: search, $options: "i" };
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.VIEW_COUPONS])
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You don't have permission to view coupons",
+          });
         }
 
-        if (status && status !== "all") {
-          const now = new Date();
-          if (status === "active") {
-            query.isActive = true;
-            query.startDate = { $lte: now };
-            query.endDate = { $gte: now };
-          } else if (status === "inactive") {
-            query.isActive = false;
-          } else if (status === "expired") {
-            query.endDate = { $lt: now };
-          }
-        }
+        const pagination = CouponQueryService.validatePagination(
+          input.page,
+          input.limit
+        );
 
-        const coupons = await Coupon.find(query)
-          .sort({ createdAt: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit)
-          .lean();
-
-        const total = await Coupon.countDocuments(query);
+        const result = await CouponQueryService.listCoupons(
+          {
+            search: input.search,
+            status: input.status,
+          },
+          pagination
+        );
 
         return {
           success: true,
-          coupons: coupons.map((coupon: any) => ({
+          coupons: result.coupons.map((coupon) => ({
             _id: coupon._id.toString(),
             code: coupon.code,
             type: coupon.type,
-            value: coupon.value,
+            value:
+              coupon.type === CouponTypeEnum.Fixed
+                ? koboToNaira(coupon.value)
+                : coupon.value,
             isActive: coupon.isActive,
             startDate: coupon.startDate,
             endDate: coupon.endDate,
             maxRedemptions: coupon.maxRedemptions,
+            minOrderValue: koboToNaira(coupon.minOrderValue ?? 0),
             createdAt: coupon.createdAt,
+            isHomepageFeatured: coupon.isHomepageFeatured,
           })),
           pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit),
+            page: result.page,
+            limit: result.limit,
+            total: result.total,
+            pages: result.totalPages,
           },
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch coupons",
-        });
+        throw handleTRPCError(error, "Failed to fetch coupons");
       }
     }),
 
   /**
-   * Get single coupon by ID
+   * ✅ Get coupon by ID
    */
   getCouponById: baseProcedure
     .input(z.object({ couponId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const { couponId } = input;
+        const { admin } = ctx;
 
-        if (!mongoose.Types.ObjectId.isValid(couponId)) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.VIEW_COUPONS])
+        ) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid coupon ID",
+            code: "FORBIDDEN",
+            message: "You don't have permission to view coupons",
           });
         }
 
-        const Coupon = await getCouponModel();
-        const coupon = await Coupon.findById(couponId).lean();
-
-        if (!coupon) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Coupon not found",
-          });
-        }
+        const coupon = await CouponQueryService.getById(input.couponId);
 
         return {
           success: true,
           coupon: {
+            ...coupon,
             _id: coupon._id.toString(),
-            code: coupon.code,
-            type: coupon.type,
-            value: coupon.value,
-            isActive: coupon.isActive,
-            startDate: coupon.startDate,
-            endDate: coupon.endDate,
-            maxRedemptions: coupon.maxRedemptions,
-            userId: coupon.userId,
-            productIds: coupon.productIds,
-            storeIds: coupon.storeIds,
-            minOrderValue: coupon.minOrderValue,
-            stackable: coupon.stackable,
-            createdAt: coupon.createdAt,
-            updatedAt: coupon.updatedAt,
+            value: koboToNaira(coupon.value),
+            minOrderValue: koboToNaira(coupon.minOrderValue ?? 0),
           },
         };
       } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch coupon",
-        });
+        throw handleTRPCError(error, "Failed to fetch coupon");
       }
     }),
 
   /**
-   * Create new coupon
+   * ✅ Create coupon
    */
   createCoupon: baseProcedure
     .input(
@@ -146,6 +125,7 @@ export const adminCouponRouter = createTRPCRouter({
         startDate: z.date(),
         endDate: z.date(),
         isActive: z.boolean().default(true),
+        isHomepageFeatured: z.boolean().default(false),
         maxRedemptions: z.number().nullable().optional(),
         userId: z.string().nullable().optional(),
         productIds: z.array(z.string()).optional(),
@@ -154,42 +134,33 @@ export const adminCouponRouter = createTRPCRouter({
         stackable: z.boolean().default(false),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        const Coupon = await getCouponModel();
+        const { admin } = ctx;
 
-        const existingCoupon = await Coupon.findOne({ code: input.code });
-        if (existingCoupon) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.CREATE_COUPONS])
+        ) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Coupon code already exists",
+            code: "FORBIDDEN",
+            message: "You don't have permission to create coupons",
           });
         }
 
-        if (input.endDate <= input.startDate) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "End date must be after start date",
-          });
-        }
-
-        await Coupon.create(input);
+        await CouponQueryService.createCoupon(input as any);
 
         return {
           success: true,
           message: "Coupon created successfully",
         };
       } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create coupon",
-        });
+        throw handleTRPCError(error, "Failed to create coupon");
       }
     }),
 
   /**
-   * Update existing coupon
+   * ✅ Update coupon
    */
   updateCoupon: baseProcedure
     .input(
@@ -201,113 +172,69 @@ export const adminCouponRouter = createTRPCRouter({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         isActive: z.boolean().optional(),
+        isHomepageFeatured: z.boolean().optional(),
         maxRedemptions: z.number().nullable().optional(),
-        userId: z.string().nullable().optional(),
-        productIds: z.array(z.string()).optional(),
-        storeIds: z.array(z.string()).optional(),
         minOrderValue: z.number().nullable().optional(),
-        stackable: z.boolean().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const { couponId, ...updateData } = input;
+        const { admin } = ctx;
 
-        if (!mongoose.Types.ObjectId.isValid(couponId)) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.EDIT_COUPONS])
+        ) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid coupon ID",
+            code: "FORBIDDEN",
+            message: "You don't have permission to edit or update coupons",
           });
         }
 
-        const Coupon = await getCouponModel();
-        const coupon = await Coupon.findById(couponId);
-
-        if (!coupon) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Coupon not found",
-          });
-        }
-
-        if (updateData.code && updateData.code !== coupon.code) {
-          const existing = await Coupon.findOne({ code: updateData.code });
-          if (existing) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Coupon code already exists",
-            });
-          }
-        }
-
-        if (updateData.startDate && updateData.endDate) {
-          if (updateData.endDate <= updateData.startDate) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "End date must be after start date",
-            });
-          }
-        }
-
-        const updated = await Coupon.findByIdAndUpdate(couponId, updateData, {
-          new: true,
-        }).lean();
+        await CouponQueryService.updateCoupon(couponId, updateData as any);
 
         return {
           success: true,
           message: "Coupon updated successfully",
-          coupon: updated,
         };
       } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update coupon",
-        });
+        throw handleTRPCError(error, "Failed to update coupon");
       }
     }),
 
   /**
-   * Delete coupon
+   * ✅ Delete coupon
    */
   deleteCoupon: baseProcedure
     .input(z.object({ couponId: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        const { couponId } = input;
+        const { admin } = ctx;
 
-        if (!mongoose.Types.ObjectId.isValid(couponId)) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.DELETE_COUPONS])
+        ) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid coupon ID",
+            code: "FORBIDDEN",
+            message: "You don't have permission to delete coupons",
           });
         }
 
-        const Coupon = await getCouponModel();
-        const coupon = await Coupon.findByIdAndDelete(couponId);
-
-        if (!coupon) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Coupon not found",
-          });
-        }
+        await CouponQueryService.deleteCoupon(input.couponId);
 
         return {
           success: true,
           message: "Coupon deleted successfully",
         };
       } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete coupon",
-        });
+        throw handleTRPCError(error, "Failed to delete coupon");
       }
     }),
 
   /**
-   * Get coupon usage details
+   * ✅ Get coupon usage
    */
   getCouponUsage: baseProcedure
     .input(
@@ -317,62 +244,48 @@ export const adminCouponRouter = createTRPCRouter({
         limit: z.number().min(1).max(100).default(20),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const { couponId, page, limit } = input;
+        const { admin } = ctx;
 
-        if (!mongoose.Types.ObjectId.isValid(couponId)) {
+        if (
+          !admin ||
+          !checkAdminPermission(admin, [PERMISSIONS.VIEW_COUPON_REDEMPTIONS])
+        ) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid coupon ID",
+            code: "FORBIDDEN",
+            message: "You don't have permission to view coupon redemptions",
           });
         }
 
-        const Coupon = await getCouponModel();
-        const Redemption = await getCouponRedemptionModel();
+        const pagination = CouponQueryService.validatePagination(
+          input.page,
+          input.limit
+        );
 
-        const coupon = await Coupon.findById(couponId).lean();
-        if (!coupon) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Coupon not found",
-          });
-        }
-
-        const redemptions = await Redemption.find({ couponId })
-          .sort({ redeemedAt: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit)
-          .lean();
-
-        const total = await Redemption.countDocuments({ couponId });
+        const result = await CouponQueryService.getCouponUsage(
+          input.couponId,
+          pagination
+        );
 
         return {
           success: true,
           coupon: {
-            code: coupon.code,
-            maxRedemptions: coupon.maxRedemptions,
-            totalRedemptions: total,
+            code: result.coupons[0].code,
+            type: result.coupons[0].type,
+            maxRedemptions: result.coupons[0].maxRedemptions,
+            totalRedemptions: result.total,
           },
-          redemptions: redemptions.map((r: any) => ({
-            _id: r._id.toString(),
-            userId: r.userId,
-            orderId: r.orderId,
-            redeemedAt: r.redeemedAt,
-          })),
+          redemptions: result.redemptions,
           pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit),
+            page: result.page,
+            limit: result.limit,
+            total: result.total,
+            pages: result.totalPages,
           },
         };
       } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch coupon usage",
-        });
+        throw handleTRPCError(error, "Failed to fetch coupon usage");
       }
     }),
 });

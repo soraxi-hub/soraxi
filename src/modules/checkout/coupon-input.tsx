@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
-import { formatNaira } from "@/lib/utils/naira";
+import { CouponTypeEnum } from "@/validators/coupon-validations";
 
 /**
  * CouponInput Component
@@ -17,7 +16,12 @@ import { formatNaira } from "@/lib/utils/naira";
 interface CouponInputProps {
   orderTotal: number;
   storeIds: string[];
-  onCouponApplied?: (discount: number, code: string) => void;
+  onCouponApplied: (coupon: {
+    code: string;
+    discount: number;
+    type: CouponTypeEnum;
+    value: number;
+  }) => void;
 }
 
 export function CouponInput({
@@ -43,7 +47,13 @@ export function CouponInput({
             discount: data.discount,
           });
           toast.success(data.message || "Coupon applied!");
-          if (onCouponApplied) onCouponApplied(data.discount, code);
+          if (onCouponApplied)
+            onCouponApplied({
+              code: data.code,
+              discount: data.discount,
+              type: data.type,
+              value: data.value,
+            });
         }
       },
       onError: (err) => {
@@ -64,7 +74,7 @@ export function CouponInput({
     setError(null);
 
     applyCouponMutation.mutate({
-      code: code.trim(),
+      code: code.trim().toUpperCase(),
       orderTotal,
       storeIds,
     });
@@ -99,19 +109,9 @@ export function CouponInput({
 
       {/* Status Feedback */}
       {error && (
-        <div className="flex items-center text-red-600 text-sm space-x-1">
+        <div className="flex items-center text-soraxi-error text-sm space-x-1">
           <XCircle className="h-4 w-4" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {appliedCoupon && (
-        <div className="flex items-center text-green-600 text-sm space-x-2">
-          <CheckCircle2 className="h-4 w-4" />
-          <span>
-            Coupon <Badge variant="outline">{appliedCoupon.code}</Badge> applied{" "}
-            – {formatNaira(appliedCoupon.discount)} off
-          </span>
         </div>
       )}
     </div>

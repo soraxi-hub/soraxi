@@ -1,4 +1,8 @@
 import { DeliveryStatus, DeliveryType, StatusHistory } from "@/enums";
+import {
+  DiscountSchemaOptional,
+  IDiscount,
+} from "@/validators/discount-validation";
 import { ProductTypeEnum } from "@/validators/product-validators";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -79,6 +83,7 @@ export interface SubOrder {
   _id: string;
   store: PopulatedStore;
   products: OrderProduct[];
+  originalAmount: number;
   totalAmount: number;
   deliveryStatus: DeliveryStatus;
   shippingMethod?: {
@@ -93,6 +98,7 @@ export interface SubOrder {
     confirmedAt: Date;
     autoConfirmed: boolean;
   };
+  discount?: IDiscount;
   statusHistory: Array<{
     status: StatusHistory;
     timestamp: Date;
@@ -126,6 +132,7 @@ export interface FormattedOrder {
     address: string;
     deliveryType: DeliveryType;
   };
+  discount?: IDiscount;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -195,6 +202,7 @@ export interface FormattedOrderForAdmin {
     address: string;
     deliveryType: DeliveryType;
   };
+  discount?: IDiscount;
   createdAt: Date;
   updatedAt: Date;
   notes?: string;
@@ -221,6 +229,7 @@ export interface RawOrderDocument {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  discount?: IDiscount;
   subOrders: Array<{
     _id: mongoose.Types.ObjectId;
     storeId: PopulatedStore | mongoose.Types.ObjectId;
@@ -248,6 +257,7 @@ export interface RawOrderDocument {
         email?: string;
       };
     }>;
+    originalAmount: number;
     totalAmount: number;
     deliveryStatus: DeliveryStatus;
     shippingMethod?: {
@@ -262,6 +272,7 @@ export interface RawOrderDocument {
       confirmedAt: Date;
       autoConfirmed: boolean;
     };
+    discount?: IDiscount;
     statusHistory: Array<{
       status: StatusHistory;
       timestamp: Date;
@@ -319,6 +330,7 @@ export const FormattedSubOrderSchema = z.object({
   _id: z.string(),
   store: PopulatedStoreSchema, // Populated store details
   products: z.array(FormattedOrderProductSchema),
+  originalAmount: z.number(),
   totalAmount: z.number(), // Assuming converted to Naira
   shippingMethod: z
     .object({
@@ -335,6 +347,7 @@ export const FormattedSubOrderSchema = z.object({
     confirmedAt: z.string().datetime().optional(),
     autoConfirmed: z.boolean(),
   }),
+  discount: DiscountSchemaOptional,
   statusHistory: z.array(
     z.object({
       status: z.nativeEnum(StatusHistory),
@@ -369,8 +382,7 @@ export const FormattedStoreOrderDocumentSchema = z.object({
   paymentMethod: z.string().optional(),
   paymentStatus: z.string().optional(),
   notes: z.string().optional(),
-  discount: z.number().optional(),
-  taxAmount: z.number().optional(),
+  discount: DiscountSchemaOptional,
   createdAt: z.string().datetime(), // ISO string
   updatedAt: z.string().datetime(), // ISO string
 });

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, baseProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { AdminFundReleaseQueryService } from "@/services/admin-fund-release-query.service";
+import { AdminFundReleaseQueryService } from "@/services/server-queries/admin-fund-release-query.service";
 import {
   FundReleaseStatus,
   StoreTierEnum,

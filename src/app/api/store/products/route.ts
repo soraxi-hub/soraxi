@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 
-    // Ensure store can not upload more than 20 products
+    // Ensure store can not upload more than 25 products
     const productCount = await Product.countDocuments({ storeId });
-    if (productCount >= 20) {
+    if (productCount >= 25) {
       throw new AppError("Store has reached the maximum product limit", 400);
     }
 

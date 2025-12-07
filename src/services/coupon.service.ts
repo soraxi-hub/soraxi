@@ -1,5 +1,5 @@
 import mongoose, { Model } from "mongoose";
-import type { ICoupon } from "@/validators/coupon-validations";
+import { type ICoupon } from "@/validators/coupon-validations";
 import type {
   CouponRedemptionType,
   ICouponRedemption,
@@ -9,6 +9,7 @@ import { getCouponRedemptionModel } from "@/lib/db/models/coupon-redemption.mode
 import type { CouponType } from "@/validators/coupon-validations";
 import type { Types } from "mongoose";
 import { formatNaira } from "@/lib/utils/naira";
+import { DiscountCalculator } from "@/lib/utils/discount-calculator";
 
 /**
  * 🧾 Utility type: LeanDocumentWithId
@@ -62,6 +63,30 @@ export class CouponService {
   }
 
   /**
+   * Fetches active homepage-featured coupons.
+   *
+   * This powers the homepage hero/banner section.
+   * Only returns coupons that are:
+   * - Marked as homepage featured
+   * - Active
+   * - Within start and end date
+   */
+  async getHomepageCoupons(): Promise<LeanDocumentWithId<CouponType>[]> {
+    const now = new Date();
+
+    const coupons = await this.Coupon.find({
+      isHomepageFeatured: true,
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    })
+      .sort({ createdAt: -1 }) // latest featured first
+      .lean<LeanDocumentWithId<CouponType>[]>();
+
+    return coupons;
+  }
+
+  /**
    * ✅ Validates whether a coupon can be applied by a given user
    * for a specific order/cart context.
    *
@@ -70,9 +95,9 @@ export class CouponService {
   async validateCoupon(params: {
     code: string;
     userId: string;
+    orderTotal: number; // in kobo
     storeIds?: string[];
     productIds?: string[];
-    orderTotal: number; // in kobo
   }) {
     const { code, userId, storeIds = [], productIds = [], orderTotal } = params;
 
@@ -95,7 +120,7 @@ export class CouponService {
     // 3️⃣ Max redemption check
     if (coupon.maxRedemptions) {
       const totalUses = await this.Redemption.countDocuments({
-        couponId: coupon._id,
+        couponId: coupon.code,
       });
       if (totalUses >= coupon.maxRedemptions) {
         throw new Error("Coupon redemption limit reached");
@@ -122,7 +147,7 @@ export class CouponService {
       throw new Error("This coupon does not apply to selected store(s)");
     }
 
-    // 6️⃣ Minimum order total
+    // 6️⃣ Minimum order total. Both order Total and Min Order value are in kobo
     if (coupon.minOrderValue && orderTotal < coupon.minOrderValue) {
       throw new Error(
         `Order total must be at least ${formatNaira(coupon.minOrderValue)}`
@@ -131,7 +156,7 @@ export class CouponService {
 
     // validate coupon usage by user
     const isUsedByUser = await this.validateCouponUsageByUser(
-      coupon._id.toString(),
+      coupon.code,
       userId
     );
     if (isUsedByUser) {
@@ -146,15 +171,12 @@ export class CouponService {
    *
    * Ensures no over-discounting beyond the total order value.
    */
-  calculateDiscount(coupon: CouponType, orderTotal: number): number {
-    if (coupon.type === "fixed") {
-      return Math.min(orderTotal, coupon.value);
-    }
-    if (coupon.type === "percentage") {
-      const discount = (orderTotal * coupon.value) / 100;
-      return Math.min(orderTotal, Math.floor(discount));
-    }
-    return 0;
+  calculateDiscount(coupon: CouponType, orderTotal: number) {
+    const params = {
+      type: coupon.type,
+      value: coupon.value,
+    };
+    return DiscountCalculator.calculateDiscount(params, orderTotal);
   }
 
   /**
@@ -167,7 +189,7 @@ export class CouponService {
     if (existing) throw new Error("You have already used this coupon");
 
     await this.Redemption.create({
-      couponId: new mongoose.Types.ObjectId(couponId),
+      couponId: couponId,
       userId: new mongoose.Types.ObjectId(userId),
       orderId: new mongoose.Types.ObjectId(orderId),
       redeemedAt: new Date(),
@@ -190,7 +212,7 @@ export class CouponService {
   ): Promise<boolean> {
     const couponRedemption = await this.Redemption.findOne({
       couponId,
-      userId,
+      userId: new mongoose.Types.ObjectId(userId),
     }).lean<LeanDocumentWithId<CouponRedemptionType>>();
 
     return couponRedemption ? true : false;
@@ -211,12 +233,6 @@ export class CouponService {
   }) {
     const coupon = await this.validateCoupon(params);
     const discount = this.calculateDiscount(coupon, params.orderTotal);
-
-    // await this.redeemCoupon(
-    //   coupon._id.toString(),
-    //   params.userId,
-    //   params.orderId
-    // );
 
     return {
       code: coupon.code,

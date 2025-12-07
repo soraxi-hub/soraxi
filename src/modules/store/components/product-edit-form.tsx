@@ -50,6 +50,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProductStatusEnum } from "@/validators/product-validators";
 import { ProductFactory } from "@/domain/products/product-factory";
 import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
+import { siteConfig } from "@/config/site";
 
 type Output = inferProcedureOutput<
   AppRouter["storeProducts"]["getStoreProductById"]
@@ -896,7 +897,7 @@ export function ProductEditForm({
                     {allImagePreviews.map((src, index) => (
                       <div key={index} className="relative group">
                         <Image
-                          src={src || "/placeholder.svg"}
+                          src={src || siteConfig.placeHolderImg}
                           alt={`Product preview ${index + 1}`}
                           width={150}
                           height={150}

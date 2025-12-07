@@ -54,7 +54,7 @@ export default function FundReleasesList({ params }: FundReleasesListProps) {
    * Fetch fund releases (TRPC)
    */
 
-  const { data, isLoading, refetch, error } = useSuspenseQuery(
+  const { data, isLoading } = useSuspenseQuery(
     trpc.storeFundRelease.getStoreFundReleases.queryOptions({
       sort,
       page,
@@ -75,21 +75,6 @@ export default function FundReleasesList({ params }: FundReleasesListProps) {
     setSort(value);
     setPage(1);
   }, []);
-
-  if (error) {
-    return (
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardContent className="pt-6">
-          <p className="text-sm text-destructive">
-            Error loading fund releases. Try again.
-          </p>
-          <Button onClick={() => refetch()} variant="outline" className="mt-3">
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">

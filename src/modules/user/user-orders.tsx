@@ -10,6 +10,7 @@ import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PaymentStatus } from "@/enums";
 import { capitalizeFirstLetter, cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 export function UserOrders() {
   const trpc = useTRPC();
@@ -111,7 +112,7 @@ export function UserOrders() {
                               <Image
                                 src={
                                   product.productSnapshot.images?.[0] ??
-                                  "/placeholder.svg"
+                                  siteConfig.placeHolderImg
                                 }
                                 alt={product.productSnapshot.name}
                                 fill

@@ -508,7 +508,6 @@ export default function StoreOrdersManagement({
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Order ID</TableHead>
                           <TableHead>Customer</TableHead>
                           <TableHead>Products</TableHead>
                           <TableHead>Status</TableHead>
@@ -527,10 +526,6 @@ export default function StoreOrdersManagement({
 
                           return (
                             <TableRow key={order._id}>
-                              <TableCell className="font-medium">
-                                #{order._id.slice(-8).toUpperCase()}
-                              </TableCell>
-
                               <TableCell>
                                 <div>
                                   <p className="font-medium truncate max-w-[180px]">
@@ -586,7 +581,7 @@ export default function StoreOrdersManagement({
                               </TableCell>
 
                               <TableCell className="font-medium">
-                                {formatNaira(order.totalAmount)}
+                                {formatNaira(order.subOrders[0].originalAmount)}
                               </TableCell>
 
                               <TableCell>

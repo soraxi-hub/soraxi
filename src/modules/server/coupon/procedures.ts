@@ -91,13 +91,33 @@ export const couponRouter = createTRPCRouter({
         return {
           success: true,
           discount: result.discount,
-          //   totalAfterDiscount: result.totalAfterDiscount,
+          code: result.code,
+          type: result.type,
+          value: result.value,
           message: "Coupon applied successfully",
         };
       } catch (err: any) {
         throw handleTRPCError(err, "Failed to apply coupon");
       }
     }),
+
+  /**
+   * Procedure: getHomepageCoupons
+   * Fetches active homepage-featured coupons for public display.
+   */
+  getHomepageCoupons: baseProcedure.query(async () => {
+    try {
+      const couponService = await CouponService.init();
+      const coupons = await couponService.getHomepageCoupons();
+
+      return {
+        success: true,
+        coupons,
+      };
+    } catch (err) {
+      throw handleTRPCError(err, "Failed to fetch homepage coupons");
+    }
+  }),
 
   /**
    * Procedure: getCouponByCode

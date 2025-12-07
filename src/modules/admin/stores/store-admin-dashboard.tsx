@@ -49,6 +49,7 @@ import { cx } from "class-variance-authority";
 import Image from "next/image";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
+import { siteConfig } from "@/config/site";
 
 export type StoreDataProfileAdminView = inferProcedureOutput<
   AppRouter["adminStore"]["getStoreProfileAdminView"]
@@ -186,8 +187,8 @@ function StoreAdminDashboard({
           actionSummary.priority === "high"
             ? "border-l-red-500"
             : actionSummary.priority === "medium"
-            ? "border-l-yellow-500"
-            : "border-l-green-500"
+              ? "border-l-yellow-500"
+              : "border-l-green-500"
         }`}
       >
         <AlertTriangle className="h-4 w-4" />
@@ -393,8 +394,8 @@ function StoreAdminDashboard({
                         check.status === "passed"
                           ? "bg-green-100 text-green-800"
                           : check.status === "warning"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                       }
                     >
                       {check.status}
@@ -421,7 +422,7 @@ function StoreAdminDashboard({
                       <div className="relative aspect-square bg-muted rounded-lg mb-2">
                         {product.images?.[0] && (
                           <Image
-                            src={product.images[0] || "/placeholder.svg"}
+                            src={product.images[0] || siteConfig.placeHolderImg}
                             alt={product.name}
                             fill
                             className="w-full h-full object-cover rounded-lg"

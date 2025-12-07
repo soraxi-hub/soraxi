@@ -5,10 +5,18 @@ import { currencyOperations } from "@/lib/utils/naira";
 import { CheckoutData } from "@/modules/checkout/checkout-page-client";
 import { useTRPC } from "@/trpc/client";
 import { CartProduct, ShippingMethod } from "@/types";
+import { CouponTypeEnum } from "@/validators/coupon-validations";
 import { ProductTypeEnum } from "@/validators/product-validators";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+
+export type AppliedCouponType = {
+  code: string;
+  discount: number;
+  type: CouponTypeEnum;
+  value: number;
+} | null;
 
 /**
  * Structured payload returned after successful validation
@@ -43,6 +51,7 @@ interface PreparedPaymentData {
     address: string;
     postal_code: string;
     userId: string;
+    couponCode?: string | null;
     deliveryType: DeliveryType;
   };
 }
@@ -78,7 +87,8 @@ interface UseCheckoutServiceReturn {
  */
 export function useCheckoutService(
   cartData: CheckoutData["cartData"],
-  userData: CheckoutData["userData"]
+  userData: CheckoutData["userData"],
+  appliedCoupon: AppliedCouponType
 ): UseCheckoutServiceReturn {
   const trpc = useTRPC();
   const [error, setError] = useState<string | null>(null);
@@ -222,10 +232,18 @@ export function useCheckoutService(
 
     // Prepare data for payment API
     const totalShipping = calculateTotalShippingCost();
-    const totalAmount = currencyOperations.add(
+    let totalAmount = currencyOperations.add(
       cartData.totalPrice,
       totalShipping
     );
+
+    if (appliedCoupon) {
+      totalAmount = currencyOperations.subtract(
+        totalAmount,
+        appliedCoupon.discount
+      );
+      totalAmount = Math.max(0, totalAmount);
+    }
 
     return {
       cartItemsWithShippingMethod: cartData.groupedCart.map(
@@ -246,6 +264,7 @@ export function useCheckoutService(
         address: userData.address,
         postal_code: userData.postalCode || "",
         userId: userData._id,
+        couponCode: appliedCoupon?.code,
         deliveryType,
       },
     };

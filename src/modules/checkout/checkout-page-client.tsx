@@ -14,7 +14,10 @@ import OrderSummary from "@/modules/checkout/order-summary";
 import { PaymentService } from "@/domain/checkout/payment-service";
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
-import { useCheckoutService } from "@/hooks/use-checkout-service";
+import {
+  AppliedCouponType,
+  useCheckoutService,
+} from "@/hooks/use-checkout-service";
 
 export type CartOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
@@ -31,6 +34,10 @@ interface CheckoutPageClientProps {
 }
 
 export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCouponType | null>(
+    null
+  );
+
   const {
     error,
     setError,
@@ -43,7 +50,11 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
     selectedShippingMethods,
     validateAndPreparePayment,
     handleShippingMethodChange,
-  } = useCheckoutService(initialState.cartData, initialState.userData);
+  } = useCheckoutService(
+    initialState.cartData,
+    initialState.userData,
+    appliedCoupon
+  );
 
   const paymentService = useMemo(() => new PaymentService(), []);
 
@@ -152,6 +163,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
         <div className="lg:col-span-1">
           <OrderSummary
             subtotal={initialState.cartData.totalPrice}
+            discount={appliedCoupon?.discount}
             shippingCost={totalShippingCost}
             totalItems={initialState.cartData.totalQuantity}
             onPlaceOrderAction={handlePlaceOrder}
@@ -161,6 +173,7 @@ export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
             isComplete={isCheckoutComplete && !hasValidationErrors}
             deliveryType={deliveryType}
             handleDeliveryTypeChangeAction={handleDeliveryTypeChange}
+            setAppliedCoupon={setAppliedCoupon}
           />
         </div>
       </div>

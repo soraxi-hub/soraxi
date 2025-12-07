@@ -58,6 +58,7 @@ import { DeliveryType } from "@/enums";
 import { campusLocations } from "@/modules/checkout/order-summary";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
+import { siteConfig } from "@/config/site";
 
 /**
  * Order Monitoring Component
@@ -566,7 +567,7 @@ function OrderMonitoring() {
                             <Image
                               src={
                                 item.productSnapshot.images[0] ||
-                                "/placeholder.svg"
+                                siteConfig.placeHolderImg
                               }
                               alt={item.productSnapshot.name}
                               width={48}
@@ -613,7 +614,7 @@ function OrderMonitoring() {
                       {selectedOrder.shippingAddress?.deliveryType ===
                       DeliveryType.Campus
                         ? `Campus Delivery (${campusLocations.join(", ")})`
-                        : selectedOrder.shippingAddress?.address ?? "Unknown"}
+                        : (selectedOrder.shippingAddress?.address ?? "Unknown")}
                     </p>
                     <p>
                       Postal Code:{" "}

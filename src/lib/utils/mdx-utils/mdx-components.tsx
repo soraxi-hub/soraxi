@@ -6,6 +6,7 @@ import {
   XCircle,
   Lightbulb,
 } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 interface Note {
   children: ReactNode;
@@ -100,7 +101,7 @@ export const MDXComponents = {
     <figure className="my-6">
       <div className="rounded-lg overflow-hidden border border-border">
         <img
-          src={src || "/placeholder.svg"}
+          src={src || siteConfig.placeHolderImg}
           alt={alt || "Screenshot"}
           className="w-full h-auto"
         />

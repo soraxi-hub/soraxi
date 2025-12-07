@@ -226,8 +226,8 @@ export const storeOrdersRouter = createTRPCRouter({
               select: "_id name storeEmail logoUrl",
             })
             .select(
-              "_id userId stores totalAmount paymentStatus paymentMethod " +
-                "shippingAddress notes discount taxAmount createdAt updatedAt subOrders"
+              "_id userId stores originalAmount totalAmount paymentStatus paymentMethod " +
+                "shippingAddress notes discount createdAt updatedAt subOrders"
             )
             .sort({ createdAt: -1 })
             .skip(skip)

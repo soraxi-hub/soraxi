@@ -13,6 +13,7 @@ import {
 import { ShoppingBag } from "lucide-react";
 import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
+import { CartProvider } from "@/modules/cart/cart-provider";
 
 export const metadata: Metadata = {
   title: `Your Shopping Cart`,
@@ -217,6 +218,7 @@ export default async function CartPage() {
     // Render the page with pre-loaded data
     return (
       <div className="container mx-auto px-4 py-4">
+        <CartProvider />
         {/* Page Header with Breadcrumb */}
         <div className="flex items-center justify-between mb-8">
           <Breadcrumb className="hidden md:inline-flex">

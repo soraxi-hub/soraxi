@@ -33,6 +33,13 @@ export const PERMISSIONS = {
   PROCESS_REFUND: "process_refund",
   PROCESS_WITHDRAWAL: "process_withdrawal",
 
+  // Coupons permissions
+  VIEW_COUPONS: "view_coupons",
+  VIEW_COUPON_REDEMPTIONS: "view_coupon_redemptions",
+  CREATE_COUPONS: "create_coupons",
+  EDIT_COUPONS: "edit_coupons",
+  DELETE_COUPONS: "delete_coupons",
+
   // Admin management
   MANAGE_ADMINS: "manage_admins",
   ACTIVATE_ADMIN: "activate_admin",

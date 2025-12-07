@@ -10,6 +10,8 @@ import {
 import { getUserModel } from "./user.model";
 import { getStoreModel } from "./store.model";
 import { getProductModel } from "./product.model";
+import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { IDiscount } from "@/validators/discount-validation";
 
 /**
  * Interface representing a product snapshot in an order.
@@ -46,7 +48,9 @@ export interface ISubOrder {
   _id: mongoose.Schema.Types.ObjectId;
   storeId: mongoose.Schema.Types.ObjectId;
   products: IOrderProduct[];
+  originalAmount: number; // Add original amount before discount
   totalAmount: number;
+  discount?: IDiscount; // Change from simple number to discount object
   shippingMethod?: {
     name: string;
     price: number;
@@ -110,8 +114,8 @@ export interface IOrder extends Document {
   paymentMethod?: string;
   paymentGateway?: PaymentGateway;
   notes?: string;
-  discount?: number;
-  taxAmount?: number;
+  couponCode?: string; // Add coupon code reference
+  discount?: IDiscount; // Change from simple number to discount object
   // expireAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -176,6 +180,19 @@ const OrderProductSchema = new Schema<IOrderProduct>({
 });
 
 /**
+ * Schema for discount information
+ */
+const DiscountSchema = new Schema<IDiscount>({
+  amount: { type: Number, required: true },
+  couponCode: { type: String },
+  type: {
+    type: String,
+    enum: Object.values(CouponTypeEnum),
+  },
+  description: { type: String },
+});
+
+/**
  * Schema for sub-orders linked to stores.
  */
 const SubOrderSchema = new Schema<ISubOrder>({
@@ -185,14 +202,15 @@ const SubOrderSchema = new Schema<ISubOrder>({
     required: [true, "StoreId is required for reference"],
   },
   products: [OrderProductSchema],
+  originalAmount: { type: Number }, // Add originalAmount field
   totalAmount: { type: Number, required: [true, "Total amount is required"] },
+  discount: DiscountSchema, // Update discount to object schema
   shippingMethod: {
     name: { type: String },
     price: { type: Number },
     estimatedDeliveryDays: { type: String },
     description: { type: String },
   },
-  // trackingNumber: { type: String }, // For the start and our MVP, we don't need it
   deliveryDate: { type: Date },
   deliveryStatus: {
     type: String,
@@ -305,8 +323,8 @@ const OrderSchema = new Schema<IOrder>(
       sparse: true,
     }, // Only set at creation, cannot be changed even if the order is updated. Sparse to allow multiple nulls for old orders without the field
     notes: { type: String },
-    discount: { type: Number },
-    taxAmount: { type: Number },
+    couponCode: { type: String }, // Add couponCode field
+    discount: DiscountSchema, // Update discount to object schema
     // expireAt: {
     //   type: Date,
     //   default: () => new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
@@ -359,7 +377,10 @@ export async function getOrderById(
       path: "subOrders.storeId",
       model: "Store",
       select: "name storeEmail logo",
-    });
+    })
+    .select(
+      "_id userId stores totalAmount paymentStatus discount createdAt subOrders"
+    );
 
   return lean ? query.lean<IOrder>().exec() : query.exec();
 }

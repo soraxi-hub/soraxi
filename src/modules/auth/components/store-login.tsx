@@ -81,7 +81,7 @@ export default function StoreLoginPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Get redirect URL from query params (for post-login navigation)
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = decodeURIComponent(searchParams.get("redirect") || "/");
 
   const {
     register,
