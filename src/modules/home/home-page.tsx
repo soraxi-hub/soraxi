@@ -48,7 +48,8 @@ export function HomePage() {
                   <h3 className="font-semibold text-lg">
                     {
                       [
-                        "Verified Sellers",
+                        // "Verified Sellers",
+                        "Trusted Brands",
                         "Fast Delivery",
                         "Quality Guaranteed",
                         "24/7 Support",
@@ -58,7 +59,8 @@ export function HomePage() {
                   <p className="text-muted-foreground">
                     {
                       [
-                        "All our sellers are verified and trusted",
+                        // "All our sellers are verified and trusted",
+                        "All our brands are vetted for quality",
                         "Quick and reliable shipping within Campus",
                         "Premium products with quality assurance",
                         "Round-the-clock customer support",

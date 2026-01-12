@@ -27,16 +27,6 @@ export const publicPaths = [
 ];
 
 export const categories = [
-  // {
-  //   name: "Food & Drinks",
-  //   slug: "food-drinks",
-  //   subcategories: [
-  //     { name: "Cooked Meals", slug: "cooked-meals" },
-  //     { name: "Snacks", slug: "snacks" },
-  //     { name: "Drinks & Beverages", slug: "drinks-beverages" },
-  //     { name: "Fast Order Combos", slug: "fast-order-combos" },
-  //   ],
-  // },
   {
     name: "Fashion & Accessories",
     slug: "fashion-accessories",

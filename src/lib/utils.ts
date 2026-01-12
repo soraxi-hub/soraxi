@@ -204,3 +204,24 @@ export const capitalizeFirstLetter = (value: string): string => {
   const trimmed = value.trimStart();
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 };
+
+/**
+ * Generates uppercase initials from a full name.
+ *
+ * Splits the provided name by spaces, takes the first character
+ * of each word, joins them together, and converts the result to uppercase.
+ *
+ * @param name - The full name from which to generate initials.
+ * @returns The uppercase initials derived from the name.
+ *
+ * @example
+ * getInitials("John Doe"); // "JD"
+ * getInitials("mishael joseph"); // "MJ"
+ */
+export const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+};
