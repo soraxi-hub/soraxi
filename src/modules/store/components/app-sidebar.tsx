@@ -1,23 +1,6 @@
 "use client";
 
-import {
-  UserIcon,
-  PackageIcon,
-  // HeartIcon,
-  MapPinIcon,
-  CreditCardIcon,
-  // StarIcon,
-  // LockIcon,
-  // GlobeIcon,
-  // HelpCircleIcon,
-  MailIcon,
-  BriefcaseIcon,
-  // Share2Icon,
-  ChevronDownIcon,
-  WalletIcon,
-  LogOutIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { ChevronDownIcon, LogOutIcon } from "lucide-react";
 
 import {
   Sidebar,
@@ -26,8 +9,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
-  //   SidebarGroupLabel,
-  // SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -55,111 +36,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { siteConfig } from "@/config/site";
-import { truncateText } from "@/lib/utils";
+import { getInitials, truncateText } from "@/lib/utils";
 import Link from "next/link";
-
-const sidebarItems = (storeId: string) => [
-  {
-    label: "Store Management",
-    items: [
-      {
-        title: "Dashboard",
-        url: `/store/${storeId}/dashboard`,
-        icon: BriefcaseIcon,
-      },
-      {
-        title: "Products",
-        url: `/store/${storeId}/products`,
-        icon: PackageIcon,
-      },
-      {
-        title: "Orders",
-        url: `/store/${storeId}/orders`,
-        icon: CreditCardIcon,
-      },
-      // {
-      //   title: "Returns",
-      //   url: `/store/${storeId}/returns`,
-      //   icon: RefreshCwIcon,
-      // },
-      {
-        title: "My Escrow",
-        url: `/store/${storeId}/escrow`,
-        icon: RefreshCwIcon,
-      },
-      {
-        title: "Wallet",
-        url: `/store/${storeId}/wallet`,
-        icon: WalletIcon,
-      },
-    ],
-  },
-  {
-    label: "Store Settings",
-    items: [
-      {
-        title: "Store Profile",
-        url: `/store/${storeId}/profile`,
-        icon: UserIcon,
-      },
-      {
-        title: "Shipping",
-        url: `/store/${storeId}/shipping`,
-        icon: MapPinIcon,
-      },
-      {
-        title: "Payment Setup",
-        url: `/store/${storeId}/payment-setup`,
-        icon: CreditCardIcon,
-      },
-      // {
-      //   title: "Tax Settings",
-      //   url: `/store/${storeId}/tax`,
-      //   icon: LockIcon,
-      // },
-    ],
-  },
-  // {
-  //   label: "Marketing",
-  //   items: [
-  //     {
-  //       title: "Discounts",
-  //       url: `/store/${storeId}/discounts`,
-  //       icon: HeartIcon,
-  //     },
-  //     {
-  //       title: "Promotions",
-  //       url: `/store/${storeId}/promotions`,
-  //       icon: Share2Icon,
-  //     },
-  //     {
-  //       title: "Analytics",
-  //       url: `/store/${storeId}/analytics`,
-  //       icon: GlobeIcon,
-  //     },
-  //   ],
-  // },
-  {
-    label: "Support",
-    items: [
-      // {
-      //   title: "Store Help",
-      //   url: `/store/${storeId}/help`,
-      //   icon: HelpCircleIcon,
-      // },
-      {
-        title: "Contact Support",
-        url: `/support`,
-        icon: MailIcon,
-      },
-      // {
-      //   title: "Policies",
-      //   url: `/store/${storeId}/policies`,
-      //   icon: LockIcon,
-      // },
-    ],
-  },
-];
+import { storeSidebarItems } from "./constant";
 
 export function StoreSidebar({ store }: { store: StoreTokenData }) {
   const router = useRouter();
@@ -177,13 +56,7 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
       return error;
     }
   };
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
+
   return (
     <Sidebar
       variant={`inset`}
@@ -207,7 +80,7 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems(store.id).map((section, i) => (
+              {storeSidebarItems(store.id).map((section, i) => (
                 <Collapsible key={i} defaultOpen className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>

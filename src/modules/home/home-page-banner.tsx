@@ -3,9 +3,12 @@
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { formatNaira } from "@/lib/utils/naira";
+import { addNairaSign, formatNaira } from "@/lib/utils/naira";
 import { useState } from "react";
-import { Check, Copy } from "lucide-react"; // You'll need to install lucide-react or use another icon library
+import { Check, Copy } from "lucide-react";
+import { siteConfig } from "@/config/site";
+import Image from "next/image";
+import Link from "next/link";
 
 export function HomeHero() {
   const trpc = useTRPC();
@@ -15,8 +18,19 @@ export function HomeHero() {
     trpc.coupon.getHomepageCoupons.queryOptions()
   );
 
-  // ✅ Maximum of 2 coupons
+  // Maximum of 2 coupons
   const coupons = data?.coupons?.slice(0, 2) ?? [];
+
+  // Data fetching with tRPC and React Query
+  const { data: publicProductsData } = useQuery(
+    trpc.home.getPublicProducts.queryOptions({
+      verified: true,
+      page: 1,
+      limit: 4,
+    })
+  );
+
+  const allProducts = publicProductsData?.products || [];
 
   const handleCopy = async (code: string, couponId: string) => {
     try {
@@ -48,7 +62,7 @@ export function HomeHero() {
     <section className="relative bg-gradient-to-r from-soraxi-green to-soraxi-green/80 text-white py-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* ✅ LEFT SIDE — TEXT CONTENT */}
+          {/* LEFT SIDE — TEXT CONTENT */}
           <div className="space-y-6">
             {/* Main Headline */}
             <motion.h1
@@ -57,7 +71,7 @@ export function HomeHero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              Discover Amazing Products from Verified Stores
+              Discover Amazing Products from Trusted Brands
             </motion.h1>
 
             {/* Sub Text */}
@@ -67,12 +81,14 @@ export function HomeHero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
             >
-              Shop with confidence from our curated marketplace of trusted
-              sellers offering quality products at great prices.
+              {/* Shop with confidence from our curated marketplace of trusted
+              sellers offering quality products at great prices. */}
+              Shop with confidence in a curated marketplace featuring verified
+              brands offering quality products at great prices.
             </motion.p>
           </div>
 
-          {/* ✅ RIGHT SIDE — REEL-STYLE TICKETS */}
+          {/* RIGHT SIDE — REEL-STYLE TICKETS */}
           {!isLoading && coupons.length > 0 && (
             <motion.div
               className="relative"
@@ -199,6 +215,50 @@ export function HomeHero() {
                   </span>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Product cards section. Display when no coupons are active */}
+          {!isLoading && coupons.length < 1 && allProducts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="grid grid-cols-2 gap-4 max-w-md"
+            >
+              {allProducts.map((product, index) => (
+                <Link key={product.id} href={`/products/${product.slug}`}>
+                  <motion.div
+                    key={product.id}
+                    className="bg-white rounded-xl shadow-lg p-3"
+                    style={{
+                      transform: `rotate(${index % 2 === 0 ? "-2" : "2"}deg)`,
+                    }}
+                    whileHover={{ scale: 1.03 }}
+                  >
+                    <div className="aspect-auto bg-gray-100 rounded-lg mb-2 overflow-hidden">
+                      <Image
+                        src={
+                          (product.images && product.images[0]) ||
+                          siteConfig.placeHolderImg
+                        }
+                        height={200}
+                        width={300}
+                        alt={product.name}
+                        className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+
+                    <h4 className="text-sm font-semibold text-gray-900 truncate">
+                      {product.name}
+                    </h4>
+
+                    <p className="text-sm font-bold text-soraxi-green">
+                      {addNairaSign(product.price || 0)}
+                    </p>
+                  </motion.div>
+                </Link>
+              ))}
             </motion.div>
           )}
         </div>

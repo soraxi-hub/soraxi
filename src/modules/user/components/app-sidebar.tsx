@@ -1,26 +1,6 @@
 "use client";
 
-import {
-  UserIcon,
-  PackageIcon,
-  HeartIcon,
-  EditIcon,
-  StoreIcon,
-  // MapPinIcon,
-  // CreditCardIcon,
-  // StarIcon,
-  // LockIcon,
-  // BellIcon,
-  // GlobeIcon,
-  // HelpCircleIcon,
-  HelpCircleIcon,
-  // RefreshCwIcon,
-  // MailIcon,
-  BuildingIcon,
-  // Share2Icon,
-  ChevronDownIcon,
-  LogOutIcon,
-} from "lucide-react";
+import { ChevronDownIcon, LogOutIcon } from "lucide-react";
 
 import {
   Sidebar,
@@ -29,8 +9,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
-  //   SidebarGroupLabel,
-  // SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -58,67 +36,9 @@ import { TokenData } from "@/lib/helpers/get-user-data-from-token";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { truncateText } from "@/lib/utils";
+import { getInitials, truncateText } from "@/lib/utils";
 import Link from "next/link";
-
-const sidebarItems = (user: TokenData) => [
-  {
-    label: "My Account",
-    items: [
-      { title: "Profile", url: "/profile", icon: UserIcon },
-      { title: "Order History", url: "/orders", icon: PackageIcon },
-      { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
-      // { title: "Addresses", url: "/addresses", icon: MapPinIcon },
-      // {
-      //   title: "Payment Methods",
-      //   url: "/payment-methods",
-      //   icon: CreditCardIcon,
-      // },
-      // { title: "Reviews", url: "/reviews", icon: StarIcon },
-    ],
-  },
-  {
-    label: "Settings",
-    items: [
-      // { title: "Security", url: "/security", icon: LockIcon },
-      { title: "Edit Profile", url: "/edit-profile", icon: EditIcon },
-      // { title: "Notifications", url: "/notifications", icon: BellIcon },
-      // { title: "Language", url: "/language", icon: GlobeIcon },
-    ],
-  },
-  {
-    label: "Help & Support",
-    items: [
-      // { title: "FAQs", url: "/faqs", icon: HelpCircleIcon },
-      // { title: "Returns", url: "/returns", icon: RefreshCwIcon },
-      { title: "Support", url: "/support", icon: HelpCircleIcon },
-    ],
-  },
-  {
-    label: `My Store`,
-    items: [
-      ...(user?.store
-        ? [
-            {
-              title: "Store Management",
-              url: `/store/${user.store}/dashboard`,
-              icon: BuildingIcon,
-            },
-          ]
-        : []),
-      {
-        title: "Create Your Store",
-        url: "/store/onboarding/",
-        icon: StoreIcon,
-      },
-      // {
-      //   title: "Affiliate Program",
-      //   url: "/affiliate-program",
-      //   icon: Share2Icon,
-      // },
-    ],
-  },
-];
+import { userSidebarItems } from "./constant";
 
 export function AppSidebar({ user }: { user: TokenData | null }) {
   const router = useRouter();
@@ -141,14 +61,6 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
     router.push("/sign-in");
     return;
   }
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
 
   const userName = `${user.firstName} ${user.lastName}`;
 
@@ -175,7 +87,7 @@ export function AppSidebar({ user }: { user: TokenData | null }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems(user).map((section, i) => (
+              {userSidebarItems(user).map((section, i) => (
                 <Collapsible key={i} defaultOpen className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
