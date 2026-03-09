@@ -1,4 +1,7 @@
-export const fields = [
+{
+  /* IMPORTANT: This slugs must be changed else, it will not match what is stored in the DB which will cause filtering and sorting to break */
+}
+export const targetAudience = [
   {
     name: "General",
     slug: "general",
@@ -11,12 +14,12 @@ export const fields = [
     subfields: [
       { name: "Legal Outfits", slug: "legal-outfits" },
       { name: "Law Books & Materials", slug: "law-books-materials" },
-      { name: "Accessories", slug: "law-accessories" },
+      { name: "Law Accessories", slug: "law-accessories" },
     ],
   },
   {
     name: "Medicine & Health Sciences",
-    slug: "medicine",
+    slug: "medicine-health-sciences",
     description: "Products for medical and health science students",
     subfields: [
       { name: "Lab Coats & Scrubs", slug: "lab-coats-scrubs" },
@@ -29,8 +32,8 @@ export const fields = [
     slug: "engineering",
     description: "Tools and materials for engineering students",
     subfields: [
-      { name: "Calculators", slug: "engineering-calculators" },
-      { name: "Drawing & Drafting Tools", slug: "drafting-tools" },
+      { name: "Engineering Calculators", slug: "engineering-calculators" },
+      { name: "Drawing & Drafting Tools", slug: "drawing-drafting-tools" },
       { name: "Safety Gear", slug: "safety-gear" },
     ],
   },
@@ -41,7 +44,7 @@ export const fields = [
     subfields: [
       { name: "Financial Calculators", slug: "financial-calculators" },
       { name: "Accounting Textbooks", slug: "accounting-textbooks" },
-      { name: "Study Guides", slug: "accounting-study-guides" },
+      { name: "Accounting Study Guides", slug: "accounting-study-guides" },
     ],
   },
   {
@@ -58,15 +61,15 @@ export const fields = [
 
 // Get field name from slug
 export const getFieldName = (slug: string) => {
-  const field = fields.find((f) => f.slug === slug);
+  const field = targetAudience.find((f) => f.slug === slug);
   return field?.name;
 };
 
 // Get all fields
-export const getFieldNames = () => fields.map((f) => f.name);
+export const getFieldNames = () => targetAudience.map((f) => f.name);
 
 // Get subfields for a field
 export const getSubfieldsForField = (fieldSlug: string) => {
-  const field = fields.find((f) => f.slug === fieldSlug);
+  const field = targetAudience.find((f) => f.slug === fieldSlug);
   return field?.subfields || [];
 };

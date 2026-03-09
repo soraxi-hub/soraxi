@@ -26,6 +26,9 @@ export const publicPaths = [
   "/store/onboarding",
 ];
 
+{
+  /* IMPORTANT: This slugs must be changed else, it will not match what is stored in the DB which will cause filtering and sorting to break */
+}
 export const categories = [
   {
     name: "Fashion & Accessories",

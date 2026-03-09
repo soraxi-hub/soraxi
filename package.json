@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "start:create:superAdmin": "tsx scripts/create-super-admin.ts",
+    "start:backfill-target-audience": "tsx scripts/back-fill-target-audience.ts",
     "lint": "next lint",
     "email:dev": "email dev --dir src/services/notifications/templates --port 4000"
   },

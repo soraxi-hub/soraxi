@@ -59,6 +59,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProductFactory } from "@/domain/products/product-factory";
 import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
 import { siteConfig } from "@/config/site";
+import { targetAudience } from "@/constants/fields-constants";
 
 interface ProductUploadFormProps {
   storeId: string;
@@ -73,6 +74,7 @@ const initialFormData: ProductFormData = {
   productQuantity: 0,
   category: [],
   subCategory: [],
+  targetAudience: [],
   storePassword: "",
   productType: ProductTypeEnum.Product,
 };
@@ -88,6 +90,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedTargetAudience, setSelectedTargetAudience] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -127,7 +130,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
       const productToUpload = ProductFactory.createUploadProduct(formData);
       const productValidationResult = productToUpload.validate(
         "draft",
-        imageFiles.length
+        imageFiles.length,
       );
 
       if (!productValidationResult.hasErrors) {
@@ -152,6 +155,10 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           subCategory:
             formData.subCategory && formData.subCategory.length > 0
               ? slugify(formData.subCategory)
+              : [],
+          targetAudience:
+            formData.targetAudience && formData.targetAudience.length > 0
+              ? slugify(formData.targetAudience)
               : [],
           submitAction: "draft" as const,
           submittedDraftProductId: draftProductId,
@@ -180,7 +187,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
         return true;
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Failed to save draft"
+          error instanceof Error ? error.message : "Failed to save draft",
         );
         return false;
       } finally {
@@ -223,7 +230,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
 
   const handleInputChange = (
     field: keyof ProductFormData,
-    value: string | number
+    value: string | number,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -241,7 +248,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
-    action: "draft" | "publish"
+    action: "draft" | "publish",
   ) => {
     e.preventDefault();
 
@@ -249,7 +256,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     // console.log("productToUpload", productToUpload);
     const productValidationResult = productToUpload.validate(
       action,
-      imageFiles.length
+      imageFiles.length,
     );
 
     if (productValidationResult.hasErrors) {
@@ -275,6 +282,10 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           subCategory:
             formData.subCategory && formData.subCategory.length > 0
               ? slugify(formData.subCategory)
+              : [],
+          targetAudience:
+            formData.targetAudience && formData.targetAudience.length > 0
+              ? slugify(formData.targetAudience)
               : [],
           submitAction: action,
           submittedDraftProductId: draftProductId,
@@ -340,18 +351,20 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
           productQuantity: 0,
           category: [],
           subCategory: [],
+          targetAudience: [],
           storePassword: "",
           productType: ProductTypeEnum.Product,
         });
         setSelectedCategory("");
         setSelectedSubCategory("");
+        setSelectedTargetAudience("");
         setImageFiles([]);
         setImagePreviews([]);
         router.back();
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload product"
+        error instanceof Error ? error.message : "Failed to upload product",
       );
       setError(["Failed to upload product"]);
     } finally {
@@ -450,6 +463,18 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
       subCategory: [value],
     }));
   };
+
+  const handleTargetAudienceChange = (value: string) => {
+    setSelectedTargetAudience(value);
+    setFormData((prev) => ({
+      ...prev,
+      targetAudience: [value],
+    }));
+  };
+
+  const description = targetAudience.find(
+    (audience) => audience.name === selectedTargetAudience,
+  )?.description;
 
   // ============================================================================
   // CLEANUP EFFECTS
@@ -554,7 +579,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                 onClick={(e) => {
                   handleSubmit(
                     e as unknown as React.FormEvent<HTMLFormElement>,
-                    "draft"
+                    "draft",
                   );
                 }}
               >
@@ -578,7 +603,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                 onClick={(e) => {
                   handleSubmit(
                     e as unknown as React.FormEvent<HTMLFormElement>,
-                    "publish"
+                    "publish",
                   );
                 }}
               >
@@ -783,7 +808,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                         // Only convert to number if not empty
                         handleInputChange(
                           "price",
-                          value === "" ? 0 : Number(value)
+                          value === "" ? 0 : Number(value),
                         );
                       }}
                       type="number"
@@ -831,7 +856,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                         const value = e.target.value;
                         handleInputChange(
                           "productQuantity",
-                          value === "" ? 0 : Number(value)
+                          value === "" ? 0 : Number(value),
                         );
                       }}
                       type="number"
@@ -919,7 +944,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                             <SelectItem key={subCategory} value={subCategory}>
                               {subCategory}
                             </SelectItem>
-                          )
+                          ),
                         )}
                       </SelectContent>
                     </Select>
@@ -931,6 +956,55 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Target Audience */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center space-x-2">
+                  <CardTitle className="text-lg">Target Audience</CardTitle>
+                </div>
+                <CardDescription>
+                  Choose the most appropriate target audience for your product.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Target Audience */}
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Label className="text-sm font-medium">
+                      Target Audience
+                    </Label>
+                    {getValidationIcon("targetAudience")}
+                  </div>
+                  <Select
+                    value={selectedTargetAudience}
+                    onValueChange={handleTargetAudienceChange}
+                  >
+                    <SelectTrigger className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800] w-full">
+                      <SelectValue placeholder="Select a target audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {targetAudience.map((audience) => (
+                        <SelectItem key={audience.slug} value={audience.name}>
+                          {audience.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTargetAudience && description && (
+                    <p className="text-sm text-muted-foreground">
+                      {description}
+                    </p>
+                  )}
+                  {errors.targetAudience && (
+                    <p className="text-sm text-red-500 flex items-center">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      {errors.targetAudience}
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -1075,7 +1149,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
             onClick={(e) => {
               handleSubmit(
                 e as unknown as React.FormEvent<HTMLFormElement>,
-                "draft"
+                "draft",
               );
             }}
           >
@@ -1099,7 +1173,7 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
             onClick={(e) => {
               handleSubmit(
                 e as unknown as React.FormEvent<HTMLFormElement>,
-                "publish"
+                "publish",
               );
             }}
           >

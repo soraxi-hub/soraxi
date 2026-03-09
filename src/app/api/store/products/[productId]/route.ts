@@ -15,7 +15,7 @@ import { MIN_IMAGE_NUMBER } from "@/domain/products/product-upload";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ productId: string }> }
+  { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
     // Check store authentication
@@ -34,6 +34,7 @@ export async function PUT(
       specifications,
       category,
       subCategory,
+      targetAudience,
       storePassword,
       submitAction, // "draft" or "publish"
     } = body;
@@ -55,7 +56,7 @@ export async function PUT(
 
     // Check if store exists
     const store = await Store.findById(storeSession.id).select(
-      "password status verification"
+      "password status verification",
     );
     if (!store) {
       throw new AppError("Store not found", 404);
@@ -65,7 +66,7 @@ export async function PUT(
     if (store.status === StoreStatusEnum.Suspended) {
       throw new AppError(
         "Store Suspended. You can not perform this action",
-        403
+        403,
       );
     }
 
@@ -100,7 +101,7 @@ export async function PUT(
       if (validationErrors.length > 0) {
         throw new AppError(
           `Draft validation failed: ${validationErrors.join("; ")}`,
-          400
+          400,
         );
       }
 
@@ -113,6 +114,7 @@ export async function PUT(
       if (specifications !== undefined) product.specifications = specifications;
       if (category !== undefined) product.category = category;
       if (subCategory !== undefined) product.subCategory = subCategory;
+      if (targetAudience !== undefined) product.targetAudience = targetAudience;
       if (images !== undefined) product.images = images;
 
       // Keep as draft
@@ -155,7 +157,7 @@ export async function PUT(
       // Additional validation for images
       if (!images || images.length < MIN_IMAGE_NUMBER) {
         validationErrors.push(
-          `images: At least ${MIN_IMAGE_NUMBER} product images are required`
+          `images: At least ${MIN_IMAGE_NUMBER} product images are required`,
         );
       }
 
@@ -163,7 +165,7 @@ export async function PUT(
       if (validationErrors.length > 0) {
         throw new AppError(
           `Publish validation failed: ${validationErrors.join("; ")}`,
-          400
+          400,
         );
       }
 
@@ -175,6 +177,7 @@ export async function PUT(
       product.specifications = specifications;
       product.category = category;
       product.subCategory = subCategory;
+      product.targetAudience = targetAudience;
       product.images = images;
 
       // Set status based on previous state

@@ -11,7 +11,7 @@ export const storeProductRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.string(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { store } = ctx;
@@ -49,6 +49,7 @@ export const storeProductRouter = createTRPCRouter({
         images: product.images,
         category: product.category,
         subCategory: product.subCategory,
+        targetAudience: product.targetAudience,
         description: product.description,
         specifications: product.specifications,
         status: product.status,

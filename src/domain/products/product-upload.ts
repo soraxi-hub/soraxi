@@ -8,6 +8,7 @@ import {
   productSpecifications,
   productStorePassword,
   productSubCategory,
+  productTargetAudience,
 } from "@/validators/product-validators";
 import { toast } from "sonner";
 
@@ -55,7 +56,7 @@ export class UploadProduct {
       this.productToUpload?.description !== "<p><br></p>"
     ) {
       const descriptionResult = productDescription.safeParse(
-        this.productToUpload?.description
+        this.productToUpload?.description,
       );
       if (!descriptionResult.success) {
         newErrors.description = getFirstError(descriptionResult);
@@ -67,7 +68,7 @@ export class UploadProduct {
       this.productToUpload?.specifications !== "<p><br></p>"
     ) {
       const specificationsResult = productSpecifications.safeParse(
-        this.productToUpload?.specifications
+        this.productToUpload?.specifications,
       );
       if (!specificationsResult.success) {
         newErrors.specifications = getFirstError(specificationsResult);
@@ -89,7 +90,7 @@ export class UploadProduct {
       this.productToUpload?.productQuantity !== 0
     ) {
       const quantityResult = productQuantity.safeParse(
-        this.productToUpload?.productQuantity
+        this.productToUpload?.productQuantity,
       );
       if (!quantityResult.success) {
         newErrors.productQuantity = getFirstError(quantityResult);
@@ -101,7 +102,7 @@ export class UploadProduct {
       this.productToUpload?.category.length > 0
     ) {
       const categoryResult = productCategory.safeParse(
-        this.productToUpload?.category
+        this.productToUpload?.category,
       );
       if (!categoryResult.success) {
         newErrors.category = getFirstError(categoryResult);
@@ -113,10 +114,22 @@ export class UploadProduct {
       this.productToUpload?.subCategory.length > 0
     ) {
       const subCategoryResult = productSubCategory.safeParse(
-        this.productToUpload?.subCategory
+        this.productToUpload?.subCategory,
       );
       if (!subCategoryResult.success) {
         newErrors.subCategory = getFirstError(subCategoryResult);
+      }
+    }
+
+    if (
+      this.productToUpload?.targetAudience &&
+      this.productToUpload?.targetAudience.length > 0
+    ) {
+      const targetAudienceResult = productTargetAudience.safeParse(
+        this.productToUpload?.targetAudience,
+      );
+      if (!targetAudienceResult.success) {
+        newErrors.targetAudience = getFirstError(targetAudienceResult);
       }
     }
 
@@ -126,21 +139,24 @@ export class UploadProduct {
       const requiredValidations = {
         name: productName.safeParse(this.productToUpload?.name),
         description: productDescription.safeParse(
-          this.productToUpload?.description
+          this.productToUpload?.description,
         ),
         specifications: productSpecifications.safeParse(
-          this.productToUpload?.specifications
+          this.productToUpload?.specifications,
         ),
         price: productPrice.safeParse(this.productToUpload?.price),
         productQuantity: productQuantity.safeParse(
-          this.productToUpload?.productQuantity
+          this.productToUpload?.productQuantity,
         ),
         category: productCategory.safeParse(this.productToUpload?.category),
         subCategory: productSubCategory.safeParse(
-          this.productToUpload?.subCategory
+          this.productToUpload?.subCategory,
+        ),
+        targetAudience: productCategory.safeParse(
+          this.productToUpload?.targetAudience,
         ),
         storePassword: productStorePassword.safeParse(
-          this.productToUpload?.storePassword
+          this.productToUpload?.storePassword,
         ),
       };
 
@@ -164,6 +180,11 @@ export class UploadProduct {
         this.productToUpload.subCategory.length === 0
       )
         newErrors.subCategory = "Subcategory is required";
+      if (
+        this.productToUpload?.targetAudience &&
+        this.productToUpload?.targetAudience.length === 0
+      )
+        newErrors.targetAudience = "Target audience is required";
       if (!this.productToUpload?.storePassword)
         newErrors.storePassword = "Store password is required";
 
@@ -179,7 +200,7 @@ export class UploadProduct {
         !requiredValidations.specifications.success
       ) {
         newErrors.specifications = getFirstError(
-          requiredValidations.specifications
+          requiredValidations.specifications,
         );
       }
       if (!newErrors.price && !requiredValidations.price.success) {
@@ -190,7 +211,7 @@ export class UploadProduct {
         !requiredValidations.productQuantity.success
       ) {
         newErrors.productQuantity = getFirstError(
-          requiredValidations.productQuantity
+          requiredValidations.productQuantity,
         );
       }
       if (!newErrors.category && !requiredValidations.category.success) {
@@ -204,7 +225,7 @@ export class UploadProduct {
         !requiredValidations.storePassword.success
       ) {
         newErrors.storePassword = getFirstError(
-          requiredValidations.storePassword
+          requiredValidations.storePassword,
         );
       }
 
@@ -212,7 +233,7 @@ export class UploadProduct {
       if (imageFilesLength < MIN_IMAGE_NUMBER) {
         newErrors.images = `Please select at least ${MIN_IMAGE_NUMBER} product images`;
         toast.error(
-          `Please select at least ${MIN_IMAGE_NUMBER} product images`
+          `Please select at least ${MIN_IMAGE_NUMBER} product images`,
         );
       }
     }

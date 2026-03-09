@@ -4,12 +4,18 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Search, Award, Zap, Shield, Truck } from "lucide-react";
 
 import { ProductCard } from "../products/product-detail/product-card";
 import { useQueryState } from "nuqs";
 import { HomeHero } from "./home-page-banner";
+import LawProductSection from "./popular-fields/law";
+import ProductLoadingSkeleton from "../skeletons/product-loading-skeleton";
+import GeneralProductSection from "./popular-fields/general";
+import EngineeringProductSection from "./popular-fields/engineering";
+import AccountingProductSection from "./popular-fields/accounting-finance";
+import MedicineProductSection from "./popular-fields/medicine";
+import ComputerScienceProductSection from "./popular-fields/computer-science-it";
 
 /**
  * HomePage Component
@@ -22,18 +28,19 @@ export function HomePage() {
   const { data: publicProductsData, isLoading: productsLoading } = useQuery(
     trpc.home.getPublicProducts.queryOptions({
       verified: true,
-      search,
+      search: search || undefined,
       page: 1,
       limit: 50,
-    })
+    }),
   );
 
   const allProducts = publicProductsData?.products || [];
+  const groupedProducts = publicProductsData?.groupedProducts || {};
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      {!search && <HomeHero />}
+      {!search && <HomeHero products={groupedProducts["general"] || []} />}
 
       {/* Feature Section */}
       {!search && (
@@ -74,55 +81,98 @@ export function HomePage() {
         </section>
       )}
 
+      {/* General Products Section */}
+      {!search && (
+        <GeneralProductSection
+          products={groupedProducts["general"] || []}
+          isLoading={productsLoading}
+        />
+      )}
+
+      {/* Law Products Section */}
+      {!search && (
+        <LawProductSection
+          products={groupedProducts["law"] || []}
+          isLoading={productsLoading}
+        />
+      )}
+
+      {/* Engineering Products Section */}
+      {!search && (
+        <EngineeringProductSection
+          products={groupedProducts["engineering"] || []}
+          isLoading={productsLoading}
+        />
+      )}
+
+      {/* Accounting Products Section */}
+      {!search && (
+        <AccountingProductSection
+          products={groupedProducts["accounting-finance"] || []}
+          isLoading={productsLoading}
+        />
+      )}
+
+      {/* Medical Products Section */}
+      {!search && (
+        <MedicineProductSection
+          products={groupedProducts["medicine-health-sciences"] || []}
+          isLoading={productsLoading}
+        />
+      )}
+
+      {/* Computer Science Products Section */}
+      {!search && (
+        <ComputerScienceProductSection
+          products={groupedProducts["computer-science-it"] || []}
+          isLoading={productsLoading}
+        />
+      )}
+
       {/* Product Filters */}
-      <section className="py-16">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-foreground">All Products</h2>
+      {search && (
+        <section className="py-16">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-foreground">
+                All Products
+              </h2>
+            </div>
+
+            {/* Product Grid or Loader */}
+            {productsLoading ? (
+              <ProductLoadingSkeleton />
+            ) : (
+              <>
+                <div
+                  className={`grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}
+                >
+                  {allProducts.map((product) => (
+                    <Link key={product.id} href={`/products/${product.slug}`}>
+                      <ProductCard product={product} />
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Empty State */}
+            {allProducts.length === 0 && !productsLoading && (
+              <div className="text-center py-12">
+                <div className="w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-12 h-12 text-soraxi-green" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">
+                  No products found
+                </h3>
+                <p className="text-muted-foreground">
+                  Try adjusting your search or filters
+                </p>
+              </div>
+            )}
           </div>
-
-          {/* Product Grid or Loader */}
-          {productsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="animate-pulse p-0">
-                  <div className="h-48 bg-muted rounded-t-lg" />
-                  <CardContent className="p-4 space-y-2">
-                    <div className="h-4 bg-muted rounded" />
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-6 bg-muted rounded w-1/2" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <>
-              <div
-                className={`grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}
-              >
-                {allProducts.map((product) => (
-                  <Link key={product.id} href={`/products/${product.slug}`}>
-                    <ProductCard product={product} />
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Empty State */}
-          {allProducts.length === 0 && !productsLoading && (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-12 h-12 text-soraxi-green" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No products found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search or filters
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

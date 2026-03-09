@@ -26,6 +26,7 @@ export interface IProduct extends Document {
   specifications?: string;
   category?: string[];
   subCategory?: string[];
+  targetAudience?: string[];
   isVerifiedProduct: boolean;
   status: ProductStatusEnum;
   isVisible: boolean;
@@ -109,6 +110,10 @@ const ProductSchema = new Schema<IProduct>(
       },
       index: true,
     },
+    targetAudience: {
+      type: [String],
+      default: [],
+    },
     isVerifiedProduct: {
       type: Boolean,
       default: false,
@@ -144,7 +149,7 @@ const ProductSchema = new Schema<IProduct>(
     timestamps: true,
     toJSON: { virtuals: true, getters: true },
     toObject: { virtuals: true, getters: true },
-  }
+  },
 );
 
 ProductSchema.index(
@@ -162,7 +167,7 @@ ProductSchema.index(
       subCategory: 1,
     },
     name: "TextIndex",
-  }
+  },
 );
 
 ProductSchema.index({ isVisible: 1 });
@@ -199,6 +204,7 @@ export async function getProducts(
     visibleOnly?: boolean;
     category?: string;
     subCategory?: string;
+    targetAudience?: string;
     limit?: number;
     skip?: number;
     minRating?: number;
@@ -209,9 +215,8 @@ export async function getProducts(
     priceMax?: number;
     ratings?: number[];
     cursor?: string;
-  } = {}
+  } = {},
 ): Promise<IProduct[]> {
-  await connectToDatabase();
   const Product = await getProductModel();
 
   const query: { [key: string]: any } = {};
@@ -221,6 +226,11 @@ export async function getProducts(
   if (options.subCategory) {
     query.subCategory = {
       $elemMatch: { $regex: `^${options.subCategory}$`, $options: "i" },
+    };
+  }
+  if (options.targetAudience) {
+    query.targetAudience = {
+      $elemMatch: { $regex: `^${options.targetAudience}$`, $options: "i" },
     };
   }
   if (options.minRating !== undefined)
