@@ -10,27 +10,25 @@ import { siteConfig } from "@/config/site";
 import Image from "next/image";
 import Link from "next/link";
 
-export function HomeHero() {
+import type { inferProcedureOutput } from "@trpc/server";
+import type { AppRouter } from "@/trpc/routers/_app";
+
+type Output = inferProcedureOutput<AppRouter["home"]["getPublicProducts"]>;
+type Products = Output["products"];
+
+export function HomeHero({ products }: { products: Products }) {
   const trpc = useTRPC();
   const [copiedCouponId, setCopiedCouponId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery(
-    trpc.coupon.getHomepageCoupons.queryOptions()
+    trpc.coupon.getHomepageCoupons.queryOptions(),
   );
 
   // Maximum of 2 coupons
   const coupons = data?.coupons?.slice(0, 2) ?? [];
 
-  // Data fetching with tRPC and React Query
-  const { data: publicProductsData } = useQuery(
-    trpc.home.getPublicProducts.queryOptions({
-      verified: true,
-      page: 1,
-      limit: 4,
-    })
-  );
-
-  const allProducts = publicProductsData?.products || [];
+  // Maximun of 4 products for the hero section
+  const heroProducts = products.slice(0, 4);
 
   const handleCopy = async (code: string, couponId: string) => {
     try {
@@ -219,14 +217,14 @@ export function HomeHero() {
           )}
 
           {/* Product cards section. Display when no coupons are active */}
-          {!isLoading && coupons.length < 1 && allProducts.length > 0 && (
+          {!isLoading && coupons.length < 1 && heroProducts.length > 0 && (
             <motion.div
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
               className="grid grid-cols-2 gap-4 max-w-md"
             >
-              {allProducts.map((product, index) => (
+              {heroProducts.map((product, index) => (
                 <Link key={product.id} href={`/products/${product.slug}`}>
                   <motion.div
                     key={product.id}

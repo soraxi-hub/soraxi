@@ -25,6 +25,7 @@ import {
   Calendar,
   Tag,
   ImageIcon,
+  User,
 } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
@@ -72,7 +73,7 @@ export function ProductDetailManagement({
       onError: (error) => {
         toast.error(error.message || "Action failed");
       },
-    })
+    }),
   );
 
   const handleAction = (action: "approve" | "reject") => {
@@ -252,6 +253,16 @@ export function ProductDetailManagement({
                   </Label>
                   <Badge variant="outline" className="mt-1">
                     {product.category}
+                  </Badge>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Target Audience
+                  </Label>
+                  <Badge variant="outline" className="mt-1">
+                    {product.targetAudience}
                   </Badge>
                 </div>
               </div>

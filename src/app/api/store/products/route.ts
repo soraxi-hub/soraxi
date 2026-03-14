@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!storeSession) {
       return NextResponse.json(
         { error: "Store authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       specifications,
       category,
       subCategory,
+      targetAudience,
       storePassword, // Used for verification only
       submitAction,
       submittedDraftProductId, // If editing/upgrading an existing draft
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Check if store exists
     const store = await Store.findById(storeSession.id).select(
-      "password status verification"
+      "password status verification",
     );
     if (!store) {
       throw new AppError("Store not found", 404);
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (store.status === StoreStatusEnum.Suspended) {
       throw new AppError(
         "Store Suspended. You can not perform this action",
-        403
+        403,
       );
     }
 
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
         validationErrors.push(`Name: ${getFirstError(nameResult)}`);
         throw new AppError(
           `Draft validation failed: ${validationErrors.join("; ")}`,
-          400
+          400,
         );
       }
 
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
       if (validationErrors.length > 0) {
         throw new AppError(
           `Draft validation failed: ${validationErrors.join("; ")}`,
-          400
+          400,
         );
       }
 
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
             isVisible: false,
             isVerifiedProduct: false,
           },
-          { runValidators: true }
+          { runValidators: true },
         ).session(session);
 
         await session.commitTransaction();
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
         specifications,
         category,
         subCategory,
+        targetAudience,
         isVerifiedProduct: false,
         isVisible: false, // Draft should not be visible in search/home
       });
@@ -205,7 +207,7 @@ export async function POST(request: NextRequest) {
       // Additional validation for images
       if (!images || images.length < MIN_IMAGE_NUMBER) {
         validationErrors.push(
-          `images: At least ${MIN_IMAGE_NUMBER} product images are required`
+          `images: At least ${MIN_IMAGE_NUMBER} product images are required`,
         );
       }
 
@@ -213,7 +215,7 @@ export async function POST(request: NextRequest) {
       if (validationErrors.length > 0) {
         throw new AppError(
           `Publish validation failed: ${validationErrors.join("; ")}`,
-          400
+          400,
         );
       }
 
@@ -227,7 +229,7 @@ export async function POST(request: NextRequest) {
             isVisible: false, // hidden until admin approval
             isVerifiedProduct: false,
           },
-          { runValidators: true }
+          { runValidators: true },
         ).session(session);
 
         await session.commitTransaction();
@@ -253,6 +255,7 @@ export async function POST(request: NextRequest) {
         specifications,
         category,
         subCategory,
+        targetAudience,
         isVerifiedProduct: false,
         isVisible: false,
       });

@@ -24,6 +24,7 @@ export const homeRouter = createTRPCRouter({
         limit: z.number().min(1).max(100).default(20),
         category: z.string().optional(),
         subCategory: z.string().optional(),
+        targetAudience: z.string().optional(),
         verified: z.boolean().optional(),
         search: z.string().optional().nullable(),
         sort: z
@@ -32,7 +33,7 @@ export const homeRouter = createTRPCRouter({
         priceMin: z.number().optional(),
         priceMax: z.number().optional(),
         ratings: z.array(z.number()).optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const {
@@ -40,6 +41,7 @@ export const homeRouter = createTRPCRouter({
         limit,
         category,
         subCategory,
+        targetAudience,
         search,
         sort,
         priceMin,
@@ -54,6 +56,7 @@ export const homeRouter = createTRPCRouter({
           skip: (page - 1) * limit,
           category: category !== "all" ? category : undefined,
           subCategory,
+          targetAudience,
           verified: true,
           search,
           sort,
@@ -69,14 +72,38 @@ export const homeRouter = createTRPCRouter({
           images: product.images,
           category: product.category,
           subCategory: product.subCategory,
+          targetAudience: product.targetAudience,
           rating: product.rating || 0,
           slug: product.slug,
           isVerifiedProduct: product.isVerifiedProduct,
         }));
 
+        // console.log("Products returned:", formattedProducts.length);
+
+        const groupedProducts: Record<string, typeof formattedProducts> = {};
+
+        for (const product of formattedProducts) {
+          if (!product.targetAudience) continue;
+
+          for (const audience of product.targetAudience) {
+            if (!groupedProducts[audience]) {
+              groupedProducts[audience] = [];
+            }
+            groupedProducts[audience].push(product);
+          }
+        } // Big O(n*m) but we expect small arrays here
+
+        // console.log(
+        //   "Grouped Products:",
+        //   Object.keys(groupedProducts)
+        //     .map((key) => `${key}: ${groupedProducts[key].length} products`)
+        //     .join(", "),
+        // );
+
         return {
           success: true,
           products: formattedProducts,
+          groupedProducts: groupedProducts,
           pagination: {
             page,
             limit,
@@ -86,7 +113,7 @@ export const homeRouter = createTRPCRouter({
       } catch (err: any) {
         throw handleTRPCError(
           err,
-          "Failed to fetch products. Please try again later."
+          "Failed to fetch products. Please try again later.",
         );
       }
     }),
@@ -99,7 +126,7 @@ export const homeRouter = createTRPCRouter({
     .input(
       z.object({
         slug: z.string(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const { slug } = input;
@@ -168,7 +195,7 @@ export const homeRouter = createTRPCRouter({
 
         throw handleTRPCError(
           err,
-          "Failed to fetch product. Please try again later."
+          "Failed to fetch product. Please try again later.",
         );
       }
     }),
@@ -182,7 +209,7 @@ export const homeRouter = createTRPCRouter({
       z.object({
         slug: z.string(),
         limit: z.number().optional().default(4),
-      })
+      }),
     )
     .query(async ({ input }) => {
       try {

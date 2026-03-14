@@ -54,18 +54,23 @@ function UserAvatar({ userName }: { userName?: string }) {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator className=" border" />
               <Link href={`/profile`}>
-                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
                   Profile
                 </DropdownMenuItem>
               </Link>
               <Link href={`/wishlist`}>
-                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
                   Wishlist
                 </DropdownMenuItem>
               </Link>
               <Link href={`/orders`}>
-                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! hover:font-semibold">
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
                   Orders
+                </DropdownMenuItem>
+              </Link>
+              <Link href={"/requests/new"} className="lg:hidden">
+                <DropdownMenuItem className="cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
+                  Post What You Need
                 </DropdownMenuItem>
               </Link>
               <DropdownMenuSeparator className=" border" />

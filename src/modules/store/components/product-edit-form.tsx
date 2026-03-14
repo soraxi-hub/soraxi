@@ -51,6 +51,7 @@ import { ProductStatusEnum } from "@/validators/product-validators";
 import { ProductFactory } from "@/domain/products/product-factory";
 import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
 import { siteConfig } from "@/config/site";
+import { targetAudience as targetAudienceArray } from "@/constants/fields-constants";
 
 type Output = inferProcedureOutput<
   AppRouter["storeProducts"]["getStoreProductById"]
@@ -71,6 +72,7 @@ type ProductFormData = Pick<
   | "status"
   | "productQuantity"
   | "productType"
+  | "targetAudience"
 > & {
   storePassword: string;
 };
@@ -102,7 +104,15 @@ export function ProductEditForm({
     const category = categories.find((cat) => cat.slug === categorySlug);
     return category?.name || "";
   });
+  const [selectedTargetAudience, setSelectedTargetAudience] = useState(() => {
+    const targetAudienceSlug = initialProductData?.targetAudience?.[0];
+    if (!targetAudienceSlug) return "";
 
+    const targetAudience = targetAudienceArray.find(
+      (audience) => audience.slug === targetAudienceSlug,
+    );
+    return targetAudience?.name || "";
+  });
   const [selectedSubCategory, setSelectedSubCategory] = useState(() => {
     const subCategorySlug = initialProductData?.subCategory?.[0];
     const categorySlug = initialProductData?.category?.[0];
@@ -111,7 +121,7 @@ export function ProductEditForm({
 
     const category = categories.find((cat) => cat.slug === categorySlug);
     const subCategory = category?.subcategories?.find(
-      (sub) => sub.slug === subCategorySlug
+      (sub) => sub.slug === subCategorySlug,
     );
 
     return subCategory?.name || "";
@@ -120,7 +130,7 @@ export function ProductEditForm({
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [submitAction, setSubmitAction] = useState<"draft" | "publish">(
-    "publish"
+    "publish",
   );
 
   // Form state
@@ -135,6 +145,7 @@ export function ProductEditForm({
     productQuantity: initialProductData.productQuantity || 0, //?.toString() || "0",
     category: initialProductData.category || [],
     subCategory: initialProductData.subCategory || [],
+    targetAudience: initialProductData.targetAudience || [],
     storePassword: "",
     firstApprovedAt: initialProductData.firstApprovedAt,
     productType: initialProductData.productType,
@@ -178,7 +189,7 @@ export function ProductEditForm({
 
   const handleInputChange = (
     field: keyof ProductFormData,
-    value: string | number
+    value: string | number,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -233,7 +244,7 @@ export function ProductEditForm({
 
     if (currentImageCount + totalNewImages > MAX_IMAGE_NUMBER) {
       toast.error(
-        `You can only have up to ${MAX_IMAGE_NUMBER} images in total.`
+        `You can only have up to ${MAX_IMAGE_NUMBER} images in total.`,
       );
       return;
     }
@@ -263,10 +274,10 @@ export function ProductEditForm({
     if (isNewFile) {
       const newFiles = imageFiles.filter((_, i) => i !== index);
       const newPreviews = imagePreviews.filter(
-        (_, i) => i !== index + (initialProductData?.images?.length || 0)
+        (_, i) => i !== index + (initialProductData?.images?.length || 0),
       );
       URL.revokeObjectURL(
-        imagePreviews[index + (initialProductData?.images?.length || 0)]
+        imagePreviews[index + (initialProductData?.images?.length || 0)],
       );
       setImageFiles(newFiles);
       setImagePreviews(newPreviews);
@@ -302,13 +313,25 @@ export function ProductEditForm({
     }));
   };
 
+  const handleTargetAudienceChange = (value: string) => {
+    setSelectedTargetAudience(value);
+    setFormData((prev) => ({
+      ...prev,
+      targetAudience: [value],
+    }));
+  };
+
+  const description = targetAudienceArray.find(
+    (audience) => audience.name === selectedTargetAudience,
+  )?.description;
+
   // ============================================================================
   // FORM SUBMISSION
   // ============================================================================
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
-    action: "draft" | "publish"
+    action: "draft" | "publish",
   ) => {
     e.preventDefault();
     setSubmitAction(action);
@@ -348,6 +371,10 @@ export function ProductEditForm({
           subCategory:
             formData.subCategory && formData.subCategory.length > 0
               ? slugify(formData.subCategory)
+              : [],
+          targetAudience:
+            formData.targetAudience && formData.targetAudience.length > 0
+              ? slugify(formData.targetAudience)
               : [],
           submitAction: action,
           price: Number(formData.price),
@@ -403,7 +430,7 @@ export function ProductEditForm({
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update product"
+        error instanceof Error ? error.message : "Failed to update product",
       );
       setError(["Failed to update product"]);
     } finally {
@@ -438,7 +465,7 @@ export function ProductEditForm({
   // ============================================================================
 
   const allImagePreviews = (initialProductData?.images || []).concat(
-    imagePreviews.slice(initialProductData?.images?.length || 0)
+    imagePreviews.slice(initialProductData?.images?.length || 0),
   );
 
   return (
@@ -472,7 +499,7 @@ export function ProductEditForm({
                   onClick={(e) => {
                     handleSubmit(
                       e as unknown as React.FormEvent<HTMLFormElement>,
-                      "draft"
+                      "draft",
                     );
                   }}
                 >
@@ -497,7 +524,7 @@ export function ProductEditForm({
                 onClick={(e) => {
                   handleSubmit(
                     e as unknown as React.FormEvent<HTMLFormElement>,
-                    "publish"
+                    "publish",
                   );
                 }}
               >
@@ -696,7 +723,7 @@ export function ProductEditForm({
                         const value = e.target.value;
                         handleInputChange(
                           "price",
-                          value === "" ? 0 : Number(value)
+                          value === "" ? 0 : Number(value),
                         );
                       }}
                       type="number"
@@ -743,7 +770,7 @@ export function ProductEditForm({
                         const value = e.target.value;
                         handleInputChange(
                           "productQuantity",
-                          value === "" ? 0 : Number(value)
+                          value === "" ? 0 : Number(value),
                         );
                       }}
                       type="number"
@@ -832,7 +859,7 @@ export function ProductEditForm({
                             <SelectItem key={subCategory} value={subCategory}>
                               {subCategory}
                             </SelectItem>
-                          )
+                          ),
                         )}
                       </SelectContent>
                     </Select>
@@ -844,6 +871,55 @@ export function ProductEditForm({
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Target Audience */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center space-x-2">
+                  <CardTitle className="text-lg">Target Audience</CardTitle>
+                </div>
+                <CardDescription>
+                  Update your product's target Audience.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Target Audience */}
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Label className="text-sm font-medium">
+                      Target Audience
+                    </Label>
+                    {getValidationIcon("targetAudience")}
+                  </div>
+                  <Select
+                    value={selectedTargetAudience}
+                    onValueChange={handleTargetAudienceChange}
+                  >
+                    <SelectTrigger className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800] w-full">
+                      <SelectValue placeholder="Select a target audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {targetAudienceArray.map((audience) => (
+                        <SelectItem key={audience.slug} value={audience.name}>
+                          {audience.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTargetAudience && description && (
+                    <p className="text-sm text-muted-foreground">
+                      {description}
+                    </p>
+                  )}
+                  {errors.targetAudience && (
+                    <p className="text-sm text-red-500 flex items-center">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      {errors.targetAudience}
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -911,7 +987,8 @@ export function ProductEditForm({
                           onClick={() =>
                             removeImage(
                               index,
-                              index >= (initialProductData?.images?.length || 0)
+                              index >=
+                                (initialProductData?.images?.length || 0),
                             )
                           }
                         >
@@ -1002,7 +1079,7 @@ export function ProductEditForm({
               onClick={(e) => {
                 handleSubmit(
                   e as unknown as React.FormEvent<HTMLFormElement>,
-                  "draft"
+                  "draft",
                 );
               }}
             >
@@ -1027,7 +1104,7 @@ export function ProductEditForm({
             onClick={(e) => {
               handleSubmit(
                 e as unknown as React.FormEvent<HTMLFormElement>,
-                "publish"
+                "publish",
               );
             }}
           >

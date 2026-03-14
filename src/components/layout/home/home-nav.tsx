@@ -9,6 +9,7 @@ import SearchBar from "@/components/search-bar";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import Image from "next/image";
 import { RouteBasedCategories } from "@/components/route-based-categories";
+import PostWhatYouNeed from "@/modules/requests/components/post-what-you-need";
 
 /**
  * Main header component with responsive design
@@ -59,6 +60,7 @@ export async function HomeHeader() {
 
           {/* User Actions */}
           <div className="flex items-center gap-2">
+            <PostWhatYouNeed />
             <CartCount />
             <UserAvatar userName={user?.firstName} />
           </div>

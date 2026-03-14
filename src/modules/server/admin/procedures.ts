@@ -32,7 +32,7 @@ export const adminProductRouter = createTRPCRouter({
         search: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const { status, category, search, page, limit } = input;
@@ -55,7 +55,7 @@ export const adminProductRouter = createTRPCRouter({
           select: "name storeEmail",
         })
         .select(
-          "name description price category status images createdAt updatedAt"
+          "name description price category status images createdAt updatedAt",
         )
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -71,7 +71,7 @@ export const adminProductRouter = createTRPCRouter({
     .input(
       z.object({
         productId: z.string(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const { productId } = input;
@@ -99,6 +99,7 @@ export const adminProductRouter = createTRPCRouter({
         specifications: product.specifications,
         price: product.price,
         category: product.category,
+        targetAudience: product.targetAudience,
         status: product.status,
         images: product.images,
         isVerifiedProduct: product.isVerifiedProduct,
@@ -123,7 +124,7 @@ export const adminProductRouter = createTRPCRouter({
         productId: z.string(),
         action: z.enum(["approve", "reject"]),
         reason: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const { productId, action } = input;
@@ -136,7 +137,7 @@ export const adminProductRouter = createTRPCRouter({
       if (
         !admin ||
         !allowedPermissions.some((permission) =>
-          checkAdminPermission(admin, [permission])
+          checkAdminPermission(admin, [permission]),
         )
       ) {
         throw new TRPCError({
@@ -221,7 +222,7 @@ export const adminProductRouter = createTRPCRouter({
         await logAdminAction(data);
       } catch (error) {
         console.log(
-          error || `Failed to Log admin action of susspending a store`
+          error || `Failed to Log admin action of susspending a store`,
         );
       }
       return { success: true, message };
