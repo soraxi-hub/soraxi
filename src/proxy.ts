@@ -15,11 +15,34 @@ export async function proxy(request: NextRequest) {
   console.log("proxy triggered for path:", pathname);
   //   console.log("User token:", userToken);
 
+  // const isPublicPath = publicPaths.some((path) => {
+  //   // console.log("Checking path:", path, "against pathname:", pathname);
+  //   if (path.includes(":path*")) {
+  //     const basePath = path.replace("/:path*", "");
+  //     return pathname.startsWith(basePath);
+  //   }
+  //   return pathname === path;
+  // });
+
   const isPublicPath = publicPaths.some((path) => {
-    if (path.includes(":path*")) {
-      const basePath = path.replace("/:path*", "");
-      return pathname.startsWith(basePath);
+    if (path === "/requests") {
+      const segments = pathname.split("/").filter(Boolean);
+
+      // /requests
+      if (segments.length === 1) return true;
+
+      // /requests/[id]
+      if (
+        segments.length === 2 &&
+        segments[0] === "requests" &&
+        segments[1] !== "new"
+      ) {
+        return true;
+      }
+
+      return false;
     }
+
     return pathname === path;
   });
 

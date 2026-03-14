@@ -20,7 +20,7 @@ function GeneralProductSection({
 
   if (!foundField) return null;
 
-  if (products.length === 0) return null;
+  if (products.length === 0 && !isLoading) return null;
 
   // Maximun of 12 products
   const maximumProducts = products.slice(0, 12);

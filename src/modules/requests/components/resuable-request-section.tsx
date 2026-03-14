@@ -1,44 +1,41 @@
 "use client";
 
 import { useRef } from "react";
-import { ProductCard } from "@/modules/products/product-detail/product-card";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "./ui/button";
-import ProductLoadingSkeleton from "@/modules/skeletons/product-loading-skeleton";
+import { Button } from "@/components/ui/button";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { RequestCard } from "./request-card";
+import { RequestCardSkeleton } from "@/modules/skeletons/request-card-skeleton";
 
-type Output = inferProcedureOutput<AppRouter["home"]["getPublicProducts"]>;
-type Products = Output["products"];
+type Output = inferProcedureOutput<
+  AppRouter["demandListing"]["getAllRequests"]
+>;
+type Requests = Output["requests"];
 
-function ReusableProductSection({
+function ResuableRequestSection({
   sectionTitle,
   sectionDescription,
-  display,
   loading,
-  products,
+  demands,
   showSeeMore = false,
-  seeMoreHref = "/",
+  seeMoreHref = "/requests",
 }: {
   sectionTitle: string;
   sectionDescription: string;
   loading: boolean;
-  display: "horizontal" | "vertical";
   showSeeMore: boolean;
-  products: Products;
+  demands: Requests;
   seeMoreHref?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Scroll the container horizontally
-   */
   const scroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
 
-    const scrollAmount = 320; // width of card + gap
+    const scrollAmount = 320;
 
     scrollRef.current.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
@@ -57,13 +54,9 @@ function ReusableProductSection({
         </div>
 
         {loading ? (
-          <ProductLoadingSkeleton />
-        ) : display === "vertical" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <Link key={product.id} href={`/products/${product.slug}`}>
-                <ProductCard product={product} />
-              </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <RequestCardSkeleton key={i} />
             ))}
           </div>
         ) : (
@@ -74,11 +67,9 @@ function ReusableProductSection({
               className="flex overflow-x-auto pb-4 -mx-6 px-6 scrollbar-hide scroll-smooth"
             >
               <div className="flex gap-6 min-w-max">
-                {products.map((product) => (
-                  <div key={product.id} className="w-[280px] flex-shrink-0">
-                    <Link href={`/products/${product.slug}`}>
-                      <ProductCard product={product} />
-                    </Link>
+                {demands.map((demand) => (
+                  <div key={demand._id} className="w-[280px] flex-shrink-0">
+                    <RequestCard {...demand} />
                   </div>
                 ))}
 
@@ -138,4 +129,4 @@ function ReusableProductSection({
   );
 }
 
-export default ReusableProductSection;
+export default ResuableRequestSection;

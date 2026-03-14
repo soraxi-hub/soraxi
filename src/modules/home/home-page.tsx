@@ -16,6 +16,7 @@ import EngineeringProductSection from "./popular-fields/engineering";
 import AccountingProductSection from "./popular-fields/accounting-finance";
 import MedicineProductSection from "./popular-fields/medicine";
 import ComputerScienceProductSection from "./popular-fields/computer-science-it";
+import DemandListingSection from "../requests/components/home-page-demand-section";
 
 /**
  * HomePage Component
@@ -34,8 +35,13 @@ export function HomePage() {
     }),
   );
 
+  const { data: demandListing, isLoading: listingsLoading } = useQuery(
+    trpc.demandListing.getAllRequests.queryOptions({ limit: 12 }),
+  );
+
   const allProducts = publicProductsData?.products || [];
   const groupedProducts = publicProductsData?.groupedProducts || {};
+  const listings = demandListing?.requests || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,6 +93,11 @@ export function HomePage() {
           products={groupedProducts["general"] || []}
           isLoading={productsLoading}
         />
+      )}
+
+      {/* General Products Section */}
+      {!search && (
+        <DemandListingSection demands={listings} isLoading={listingsLoading} />
       )}
 
       {/* Law Products Section */}

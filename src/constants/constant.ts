@@ -24,6 +24,8 @@ export const publicPaths = [
   "/forgot-password",
   "/reset-password",
   "/store/onboarding",
+  "/requests",
+  "/requests/:path*",
 ];
 
 {
