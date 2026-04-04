@@ -6,6 +6,7 @@ import {
   storeName,
   StoreStatusEnum,
 } from "@/validators/store-validators";
+import { DateFormatter } from "@/lib/utils/date-formatter";
 
 type StoreProfileData = inferProcedureOutput<
   AppRouter["storeProfile"]["getStoreProfilePrivate"]
@@ -33,8 +34,12 @@ export interface StoreUpdateResult {
   data?: Partial<StoreProfileData>;
 }
 
-// Store Profile Manager Class
-export class StoreProfileManager {
+/**
+ * Store Profile Manager Class for managing private store profile data.
+ *
+ * This store profile manager is mainly used it the "soraxihub.com/store/[storeId]" page.
+ */
+export class StoreProfileManagerPrivate {
   private storeData: StoreProfileData | null = null;
   private isDirty = false;
   private pendingChanges: Partial<StoreProfileInput> = {};
@@ -155,27 +160,12 @@ export class StoreProfileManager {
     }
 
     const createdDate = new Date(this.storeData.createdAt);
-    const now = new Date();
-    const ageInDays = Math.floor(
-      (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    let storeAge = "";
-    if (ageInDays < 30) {
-      storeAge = `${ageInDays} days`;
-    } else if (ageInDays < 365) {
-      const months = Math.floor(ageInDays / 30);
-      storeAge = `${months} month${months > 1 ? "s" : ""}`;
-    } else {
-      const years = Math.floor(ageInDays / 365);
-      storeAge = `${years} year${years > 1 ? "s" : ""}`;
-    }
 
     return {
       followersCount: this.storeData.followers.length,
       productsCount: this.storeData.products.length,
       establishedDate: createdDate.toLocaleDateString(),
-      storeAge,
+      storeAge: DateFormatter.accountAge(this.storeData.createdAt),
     };
   }
 
@@ -245,4 +235,4 @@ export class StoreProfileManager {
 }
 
 // Singleton instance for global use
-export const storeProfileManager = new StoreProfileManager();
+export const storeProfileManagerPrivate = new StoreProfileManagerPrivate();

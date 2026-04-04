@@ -24,7 +24,7 @@ export const publicStoreRouter = createTRPCRouter({
     .input(
       z.object({
         storeId: z.string(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const { storeId } = input;
@@ -42,7 +42,7 @@ export const publicStoreRouter = createTRPCRouter({
 
       const storeData = await Store.findById(storeId)
         .select(
-          "name uniqueId description logoUrl bannerUrl verification businessInfo ratings status followers physicalProducts createdAt"
+          "name uniqueId description logoUrl bannerUrl verification businessInfo ratings status followers physicalProducts createdAt",
         )
         .populate({
           path: "physicalProducts",
@@ -85,6 +85,7 @@ export const publicStoreRouter = createTRPCRouter({
           averageRating: storeData.ratings?.averageRating || 0,
           reviewCount: storeData.ratings?.reviewCount || 0,
         },
+        status: storeData.status,
         stats: {
           followersCount: storeData.followers?.length || 0,
           productsCount:

@@ -26,6 +26,7 @@ export const publicPaths = [
   "/store/onboarding",
   "/requests",
   "/requests/:path*",
+  "/brand/:path*",
 ];
 
 {

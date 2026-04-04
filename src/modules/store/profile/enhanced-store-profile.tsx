@@ -20,6 +20,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Share2,
+  Eye,
   // Eye,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -28,7 +30,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ProductCard } from "@/modules/products/product-detail/product-card";
-import { StoreProfileManager } from "@/domain/stores/store-profile-manager";
+import { StoreProfileManagerPrivate } from "@/domain/stores/store-profile-manager-private";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -54,10 +56,10 @@ const StoreDescriptionFormSchema = z.object({
 });
 
 export default function EnhancedStoreProfile() {
-  // const [isCopied, setIsCopied] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [storeManager] = useState(() => new StoreProfileManager());
+  const [storeManager] = useState(() => new StoreProfileManagerPrivate());
 
   const trpc = useTRPC();
   const {
@@ -101,7 +103,7 @@ export default function EnhancedStoreProfile() {
       onError: (error) => {
         toast.error(error.message || "Failed to update store name");
       },
-    })
+    }),
   );
 
   // Update store description mutation
@@ -116,26 +118,26 @@ export default function EnhancedStoreProfile() {
       onError: (error) => {
         toast.error(error.message || "Failed to update store description");
       },
-    })
+    }),
   );
 
-  // const handleShareStore = () => {
-  //   if (!store?.uniqueId) return;
+  const handleShareStore = () => {
+    if (!store?.uniqueId) return;
 
-  //   const storeUrl = `${window.location.origin}/brand/${store._id}`;
-  //   navigator.clipboard.writeText(storeUrl);
-  //   setIsCopied(true);
-  //   toast.success("Store link copied to clipboard!");
+    const storeUrl = `${window.location.origin}/brand/${store._id}`;
+    navigator.clipboard.writeText(storeUrl);
+    setIsCopied(true);
+    toast.success("Store link copied to clipboard!");
 
-  //   setTimeout(() => setIsCopied(false), 2000);
-  // };
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   const onSubmitName = (data: z.infer<typeof StoreNameFormSchema>) => {
     updateStoreName.mutate(data);
   };
 
   const onSubmitDescription = (
-    data: z.infer<typeof StoreDescriptionFormSchema>
+    data: z.infer<typeof StoreDescriptionFormSchema>,
   ) => {
     updateStoreDescription.mutate(data);
   };
@@ -279,26 +281,6 @@ export default function EnhancedStoreProfile() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    {/* Sharing coming Later */}
-                    {/* <Button
-                      variant="outline"
-                      onClick={handleShareStore}
-                      className="gap-2 bg-transparent"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      {isCopied ? "Copied!" : "Share"}
-                    </Button> */}
-                    {/* Preview Coming Later */}
-                    {/* <Button asChild className="gap-2">
-                      <Link href={`/brand/${store._id}`} target="_blank">
-                        <Eye className="h-4 w-4" />
-                        Preview
-                      </Link>
-                    </Button> */}
-                  </div>
                 </div>
               </div>
             </div>
@@ -353,7 +335,7 @@ export default function EnhancedStoreProfile() {
                     <Form {...descriptionForm}>
                       <form
                         onSubmit={descriptionForm.handleSubmit(
-                          onSubmitDescription
+                          onSubmitDescription,
                         )}
                         className="space-y-4"
                       >
@@ -504,15 +486,14 @@ export default function EnhancedStoreProfile() {
                       Add Product
                     </Link>
                   </Button>
-                  {/* This Feature is disabled for now */}
-                  {/* <Button
+                  <Button
                     asChild
                     variant="outline"
                     className="w-full justify-start gap-2 bg-transparent"
                   >
                     <Link href={`/brand/${store._id}`} target="_blank">
                       <Eye className="h-4 w-4" />
-                      View Store
+                      Preview Store
                     </Link>
                   </Button>
                   <Button
@@ -521,8 +502,8 @@ export default function EnhancedStoreProfile() {
                     className="w-full justify-start gap-2 bg-transparent"
                   >
                     <Share2 className="h-4 w-4" />
-                    Share Store
-                  </Button> */}
+                    {isCopied ? "Copied!" : "Share Store"}
+                  </Button>
                 </CardContent>
               </Card>
             </div>

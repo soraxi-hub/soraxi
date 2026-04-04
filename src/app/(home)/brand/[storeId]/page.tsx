@@ -18,7 +18,27 @@ const getProduct = cache(async (storeId: string) => {
   return store;
 });
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<
+  | {
+      title?: undefined;
+      description?: undefined;
+      openGraph?: undefined;
+      twitter?: undefined;
+    }
+  | {
+      title: string;
+      description: string | undefined;
+      openGraph: {
+        title: string;
+        description: string | undefined;
+      };
+      twitter: {
+        card: string;
+        title: string;
+        description: string | undefined;
+      };
+    }
+> {
   const { storeId } = await params;
   const store = await getProduct(storeId);
 
@@ -44,8 +64,8 @@ async function Page({ params }: PageProps) {
 
   try {
     const queryClient = getQueryClient();
-    await queryClient.prefetchQuery(
-      trpc.publicStore.getStoreProfilePublic.queryOptions({ storeId })
+    void queryClient.prefetchQuery(
+      trpc.publicStore.getStoreProfilePublic.queryOptions({ storeId }),
     );
 
     return (

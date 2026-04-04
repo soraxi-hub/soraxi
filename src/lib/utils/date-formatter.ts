@@ -10,6 +10,7 @@
  * - Timestamps (number)
  */
 export class DateFormatter {
+  private static MS_PER_DAY = 1000 * 60 * 60 * 24; // Used for calculating date differences
   /**
    * Parses and validates a date input.
    *
@@ -117,5 +118,32 @@ export class DateFormatter {
     }
 
     return "Just now";
+  }
+
+  /**
+   * Returns the age of an account in a human-readable format.
+   * - `2 days`
+   * - `3 months`
+   * - `1 year`
+   */
+  public static accountAge(input: Date | string | number): string {
+    const date = this.parse(input);
+    const now = new Date();
+    const ageInDays = Math.floor(
+      (now.getTime() - date.getTime()) / this.MS_PER_DAY,
+    );
+
+    let age = "";
+    if (ageInDays < 30) {
+      age = `${ageInDays} days`;
+    } else if (ageInDays < 365) {
+      const months = Math.floor(ageInDays / 30);
+      age = `${months} month${months > 1 ? "s" : ""}`;
+    } else {
+      const years = Math.floor(ageInDays / 365);
+      age = `${years} year${years > 1 ? "s" : ""}`;
+    }
+
+    return age;
   }
 }
