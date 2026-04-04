@@ -41,6 +41,9 @@ export async function proxy(request: NextRequest) {
       }
 
       return false;
+    } else if (path.includes(":path*") && !pathname.startsWith("/requests")) {
+      const basePath = path.replace("/:path*", "");
+      return pathname.startsWith(basePath);
     }
 
     return pathname === path;

@@ -159,11 +159,13 @@ export const adminProductRouter = createTRPCRouter({
       let updateData: {
         status: IProduct["status"];
         isVerifiedProduct: boolean;
+        isVisible: boolean;
         // moderationNotes: string;
         firstApprovedAt?: Date;
       } = {
         status: ProductStatusWithAll.Pending as IProduct["status"],
         isVerifiedProduct: false,
+        isVisible: false,
         // moderationNotes: "",
       };
       let message = "";
@@ -180,6 +182,7 @@ export const adminProductRouter = createTRPCRouter({
           updateData = {
             status: ProductStatusWithAll.Approved as IProduct["status"],
             isVerifiedProduct: true,
+            isVisible: true,
             firstApprovedAt: new Date(),
             // moderationNotes: reason || "Approved by admin",
           };
@@ -187,7 +190,7 @@ export const adminProductRouter = createTRPCRouter({
           auditAction = AUDIT_ACTIONS.PRODUCT_APPROVED;
           break;
         case "reject":
-          if (product.status !== "pending") {
+          if (product.status) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "Product is not pending approval",
@@ -196,6 +199,7 @@ export const adminProductRouter = createTRPCRouter({
           updateData = {
             status: ProductStatusWithAll.Rejected as IProduct["status"],
             isVerifiedProduct: false,
+            isVisible: false,
             // moderationNotes: reason || "Rejected by admin",
           };
           message = "Product rejected";
