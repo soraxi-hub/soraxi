@@ -1,8 +1,12 @@
 import axios from "axios";
-import { handleApiError } from "./handle-api-error";
+import { handleApiError } from "../handle-api-error";
 
 /**
  * Uploads one or more image files to Cloudinary.
+ *
+ * -------------------------------------
+ * NOTE: TO BE USED FOR CLIENT SIDE REQUEST AND NOT SERVER SIDE
+ * -------------------------------------
  *
  * - Requests a signed upload payload (timestamp + signature) from the server
  *   to securely authenticate uploads.

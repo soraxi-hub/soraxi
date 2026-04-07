@@ -6,92 +6,64 @@ import {
 import { ROUTE_PERMISSIONS } from "./modules/admin/security/route-permissions";
 import { hasPermission } from "./modules/admin/security/access-control";
 import { publicPaths } from "./constants/constant";
+import { ProxyUtils } from "./lib/utils/proxy-utils";
+import {
+  getStoreDataFromToken,
+  StoreTokenPayload,
+} from "./lib/helpers/get-store-data-from-token";
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const userToken = request.cookies.get("user")?.value;
-  const storeToken = request.cookies.get("store")?.value;
-  const adminToken = request.cookies.get("adminToken")?.value;
+  const proxyUtils = new ProxyUtils(request);
+
+  const pathname = proxyUtils.getPathname();
+  const adminToken = proxyUtils.getAdminToken();
+  const isPublic = proxyUtils.isPublicPath(publicPaths);
+  const isAdminPath = proxyUtils.isAdminPath();
+  const isProtectedStoreOnboardingPath =
+    proxyUtils.isProtectedStoreOnboardingPath();
   console.log("proxy triggered for path:", pathname);
-  //   console.log("User token:", userToken);
-
-  // const isPublicPath = publicPaths.some((path) => {
-  //   // console.log("Checking path:", path, "against pathname:", pathname);
-  //   if (path.includes(":path*")) {
-  //     const basePath = path.replace("/:path*", "");
-  //     return pathname.startsWith(basePath);
-  //   }
-  //   return pathname === path;
-  // });
-
-  const isPublicPath = publicPaths.some((path) => {
-    if (path === "/requests") {
-      const segments = pathname.split("/").filter(Boolean);
-
-      // /requests
-      if (segments.length === 1) return true;
-
-      // /requests/[id]
-      if (
-        segments.length === 2 &&
-        segments[0] === "requests" &&
-        segments[1] !== "new"
-      ) {
-        return true;
-      }
-
-      return false;
-    } else if (path.includes(":path*") && !pathname.startsWith("/requests")) {
-      const basePath = path.replace("/:path*", "");
-      return pathname.startsWith(basePath);
-    }
-
-    return pathname === path;
-  });
-
-  // Check if the path is an admin path
-  const isAdminPath =
-    pathname.startsWith("/admin/") || ["/admin-sign-in"].includes(pathname);
 
   // Authenticated users should not access sign-in or sign-up
-  if (userToken && (pathname === "/sign-in" || pathname === "/sign-up")) {
-    // console.log("Redirecting authenticated user from sign-in or sign-up page");
-    return NextResponse.redirect(new URL("/", request.url));
+  if (proxyUtils.isUserAuthenticated() && proxyUtils.isUserAuthPage()) {
+    return proxyUtils.createRedirect("/");
   }
 
   // Unauthenticated users trying to access protected routes
-  if (!userToken && !isPublicPath) {
+  if (!proxyUtils.isUserAuthenticated() && !isPublic) {
     // Redirect to sign-in page with redirect parameter
-    const signInUrl = new URL("/sign-in", request.url);
-    signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    return proxyUtils.createRedirectWithReturn("/sign-in", pathname);
   }
 
-  if (storeToken && pathname === "/login") {
-    // If your token payload includes storeId, extract and redirect dynamically
-    return NextResponse.redirect(new URL(`/`, request.url));
+  // If your token payload includes storeId, extract and redirect dynamically
+  // Redirect the store to its dashboard
+  if (proxyUtils.isStoreAuthenticated() && pathname === "/login") {
+    // Extract redirect query parameter if it exists
+    const redirectPath = request.nextUrl.searchParams.get("redirect");
+
+    if (redirectPath) {
+      // User originally wanted to visit this path
+      return proxyUtils.createRedirect(redirectPath);
+    }
+
+    // Otherwise, dynamically redirect based on storeId from token
+    const storeToken = getStoreDataFromToken(request) as StoreTokenPayload; // We know that this will always exist because the store is authenticated
+    const storeId = storeToken.id;
+
+    const target = storeId ? `/store/${storeId}/dashboard` : "/";
+
+    return proxyUtils.createRedirect(target);
   }
 
-  /**
-   * Determines if the current path is a protected store onboarding route.
-   * Use this in your middleware condition alongside `isStorePath()`.
-   */
-  // Match only dynamic onboarding paths like /store/onboarding/:storeId/...
-  const isProtectedStoreOnboardingPath =
-    /^\/store\/onboarding\/[a-f\d]{24}(\/.*)?$/i.test(pathname);
-
+  // If the user is authenticated but does not have a store token, redirect to store login
   if (
-    !storeToken &&
-    (isStorePath(pathname) || isProtectedStoreOnboardingPath)
+    !proxyUtils.isStoreAuthenticated() &&
+    (proxyUtils.isStorePath(pathname) || isProtectedStoreOnboardingPath)
   ) {
-    // If the user is authenticated but does not have a store token, redirect to store login
-    const signInUrl = new URL("/login", request.url);
-    signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    return proxyUtils.createRedirectWithReturn("/login", pathname);
   }
 
-  if (storeToken && isStorePath(pathname)) {
-    // If the user is authenticated and trying to access a store path, allow access
+  // If the user is authenticated and trying to access a store path, allow access
+  if (proxyUtils.isStoreAuthenticated() && proxyUtils.isStorePath(pathname)) {
     return NextResponse.next();
   }
 
@@ -99,19 +71,14 @@ export async function proxy(request: NextRequest) {
   if (isAdminPath && pathname !== "/admin-sign-in") {
     // If no admin token, redirect to admin sign-in
     if (!adminToken) {
-      const signInUrl = new URL("/admin-sign-in", request.url);
-      signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
-      return NextResponse.redirect(signInUrl);
+      return proxyUtils.createRedirectWithReturn("/admin-sign-in", pathname);
     }
 
     // Verify admin token and check permissions
     const adminData = await verifyAdminToken(adminToken);
-    // console.log("Admin Data:", adminData);
     if (!adminData) {
       // Invalid token, redirect to admin sign-in
-      const signInUrl = new URL("/admin-sign-in", request.url);
-      signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
-      return NextResponse.redirect(signInUrl);
+      return proxyUtils.createRedirectWithReturn("/admin-sign-in", pathname);
     }
 
     // Get admin permissions based on roles
@@ -119,12 +86,9 @@ export async function proxy(request: NextRequest) {
 
     // Check if admin has permission to access this route
     const requiredPermissions = ROUTE_PERMISSIONS[pathname] || [];
-    // console.log("pathName:", pathName);
-    // console.log("Required Permissions:", requiredPermissions);
-    // console.log("Admin Permissions:", adminPermissions);
     if (!hasPermission(adminPermissions, requiredPermissions)) {
       // Admin doesn't have permission, redirect to forbidden page
-      return NextResponse.redirect(new URL("/admin/forbidden", request.url));
+      return proxyUtils.createRedirectWithReturn("/admin/forbidden", pathname);
     }
   }
 
@@ -135,26 +99,4 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
   //   runtime: "nodejs",
-};
-
-/**
- * Checks if a given path matches a dynamic store route that includes a valid MongoDB ObjectId.
- *
- * This ensures only paths like:
- *   - /store/684c94a748eb382ea33710aa
- *   - /store/684c94a748eb382ea33710aa/products
- *   - /store/684c94a748eb382ea33710aa/...
- * are considered protected store routes.
- *
- * Public routes like:
- *   - /store/create
- *   - /store/onboarding
- *   - /store/preview/...
- * will NOT match and are therefore treated separately.
- *
- * @param path - The URL path to evaluate.
- * @returns A boolean indicating whether the path is a recognized store route.
- */
-const isStorePath = (path: string) => {
-  return /^\/store\/[a-f\d]{24}(\/.*)?$/i.test(path);
 };

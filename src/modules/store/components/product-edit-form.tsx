@@ -27,11 +27,6 @@ import {
   Loader2,
   Upload,
   X,
-  ImageIcon,
-  Package,
-  Tag,
-  DollarSign,
-  FileText,
   Shield,
   CheckCircle,
   AlertCircle,
@@ -39,7 +34,6 @@ import {
 } from "lucide-react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary-upload";
 import { toast } from "sonner";
 import { categories, getSubcategoryNames, slugify } from "@/constants/constant";
 import { inferProcedureOutput } from "@trpc/server";
@@ -329,6 +323,64 @@ export function ProductEditForm({
   // FORM SUBMISSION
   // ============================================================================
 
+  const prepareFormData = (action: "draft" | "publish"): FormData => {
+    const formPayload = new FormData();
+
+    formPayload.append("name", formData.name);
+    if (formData.description) {
+      formPayload.append("description", formData.description);
+    }
+    if (formData.specifications) {
+      formPayload.append("specifications", formData.specifications);
+    }
+    formPayload.append("price", String(formData.price));
+    formPayload.append("productQuantity", String(formData.productQuantity));
+    formPayload.append("storePassword", formData.storePassword);
+    formPayload.append("storeId", storeId);
+    formPayload.append("submitAction", action);
+
+    (formData.category || []).forEach((cat) =>
+      formPayload.append("category", slugify(cat)),
+    );
+
+    (formData.subCategory || []).forEach((sub) =>
+      formPayload.append("subCategory", slugify(sub)),
+    );
+
+    (formData.targetAudience || []).forEach((aud) =>
+      formPayload.append("targetAudience", slugify(aud)),
+    );
+
+    // New image files that needs to be uploaded to cloudinary via the backend.
+    imageFiles.forEach((file) => {
+      formPayload.append("images", file);
+    });
+
+    // Old image URLs that was fetched, this will be combined with the new
+    // Image Files that would be uploaded via the backend and the saved together.
+    (initialProductData.images || []).forEach((oldImageURLs) => {
+      formPayload.append("oldImageURLs", oldImageURLs);
+    });
+
+    return formPayload;
+  };
+
+  const submitProduct = async (action: "draft" | "publish") => {
+    const payload = prepareFormData(action);
+
+    const response = await fetch(`/api/store/products/${productId}`, {
+      method: "PUT",
+      body: payload,
+    });
+
+    if (!response.ok) {
+      const { message } = await parseErrorFromResponse(response);
+      throw new Error(message);
+    }
+
+    return response.json();
+  };
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
     action: "draft" | "publish",
@@ -349,90 +401,28 @@ export function ProductEditForm({
 
     try {
       setError(null);
-      setUploadProgress(10);
+      setUploadProgress(20);
 
-      const prepareProductData = async () => {
-        let finalImageUrls: string[] = initialProductData?.images || [];
+      action === "draft" ? setIsLoadingDraft(true) : setIsLoading(true);
 
-        // Upload new images to Cloudinary if any
-        if (imageFiles.length > 0) {
-          const newImageUrls = await uploadImagesToCloudinary(imageFiles);
-          finalImageUrls = [...finalImageUrls, ...newImageUrls];
-        }
+      const result = await submitProduct(action);
 
-        return {
-          ...formData,
-          storeId,
-          images: finalImageUrls,
-          category:
-            formData.category && formData.category.length > 0
-              ? slugify(formData.category)
-              : [],
-          subCategory:
-            formData.subCategory && formData.subCategory.length > 0
-              ? slugify(formData.subCategory)
-              : [],
-          targetAudience:
-            formData.targetAudience && formData.targetAudience.length > 0
-              ? slugify(formData.targetAudience)
-              : [],
-          submitAction: action,
-          price: Number(formData.price),
-          productQuantity: Number(formData.productQuantity),
-        };
-      };
+      setUploadProgress(100);
 
       if (action === "draft") {
-        setIsLoadingDraft(true);
-        setUploadProgress(30);
-        const productData = await prepareProductData();
-        setUploadProgress(80);
-
-        const response = await fetch(`/api/store/products/${productId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(productData),
-        });
-
-        setUploadProgress(100);
-
-        if (!response.ok) {
-          const { message } = await parseErrorFromResponse(response);
-          toast.error(`Failed to save draft: ${message}`);
-          setError([message]);
-          return;
-        }
-
-        toast.success("Your changes have been saved as draft.");
-      } else if (action === "publish") {
-        setIsLoading(true);
-        setUploadProgress(30);
-        const productData = await prepareProductData();
-        setUploadProgress(80);
-
-        const response = await fetch(`/api/store/products/${productId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(productData),
-        });
-
-        setUploadProgress(100);
-
-        if (!response.ok) {
-          const { message } = await parseErrorFromResponse(response);
-          toast.error(`Failed to publish: ${message}`);
-          setError([message]);
-          return;
-        }
-
-        toast.success("Product Updated Successfully!");
+        toast.success(
+          result.message || "Your product has been saved as draft.",
+        );
+      } else {
+        toast.success("Your product has been uploaded and is pending review.");
         router.push(`/store/${storeId}/products`);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update product",
-      );
-      setError(["Failed to update product"]);
+      const message =
+        error instanceof Error ? error.message : "Failed to upload product";
+
+      toast.error(message);
+      setError([message]);
     } finally {
       setIsLoading(false);
       setIsLoadingDraft(false);
@@ -475,9 +465,6 @@ export function ProductEditForm({
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center gap-2 justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-[#14a800]/10 rounded-lg">
-                <Package className="h-6 w-6 text-[#14a800]" />
-              </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   Edit Product
@@ -595,7 +582,6 @@ export function ProductEditForm({
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-xl">Product Information</CardTitle>
                 </div>
                 <CardDescription>
@@ -696,7 +682,6 @@ export function ProductEditForm({
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-xl">Pricing & Inventory</CardTitle>
                 </div>
                 <CardDescription>
@@ -802,7 +787,6 @@ export function ProductEditForm({
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <Tag className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-lg">Category</CardTitle>
                 </div>
                 <CardDescription>
@@ -927,7 +911,6 @@ export function ProductEditForm({
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
-                  <ImageIcon className="h-5 w-5 text-[#14a800]" />
                   <CardTitle className="text-lg">Product Images</CardTitle>
                 </div>
                 <CardDescription>

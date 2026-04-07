@@ -14,6 +14,7 @@ import { StoreStatusEnum } from "@/validators/store-validators";
 import { productName } from "@/validators/product-validators";
 import mongoose from "mongoose";
 import { MIN_IMAGE_NUMBER } from "@/domain/products/product-upload";
+import { uploadProductImages } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
 
 /**
  * API Route: Store Product Management
@@ -23,37 +24,36 @@ export async function POST(request: NextRequest) {
   let session: mongoose.ClientSession | null = null;
 
   try {
-    const body = await request.json();
+    // const body = await request.json();
+    const body = await request.formData();
     const Product = await getProductModel();
     const Store = await getStoreModel();
 
     // Authenticate store from token
     const storeSession = getStoreDataFromToken(request);
     if (!storeSession) {
-      return NextResponse.json(
-        { error: "Store authentication required" },
-        { status: 401 },
-      );
+      throw new AppError("Store authentication required", 401);
     }
 
-    // Extract data from body
-    const {
-      storeId,
-      // productType,
-      name,
-      price,
-      sizes,
-      productQuantity,
-      images,
-      description,
-      specifications,
-      category,
-      subCategory,
-      targetAudience,
-      storePassword, // Used for verification only
-      submitAction,
-      submittedDraftProductId, // If editing/upgrading an existing draft
-    } = body;
+    // Extract scalar fields
+    const storeId = body.get("storeId") as string;
+    const name = body.get("name") as string;
+    const price = Number(body.get("price"));
+    const storePassword = body.get("storePassword") as string;
+    const productQuantity = Number(body.get("productQuantity"));
+    const description = body.get("description") as string | null;
+    const specifications = body.get("specifications") as string | null;
+    const submitAction = body.get("submitAction") as "draft" | "publish";
+    const submittedDraftProductId =
+      (body.get("submittedDraftProductId") as string | null) ?? null;
+
+    // Extract array fields
+    const category = body.getAll("category") as string[];
+    const subCategory = body.getAll("subCategory") as string[];
+    const targetAudience = body.getAll("targetAudience") as string[];
+
+    // Extract uploaded image files
+    const imageFiles = body.getAll("images") as File[];
 
     // Validate store ownership
     if (storeId !== storeSession.id) {
@@ -125,13 +125,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // After all checks, upload image files to cloudinary
+      const images = await uploadProductImages(imageFiles);
+
       // Using the "submittedDraftProductId", check for existing draft and update it.
       if (submittedDraftProductId) {
-        // ✏️ Update existing draft
+        // Find the existing draft first
+        const existingDraft = await Product.findById(
+          submittedDraftProductId,
+        ).session(session);
+
+        if (!existingDraft) {
+          throw new AppError("Draft product not found", 400);
+        }
+
+        // Merge previous image URLs with newly uploaded ones
+        const mergedImages = [...(existingDraft.images || []), ...images];
+
+        // Update existing draft
         await Product.findByIdAndUpdate(
           new mongoose.Types.ObjectId(submittedDraftProductId as string),
           {
             ...body,
+            images: mergedImages,
             status: ProductStatusEnum.Draft,
             isVisible: false,
             isVerifiedProduct: false,
@@ -147,15 +163,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 🆕 Create a new draft
+      // Create a new draft
       // We create a new draft if no "submittedDraftProductId" was provided.
       const draft = new Product({
         storeId: storeSession.id,
         productType: ProductTypeEnum.Product,
         status: ProductStatusEnum.Draft,
         name,
-        price: sizes?.length > 0 ? undefined : price,
-        sizes: sizes?.length > 0 ? sizes : undefined,
+        price: price,
         productQuantity,
         images,
         description,
@@ -205,7 +220,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Additional validation for images
-      if (!images || images.length < MIN_IMAGE_NUMBER) {
+      if (!imageFiles || imageFiles.length < MIN_IMAGE_NUMBER) {
         validationErrors.push(
           `images: At least ${MIN_IMAGE_NUMBER} product images are required`,
         );
@@ -219,12 +234,28 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // After all checks, upload image files to cloudinary
+      const images = await uploadProductImages(imageFiles);
+
       if (submittedDraftProductId) {
-        // 🔄 Upgrade existing draft → pending publish
+        // Find the existing draft first
+        const existingDraft = await Product.findById(
+          submittedDraftProductId,
+        ).session(session);
+
+        if (!existingDraft) {
+          throw new AppError("Draft product not found", 400);
+        }
+
+        // Merge previous image URLs with newly uploaded ones
+        const mergedImages = [...(existingDraft.images || []), ...images];
+
+        // Upgrade existing draft → pending publish
         await Product.findByIdAndUpdate(
           submittedDraftProductId,
           {
             ...body,
+            images: mergedImages,
             status: ProductStatusEnum.Pending,
             isVisible: false, // hidden until admin approval
             isVerifiedProduct: false,
@@ -241,14 +272,13 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 🆕 Create new product in pending state
+      // Create new product in pending state
       const product = new Product({
         storeId: storeSession.id,
         productType: ProductTypeEnum.Product,
         status: ProductStatusEnum.Pending,
         name,
-        price: sizes?.length > 0 ? undefined : price,
-        sizes: sizes?.length > 0 ? sizes : undefined,
+        price: price,
         productQuantity,
         images,
         description,

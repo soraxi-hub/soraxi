@@ -217,21 +217,6 @@ export class StoreProfileManagerPrivate {
       ...this.pendingChanges,
     } as StoreProfileData;
   }
-
-  // Export/Import methods
-  exportStoreData(): string {
-    return JSON.stringify(this.storeData, null, 2);
-  }
-
-  importStoreData(jsonData: string): boolean {
-    try {
-      const data = JSON.parse(jsonData);
-      this.setStoreData(data);
-      return true;
-    } catch {
-      return false;
-    }
-  }
 }
 
 // Singleton instance for global use

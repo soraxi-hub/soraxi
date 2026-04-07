@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, ArrowRight } from "lucide-react";
 import { categories } from "@/constants/constant";
 
-export function EmptyCart() {
+export function EmptyCart({
+  showLogInBtn = false,
+}: {
+  showLogInBtn?: boolean;
+}) {
   return (
     <div className="text-center py-16">
       <div className="mx-auto w-24 h-24 bg-soraxi-green/20 rounded-full flex items-center justify-center mb-6">
@@ -18,17 +22,31 @@ export function EmptyCart() {
         shopping to fill it up!
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <Button
-          className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-          asChild
-        >
-          <Link href="/">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Continue Shopping
-          </Link>
-        </Button>
-      </div>
+      {showLogInBtn ? (
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+            asChild
+          >
+            <Link href="/sign-in">
+              Sign In
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+            asChild
+          >
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Continue Shopping
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Popular Categories */}
       <div className="mt-12">
