@@ -105,7 +105,7 @@ export default async function CartPage() {
             <p className="text-muted-foreground mb-4">
               Please log in to view your cart
             </p>
-            <EmptyCart />
+            <EmptyCart showLogInBtn />
           </div>
         </div>
       );
@@ -151,13 +151,13 @@ export default async function CartPage() {
     const hydratedCartItems: CartItemType[] = cartData.items
       .map((cartItem) => {
         const product = products?.find(
-          (p) => p.id === cartItem.productId.toString()
+          (p) => p.id === cartItem.productId.toString(),
         );
 
         // Skip items where product is not found or essential data is missing
         if (!product || typeof product.price !== "number") {
           console.warn(
-            `Product not found or invalid data for cart item: ${cartItem.productId}`
+            `Product not found or invalid data for cart item: ${cartItem.productId}`,
           );
           return null;
         }
@@ -199,7 +199,7 @@ export default async function CartPage() {
      */
     const subtotal = hydratedCartItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
     // const shipping = subtotal >= 50000 ? 0 : 5000; // Free shipping over ₦50,000
     // const tax = Math.round(subtotal * 0.075); // 7.5% tax rate

@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import "react-quill-new/dist/quill.snow.css";
-import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary-upload";
+import { uploadImagesToCloudinary } from "@/lib/utils/cloudinary/cloudinary-client-side-upload";
 import { categories, getSubcategoryNames, slugify } from "@/constants/constant";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -246,6 +246,61 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     }
   };
 
+  const prepareFormData = (action: "draft" | "publish"): FormData => {
+    const formPayload = new FormData();
+
+    formPayload.append("name", formData.name);
+    if (formData.description) {
+      formPayload.append("description", formData.description);
+    }
+    if (formData.specifications) {
+      formPayload.append("specifications", formData.specifications);
+    }
+    formPayload.append("price", String(formData.price));
+    formPayload.append("productQuantity", String(formData.productQuantity));
+    formPayload.append("storePassword", formData.storePassword);
+    formPayload.append("storeId", storeId);
+    formPayload.append("submitAction", action);
+
+    if (draftProductId) {
+      formPayload.append("submittedDraftProductId", draftProductId);
+    }
+
+    (formData.category || []).forEach((cat) =>
+      formPayload.append("category", slugify(cat)),
+    );
+
+    (formData.subCategory || []).forEach((sub) =>
+      formPayload.append("subCategory", slugify(sub)),
+    );
+
+    (formData.targetAudience || []).forEach((aud) =>
+      formPayload.append("targetAudience", slugify(aud)),
+    );
+
+    imageFiles.forEach((file) => {
+      formPayload.append("images", file);
+    });
+
+    return formPayload;
+  };
+
+  const submitProduct = async (action: "draft" | "publish") => {
+    const payload = prepareFormData(action);
+
+    const response = await fetch("/api/store/products", {
+      method: "POST",
+      body: payload,
+    });
+
+    if (!response.ok) {
+      const { message } = await parseErrorFromResponse(response);
+      throw new Error(message);
+    }
+
+    return response.json();
+  };
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
     action: "draft" | "publish",
@@ -253,120 +308,41 @@ export function ProductUploadForm({ storeId }: ProductUploadFormProps) {
     e.preventDefault();
 
     const productToUpload = ProductFactory.createUploadProduct(formData);
-    // console.log("productToUpload", productToUpload);
-    const productValidationResult = productToUpload.validate(
-      action,
-      imageFiles.length,
-    );
 
-    if (productValidationResult.hasErrors) {
-      setErrors(productValidationResult.newErrors);
+    const validation = productToUpload.validate(action, imageFiles.length);
+
+    if (validation.hasErrors) {
+      setErrors(validation.newErrors);
       return;
     }
 
     try {
       setError(null);
-      setUploadProgress(10);
+      setUploadProgress(20);
 
-      const prepareProductData = async () => {
-        const imageUrls = await uploadImagesToCloudinary(imageFiles);
+      action === "draft" ? setIsLoadingDraft(true) : setIsLoading(true);
 
-        return {
-          ...formData,
-          storeId,
-          images: imageUrls,
-          category:
-            formData.category && formData.category.length > 0
-              ? slugify(formData.category)
-              : [],
-          subCategory:
-            formData.subCategory && formData.subCategory.length > 0
-              ? slugify(formData.subCategory)
-              : [],
-          targetAudience:
-            formData.targetAudience && formData.targetAudience.length > 0
-              ? slugify(formData.targetAudience)
-              : [],
-          submitAction: action,
-          submittedDraftProductId: draftProductId,
-        };
-      };
+      const result = await submitProduct(action);
+
+      setUploadProgress(100);
 
       if (action === "draft") {
-        setIsLoadingDraft(true);
-        setUploadProgress(30);
-        const productData = await prepareProductData();
-        setUploadProgress(80);
-
-        const response = await fetch(`/api/store/products`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(productData),
-        });
-
-        setUploadProgress(100);
-
-        if (!response.ok) {
-          const { message } = await parseErrorFromResponse(response);
-          toast.error(`Failed to save draft: ${message}`);
-          setError([message]);
-          return;
-        }
-
-        const { data: resData, message } = await response.json();
-        setDraftProductId(resData?.productId);
-
-        toast.success(message || "Your product has been saved as draft.");
-        resetDirtyState();
-      } else if (action === "publish") {
-        setIsLoading(true);
-        setUploadProgress(30);
-        const productData = await prepareProductData();
-        setUploadProgress(80);
-
-        const response = await fetch(`/api/store/products`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(productData),
-        });
-
-        setUploadProgress(100);
-
-        if (!response.ok) {
-          const { message } = await parseErrorFromResponse(response);
-          toast.error(`Failed to publish: ${message}`);
-          setError([message]);
-          return;
-        }
-
+        setDraftProductId(result?.data?.productId);
+        toast.success(
+          result.message || "Your product has been saved as draft.",
+        );
+      } else {
         toast.success("Your product has been uploaded and is pending review.");
-        resetDirtyState();
-
-        // Reset form after publish
-        setFormData({
-          name: "",
-          description: "",
-          specifications: "",
-          price: 0,
-          productQuantity: 0,
-          category: [],
-          subCategory: [],
-          targetAudience: [],
-          storePassword: "",
-          productType: ProductTypeEnum.Product,
-        });
-        setSelectedCategory("");
-        setSelectedSubCategory("");
-        setSelectedTargetAudience("");
-        setImageFiles([]);
-        setImagePreviews([]);
         router.back();
       }
+
+      resetDirtyState();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload product",
-      );
-      setError(["Failed to upload product"]);
+      const message =
+        error instanceof Error ? error.message : "Failed to upload product";
+
+      toast.error(message);
+      setError([message]);
     } finally {
       setIsLoading(false);
       setIsLoadingDraft(false);

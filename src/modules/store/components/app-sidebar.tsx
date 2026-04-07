@@ -44,9 +44,10 @@ export function StoreSidebar({ store }: { store: StoreTokenData }) {
   const router = useRouter();
   const handleLogout = async () => {
     try {
+      const storeId = store.id;
       const response = await axios.post("/api/store/logout");
       if (response.status === 200) {
-        router.push("/login");
+        router.push(`/store/${storeId}/dashboard`);
         router.refresh();
         toast.success("Logged out successfully");
         return;

@@ -12,6 +12,7 @@ import {
 import { productName } from "@/validators/product-validators";
 import { StoreStatusEnum } from "@/validators/store-validators";
 import { MIN_IMAGE_NUMBER } from "@/domain/products/product-upload";
+import { uploadProductImages } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
 
 export async function PUT(
   request: NextRequest,
@@ -19,25 +20,36 @@ export async function PUT(
 ) {
   try {
     // Check store authentication
-    const storeSession = await getStoreDataFromToken(request);
+    const storeSession = getStoreDataFromToken(request);
     if (!storeSession) {
       throw new AppError("Store authentication required", 401);
     }
 
-    const body = await request.json();
-    const {
-      name,
-      price,
-      productQuantity,
-      images,
-      description,
-      specifications,
-      category,
-      subCategory,
-      targetAudience,
-      storePassword,
-      submitAction, // "draft" or "publish"
-    } = body;
+    // const body = await request.json();
+    const body = await request.formData();
+    // Extract scalar fields
+    const storeId = body.get("storeId") as string;
+    const name = body.get("name") as string;
+    const price = Number(body.get("price"));
+    const storePassword = body.get("storePassword") as string;
+    const productQuantity = Number(body.get("productQuantity"));
+    const description = body.get("description") as string | null;
+    const specifications = body.get("specifications") as string | null;
+    const submitAction = body.get("submitAction") as "draft" | "publish";
+
+    // Extract array fields
+    const category = body.getAll("category") as string[];
+    const subCategory = body.getAll("subCategory") as string[];
+    const targetAudience = body.getAll("targetAudience") as string[];
+    const oldImageURLs = body.getAll("oldImageURLs") as string[];
+
+    // Extract uploaded image files
+    const imageFiles = body.getAll("images") as File[];
+
+    // Validate store ownership
+    if (storeId !== storeSession.id) {
+      throw new AppError("Unauthorized store access", 403);
+    }
 
     const { productId } = await params;
     const Product = await getProductModel();
@@ -105,17 +117,25 @@ export async function PUT(
         );
       }
 
+      // After all checks, upload image files to cloudinary
+      const newImageURLs = await uploadProductImages(imageFiles);
+
+      // Merge previous image URLs with newly uploaded ones
+      const mergedImages = [...oldImageURLs, ...newImageURLs];
+
       // Update product fields for draft (only update provided fields)
       if (name !== undefined) product.name = name;
       if (price !== undefined) product.price = price;
       if (productQuantity !== undefined)
         product.productQuantity = productQuantity;
-      if (description !== undefined) product.description = description;
-      if (specifications !== undefined) product.specifications = specifications;
+      if (description !== undefined && description !== null)
+        product.description = description;
+      if (specifications !== undefined && specifications !== null)
+        product.specifications = specifications;
       if (category !== undefined) product.category = category;
       if (subCategory !== undefined) product.subCategory = subCategory;
       if (targetAudience !== undefined) product.targetAudience = targetAudience;
-      if (images !== undefined) product.images = images;
+      if (mergedImages !== undefined) product.images = mergedImages;
 
       // Keep as draft
       product.status = ProductStatusEnum.Draft;
@@ -154,8 +174,10 @@ export async function PUT(
         }
       });
 
+      const totalImages = oldImageURLs.length + imageFiles.length;
+
       // Additional validation for images
-      if (!images || images.length < MIN_IMAGE_NUMBER) {
+      if (totalImages < MIN_IMAGE_NUMBER) {
         validationErrors.push(
           `images: At least ${MIN_IMAGE_NUMBER} product images are required`,
         );
@@ -169,16 +191,22 @@ export async function PUT(
         );
       }
 
+      // After all checks, upload image files to cloudinary
+      const newImageURLs = await uploadProductImages(imageFiles);
+
+      // Merge previous image URLs with newly uploaded ones
+      const mergedImages = [...oldImageURLs, ...newImageURLs];
+
       // Update all product fields for publish
       product.name = name;
       product.price = price;
       product.productQuantity = productQuantity;
-      product.description = description;
-      product.specifications = specifications;
+      product.description = description as string;
+      product.specifications = specifications as string;
       product.category = category;
       product.subCategory = subCategory;
       product.targetAudience = targetAudience;
-      product.images = images;
+      product.images = mergedImages;
 
       // Set status based on previous state
       if (product.isVerifiedProduct) {

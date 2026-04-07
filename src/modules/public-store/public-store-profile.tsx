@@ -26,6 +26,11 @@ import Link from "next/link";
 import { truncateText } from "@/lib/utils";
 import { StoreProfileManagerPublic } from "@/domain/stores/store-profile-manager-public";
 import { ProductCard } from "../products/product-detail/product-card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PublicStoreProfileProps {
   storeId: string;
@@ -86,13 +91,21 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
 
                         {/* Actions Buttons*/}
                         <div className="flex gap-2">
-                          <Button
-                            // variant="outline"
-                            onClick={handleShareStore}
-                            className="gap-2 bg-transparent p-0 border-0 hover:bg-transparent text-white hover:text-soraxi-green-hover"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                // variant="outline"
+                                onClick={handleShareStore}
+                                className="gap-2 bg-transparent p-0 border-0 hover:bg-transparent text-soraxi-green hover:text-soraxi-green-hover shadow-none"
+                              >
+                                <Share2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Share</p>
+                            </TooltipContent>
+                          </Tooltip>
+
                           {/* Follow Store: Coming Later */}
                           {/* <Button
                             onClick={handleFollowStore}
