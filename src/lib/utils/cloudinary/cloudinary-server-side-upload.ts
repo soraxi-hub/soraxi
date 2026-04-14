@@ -21,9 +21,35 @@ import streamifier from "streamifier";
  * @param files - Image files extracted from `FormData`
  * @returns Promise<string[]> - Array of uploaded Cloudinary secure URLs
  */
-export async function uploadProductImages(files: File[]): Promise<string[]> {
+export async function uploadProductImages(files: File[]): Promise<{
+  success: boolean;
+  error?: string;
+  result?: string[];
+}> {
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    console.error("Missing required environment variables");
+    return {
+      success: false,
+      error:
+        "Server configuration error: Missing required Cloudinary environment variables",
+    };
+  }
   // If no images were provided, return an empty array immediately.
-  if (!files.length) return [];
+  if (!files.length)
+    return {
+      success: true,
+      result: [],
+    };
+
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
 
   // Upload all images in parallel for faster performance.
   const uploaded = await Promise.all(
@@ -60,5 +86,8 @@ export async function uploadProductImages(files: File[]): Promise<string[]> {
     }),
   );
 
-  return uploaded;
+  return {
+    success: true,
+    result: uploaded,
+  };
 }
