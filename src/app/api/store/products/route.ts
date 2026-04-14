@@ -128,6 +128,12 @@ export async function POST(request: NextRequest) {
       // After all checks, upload image files to cloudinary
       const images = await uploadProductImages(imageFiles);
 
+      if (!images.success) {
+        throw new AppError(
+          images.error ?? "Server error: Unable to upload Product images",
+        );
+      }
+
       // Using the "submittedDraftProductId", check for existing draft and update it.
       if (submittedDraftProductId) {
         // Find the existing draft first
@@ -140,7 +146,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Merge previous image URLs with newly uploaded ones
-        const mergedImages = [...(existingDraft.images || []), ...images];
+        const mergedImages = [
+          ...(existingDraft.images || []),
+          ...(images.result as string[]),
+        ];
 
         // Update existing draft
         await Product.findByIdAndUpdate(
@@ -172,7 +181,7 @@ export async function POST(request: NextRequest) {
         name,
         price: price,
         productQuantity,
-        images,
+        images: images.result as string[],
         description,
         specifications,
         category,
@@ -237,6 +246,12 @@ export async function POST(request: NextRequest) {
       // After all checks, upload image files to cloudinary
       const images = await uploadProductImages(imageFiles);
 
+      if (!images.success) {
+        throw new AppError(
+          images.error ?? "Server error: Unable to upload Product images",
+        );
+      }
+
       if (submittedDraftProductId) {
         // Find the existing draft first
         const existingDraft = await Product.findById(
@@ -248,7 +263,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Merge previous image URLs with newly uploaded ones
-        const mergedImages = [...(existingDraft.images || []), ...images];
+        const mergedImages = [
+          ...(existingDraft.images || []),
+          ...(images.result as string[]),
+        ];
 
         // Upgrade existing draft → pending publish
         await Product.findByIdAndUpdate(
@@ -280,7 +298,7 @@ export async function POST(request: NextRequest) {
         name,
         price: price,
         productQuantity,
-        images,
+        images: images.result as string[],
         description,
         specifications,
         category,

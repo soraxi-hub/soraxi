@@ -8,6 +8,7 @@ import { useCartStore } from "@/modules/store/cart-store";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { useRouter } from "next/navigation";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
@@ -28,6 +29,14 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   const trpc = useTRPC();
   const [isCopied, setIsCopied] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+
+  function redirectToLogin(
+    router: ReturnType<typeof useRouter>,
+    redirect: string,
+  ) {
+    router.push(`/sign-in?redirect=${encodeURIComponent(redirect)}`);
+  }
 
   // Fetch user ID on component mount
   useEffect(() => {
@@ -36,14 +45,14 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
 
   // Fetch user's wishlist
   const { data: wishlist, refetch: refetchWishlist } = useQuery(
-    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions()
+    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions(),
   );
 
   // Check if product is in wishlist
   const isInWishlist = useMemo(() => {
     if (!product || !wishlist?.products) return false;
     return wishlist.products.some(
-      (item) => item.productId.toString() === product!.id
+      (item) => item.productId.toString() === product!.id,
     );
   }, [wishlist, product?.id]);
 
@@ -52,33 +61,33 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
     trpc.wishlist.addItem.mutationOptions({
       onSuccess: () => {
         toast.success(
-          `${product?.name ?? "Unknown Product"} added to wishlist`
+          `${product?.name ?? "Unknown Product"} added to wishlist`,
         );
         refetchWishlist();
       },
       onError: () => {
         toast.error(
-          `Error adding ${product?.name ?? "Unknown Product"} to wishlist`
+          `Error adding ${product?.name ?? "Unknown Product"} to wishlist`,
         );
       },
-    })
+    }),
   );
 
   const removeFromWishlist = useMutation(
     trpc.wishlist.removeItem.mutationOptions({
       onSuccess: () => {
         toast.success(
-          `${product?.name ?? "Unknown Product"} removed from wishlist`
+          `${product?.name ?? "Unknown Product"} removed from wishlist`,
         );
         refetchWishlist();
       },
       onError: (error) => {
         toast.error(
           error.message ||
-            `Error removing ${product?.name ?? "Unknown Product"} from wishlist`
+            `Error removing ${product?.name ?? "Unknown Product"} from wishlist`,
         );
       },
-    })
+    }),
   );
 
   // Cart mutation
@@ -95,21 +104,30 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
       onError: (error) => {
         toast.error(
           error.message ||
-            `Error adding ${product?.name ?? "Unknown Product"} to cart`
+            `Error adding ${product?.name ?? "Unknown Product"} to cart`,
         );
       },
-    })
+    }),
   );
 
   // Handlers
   const handleWishlistToggle = async (product: Product) => {
-    if (!userId) {
-      toast.error("Please Login to perform this action.");
+    if (!product) {
+      toast.info("Product data is unavailable.");
       return;
     }
 
-    if (!product) {
-      toast.info("Product data is unavailable.");
+    if (!userId) {
+      toast.error("Please login to continue.", {
+        action: {
+          label: "Login",
+          onClick: () => redirectToLogin(router, `/products/${product.slug}`),
+        },
+        actionButtonStyle: {
+          backgroundColor: "#14a800",
+          color: "white",
+        },
+      });
       return;
     }
 
@@ -130,7 +148,16 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
     }
 
     if (!userId) {
-      toast.error("Please Login to perform this action.");
+      toast.error("Please login to continue.", {
+        action: {
+          label: "Login",
+          onClick: () => redirectToLogin(router, `/products/${product.slug}`),
+        },
+        actionButtonStyle: {
+          backgroundColor: "#14a800",
+          color: "white",
+        },
+      });
       return;
     }
 

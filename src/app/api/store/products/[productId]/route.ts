@@ -120,8 +120,17 @@ export async function PUT(
       // After all checks, upload image files to cloudinary
       const newImageURLs = await uploadProductImages(imageFiles);
 
+      if (!newImageURLs.success) {
+        throw new AppError(
+          newImageURLs.error ?? "Server error: Unable to upload Product images",
+        );
+      }
+
       // Merge previous image URLs with newly uploaded ones
-      const mergedImages = [...oldImageURLs, ...newImageURLs];
+      const mergedImages = [
+        ...oldImageURLs,
+        ...(newImageURLs.result as string[]),
+      ];
 
       // Update product fields for draft (only update provided fields)
       if (name !== undefined) product.name = name;
@@ -194,8 +203,17 @@ export async function PUT(
       // After all checks, upload image files to cloudinary
       const newImageURLs = await uploadProductImages(imageFiles);
 
+      if (!newImageURLs.success) {
+        throw new AppError(
+          newImageURLs.error ?? "Server error: Unable to upload Product images",
+        );
+      }
+
       // Merge previous image URLs with newly uploaded ones
-      const mergedImages = [...oldImageURLs, ...newImageURLs];
+      const mergedImages = [
+        ...oldImageURLs,
+        ...(newImageURLs.result as string[]),
+      ];
 
       // Update all product fields for publish
       product.name = name;
