@@ -17,6 +17,7 @@ import AccountingProductSection from "./popular-fields/accounting-finance";
 import MedicineProductSection from "./popular-fields/medicine";
 import ComputerScienceProductSection from "./popular-fields/computer-science-it";
 import DemandListingSection from "../requests/components/home-page-demand-section";
+import { siteConfig } from "@/config/site";
 
 /**
  * HomePage Component
@@ -159,7 +160,10 @@ export function HomePage() {
                   className={`grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}
                 >
                   {allProducts.map((product) => (
-                    <Link key={product.id} href={`/products/${product.slug}`}>
+                    <Link
+                      key={product.id}
+                      href={`/${siteConfig.routeNames.product}/${product.slug}`}
+                    >
                       <ProductCard product={product} />
                     </Link>
                   ))}

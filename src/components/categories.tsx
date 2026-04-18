@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { categories } from "@/constants/constant";
 import type { Category } from "@/types/index";
+import { siteConfig } from "@/config/site";
 
 /**
  * Responsive horizontal category navigation component
@@ -186,7 +187,7 @@ function Categories() {
    */
   const toggleCategoryExpansion = (categorySlug: string) => {
     setExpandedCategory(
-      expandedCategory === categorySlug ? null : categorySlug
+      expandedCategory === categorySlug ? null : categorySlug,
     );
   };
 
@@ -201,7 +202,7 @@ function Categories() {
     className?: string;
   }) => (
     <Link
-      href={`/category/${category.slug}`}
+      href={`/${siteConfig.routeNames.category}/${category.slug}`}
       className={`whitespace-nowrap text-base font-medium hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-sm ${className}`}
       aria-label={`Browse ${category.name} category`}
     >
@@ -236,7 +237,7 @@ function Categories() {
       {subcategories.map((subcategory, _index) => (
         <Link
           key={subcategory.slug}
-          href={`/category/${categorySlug}/${subcategory.slug}`}
+          href={`/${siteConfig.routeNames.category}/${categorySlug}/${subcategory.slug}`}
           className={`
             text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded
             ${

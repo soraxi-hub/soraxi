@@ -44,4 +44,10 @@ export const siteConfig = {
     { name: "Support", href: "/support" },
   ],
   placeHolderImg: `/placeholder-img.jpg` as const,
+  routeNames: {
+    brand: `b`,
+    category: `c`,
+    store: `s`,
+    product: `p`,
+  } as const,
 };

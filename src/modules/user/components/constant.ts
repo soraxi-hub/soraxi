@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import { TokenData } from "@/lib/helpers/get-user-data-from-token";
 import {
   UserIcon,
@@ -35,14 +36,14 @@ export const userSidebarItems = (user: TokenData) => [
         ? [
             {
               title: "Store Management",
-              url: `/store/${user.store}/dashboard`,
+              url: `/${siteConfig.routeNames.store}/${user.store}/dashboard`,
               icon: BuildingIcon,
             },
           ]
         : []),
       {
         title: "Create Your Store",
-        url: "/store/onboarding/",
+        url: `/${siteConfig.routeNames.store}/onboarding/`,
         icon: StoreIcon,
       },
     ],

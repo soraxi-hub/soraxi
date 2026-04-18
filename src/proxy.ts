@@ -11,6 +11,7 @@ import {
   getStoreDataFromToken,
   StoreTokenPayload,
 } from "./lib/helpers/get-store-data-from-token";
+import { siteConfig } from "./config/site";
 
 export async function proxy(request: NextRequest) {
   const proxyUtils = new ProxyUtils(request);
@@ -49,7 +50,9 @@ export async function proxy(request: NextRequest) {
     const storeToken = getStoreDataFromToken(request) as StoreTokenPayload; // We know that this will always exist because the store is authenticated
     const storeId = storeToken.id;
 
-    const target = storeId ? `/store/${storeId}/dashboard` : "/";
+    const target = storeId
+      ? `/${siteConfig.routeNames.store}/${storeId}/dashboard`
+      : "/";
 
     return proxyUtils.createRedirect(target);
   }

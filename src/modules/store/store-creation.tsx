@@ -20,6 +20,7 @@ import { Loader2, Store, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import AlertUI from "@/modules/shared/alert";
 import { createStoreSchema } from "@/validators/store-validators";
+import { siteConfig } from "@/config/site";
 
 type CreateStoreFormData = z.infer<typeof createStoreSchema>;
 
@@ -97,7 +98,9 @@ export function CreateStorePage() {
       toast.success(`Let's set up your store profile to get started.`);
 
       // Redirect to onboarding with the new store ID
-      router.push(`/store/onboarding/${result.store.id}/profile`);
+      router.push(
+        `/${siteConfig.routeNames.store}/onboarding/${result.store.id}/profile`,
+      );
     } catch (error) {
       console.error("Store creation error:", error);
       toast.error(`Failed to create store. Please try again.`);

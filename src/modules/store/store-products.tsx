@@ -189,7 +189,9 @@ export function StoreProductsManagement({
             Manage your store&#39;s product catalog
           </p>
         </div>
-        <Link href={`/store/${store_id}/products/upload`}>
+        <Link
+          href={`/${siteConfig.routeNames.store}/${store_id}/products/upload`}
+        >
           <Button className="bg-soraxi-green hover:bg-soraxi-green-hover text-white">
             <Plus className="w-4 h-4 mr-2" />
             Add Product
@@ -353,7 +355,9 @@ export function StoreProductsManagement({
                     <div className="space-y-2">
                       <Package className="w-12 h-12 text-muted-foreground mx-auto" />
                       <p className="text-muted-foreground">No products found</p>
-                      <Link href={`/store/${store_id}/products/upload`}>
+                      <Link
+                        href={`/${siteConfig.routeNames.store}/${store_id}/products/upload`}
+                      >
                         <Button variant="outline" size="sm">
                           <Plus className="w-4 h-4 mr-2" />
                           Add Your First Product
@@ -448,7 +452,9 @@ export function StoreProductsManagement({
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           {product.status !== ProductStatusEnum.Draft && (
                             <DropdownMenuItem asChild>
-                              <Link href={`/products/${product.slug}`}>
+                              <Link
+                                href={`/${siteConfig.routeNames.product}/${product.slug}`}
+                              >
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Product
                               </Link>
@@ -456,7 +462,7 @@ export function StoreProductsManagement({
                           )}
                           <DropdownMenuItem asChild>
                             <Link
-                              href={`/store/${store_id}/products/${product.id}/edit`}
+                              href={`/${siteConfig.routeNames.store}/${store_id}/products/${product.id}/edit`}
                             >
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Product

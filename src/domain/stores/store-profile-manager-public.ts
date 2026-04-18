@@ -10,7 +10,7 @@ type StoreProfileData = inferProcedureOutput<
 /**
  * Store Profile Manager Class for public page.
  *
- * This store profile manager is mainly used it the "soraxihub.com/brand/[storeId or storeSlug]" page.
+ * This store profile manager is mainly used it the "soraxihub.com/siteConfig.routeNames.brand/[storeId or storeSlug]" page.
  */
 export class StoreProfileManagerPublic {
   private storeData: StoreProfileData | null = null;

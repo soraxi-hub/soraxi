@@ -2,10 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import Categories from "./categories";
+import { siteConfig } from "@/config/site";
 
 export function RouteBasedCategories() {
   const pathName = usePathname();
-  const pagesToShowCategory = ["/category/", "/products/"];
+  const pagesToShowCategory = [
+    `/${siteConfig.routeNames.category}/`,
+    `/${siteConfig.routeNames.product}/`,
+  ];
   const shouldShowCategory =
     pathName === "/" ||
     pagesToShowCategory.some((path) => pathName.startsWith(path));

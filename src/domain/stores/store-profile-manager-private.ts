@@ -37,7 +37,7 @@ export interface StoreUpdateResult {
 /**
  * Store Profile Manager Class for managing private store profile data.
  *
- * This store profile manager is mainly used it the "soraxihub.com/store/[storeId]" page.
+ * This store profile manager is mainly used it the "soraxihub.com/siteConfig.routeNames.store/[storeId]" page.
  */
 export class StoreProfileManagerPrivate {
   private storeData: StoreProfileData | null = null;

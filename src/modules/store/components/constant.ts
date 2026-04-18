@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import {
   UserIcon,
   PackageIcon,
@@ -15,27 +16,27 @@ export const storeSidebarItems = (storeId: string) => [
     items: [
       {
         title: "Dashboard",
-        url: `/store/${storeId}/dashboard`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/dashboard`,
         icon: BriefcaseIcon,
       },
       {
         title: "Products",
-        url: `/store/${storeId}/products`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/products`,
         icon: PackageIcon,
       },
       {
         title: "Orders",
-        url: `/store/${storeId}/orders`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/orders`,
         icon: CreditCardIcon,
       },
       {
         title: "My Escrow",
-        url: `/store/${storeId}/escrow`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/escrow`,
         icon: RefreshCwIcon,
       },
       {
         title: "Wallet",
-        url: `/store/${storeId}/wallet`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/wallet`,
         icon: WalletIcon,
       },
     ],
@@ -45,17 +46,17 @@ export const storeSidebarItems = (storeId: string) => [
     items: [
       {
         title: "Store Profile",
-        url: `/store/${storeId}/profile`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/profile`,
         icon: UserIcon,
       },
       {
         title: "Shipping",
-        url: `/store/${storeId}/shipping`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/shipping`,
         icon: MapPinIcon,
       },
       {
         title: "Payment Setup",
-        url: `/store/${storeId}/payment-setup`,
+        url: `/${siteConfig.routeNames.store}/${storeId}/payment-setup`,
         icon: CreditCardIcon,
       },
     ],

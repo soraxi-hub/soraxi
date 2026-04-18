@@ -31,6 +31,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { siteConfig } from "@/config/site";
 
 interface PublicStoreProfileProps {
   storeId: string;
@@ -60,7 +61,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
   }, [store]);
 
   const handleShareStore = () => {
-    const storeUrl = `${window.location.origin}/brand/${store._id}`;
+    const storeUrl = `${window.location.origin}/${siteConfig.routeNames.brand}/${store._id}`;
     navigator.clipboard.writeText(storeUrl);
     setIsCopied(true);
     toast.success("Store link copied to clipboard!");
@@ -237,7 +238,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                         {store.products.map((product) => (
                           <Link
                             key={product._id}
-                            href={`/products/${product.slug}`}
+                            href={`/${siteConfig.routeNames.product}/${product.slug}`}
                           >
                             <ProductCard
                               product={{

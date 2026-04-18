@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { StoreProfileForm } from "@/components/forms/store-profile-form";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { siteConfig } from "@/config/site";
 
 /**
  * Store Profile Onboarding Page
@@ -24,7 +25,9 @@ export default function StoreProfilePage({ storeId }: { storeId: string }) {
    * Redirects to business information page
    */
   const handleNext = () => {
-    router.push(`/store/onboarding/${storeId}/business-info`);
+    router.push(
+      `/${siteConfig.routeNames.store}/onboarding/${storeId}/business-info`,
+    );
   };
 
   return (

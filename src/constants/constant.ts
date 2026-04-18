@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import { Playpen_Sans } from "next/font/google";
 
 export const playpenSans = Playpen_Sans({
@@ -16,17 +17,17 @@ export const publicPaths = [
   "/support",
   "/cart",
   "/admin-sign-in",
-  "/products/:path*",
-  "/category/:path*",
   "/docs/:path*",
   "/docs/",
   "/checkout/payment-status",
   "/forgot-password",
   "/reset-password",
-  "/store/onboarding",
   "/requests",
   "/requests/:path*",
-  "/brand/:path*",
+  `/${siteConfig.routeNames.store}/onboarding`,
+  `/${siteConfig.routeNames.brand}/:path*`,
+  `/${siteConfig.routeNames.category}/:path*`,
+  `/${siteConfig.routeNames.product}/:path*`,
 ];
 
 {

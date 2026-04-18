@@ -9,6 +9,7 @@ import ProductLoadingSkeleton from "@/modules/skeletons/product-loading-skeleton
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
+import { siteConfig } from "@/config/site";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProducts"]>;
 type Products = Output["products"];
@@ -61,7 +62,10 @@ function ReusableProductSection({
         ) : display === "vertical" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Link key={product.id} href={`/products/${product.slug}`}>
+              <Link
+                key={product.id}
+                href={`/${siteConfig.routeNames.product}/${product.slug}`}
+              >
                 <ProductCard product={product} />
               </Link>
             ))}
@@ -76,7 +80,9 @@ function ReusableProductSection({
               <div className="flex gap-6 min-w-max">
                 {products.map((product) => (
                   <div key={product.id} className="w-[280px] flex-shrink-0">
-                    <Link href={`/products/${product.slug}`}>
+                    <Link
+                      href={`/${siteConfig.routeNames.product}/${product.slug}`}
+                    >
                       <ProductCard product={product} />
                     </Link>
                   </div>

@@ -62,7 +62,9 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                 key={product.id}
                 className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
               >
-                <Link href={`/products/${product.slug}`}>
+                <Link
+                  href={`/${siteConfig.routeNames.product}/${product.slug}`}
+                >
                   <Card className="group cursor-pointer hover:shadow-lg transition-shadow p-0 h-full">
                     <CardContent className="p-0">
                       <div className="relative aspect-square overflow-hidden rounded-t-lg">
@@ -95,7 +97,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                                 className={`w-3 h-3 ${
                                   i <
                                   Math.floor(
-                                    product.rating ? product.rating : 0
+                                    product.rating ? product.rating : 0,
                                   )
                                     ? "text-yellow-400 fill-current"
                                     : "text-gray-300"

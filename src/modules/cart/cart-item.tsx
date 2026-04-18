@@ -100,7 +100,7 @@ CartItemProps) {
     <div className="flex flex-col sm:flex-row gap-4 py-6 border-b">
       {/* Product Image with Stock Overlay */}
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border">
-        <Link href={`/products/${item.slug}`}>
+        <Link href={`/${siteConfig.routeNames.product}/${item.slug}`}>
           <Image
             src={item.image || siteConfig.placeHolderImg}
             alt={item.name}
@@ -123,7 +123,7 @@ CartItemProps) {
         <div className="space-y-1 min-w-0">
           <div className="flex justify-between items-start gap-2">
             <div className="min-w-0 flex-1">
-              <Link href={`/products/${item.slug}`}>
+              <Link href={`/${siteConfig.routeNames.product}/${item.slug}`}>
                 <h3 className="font-medium hover:text-primary transition-colors line-clamp-2 truncate">
                   {item.name}
                 </h3>

@@ -40,6 +40,7 @@ import type {
   WalletTransactionType,
 } from "@/lib/db/models/wallet.model";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 /**
  * Transaction History Component
@@ -100,7 +101,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
       source: filters.source !== "all" ? filters.source : undefined,
       days: filters.dateRange !== "all" ? Number(filters.dateRange) : undefined,
       search: filters.search.trim() !== "" ? filters.search : undefined,
-    })
+    }),
   );
 
   const transactions = data?.transactions || [];
@@ -231,7 +232,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
   const getLink = (
     source: IWalletTransaction["source"],
     relatedDocumentId: string | null,
-    currentStoreId: string | null
+    currentStoreId: string | null,
   ) => {
     if (!relatedDocumentId || !currentStoreId) {
       return <span className="text-muted-foreground">-</span>;
@@ -241,7 +242,9 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
       case "order":
         return (
           <Button variant="link" size="sm" className="p-0 h-auto" asChild>
-            <Link href={`/store/${currentStoreId}/orders/${relatedDocumentId}`}>
+            <Link
+              href={`/${siteConfig.routeNames.store}/${currentStoreId}/orders/${relatedDocumentId}`}
+            >
               #{relatedDocumentId.slice(-8)}
             </Link>
           </Button>
@@ -251,7 +254,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
         return (
           <Button variant="link" size="sm" className="p-0 h-auto" asChild>
             <Link
-              href={`/store/${currentStoreId}/withdrawals/${relatedDocumentId}`}
+              href={`/${siteConfig.routeNames.store}/${currentStoreId}/withdrawals/${relatedDocumentId}`}
             >
               #{relatedDocumentId.slice(-8)}
             </Link>
@@ -469,7 +472,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
                       {getLink(
                         transaction.source,
                         transaction.relatedDocumentId,
-                        storeId // Pass storeId to getLink
+                        storeId, // Pass storeId to getLink
                       )}
                     </TableCell>
                   </TableRow>
@@ -486,7 +489,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
                 to{" "}
                 {Math.min(
                   pagination.currentPage * pagination.pageSize,
-                  pagination.totalTransactions
+                  pagination.totalTransactions,
                 )}{" "}
                 of {pagination.totalTransactions} transactions
               </div>
@@ -520,7 +523,7 @@ export function TransactionHistory({ storeId }: { storeId: string }) {
                           {page}
                         </Button>
                       );
-                    }
+                    },
                   )}
                 </div>
                 <Button

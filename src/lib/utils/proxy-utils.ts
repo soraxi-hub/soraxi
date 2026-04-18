@@ -156,32 +156,32 @@ export class ProxyUtils {
    * Checks if a given path matches a dynamic store route that includes a valid MongoDB ObjectId.
    *
    * This ensures only paths like:
-   *   - /store/684c94a748eb382ea33710aa
-   *   - /store/684c94a748eb382ea33710aa/products
-   *   - /store/684c94a748eb382ea33710aa/...
+   *   - /s/684c94a748eb382ea33710aa
+   *   - /s/684c94a748eb382ea33710aa/products
+   *   - /s/684c94a748eb382ea33710aa/...
    * are considered protected store routes.
    *
    * Public routes like:
-   *   - /store/create
-   *   - /store/onboarding
-   *   - /store/preview/...
+   *   - /s/create
+   *   - /s/onboarding
+   *   - /s/preview/...
    * will NOT match and are therefore treated separately.
    *
    * @param path - The URL path to evaluate.
    * @returns A boolean indicating whether the path is a recognized store route.
    */
   isStorePath(path: string): boolean {
-    return /^\/store\/[a-f\d]{24}(\/.*)?$/i.test(path);
+    return /^\/s\/[a-f\d]{24}(\/.*)?$/i.test(path);
   }
 
   /**
    * Determines if the current path is a protected store onboarding route.
    * Use this in your middleware condition alongside `isStorePath()`.
    *
-   * Match only dynamic onboarding paths like /store/onboarding/:storeId/...
+   * Match only dynamic onboarding paths like /s/onboarding/:storeId/...
    */
   isProtectedStoreOnboardingPath(): boolean {
-    return /^\/store\/onboarding\/[a-f\d]{24}(\/.*)?$/i.test(this.pathname);
+    return /^\/s\/onboarding\/[a-f\d]{24}(\/.*)?$/i.test(this.pathname);
   }
 
   /**

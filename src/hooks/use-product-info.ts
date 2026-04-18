@@ -9,6 +9,7 @@ import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { useRouter } from "next/navigation";
+import { siteConfig } from "@/config/site";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
@@ -121,7 +122,11 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
       toast.error("Please login to continue.", {
         action: {
           label: "Login",
-          onClick: () => redirectToLogin(router, `/products/${product.slug}`),
+          onClick: () =>
+            redirectToLogin(
+              router,
+              `/${siteConfig.routeNames.product}/${product.slug}`,
+            ),
         },
         actionButtonStyle: {
           backgroundColor: "#14a800",
@@ -151,7 +156,11 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
       toast.error("Please login to continue.", {
         action: {
           label: "Login",
-          onClick: () => redirectToLogin(router, `/products/${product.slug}`),
+          onClick: () =>
+            redirectToLogin(
+              router,
+              `/${siteConfig.routeNames.product}/${product.slug}`,
+            ),
         },
         actionButtonStyle: {
           backgroundColor: "#14a800",
@@ -184,7 +193,7 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
       return;
     }
 
-    const productUrl = `${window.location.origin}/products/${product.slug}`;
+    const productUrl = `${window.location.origin}/${siteConfig.routeNames.product}/${product.slug}`;
     navigator.clipboard.writeText(productUrl);
     setIsCopied(true);
     toast.success(`Product slug copied to clipboard!`);

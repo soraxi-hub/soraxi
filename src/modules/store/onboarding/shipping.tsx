@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { ShippingMethodsForm } from "@/components/forms/shipping-methods-form";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { siteConfig } from "@/config/site";
 
 /**
  * Shipping Methods Onboarding Page
@@ -24,7 +25,7 @@ export default function ShippingPage({ storeId }: { storeId: string }) {
    * Redirects to payout setup page
    */
   const handleNext = () => {
-    router.push(`/store/onboarding/${storeId}/terms`);
+    router.push(`/${siteConfig.routeNames.store}/onboarding/${storeId}/terms`);
   };
 
   /**
@@ -32,7 +33,9 @@ export default function ShippingPage({ storeId }: { storeId: string }) {
    * Redirects back to business information page
    */
   const handleBack = () => {
-    router.push(`/store/onboarding/${storeId}/business-info`);
+    router.push(
+      `/${siteConfig.routeNames.store}/onboarding/${storeId}/business-info`,
+    );
   };
 
   return (
