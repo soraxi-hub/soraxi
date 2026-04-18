@@ -56,7 +56,11 @@ export function ProductDetailPage({
 
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/category">Category</Link>
+                  <Link
+                    href={`/${siteConfig.routeNames.category}/${slugify(product.category![0])}`}
+                  >
+                    Category
+                  </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
 
@@ -66,7 +70,7 @@ export function ProductDetailPage({
                 <>
                   <BreadcrumbItem>
                     <BreadcrumbLink
-                      href={`/category/${slugify(product.category[0])}`}
+                      href={`/${siteConfig.routeNames.category}/${slugify(product.category[0])}`}
                     >
                       {product.category[0]}
                     </BreadcrumbLink>
@@ -76,8 +80,8 @@ export function ProductDetailPage({
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
                         <BreadcrumbLink
-                          href={`/category/${slugify(
-                            product.category[0]
+                          href={`/${siteConfig.routeNames.category}/${slugify(
+                            product.category[0],
                           )}/${slugify(product.subCategory[0])}`}
                         >
                           {product.subCategory[0]}

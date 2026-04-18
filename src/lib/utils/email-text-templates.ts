@@ -44,8 +44,6 @@ What happens next:
 - You'll receive an email notification once a decision is made
 - In the meantime, you can update your store profile
 
-You can view your store here: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard/store
-
 If you have any questions, please don't hesitate to contact our support team.
 
 Best regards,
@@ -87,7 +85,7 @@ The ${siteConfig.name} Team`;
     const itemsText = details.items
       .map(
         (item) =>
-          `${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`
+          `${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`,
       )
       .join("\n");
 
@@ -201,7 +199,7 @@ The ${details.siteName} Support Team`;
     const itemsText = details.items
       .map(
         (item) =>
-          `${item.name} (Qty: ${item.quantity}) - $${item.price.toFixed(2)} each - Subtotal: $${(item.price * item.quantity).toFixed(2)}`
+          `${item.name} (Qty: ${item.quantity}) - $${item.price.toFixed(2)} each - Subtotal: $${(item.price * item.quantity).toFixed(2)}`,
       )
       .join("\n");
 

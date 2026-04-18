@@ -24,7 +24,7 @@ import {
   Eye,
   // Eye,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -45,6 +45,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { truncateText } from "@/lib/utils";
 import { storeDescription, storeName } from "@/validators/store-validators";
+import { siteConfig } from "@/config/site";
 
 // Form schemas
 const StoreNameFormSchema = z.object({
@@ -74,6 +75,19 @@ export default function EnhancedStoreProfile() {
       storeManager.setStoreData(store);
     }
   }, [store, storeManager]);
+
+  const { storeStats, StoreStatusEnum } = useMemo(() => {
+    const manager = new StoreProfileManagerPrivate();
+
+    if (store) {
+      manager.setStoreData(store);
+    }
+
+    return {
+      storeStats: manager.getStoreStats(),
+      StoreStatusEnum: manager.getStoreStatus(),
+    };
+  }, [store]);
 
   // Store name form
   const nameForm = useForm<z.infer<typeof StoreNameFormSchema>>({
@@ -124,7 +138,7 @@ export default function EnhancedStoreProfile() {
   const handleShareStore = () => {
     if (!store?.uniqueId) return;
 
-    const storeUrl = `${window.location.origin}/brand/${store._id}`;
+    const storeUrl = `${window.location.origin}/${siteConfig.routeNames.brand}/${store._id}`;
     navigator.clipboard.writeText(storeUrl);
     setIsCopied(true);
     toast.success("Store link copied to clipboard!");
@@ -141,9 +155,6 @@ export default function EnhancedStoreProfile() {
   ) => {
     updateStoreDescription.mutate(data);
   };
-
-  const storeStats = storeManager.getStoreStats();
-  const StoreStatusEnum = storeManager.getStoreStatus();
 
   if (isLoading || !store) {
     return (
@@ -481,7 +492,9 @@ export default function EnhancedStoreProfile() {
                     variant="outline"
                     className="w-full justify-start gap-2 bg-transparent"
                   >
-                    <Link href={`/store/${store._id}/products/upload`}>
+                    <Link
+                      href={`/${siteConfig.routeNames.store}/${store._id}/products/upload`}
+                    >
                       <Package className="h-4 w-4" />
                       Add Product
                     </Link>
@@ -491,7 +504,10 @@ export default function EnhancedStoreProfile() {
                     variant="outline"
                     className="w-full justify-start gap-2 bg-transparent"
                   >
-                    <Link href={`/brand/${store._id}`} target="_blank">
+                    <Link
+                      href={`/${siteConfig.routeNames.brand}/${store._id}`}
+                      target="_blank"
+                    >
                       <Eye className="h-4 w-4" />
                       Preview Store
                     </Link>
@@ -533,7 +549,9 @@ export default function EnhancedStoreProfile() {
                     customers.
                   </p>
                   <Button asChild className="gap-2">
-                    <Link href={`/store/${store._id}/products/upload`}>
+                    <Link
+                      href={`/${siteConfig.routeNames.store}/${store._id}/products/upload`}
+                    >
                       <Package className="h-4 w-4" />
                       Add Your First Product
                     </Link>
@@ -542,7 +560,10 @@ export default function EnhancedStoreProfile() {
               ) : (
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {store.products.map((product) => (
-                    <Link key={product._id} href={`/products/${product.slug}`}>
+                    <Link
+                      key={product._id}
+                      href={`/${siteConfig.routeNames.product}/${product.slug}`}
+                    >
                       <ProductCard
                         product={{
                           ...product,

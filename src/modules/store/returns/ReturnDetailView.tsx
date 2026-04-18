@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
+import { siteConfig } from "@/config/site";
 
 interface ReturnDetail {
   _id: string;
@@ -85,7 +86,7 @@ export function ReturnDetailView({ storeId, returnId }: ReturnDetailViewProps) {
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/store/returns/${returnId}?storeId=${storeId}`
+        `/api/store/returns/${returnId}?storeId=${storeId}`,
       );
 
       if (!response.ok) {
@@ -165,7 +166,7 @@ export function ReturnDetailView({ storeId, returnId }: ReturnDetailViewProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href={`/store/${storeId}/returns`}>
+          <Link href={`/${siteConfig.routeNames.store}/${storeId}/returns`}>
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Returns

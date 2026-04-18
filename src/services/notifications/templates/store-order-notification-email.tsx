@@ -150,7 +150,7 @@ export function StoreOrderNotificationEmail({
               </Column>
               <Column style={{ width: "20%", textAlign: "right" }}>
                 {formatNaira(
-                  currencyOperations.multiply(item.price ?? 0, item.quantity)
+                  currencyOperations.multiply(item.price ?? 0, item.quantity),
                 )}
               </Column>
             </Row>
@@ -171,7 +171,7 @@ export function StoreOrderNotificationEmail({
         <Row>
           <Column align="center">
             <Button
-              href={`${process.env.NEXT_PUBLIC_APP_URL}/store/${storeId}/orders/${orderId}`}
+              href={`${process.env.NEXT_PUBLIC_APP_URL}/${siteConfig.routeNames.store}/${storeId}/orders/${orderId}`}
               style={{
                 display: "inline-block",
                 margin: "20px 0",

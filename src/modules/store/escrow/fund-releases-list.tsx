@@ -33,6 +33,7 @@ import { ChevronLeft, ChevronRight, ChevronRightCircle } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
+import { siteConfig } from "@/config/site";
 
 interface FundReleasesListProps {
   params: { store_id: string };
@@ -60,7 +61,7 @@ export default function FundReleasesList({ params }: FundReleasesListProps) {
       page,
       pageSize,
       status: status === "all" ? undefined : status,
-    })
+    }),
   );
 
   const fundReleases = data?.data ?? [];
@@ -102,7 +103,7 @@ export default function FundReleasesList({ params }: FundReleasesListProps) {
                         ![
                           FundReleaseStatus.Processing,
                           FundReleaseStatus.Released,
-                        ].includes(s)
+                        ].includes(s),
                     )
                     .map((s) => (
                       <SelectItem key={s} value={s}>
@@ -257,7 +258,7 @@ function FundReleaseTable({
 
               <TableCell>
                 <Link
-                  href={`/store/${store_id}/escrow/${release._id}`}
+                  href={`/${siteConfig.routeNames.store}/${store_id}/escrow/${release._id}`}
                   className="flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700"
                 >
                   View Details

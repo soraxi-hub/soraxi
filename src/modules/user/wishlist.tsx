@@ -9,13 +9,14 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProductCard } from "../products/product-detail/product-card";
+import { siteConfig } from "@/config/site";
 
 export function Wishlist() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const trpc = useTRPC();
 
   const { data: wishlist, refetch } = useSuspenseQuery(
-    trpc.wishlist.getByUserId.queryOptions()
+    trpc.wishlist.getByUserId.queryOptions(),
   );
   const { products } = wishlist;
 
@@ -30,7 +31,7 @@ export function Wishlist() {
       onError: () => {
         toast.error(`Error removing Product from wishlist`);
       },
-    })
+    }),
   );
 
   const handleRemove = async (productId: string) => {
@@ -76,7 +77,7 @@ export function Wishlist() {
                   </Button>
 
                   <Link
-                    href={`/products/${product.productId.slug}`}
+                    href={`/${siteConfig.routeNames.product}/${product.productId.slug}`}
                     className="text-sm space-y-1"
                   >
                     <ProductCard product={product.productId} />

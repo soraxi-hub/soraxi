@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { formatNaira } from "@/lib/utils/naira";
 import { toast } from "sonner";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 /**
  * Type definitions for the component
@@ -70,7 +71,7 @@ export function WithdrawalRequest({
   const trpc = useTRPC();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(
-    null
+    null,
   );
   const [form, setForm] = useState<WithdrawalForm>({
     amount: "",
@@ -92,7 +93,7 @@ export function WithdrawalRequest({
    * Automatically handles loading states and errors
    */
   const { data: payoutAccounts, isLoading: isLoadingAccounts } = useQuery(
-    trpc.payment.getStorePayoutAccounts.queryOptions()
+    trpc.payment.getStorePayoutAccounts.queryOptions(),
   );
 
   const createWithdrawalRequest = useMutation(
@@ -102,10 +103,10 @@ export function WithdrawalRequest({
       },
       onError: (error) => {
         toast.error(
-          error instanceof Error ? error.message : "An unknown Error occurred"
+          error instanceof Error ? error.message : "An unknown Error occurred",
         );
       },
-    })
+    }),
   );
 
   useEffect(() => {
@@ -145,7 +146,7 @@ export function WithdrawalRequest({
   const validateForm = (): boolean => {
     const newErrors: Partial<WithdrawalForm> = {};
     const amountInKobo = Math.round(
-      Number.parseFloat(form.amount || "0") * 100
+      Number.parseFloat(form.amount || "0") * 100,
     );
 
     // Amount validation
@@ -154,12 +155,12 @@ export function WithdrawalRequest({
     } else if (amountInKobo < MINIMUM_WITHDRAWAL) {
       newErrors.amount = `Minimum withdrawal is ${formatNaira(
         MINIMUM_WITHDRAWAL,
-        { showDecimals: true }
+        { showDecimals: true },
       )}`;
     } else if (amountInKobo > MAXIMUM_WITHDRAWAL) {
       newErrors.amount = `Maximum withdrawal is ${formatNaira(
         MAXIMUM_WITHDRAWAL,
-        { showDecimals: true }
+        { showDecimals: true },
       )}`;
     } else if (amountInKobo > availableBalance) {
       newErrors.amount = "Amount exceeds available balance";
@@ -281,7 +282,9 @@ export function WithdrawalRequest({
                     No verified bank accounts found
                   </p>
                   <Button variant="link" size="sm" className="mt-2" asChild>
-                    <Link href={`/store/${storeId}/payment-setup`}>
+                    <Link
+                      href={`/${siteConfig.routeNames.store}/${storeId}/payment-setup`}
+                    >
                       Add Bank Account
                     </Link>
                   </Button>
@@ -508,7 +511,7 @@ function AccountCard({
         "cursor-pointer transition-all hover:border-soraxi-green",
         isSelected
           ? "border-2 border-soraxi-green dark:border-soraxi-green"
-          : ""
+          : "",
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

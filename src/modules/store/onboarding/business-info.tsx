@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { BusinessInfoForm } from "@/components/forms/business-info-form";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { siteConfig } from "@/config/site";
 
 /**
  * Business Information Onboarding Page
@@ -24,7 +25,9 @@ export default function BusinessInfoPage({ storeId }: { storeId: string }) {
    * Redirects to shipping configuration page
    */
   const handleNext = () => {
-    router.push(`/store/onboarding/${storeId}/shipping`);
+    router.push(
+      `/${siteConfig.routeNames.store}/onboarding/${storeId}/shipping`,
+    );
   };
 
   /**
@@ -32,7 +35,9 @@ export default function BusinessInfoPage({ storeId }: { storeId: string }) {
    * Redirects back to store profile page
    */
   const handleBack = () => {
-    router.push(`/store/onboarding/${storeId}/profile`);
+    router.push(
+      `/${siteConfig.routeNames.store}/onboarding/${storeId}/profile`,
+    );
   };
 
   return (

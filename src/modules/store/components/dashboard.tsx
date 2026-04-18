@@ -30,6 +30,7 @@ import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import Link from "next/link";
 import { StoreStatusEnum } from "@/validators/store-validators";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
 /**
  * Store Dashboard Page
@@ -63,7 +64,9 @@ export default function StoreDashboardPage({
     else if (!onboarding.shippingComplete) nextStep = "shipping";
     else if (!onboarding.termsComplete) nextStep = "terms";
 
-    router.push(`/store/onboarding/${store_id}/${nextStep}`);
+    router.push(
+      `/${siteConfig.routeNames.store}/onboarding/${store_id}/${nextStep}`,
+    );
   };
 
   if (error) {
@@ -104,7 +107,7 @@ export default function StoreDashboardPage({
                     "bg-soraxi-warning",
                   (storeData.status === StoreStatusEnum.Rejected ||
                     storeData.status === StoreStatusEnum.Suspended) &&
-                    "bg-soraxi-error"
+                    "bg-soraxi-error",
                 )}
               >
                 {storeData.status.charAt(0).toUpperCase() +
@@ -193,7 +196,9 @@ export default function StoreDashboardPage({
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href={`/store/${store_id}/products`}>
+                  <Link
+                    href={`/${siteConfig.routeNames.store}/${store_id}/products`}
+                  >
                     View Products
                   </Link>
                 </Button>
@@ -213,7 +218,11 @@ export default function StoreDashboardPage({
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href={`/store/${store_id}/wallet`}>View Wallet</Link>
+                  <Link
+                    href={`/${siteConfig.routeNames.store}/${store_id}/wallet`}
+                  >
+                    View Wallet
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
@@ -229,7 +238,9 @@ export default function StoreDashboardPage({
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href={`/store/${store_id}/profile`}>
+                  <Link
+                    href={`/${siteConfig.routeNames.store}/${store_id}/profile`}
+                  >
                     Store Settings
                   </Link>
                 </Button>

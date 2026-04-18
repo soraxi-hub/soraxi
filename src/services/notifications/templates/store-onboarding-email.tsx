@@ -44,26 +44,6 @@ export function StoreOnboardingEmail({
           </li>
         </ul>
 
-        {/* <Row>
-          <Column align="center">
-            <Button
-              href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/store`}
-              style={{
-                display: "inline-block",
-                margin: "20px 0",
-                padding: "12px 24px",
-                backgroundColor: "#14a800",
-                color: "white",
-                textDecoration: "none",
-                borderRadius: "4px",
-                fontWeight: "bold",
-              }}
-            >
-              View Your Store
-            </Button>
-          </Column>
-        </Row> */}
-
         <Text>
           If you have any questions, please don&#39;t hesitate to contact our
           support team.

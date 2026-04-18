@@ -108,7 +108,7 @@ export function StoreReturnsManagement({
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/store/returns?storeId=${storeId}&status=${statusFilter}&search=${searchTerm}`
+        `/api/store/returns?storeId=${storeId}&status=${statusFilter}&search=${searchTerm}`,
       );
 
       if (!response.ok) {
@@ -354,13 +354,13 @@ export function StoreReturnsManagement({
                           <p className="text-sm">
                             {formatDistanceToNow(
                               new Date(returnItem.requestedAt),
-                              { addSuffix: true }
+                              { addSuffix: true },
                             )}
                           </p>
                         </TableCell>
                         <TableCell>
                           <Link
-                            href={`/store/${storeId}/returns/${returnItem._id}`}
+                            href={`/${siteConfig.routeNames.store}/${storeId}/returns/${returnItem._id}`}
                           >
                             <Button variant="outline" size="sm">
                               <Eye className="h-4 w-4 mr-1" />

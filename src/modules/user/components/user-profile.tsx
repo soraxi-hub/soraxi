@@ -31,6 +31,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+import { siteConfig } from "@/config/site";
 
 const Profile = () => {
   // State management
@@ -40,7 +41,7 @@ const Profile = () => {
 
   const trpc = useTRPC();
   const { data, isLoading } = useSuspenseQuery(
-    trpc.user.getById.queryOptions()
+    trpc.user.getById.queryOptions(),
   );
 
   const user = UserFactory.createProfileUser(data);
@@ -187,7 +188,7 @@ const UserStores = ({
         My Stores
       </h2>
       <Button asChild className="bg-soraxi-blue hover:bg-soraxi-blue/90">
-        <Link href="/stores/create">
+        <Link href={`/${siteConfig.routeNames.store}/create`}>
           <Plus className="w-4 h-4 mr-2" />
           Add Store
         </Link>
@@ -227,7 +228,7 @@ const StoreCard = ({
           store.status === StoreStatusEnum.Pending && "bg-soraxi-warning",
           (store.status === StoreStatusEnum.Rejected ||
             store.status === StoreStatusEnum.Suspended) &&
-            "bg-soraxi-error"
+            "bg-soraxi-error",
         )}
       >
         {store.status.charAt(0).toUpperCase() + store.status.slice(1)}
@@ -245,7 +246,9 @@ const StoreCard = ({
     </CardContent>
     <CardFooter className="flex gap-2">
       <Button asChild variant="outline" size="sm" className="flex-1">
-        <Link href={`/store/${store.storeId}/dashboard`}>
+        <Link
+          href={`/${siteConfig.routeNames.store}/${store.storeId}/dashboard`}
+        >
           <Settings className="w-3 h-3 mr-1" />
           Manage
         </Link>
@@ -269,7 +272,7 @@ const EmptyStoresState = () => (
       asChild
       className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
     >
-      <Link href="/store/onboarding/">
+      <Link href={`/${siteConfig.routeNames.store}/onboarding/`}>
         <Plus className="w-4 h-4 mr-2" />
         Create Your First Store
       </Link>

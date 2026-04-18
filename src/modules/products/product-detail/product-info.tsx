@@ -9,6 +9,7 @@ import { useProductInfo } from "@/hooks/use-product-info";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
@@ -140,7 +141,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           <div>
             <Link
               className="hover:underline hover:text-soraxi-green-hover text-sm"
-              href={`/brand/${product.storeId}`}
+              href={`/${siteConfig.routeNames.brand}/${product.storeId}`}
             >
               Visit Store
             </Link>

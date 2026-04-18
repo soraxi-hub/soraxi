@@ -50,6 +50,7 @@ import { formatNaira } from "@/lib/utils/naira";
 import { Separator } from "@/components/ui/separator";
 import { getStatusBadge } from "@/lib/utils";
 import { deliveryStatusLabel } from "@/enums";
+import { siteConfig } from "@/config/site";
 
 /**
  * Store Orders Management Component
@@ -176,7 +177,7 @@ export default function StoreOrdersManagement({
       deliveryStatus: selectedStatus,
       page: currentPage,
       limit: 20,
-    })
+    }),
   );
 
   const orders = data?.orders || [];
@@ -234,7 +235,7 @@ export default function StoreOrdersManagement({
    */
   const handleFilterChange = (
     filterType: "month" | "status",
-    value: string
+    value: string,
   ) => {
     if (filterType === "month") {
       setSelectedMonth(value);
@@ -589,13 +590,13 @@ export default function StoreOrdersManagement({
                                   <p>
                                     {format(
                                       new Date(order.createdAt),
-                                      "MMM dd, yyyy"
+                                      "MMM dd, yyyy",
                                     )}
                                   </p>
                                   <p className="text-muted-foreground">
                                     {format(
                                       new Date(order.createdAt),
-                                      "h:mm a"
+                                      "h:mm a",
                                     )}
                                   </p>
                                 </div>
@@ -611,7 +612,7 @@ export default function StoreOrdersManagement({
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem asChild>
                                       <Link
-                                        href={`/store/${storeId}/orders/${order._id}`}
+                                        href={`/${siteConfig.routeNames.store}/${storeId}/orders/${order._id}`}
                                       >
                                         <Eye className="h-4 w-4 mr-2" />
                                         View Details
@@ -668,7 +669,7 @@ export default function StoreOrdersManagement({
                                   {pageNum}
                                 </Button>
                               );
-                            }
+                            },
                           )}
                         </div>
 

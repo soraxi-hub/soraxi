@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { TermsForm } from "@/components/forms/terms-form";
 import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { siteConfig } from "@/config/site";
 
 /**
  * Terms and Conditions Onboarding Page
@@ -24,7 +25,9 @@ export default function TermsPage({ storeId }: { storeId: string }) {
    * Redirects back to payout setup page
    */
   const handleBack = () => {
-    router.push(`/store/onboarding/${storeId}/shipping`);
+    router.push(
+      `/${siteConfig.routeNames.store}/onboarding/${storeId}/shipping`,
+    );
   };
 
   return (

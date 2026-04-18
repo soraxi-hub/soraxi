@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "../products/product-detail/product-card";
 import { ShoppingCartIcon } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 interface Product {
   id: string;
@@ -56,7 +57,10 @@ export function ProductGrid({ products, loading }: ProductGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map((product) => (
-        <Link key={product.id} href={`/products/${product.slug}`}>
+        <Link
+          key={product.id}
+          href={`/${siteConfig.routeNames.product}/${product.slug}`}
+        >
           <ProductCard product={product} />
         </Link>
       ))}

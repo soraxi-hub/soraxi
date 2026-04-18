@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, ArrowRight } from "lucide-react";
 import { categories } from "@/constants/constant";
+import { siteConfig } from "@/config/site";
 
 export function EmptyCart({
   showLogInBtn = false,
@@ -54,7 +55,11 @@ export function EmptyCart({
         <div className="flex flex-wrap justify-center gap-2">
           {categories.slice(1, 5).map((category) => (
             <Button key={category.name} variant="outline" size="sm" asChild>
-              <Link href={`/category/${category.slug}`}>{category.name}</Link>
+              <Link
+                href={`/${siteConfig.routeNames.category}/${category.slug}`}
+              >
+                {category.name}
+              </Link>
             </Button>
           ))}
         </div>

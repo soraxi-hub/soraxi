@@ -156,7 +156,7 @@ export default function AboutPage() {
                 key={index}
                 className={cn(
                   "text-center space-y-3",
-                  index === stats.length - 1 && "col-span-2 md:col-span-1"
+                  index === stats.length - 1 && "col-span-2 md:col-span-1",
                 )}
               >
                 <div className="mx-auto w-12 h-12 bg-soraxi-green/10 rounded-full flex items-center justify-center">
@@ -520,7 +520,7 @@ export default function AboutPage() {
                 </Button>
               </Link>
 
-              <Link href="/store/onboarding">
+              <Link href={`/${siteConfig.routeNames.store}/onboarding`}>
                 <Button
                   size="lg"
                   variant="outline"

@@ -27,6 +27,7 @@ import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
 // import { useToast } from "@/hooks/use-toast"
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { siteConfig } from "@/config/site";
 
 /**
  * Terms Form Schema
@@ -123,12 +124,12 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
 
       // Success - show confirmation and redirect
       toast.success(
-        `Your store has been submitted for review. You'll be notified once it's approved.`
+        `Your store has been submitted for review. You'll be notified once it's approved.`,
       );
 
       // Redirect to dashboard or confirmation page
       // window.location.href = "/dashboard/store?onboarding=complete";
-      router.push(`/store/${state.storeId}/dashboard`);
+      router.push(`/${siteConfig.routeNames.store}/${state.storeId}/dashboard`);
     } catch (error) {
       console.error("Onboarding submission error:", error);
       toast.error(`Failed to submit onboarding. Please try again.`);

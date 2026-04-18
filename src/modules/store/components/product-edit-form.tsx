@@ -415,7 +415,7 @@ export function ProductEditForm({
         );
       } else {
         toast.success("Your product has been uploaded and is pending review.");
-        router.push(`/store/${storeId}/products`);
+        router.push(`/${siteConfig.routeNames.store}/${storeId}/products`);
       }
     } catch (error) {
       const message =

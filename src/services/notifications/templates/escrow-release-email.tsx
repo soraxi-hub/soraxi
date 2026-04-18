@@ -92,22 +92,6 @@ export function EscrowReleaseEmail({
           proceed to initiate a payout request whenever you&#39;re ready.
         </Text>
 
-        {/* <Link
-          href={`${process.env.NEXT_PUBLIC_APP_URL}/store/${storeId}/wallet`}
-          style={{
-            display: "inline-block",
-            margin: "20px 0",
-            padding: "12px 24px",
-            backgroundColor: "#14a800",
-            color: "#ffffff",
-            textDecoration: "none",
-            borderRadius: "4px",
-            fontWeight: "bold",
-          }}
-        >
-          View Wallet Balance
-        </Link> */}
-
         <Text>Thank you for selling with {siteConfig.name}!</Text>
 
         <Text>
