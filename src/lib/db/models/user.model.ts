@@ -26,13 +26,8 @@ export interface IUser extends Document {
   stores?: {
     storeId: mongoose.Types.ObjectId;
   }[];
-  forgotpasswordToken?: string;
-  forgotpasswordTokenExpiry?: Date;
-  verifyToken?: string;
-  verifyTokenExpiry?: Date;
-  otpAttempts?: number; // NEW: Track failed verification attempts
-  otpAttemptsResetAt?: Date; // NEW: When to reset attempt counter
   lastOtpRequestAt?: Date; // NEW: Prevent OTP spam
+  otpRequestBlockedUntil?: Date; // NEW: Prevent a user from requesting many OTPs within a short period of time
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,32 +113,17 @@ const UserSchema = new Schema<IUser>(
         },
       },
     ],
-    forgotpasswordToken: {
-      type: String,
-    },
-    forgotpasswordTokenExpiry: {
-      type: Date,
-    },
-    verifyToken: {
-      type: String,
-    },
-    verifyTokenExpiry: {
-      type: Date,
-    },
-    otpAttempts: {
-      type: Number,
-    },
-    otpAttemptsResetAt: {
-      type: Date,
-    },
     lastOtpRequestAt: {
+      type: Date,
+    },
+    otpRequestBlockedUntil: {
       type: Date,
     },
   },
   {
     // Adds createdAt and updatedAt timestamps
     timestamps: true,
-  }
+  },
 );
 
 /**
@@ -171,7 +151,7 @@ export async function getUserModel(): Promise<Model<IUser>> {
  */
 export async function getUserByEmail(
   email: string,
-  lean = false
+  lean = false,
 ): Promise<IUser | null> {
   await connectToDatabase();
   const User = await getUserModel();
@@ -187,7 +167,7 @@ export async function getUserByEmail(
  */
 export async function getUserById(
   id: string,
-  lean = false
+  lean = false,
 ): Promise<IUser | null> {
   await connectToDatabase();
   const User = await getUserModel();
@@ -195,10 +175,10 @@ export async function getUserById(
   return lean
     ? User.findById(id)
         .select(
-          "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+          "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode",
         )
         .lean<IUser>()
     : User.findById(id).select(
-        "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+        "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode",
       );
 }

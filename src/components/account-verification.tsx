@@ -56,9 +56,11 @@ export function AccountVerification() {
       setIsResendDisabled(true);
       setCountdown(60); // Reset 60-second timer
       toast.success(`A new OTP code has been sent to your email!`);
-    } catch (error) {
-      console.error("Error resending OTP:", error);
-      toast.error(`Failed to resend OTP. Please try again later.`);
+    } catch (error: any) {
+      toast.error(
+        error.response.data.error.message ||
+          `Failed to resend OTP. Please try again later.`,
+      );
     }
   };
 
@@ -82,9 +84,11 @@ export function AccountVerification() {
         toast.success(`Account verified successfully!`);
         router.push("/profile");
       }
-    } catch (error) {
-      toast.error(`Verification failed. Please check your code and try again.`);
-      console.error("Verification error:", error);
+    } catch (error: any) {
+      toast.error(
+        error.response.data.error.message ||
+          `Verification failed. Please check your code and try again.`,
+      );
     } finally {
       setIsVerifying(false);
     }

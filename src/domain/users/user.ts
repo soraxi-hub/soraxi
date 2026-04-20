@@ -1,7 +1,10 @@
 import { PasswordService } from "@/lib/utils";
 
 export class User {
-  constructor(protected email: string, protected password: string) {
+  constructor(
+    protected email: string,
+    protected password: string,
+  ) {
     this.email = email;
     this.password = password;
   }
@@ -29,7 +32,7 @@ export class PublicUser extends User {
     protected cityOfResidence: string,
     protected stateOfResidence: string,
     protected postalCode: string,
-    protected isVerified: boolean
+    protected isVerified: boolean,
   ) {
     super(email, password);
     this.firstName = firstName;
@@ -86,7 +89,7 @@ export class AuthUser extends User {
     protected lastName: string,
     protected email: string,
     protected password: string,
-    protected store?: string
+    protected store?: string,
   ) {
     super(email, password);
     this.id = id;
@@ -99,7 +102,7 @@ export class AuthUser extends User {
     this.password = await PasswordService.hashPassword(this.password);
   }
   async validatePassword(password: string): Promise<boolean> {
-    return await PasswordService.validatePassword(this.password, password);
+    return await PasswordService.validatePassword(password, this.password);
   }
   getId(): string {
     return this.id;

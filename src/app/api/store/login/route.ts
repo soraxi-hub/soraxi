@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { PasswordService } from "@/lib/utils";
 
 // Define token data interface
 interface StoreTokenPayload {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       console.error("Missing required environment variables");
       throw new AppError(
         "Server configuration error: Missing required JWT environment variables",
-        500
+        500,
       );
     }
     const body = await request.json();
@@ -34,13 +34,16 @@ export async function POST(request: NextRequest) {
     const store = (await Store.findOne({
       storeEmail: storeEmail.toLowerCase().trim(),
     }).select(
-      "name storeEmail password status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description logoUrl bannerUrl"
+      "name storeEmail password status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description logoUrl bannerUrl",
     )) as (IStore & { _id: string }) | null;
 
     if (!store)
       throw new AppError("Store not found", 404, "not_found", "StoreNotFound");
 
-    const isPasswordValid = await bcrypt.compare(password, store.password);
+    const isPasswordValid = await PasswordService.validatePassword(
+      password,
+      store.password,
+    );
     if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
 
     // Build token payload

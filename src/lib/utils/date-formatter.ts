@@ -146,4 +146,32 @@ export class DateFormatter {
 
     return age;
   }
+
+  /**
+   * Returns remaining time until a future date.
+   * - `2h 15m`
+   * - `10m 5s`
+   * - `30s`
+   */
+  public static timeRemaining(input: Date | string | number): string {
+    const date = this.parse(input);
+    const secondsLeft = Math.ceil((date.getTime() - Date.now()) / 1000);
+
+    // If time has already passed
+    if (secondsLeft <= 0) return "Expired";
+
+    const hours = Math.floor(secondsLeft / 3600);
+    const minutes = Math.floor((secondsLeft % 3600) / 60);
+    const seconds = secondsLeft % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
+  }
 }

@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcryptjs from "bcryptjs";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import {
+  getOTPModel,
+  OtpEntityType,
+  OtpPurpose,
+} from "@/lib/db/models/otp.model";
+import { PasswordService } from "@/lib/utils";
+import { OTP } from "@/lib/utils/otp";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -14,92 +22,114 @@ export async function POST(request: NextRequest) {
 
   try {
     connectToDatabase();
+    const otpUtils = new OTP();
 
     if (ref === "user") {
       const User = await getUserModel();
-      const user = await User.findOne({ forgotpasswordToken: token }).select(
-        "password forgotpasswordToken forgotpasswordTokenExpiry"
-      );
+      const OTPModel = await getOTPModel();
+
+      const otpDocs = await OTPModel.find({
+        purpose: OtpPurpose.ResetPassword,
+        entityType: OtpEntityType.User,
+        isUsed: false,
+        expiresAt: { $gt: new Date() },
+      });
+
+      let matchedOTP = null;
+
+      for (const otp of otpDocs) {
+        const isMatch = await PasswordService.validatePassword(
+          token,
+          otp.otpHash,
+        );
+        if (isMatch) {
+          matchedOTP = otp;
+          break;
+        }
+      }
+
+      if (!matchedOTP) {
+        throw new AppError("Invalid or Expired token", 401);
+      }
+
+      const user = await User.findById(matchedOTP.entityId).select("password");
 
       if (!user) {
-        return NextResponse.json(
-          { message: `Invalid or Expired token` },
-          { status: 401 }
-        );
+        throw new AppError("Invalid or Expired token", 401);
       }
 
-      const salt = await bcryptjs.genSalt(10);
-      const hashedPassword = await bcryptjs.hash(newPassword, salt);
-      const savedToken = user.forgotpasswordToken;
-      const tokenExpiry = user.forgotpasswordTokenExpiry
-        ? new Date(user.forgotpasswordTokenExpiry).getTime()
-        : 0;
-
-      if (
-        savedToken &&
-        savedToken.toString() === token.toString() &&
-        Date.now() < tokenExpiry
-      ) {
-        user.password = hashedPassword;
-        user.forgotpasswordToken = undefined;
-        user.forgotpasswordTokenExpiry = undefined;
-        await user.save();
-        return NextResponse.json(
-          { message: `Password reset successful` },
-          { status: 200 }
-        );
-      } else {
-        return NextResponse.json(
-          { message: `Invalid or Expired token` },
-          { status: 401 }
-        );
+      // Optional: brute-force protection
+      if (otpUtils.hasExceededAttempts(matchedOTP.attempts, null)) {
+        throw new AppError("Too many attempts. Try again later.", 429);
       }
+
+      const hashedPassword = await PasswordService.hashPassword(newPassword);
+
+      user.password = hashedPassword;
+      matchedOTP.isUsed = true;
+
+      await Promise.all([user.save(), matchedOTP.save()]);
+
+      return NextResponse.json(
+        { message: "Password reset successful" },
+        { status: 200 },
+      );
     }
 
     if (ref === "store") {
       const Store = await getStoreModel();
-      const store = await Store.findOne({ forgotpasswordToken: token }).select(
-        "password forgotpasswordToken forgotpasswordTokenExpiry"
+      const OTPModel = await getOTPModel();
+
+      const otpDocs = await OTPModel.find({
+        purpose: OtpPurpose.ResetPassword,
+        entityType: OtpEntityType.Store,
+        isUsed: false,
+        expiresAt: { $gt: new Date() },
+      });
+
+      let matchedOTP = null;
+
+      for (const otp of otpDocs) {
+        const isMatch = await PasswordService.validatePassword(
+          token,
+          otp.otpHash,
+        );
+        if (isMatch) {
+          matchedOTP = otp;
+          break;
+        }
+      }
+
+      if (!matchedOTP) {
+        throw new AppError("Invalid or Expired token", 401);
+      }
+
+      const store = await Store.findById(matchedOTP.entityId).select(
+        "password",
       );
 
       if (!store) {
-        return NextResponse.json(
-          { message: `Invalid or Expired token` },
-          { status: 401 }
-        );
+        throw new AppError("Invalid or Expired token", 401);
       }
 
-      const salt = await bcryptjs.genSalt(10);
-      const hashedPassword = await bcryptjs.hash(newPassword, salt);
-      const savedToken = store.forgotpasswordToken;
-      const tokenExpiry = store.forgotpasswordTokenExpiry
-        ? new Date(store.forgotpasswordTokenExpiry).getTime()
-        : 0;
-
-      if (
-        savedToken &&
-        savedToken.toString() === token.toString() &&
-        Date.now() < tokenExpiry
-      ) {
-        store.password = hashedPassword;
-        store.forgotpasswordToken = undefined;
-        store.forgotpasswordTokenExpiry = undefined;
-        await store.save();
-        return NextResponse.json(
-          { message: `Password reset successful` },
-          { status: 200 }
-        );
-      } else {
-        return NextResponse.json(
-          { message: `Invalid or Expired token` },
-          { status: 401 }
-        );
+      // Optional: brute-force protection
+      if (otpUtils.hasExceededAttempts(matchedOTP.attempts, null)) {
+        throw new AppError("Too many attempts. Try again later.", 429);
       }
+
+      const hashedPassword = await PasswordService.hashPassword(newPassword);
+
+      store.password = hashedPassword;
+      matchedOTP.isUsed = true;
+
+      await Promise.all([store.save(), matchedOTP.save()]);
+
+      return NextResponse.json(
+        { message: `Password reset successful` },
+        { status: 200 },
+      );
     }
   } catch (error: any) {
-    return NextResponse.json(
-      { error: `Error: ${error.message}` },
-      { status: 500 }
-    );
+    throw handleApiError(error);
   }
 }

@@ -1,12 +1,12 @@
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { type NextRequest, NextResponse } from "next/server";
-import bcryptjs from "bcryptjs";
 import * as jose from "jose";
 import type { Role } from "@/modules/admin/security/roles";
 // import { logAdminAction } from "@/modules/admin/security/audit-logger";
 import { getAdminByEmail, IAdmin } from "@/lib/db/models/admin.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { PasswordService } from "@/lib/utils";
 
 interface AdminTokenData {
   id: string;
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -45,12 +45,15 @@ export async function POST(request: NextRequest) {
     if (!admin.isActive) {
       throw new AppError(
         "Your account has been deactivated. Please contact the system administrator.",
-        401
+        401,
       );
     }
 
     // Verify the password
-    const isPasswordValid = await bcryptjs.compare(password, admin.password);
+    const isPasswordValid = await PasswordService.validatePassword(
+      password,
+      admin.password,
+    );
     if (!isPasswordValid) {
       throw new AppError("Invalid credentials", 401);
     }
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
           roles: admin.roles,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
 
     const hostname = request.nextUrl.hostname;

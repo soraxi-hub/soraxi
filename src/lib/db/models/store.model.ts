@@ -90,8 +90,8 @@ export interface IStore extends Document {
   agreedToTermsAt?: Date;
 
   // Security
-  forgotpasswordToken?: string;
-  forgotpasswordTokenExpiry?: Date;
+  lastOtpRequestAt?: Date; // NEW: Prevent OTP spam
+  otpRequestBlockedUntil?: Date; // NEW: Prevent a user from requesting many OTPs within a short period of time
 
   // Financials
   walletId: mongoose.Schema.Types.ObjectId;
@@ -192,14 +192,14 @@ const StoreSchema = new Schema<IStore>(
       { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     ],
 
-    // ✅ Optional store branding
+    // Optional store branding
     logoUrl: String,
     bannerUrl: String,
 
-    // ✅ Store description
+    // Store description
     description: String,
 
-    // ✅ Verification block
+    // Verification block
     verification: {
       isVerified: { type: Boolean, default: false },
       method: {
@@ -211,7 +211,7 @@ const StoreSchema = new Schema<IStore>(
       notes: String,
     },
 
-    // ✅ Business registration (for companies)
+    // Business registration (for companies)
     businessInfo: {
       businessName: String,
       registrationNumber: String,
@@ -224,14 +224,14 @@ const StoreSchema = new Schema<IStore>(
       documentUrls: [String],
     },
 
-    // ✅ Ratings
+    // Ratings
     ratings: {
       averageRating: { type: Number, default: 0 },
       reviewCount: { type: Number, default: 0 },
       complaintCount: { type: Number, default: 0 },
     },
 
-    // ✅ Admin moderation / status
+    // Admin moderation / status
     status: {
       type: String,
       enum: Object.values(StoreStatusEnum),
@@ -239,14 +239,18 @@ const StoreSchema = new Schema<IStore>(
     },
     suspensionReason: String,
 
-    // ✅ Terms/legal agreement
+    // Terms/legal agreement
     agreedToTermsAt: Date,
 
-    // ✅ Security
-    forgotpasswordToken: String,
-    forgotpasswordTokenExpiry: Date,
+    // Security
+    lastOtpRequestAt: {
+      type: Date,
+    },
+    otpRequestBlockedUntil: {
+      type: Date,
+    },
 
-    // ✅ Financials
+    // Financials
     walletId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
@@ -271,17 +275,17 @@ const StoreSchema = new Schema<IStore>(
     // ✅ Payout setup
     payoutAccounts: [PayoutAccountSchema],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 StoreSchema.pre("save", function (next) {
   if (this.shippingMethods && this.shippingMethods.length > 0) {
     const hasActiveShipping = this.shippingMethods.some(
-      (method) => method.isActive !== false
+      (method) => method.isActive !== false,
     );
     if (!hasActiveShipping) {
       return next(
-        new Error("Store must have at least one active shipping method")
+        new Error("Store must have at least one active shipping method"),
       );
     }
   }
@@ -290,7 +294,7 @@ StoreSchema.pre("save", function (next) {
 
 StoreSchema.index(
   { name: 1 },
-  { unique: true, collation: { locale: "en", strength: 2 } }
+  { unique: true, collation: { locale: "en", strength: 2 } },
 );
 StoreSchema.index({ storeOwner: 1 });
 StoreSchema.index({ status: 1 });
@@ -311,7 +315,7 @@ export async function getStoreModel(): Promise<Model<IStore>> {
  * Get store by unique ID
  */
 export async function getStoreByUniqueId(
-  uniqueId: string
+  uniqueId: string,
 ): Promise<IStore | null> {
   await connectToDatabase();
   const Store = await getStoreModel();

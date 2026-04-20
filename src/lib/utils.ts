@@ -154,9 +154,9 @@ export class PasswordService {
   }
   static async validatePassword(
     password: string,
-    dbPassword: string
+    dbPassword: string,
   ): Promise<boolean> {
-    return await bcryptjs.compare(dbPassword, password);
+    return await bcryptjs.compare(password, dbPassword);
   }
 }
 
@@ -182,11 +182,11 @@ export class PasswordService {
  */
 export function truncateText(
   word: string | string[],
-  maxNumber: number = 20
+  maxNumber: number = 20,
 ): string | string[] {
   if (Array.isArray(word)) {
     return word.map((w) =>
-      w.length > maxNumber ? w.slice(0, maxNumber) + "..." : w
+      w.length > maxNumber ? w.slice(0, maxNumber) + "..." : w,
     );
   }
 
