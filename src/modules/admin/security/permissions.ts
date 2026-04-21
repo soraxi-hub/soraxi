@@ -52,9 +52,6 @@ export const PERMISSIONS = {
   VIEW_USERS: "view_users",
   VERIFY_USER: "verify_user",
   SUSPEND_USER: "suspend_user",
-
-  // Permissions for super Admins
-  VIEW_SUPER_DASHBOARD: "view_super_dashboard",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
