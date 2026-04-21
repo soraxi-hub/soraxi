@@ -3,7 +3,7 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { getProductModel } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import {
   StoreBusinessInfoEnum,
   StoreStatusEnum,
@@ -347,6 +347,29 @@ export const storeRouter = createTRPCRouter({
         }
 
         const Product = await getProductModel();
+        const product = await Product.findById(productId)
+          .select("images")
+          .lean<IProduct>();
+
+        if (!product) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found",
+          });
+        }
+
+        // validate that the images already exist before rearranging or reordering them
+        const isValidImages = images.every((img) =>
+          product.images?.includes(img),
+        );
+
+        if (!isValidImages) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid image list provided",
+          });
+        }
+
         const result = await Product.updateOne(
           { _id: productId, storeId: store.id },
           { $set: { images } },

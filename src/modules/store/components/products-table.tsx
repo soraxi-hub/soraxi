@@ -138,7 +138,11 @@ export function ProductsTable({
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Open actions menu"
+                    >
                       <MoreHorizontal />
                     </Button>
                   </DropdownMenuTrigger>

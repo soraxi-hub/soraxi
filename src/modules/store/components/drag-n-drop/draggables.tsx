@@ -59,6 +59,9 @@ export function ReOrderIMGs({
           const oldIndex = prev.findIndex((i) => i === source.id);
           const newIndex = prev.findIndex((i) => i === target.id);
 
+          // IMPORTANT: prevent array corruption
+          if (oldIndex === -1 || newIndex === -1) return prev;
+
           // Prevent unnecessary updates
           if (oldIndex === newIndex) return prev;
 
