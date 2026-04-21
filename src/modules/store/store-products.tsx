@@ -13,15 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Package,
@@ -29,29 +20,17 @@ import {
   Filter,
   Eye,
   EyeOff,
-  Edit,
   Plus,
-  MoreHorizontal,
   Calendar,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { formatNaira } from "@/lib/utils/naira";
-import Image from "next/image";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
 import { ProductStatusEnum } from "@/validators/product-validators";
-import { siteConfig } from "@/config/site";
-import { truncateText } from "@/lib/utils";
+import { ReOrderDialog } from "./components/drag-n-drop/dialog-container";
+import { ProductsTable } from "./components/products-table";
 
 type Output = inferProcedureOutput<AppRouter["store"]["getStoreProducts"]>;
 type StoreProduct = Output["products"][number];
@@ -79,6 +58,9 @@ export function StoreProductsManagement({
   >("all");
 
   const trpc = useTRPC();
+  const [showReOrderDialog, setShowReOrderDialog] = useState(false);
+  const [reOrderedimages, setReOrderedImages] = useState<string[]>([]);
+  const [currentProductId, setCurrentProductId] = useState<string | null>(null);
   const loadProductsMutation = useMutation(
     trpc.store.getStoreProducts.mutationOptions({
       onSuccess: (data) => {
@@ -132,6 +114,31 @@ export function StoreProductsManagement({
     currentVisibility: boolean,
   ) => {
     visibilityToggle.mutate({ productId, isVisible: !currentVisibility });
+  };
+
+  const updateImagesOrder = useMutation(
+    trpc.store.updateProductImagesOrder.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(data.message || "Images updated");
+        setShowReOrderDialog(false);
+        loadProducts(); // refresh list
+      },
+      onError: (err) => {
+        toast.error(err.message);
+      },
+    }),
+  );
+
+  const handleSave = async () => {
+    if (!currentProductId) {
+      toast.error("Please, make sure to update product images");
+      return;
+    }
+
+    await updateImagesOrder.mutateAsync({
+      productId: currentProductId,
+      images: reOrderedimages,
+    });
   };
 
   /**
@@ -328,176 +335,31 @@ export function StoreProductsManagement({
           <CardTitle>Products ({filteredProducts.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Product Status</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    Loading products...
-                  </TableCell>
-                </TableRow>
-              ) : filteredProducts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <div className="space-y-2">
-                      <Package className="w-12 h-12 text-muted-foreground mx-auto" />
-                      <p className="text-muted-foreground">No products found</p>
-                      <Link href={`/store/${store_id}/products/upload`}>
-                        <Button variant="outline" size="sm">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Your First Product
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          {product.images && product.images.length > 0 ? (
-                            <Image
-                              width={100}
-                              height={100}
-                              src={
-                                product.images[0] || siteConfig.placeHolderImg
-                              }
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Package className="w-6 h-6 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="max-w-60">
-                          <p className="font-medium line-clamp-2">
-                            {truncateText(product.name)}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      {getProductStatusBadge(product.status)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <span className="font-medium">
-                          {formatNaira(product.price!)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">
-                        {product.sizes && product.sizes.length > 0
-                          ? product.sizes.reduce(
-                              (total, size) => total + size.quantity,
-                              0,
-                            )
-                          : product.productQuantity}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getVisibilityBadge(product.isVisible)}
-                        {product.status !== ProductStatusEnum.Draft && (
-                          <Switch
-                            checked={product.isVisible}
-                            onCheckedChange={() =>
-                              handleVisibilityToggle(
-                                product.id,
-                                product.isVisible,
-                              )
-                            }
-                            className="hidden lg:inline-block"
-                          />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <p>
-                          {new Date(product.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {new Date(product.createdAt).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          {product.status !== ProductStatusEnum.Draft && (
-                            <DropdownMenuItem asChild>
-                              <Link href={`/products/${product.slug}`}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Product
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/store/${store_id}/products/${product.id}/edit`}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit Product
-                            </Link>
-                          </DropdownMenuItem>
-                          {product.status !== ProductStatusEnum.Draft && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleVisibilityToggle(
-                                    product.id,
-                                    product.isVisible,
-                                  )
-                                }
-                                className="text-blue-600"
-                              >
-                                {product.isVisible ? (
-                                  <>
-                                    <EyeOff className="w-4 h-4 mr-2" />
-                                    Unpublish
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Publish
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <ProductsTable
+            products={filteredProducts}
+            loading={loading}
+            storeId={store_id}
+            onToggleVisibility={handleVisibilityToggle}
+            onReorderImages={(product) => {
+              setCurrentProductId(product.id);
+              setReOrderedImages(product.images ?? []);
+              setShowReOrderDialog(true);
+            }}
+            getStatusBadge={getProductStatusBadge}
+            getVisibilityBadge={getVisibilityBadge}
+          />
         </CardContent>
       </Card>
+
+      {showReOrderDialog && (
+        <ReOrderDialog
+          isDialogOpen={showReOrderDialog}
+          onClose={() => setShowReOrderDialog(false)}
+          setReOrderedImages={setReOrderedImages}
+          reOrderedimages={reOrderedimages}
+          onHandleSave={handleSave}
+        />
+      )}
     </div>
   );
 }
