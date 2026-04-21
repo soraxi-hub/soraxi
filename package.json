@@ -108,7 +108,7 @@
     "@types/react": "19.2.6",
     "@types/react-dom": "19.2.3",
     "@types/streamifier": "^0.1.2",
-    "baseline-browser-mapping": "^2.8.32",
+    "baseline-browser-mapping": "^2.10.20",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "react-email": "4.3.1",
