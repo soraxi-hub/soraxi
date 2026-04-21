@@ -18,7 +18,7 @@ export const storeRouter = createTRPCRouter({
       const Store = await getStoreModel();
 
       const store = (await Store.findById(id).select(
-        "name storeEmail status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description logoUrl bannerUrl"
+        "name storeEmail status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description logoUrl bannerUrl",
       )) as (IStore & { _id: string }) | null;
 
       if (!store) {
@@ -116,7 +116,7 @@ export const storeRouter = createTRPCRouter({
         limit: z.number().min(1).max(100).default(10),
         status: z.enum(["pending", "approved", "rejected"]).optional(),
         visible: z.enum(["true", "false"]).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { store } = ctx;
@@ -152,7 +152,7 @@ export const storeRouter = createTRPCRouter({
 
       const products = await Product.find(query)
         .select(
-          "name price sizes productQuantity images category subCategory isVerifiedProduct isVisible status createdAt slug rating"
+          "name price sizes productQuantity images category subCategory isVerifiedProduct isVisible status createdAt slug rating",
         )
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -195,7 +195,7 @@ export const storeRouter = createTRPCRouter({
       z.object({
         productId: z.string(),
         isVisible: z.boolean(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { store } = ctx;
@@ -254,7 +254,7 @@ export const storeRouter = createTRPCRouter({
 
         const Product = await getProductModel();
         const product = await Product.findById(input.productId).select(
-          "storeId status isVisible isVerifiedProduct slug"
+          "storeId status isVisible isVerifiedProduct slug",
         );
 
         if (!product) {
@@ -304,10 +304,6 @@ export const storeRouter = createTRPCRouter({
         product.isVisible = input.isVisible;
         await product.save();
 
-        // console.log("product", product);
-        product.isVisible = input.isVisible;
-        await product.save();
-
         return {
           success: true,
           message: `Product ${
@@ -319,6 +315,66 @@ export const storeRouter = createTRPCRouter({
           },
         };
       } catch (error: any) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error.message || "An unexpected error occurred",
+          cause: error,
+        });
+      }
+    }),
+
+  updateProductImagesOrder: baseProcedure
+    .input(
+      z.object({
+        productId: z.string(),
+        images: z.array(z.string()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { store } = ctx;
+      const { productId, images } = input;
+
+      try {
+        if (!store) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Store authentication required",
+          });
+        }
+
+        const Product = await getProductModel();
+        const result = await Product.updateOne(
+          { _id: productId, storeId: store.id },
+          { $set: { images } },
+        );
+
+        // Nothing matched (wrong productId or unauthorized)
+        if (result.matchedCount === 0) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found or unauthorized",
+          });
+        }
+
+        // Matched but nothing changed (same images order)
+        if (result.modifiedCount === 0) {
+          return {
+            success: true,
+            message: "No changes detected (images already in this order)",
+          };
+        }
+
+        // Successfully updated
+        return {
+          success: true,
+          message: "Product images updated successfully",
+        };
+      } catch (error: any) {
+        console.log("error", error);
         if (error instanceof TRPCError) {
           throw error;
         }

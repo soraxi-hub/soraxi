@@ -10,7 +10,6 @@ import {
   FileText,
   BarChart3,
   Ticket,
-  Bell,
 } from "lucide-react";
 import { PERMISSIONS } from "./security/permissions";
 
@@ -113,12 +112,6 @@ export const adminNavigationItems = [
         url: "/admin/audit-logs",
         icon: FileText,
         permissions: [PERMISSIONS.VIEW_AUDIT_LOGS],
-      },
-      {
-        title: "Super Dashboard",
-        url: "/admin/super-dashboard",
-        icon: Bell,
-        permissions: [PERMISSIONS.VIEW_SUPER_DASHBOARD],
       },
     ],
   },
