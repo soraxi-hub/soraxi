@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
   const {
     firstName,
     lastName,
-    otherNames,
     email,
     password,
     address,
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
     password: string;
     firstName: string;
     lastName: string;
-    otherNames: string;
     phoneNumber: string;
     address: string;
     cityOfResidence: string;
@@ -47,7 +45,6 @@ export async function POST(request: NextRequest) {
       password,
       firstName,
       lastName,
-      otherNames,
       phoneNumber,
       address,
       cityOfResidence,
@@ -86,7 +83,7 @@ export async function POST(request: NextRequest) {
       const html = await renderTemplate(
         React.createElement(WelcomeEmail, {
           userName,
-        })
+        }),
       );
 
       // Create and send email notification using factory
@@ -106,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { message: `User created successfully`, success: true },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     return handleApiError(error);

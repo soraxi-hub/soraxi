@@ -26,7 +26,6 @@ export class PublicUser extends User {
     password: string,
     protected firstName: string,
     protected lastName: string,
-    protected otherNames: string,
     protected phoneNumber: string,
     protected address: string,
     protected cityOfResidence: string,
@@ -37,7 +36,6 @@ export class PublicUser extends User {
     super(email, password);
     this.firstName = firstName;
     this.lastName = lastName;
-    this.otherNames = otherNames;
     this.phoneNumber = phoneNumber;
     this.address = address;
     this.cityOfResidence = cityOfResidence;
@@ -52,10 +50,6 @@ export class PublicUser extends User {
 
   getLastName(): string {
     return this.lastName;
-  }
-
-  getOtherNames(): string {
-    return this.otherNames;
   }
 
   getPhoneNumber(): string {

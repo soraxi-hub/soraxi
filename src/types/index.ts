@@ -40,7 +40,6 @@ export interface User {
   _id: string; // Mongoose _id as string
   firstName: string;
   lastName: string;
-  otherNames: string;
   email: string;
   phoneNumber: string;
   address: string;

@@ -13,7 +13,6 @@ export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   firstName: string;
   lastName: string;
-  otherNames: string;
   email: string;
   password: string;
   phoneNumber: string;
@@ -45,11 +44,6 @@ const UserSchema = new Schema<IUser>(
     lastName: {
       type: String,
       required: [true, "Last name is required"],
-      trim: true,
-    },
-    otherNames: {
-      type: String,
-      required: [true, "Other names are required"],
       trim: true,
     },
     email: {
@@ -175,10 +169,10 @@ export async function getUserById(
   return lean
     ? User.findById(id)
         .select(
-          "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode",
+          "firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode",
         )
         .lean<IUser>()
     : User.findById(id).select(
-        "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode",
+        "firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode",
       );
 }

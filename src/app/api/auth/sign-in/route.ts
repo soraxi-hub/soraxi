@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       console.error("Missing required environment variables");
       throw new AppError(
         "Server configuration error: Missing required JWT environment variables",
-        500
+        500,
       );
     }
     await connectToDatabase();
@@ -44,13 +44,13 @@ export async function POST(request: NextRequest) {
     const twoWeeksInSeconds = 2 * 7 * 24 * 60 * 60;
 
     // create token
-    const token = await jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
+    const token = jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
       expiresIn: twoWeeksInSeconds,
     });
 
     const response = NextResponse.json(
       { message: "Login successful", success: true },
-      { status: 200 }
+      { status: 200 },
     );
 
     const hostname = request.nextUrl.hostname;

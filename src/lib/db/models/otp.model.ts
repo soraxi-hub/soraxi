@@ -93,7 +93,6 @@ const OTPSchema = new Schema<IOTP>(
     expiresAt: {
       type: Date,
       required: true,
-      index: true, // Used for TTL cleanup
     },
 
     blockedUntil: {

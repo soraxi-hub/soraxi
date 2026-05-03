@@ -9,7 +9,6 @@ export class UserFactory {
     password: string;
     firstName: string;
     lastName: string;
-    otherNames: string;
     phoneNumber: string;
     address: string;
     cityOfResidence: string;
@@ -22,13 +21,12 @@ export class UserFactory {
       props.password,
       props.firstName,
       props.lastName,
-      props.otherNames,
       props.phoneNumber,
       props.address,
       props.cityOfResidence,
       props.stateOfResidence,
       props.postalCode,
-      props.isVerified
+      props.isVerified,
     );
   }
 
@@ -41,7 +39,7 @@ export class UserFactory {
       dbUser.password,
       dbUser.stores && dbUser.stores.length > 0 && dbUser.stores[0].storeId
         ? dbUser.stores[0].storeId.toString()
-        : undefined
+        : undefined,
     );
   }
 
@@ -57,7 +55,7 @@ export class UserFactory {
       props.password,
       props.name,
       props.roles,
-      props.isActive
+      props.isActive,
     );
   }
 

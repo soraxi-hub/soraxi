@@ -4,9 +4,8 @@ import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { CouponTypeEnum } from "@/validators/coupon-validations";
 import { CouponQueryService } from "@/services/server-queries/coupon-query.service";
 import { koboToNaira } from "@/lib/utils/naira";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
-import { TRPCError } from "@trpc/server";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { AdminGuard } from "@/domain/admin/admin-guard";
 
 export const adminCouponRouter = createTRPCRouter({
   /**
@@ -19,25 +18,17 @@ export const adminCouponRouter = createTRPCRouter({
         limit: z.number().min(1).max(100).default(20),
         search: z.string().optional(),
         status: z.enum(["active", "inactive", "expired", "all"]).optional(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.VIEW_COUPONS])
-        ) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to view coupons",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_COUPONS);
 
         const pagination = CouponQueryService.validatePagination(
           input.page,
-          input.limit
+          input.limit,
         );
 
         const result = await CouponQueryService.listCoupons(
@@ -45,7 +36,7 @@ export const adminCouponRouter = createTRPCRouter({
             search: input.search,
             status: input.status,
           },
-          pagination
+          pagination,
         );
 
         return {
@@ -79,23 +70,15 @@ export const adminCouponRouter = createTRPCRouter({
     }),
 
   /**
-   * ✅ Get coupon by ID
+   * Get coupon by ID
    */
   getCouponById: baseProcedure
     .input(z.object({ couponId: z.string() }))
     .query(async ({ input, ctx }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.VIEW_COUPONS])
-        ) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to view coupons",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_COUPONS);
 
         const coupon = await CouponQueryService.getById(input.couponId);
 
@@ -114,7 +97,7 @@ export const adminCouponRouter = createTRPCRouter({
     }),
 
   /**
-   * ✅ Create coupon
+   * Create coupon
    */
   createCoupon: baseProcedure
     .input(
@@ -132,21 +115,15 @@ export const adminCouponRouter = createTRPCRouter({
         storeIds: z.array(z.string()).optional(),
         minOrderValue: z.number().nullable().optional(),
         stackable: z.boolean().default(false),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.CREATE_COUPONS])
-        ) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to create coupons",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.CREATE_COUPONS,
+        );
 
         await CouponQueryService.createCoupon(input as any);
 
@@ -160,7 +137,7 @@ export const adminCouponRouter = createTRPCRouter({
     }),
 
   /**
-   * ✅ Update coupon
+   * Update coupon
    */
   updateCoupon: baseProcedure
     .input(
@@ -175,22 +152,14 @@ export const adminCouponRouter = createTRPCRouter({
         isHomepageFeatured: z.boolean().optional(),
         maxRedemptions: z.number().nullable().optional(),
         minOrderValue: z.number().nullable().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
         const { couponId, ...updateData } = input;
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.EDIT_COUPONS])
-        ) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to edit or update coupons",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.EDIT_COUPONS);
 
         await CouponQueryService.updateCoupon(couponId, updateData as any);
 
@@ -204,23 +173,17 @@ export const adminCouponRouter = createTRPCRouter({
     }),
 
   /**
-   * ✅ Delete coupon
+   * Delete coupon
    */
   deleteCoupon: baseProcedure
     .input(z.object({ couponId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.DELETE_COUPONS])
-        ) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to delete coupons",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.DELETE_COUPONS,
+        );
 
         await CouponQueryService.deleteCoupon(input.couponId);
 
@@ -234,7 +197,7 @@ export const adminCouponRouter = createTRPCRouter({
     }),
 
   /**
-   * ✅ Get coupon usage
+   * Get coupon usage
    */
   getCouponUsage: baseProcedure
     .input(
@@ -242,30 +205,24 @@ export const adminCouponRouter = createTRPCRouter({
         couponId: z.string(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(20),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.VIEW_COUPON_REDEMPTIONS])
-        ) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to view coupon redemptions",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.VIEW_COUPON_REDEMPTIONS,
+        );
 
         const pagination = CouponQueryService.validatePagination(
           input.page,
-          input.limit
+          input.limit,
         );
 
         const result = await CouponQueryService.getCouponUsage(
           input.couponId,
-          pagination
+          pagination,
         );
 
         return {

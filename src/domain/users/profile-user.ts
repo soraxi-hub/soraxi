@@ -17,7 +17,7 @@ export class ProfileUser {
   }
 
   getUserFullName() {
-    return `${this.UserProfile?.firstName} ${this.UserProfile?.otherNames} ${this.UserProfile?.lastName}`;
+    return `${this.UserProfile?.firstName} ${this.UserProfile?.lastName}`;
   }
 
   getUserFirstName() {
@@ -26,10 +26,6 @@ export class ProfileUser {
 
   getUserLastName() {
     return `${this.UserProfile?.lastName}`;
-  }
-
-  getUserOtherName() {
-    return `${this.UserProfile?.otherNames}`;
   }
 
   getUserEmail() {

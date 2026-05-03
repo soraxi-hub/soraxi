@@ -7,8 +7,8 @@ import {
   FundReleaseStatus,
   StoreTierEnum,
 } from "@/lib/db/models/fund-release.model";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { AdminGuard } from "@/domain/admin/admin-guard";
 
 /**
  * Sorting enum for TRPC (Admin)
@@ -42,11 +42,11 @@ export const adminFundReleaseRouter = createTRPCRouter({
         storeId: z.string().length(24).optional(),
         orderId: z.string().length(24).optional(),
         sort: AdminSortEnum.default("newest"),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
         const {
           page,
           pageSize,
@@ -63,17 +63,12 @@ export const adminFundReleaseRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions to view detailed escrow data.
          */
-        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Admin authentication required",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_ESCROW);
 
         // Pagination
         const pagination = AdminFundReleaseQueryService.validatePagination(
           page,
-          pageSize
+          pageSize,
         );
 
         // Sorting
@@ -100,7 +95,7 @@ export const adminFundReleaseRouter = createTRPCRouter({
             orderId,
           },
           pagination,
-          sort
+          sort,
         );
 
         return {
@@ -121,7 +116,7 @@ export const adminFundReleaseRouter = createTRPCRouter({
 
   getDashboardStats: baseProcedure.query(async ({ ctx }) => {
     try {
-      const { admin } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
 
       /**
        * Admin Authentication Check
@@ -129,12 +124,8 @@ export const adminFundReleaseRouter = createTRPCRouter({
        * Verifies that the request is coming from an authenticated admin user
        * with appropriate permissions to view detailed escrow data.
        */
-      if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Admin authentication required",
-        });
-      }
+      AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_ESCROW);
+
       // Dashboard statistics
       const stats = await AdminFundReleaseQueryService.getDashboardStats();
 
@@ -143,7 +134,7 @@ export const adminFundReleaseRouter = createTRPCRouter({
       console.error("[TRPC:ADMIN] Fund release dashboard stats failed:", error);
       throw handleTRPCError(
         error,
-        "Failed to fetch fund release dashboard stats"
+        "Failed to fetch fund release dashboard stats",
       );
     }
   }),
@@ -156,21 +147,16 @@ export const adminFundReleaseRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.string().length(24, "Invalid fund release ID"),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ESCROW])) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Admin authentication required.",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_ESCROW);
 
         const data = await AdminFundReleaseQueryService.getFundReleaseById(
-          input.id
+          input.id,
         );
 
         if (!data) {
@@ -196,27 +182,21 @@ export const adminFundReleaseRouter = createTRPCRouter({
         id: z.string().length(24),
         action: z.enum(["approve", "force-release", "reverse", "add-notes"]),
         adminNotes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.PROCESS_ESCROW])
-        ) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Admin authentication required.",
-          });
-        }
+        const admin = AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.PROCESS_ESCROW,
+        );
 
         const data = await AdminFundReleaseQueryService.adminAction(
           input.id,
           input.action,
           admin,
-          input.adminNotes
+          input.adminNotes,
         );
 
         if (!data) {

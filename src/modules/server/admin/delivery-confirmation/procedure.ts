@@ -3,7 +3,6 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { getUserModel } from "@/lib/db/models/user.model";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import type { ISubOrder } from "@/lib/db/models/order.model";
 import {
   logAdminAction,
@@ -14,6 +13,7 @@ import mongoose from "mongoose";
 import { Role } from "@/modules/admin/security/roles";
 import { DeliveryStatus } from "@/enums";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { AdminGuard } from "@/domain/admin/admin-guard";
 
 // ==================== Response Formatting ====================
 
@@ -113,11 +113,11 @@ export const deliveryConfirmationRouter = createTRPCRouter({
         // Date range filters
         fromDate: z.string().optional(),
         toDate: z.string().optional(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       try {
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
         // ==================== Authentication & Authorization ====================
 
         /**
@@ -126,16 +126,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions to view the delivery confirmation queue.
          */
-        // const admin = getAdminFromRequest(ctx.admin);
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.STALE_ORDERS])
-        ) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Unauthorized",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.STALE_ORDERS);
 
         // ==================== Request Parameters ====================
 
@@ -303,26 +294,8 @@ export const deliveryConfirmationRouter = createTRPCRouter({
               item.subOrder.deliveryDate?.toISOString() ||
               new Date().toISOString(),
             deliveryStatus: item.subOrder.deliveryStatus,
-          })
+          }),
         );
-
-        // ==================== Audit Logging ====================
-
-        /**
-         * Log Admin Action
-         */
-        // await logAdminAction({
-        //   adminId: admin.id,
-        //   adminName: admin.name,
-        //   adminEmail: admin.email,
-        //   adminRoles: admin.roles as Role[],
-        //   action: AUDIT_ACTIONS.DELIVERY_CONFIRMATION_QUEUE_VIEWED,
-        //   module: AUDIT_MODULES.DELIVERIES,
-        //   details: {
-        //     filters: { page, limit, search, fromDate, toDate },
-        //     resultCount: formatted.length,
-        //   },
-        // });
 
         // ==================== Response ====================
 
@@ -387,25 +360,19 @@ export const deliveryConfirmationRouter = createTRPCRouter({
           .refine((val) => mongoose.Types.ObjectId.isValid(val), {
             message: "Invalid sub-order ID",
           }),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { admin } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
       try {
         // ==================== Authentication & Authorization ====================
 
         /**
          * Admin Authentication Check
          */
-        if (
-          !admin ||
-          !checkAdminPermission(admin, [PERMISSIONS.STALE_ORDERS])
-        ) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Unauthorized",
-          });
-        }
+        const admin = AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.STALE_ORDERS,
+        );
 
         // ==================== Request Validation ====================
 
@@ -446,7 +413,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
               "subOrders.$.statusHistory": statusUpdate,
             },
           },
-          { new: true } // Return the updated document
+          { new: true }, // Return the updated document
         );
 
         // Handle case where sub-order not found or already confirmed
@@ -459,7 +426,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
 
         // Extract the updated sub-order from the result
         const updatedSubOrder = result.subOrders.find(
-          (so: any) => so._id?.toString() === subOrderId
+          (so: any) => so._id?.toString() === subOrderId,
         );
 
         if (!updatedSubOrder || !updatedSubOrder._id) {

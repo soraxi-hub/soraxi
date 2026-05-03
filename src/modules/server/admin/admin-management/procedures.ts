@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import {
   getAdminById,
@@ -13,6 +12,7 @@ import {
   AUDIT_MODULES,
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
+import { AdminGuard } from "@/domain/admin/admin-guard";
 const bcryptjs = await import("bcryptjs");
 
 export const adminManagementRouter = createTRPCRouter({
@@ -29,7 +29,7 @@ export const adminManagementRouter = createTRPCRouter({
    * - Audit logging
    */
   listAdmins: baseProcedure.query(async ({ ctx }) => {
-    const { admin } = ctx;
+    const { admin: unAuthenticatedAdmin } = ctx;
     // ==================== Authentication & Authorization ====================
 
     /**
@@ -39,12 +39,7 @@ export const adminManagementRouter = createTRPCRouter({
      * with appropriate permissions to release escrow funds. This is a critical
      * security check as escrow release involves financial transactions.
      */
-    if (!admin || !checkAdminPermission(admin, [PERMISSIONS.MANAGE_ADMINS])) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You don't have permission to manage admins",
-      });
-    }
+    AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.MANAGE_ADMINS);
 
     const admins = await getAllAdmins(true);
 
@@ -87,26 +82,15 @@ export const adminManagementRouter = createTRPCRouter({
         email: z.string().email("Invalid email format"),
         password: z.string().min(8, "Password must be at least 8 characters"),
         roles: z.array(z.string()).min(1, "At least one role is required"),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { admin } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
       try {
         // ==================== Authentication & Authorization ====================
-        if (!admin) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
-          });
-        }
-
-        // Check if the requester has MANAGE_ADMINS permission
-        if (!checkAdminPermission(admin, [PERMISSIONS.MANAGE_ADMINS])) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to create admin users",
-          });
-        }
+        const admin = AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.MANAGE_ADMINS,
+        );
 
         const Admin = await getAdminModel();
 
@@ -203,26 +187,15 @@ export const adminManagementRouter = createTRPCRouter({
           .string()
           .min(8, "Password must be at least 8 characters")
           .optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { admin: adminToken } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
       try {
         // ==================== Authentication & Authorization ====================
-        if (!adminToken) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
-          });
-        }
-
-        // Check if the requester has MANAGE_ADMINS permission
-        if (!checkAdminPermission(adminToken, [PERMISSIONS.MANAGE_ADMINS])) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to create admin users",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.MANAGE_ADMINS,
+        );
 
         const Admin = await getAdminModel();
 
@@ -351,26 +324,15 @@ export const adminManagementRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.string().min(1, "Admin ID is required"),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { admin: adminToken } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
       try {
         // ==================== Authentication & Authorization ====================
-        if (!adminToken) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
-          });
-        }
-
-        // Check if the requester has MANAGE_ADMINS permission
-        if (!checkAdminPermission(adminToken, [PERMISSIONS.MANAGE_ADMINS])) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to create admin users",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.MANAGE_ADMINS,
+        );
 
         const Admin = await getAdminModel();
 

@@ -11,7 +11,6 @@ export class UserRepository {
       address: user.getAddress(),
       lastName: user.getLastName(),
       firstName: user.getFirstName(),
-      otherNames: user.getOtherNames(),
       postalCode: user.getPostalCode(),
       phoneNumber: user.getPhoneNumber(),
       cityOfResidence: user.getCityOfResidence(),
@@ -37,7 +36,7 @@ export class UserRepository {
   static async findUserByEmail(email: string): Promise<IUser | null> {
     const User = await getUserModel();
     const user = await User.findOne({ email }).select(
-      "firstName lastName email password stores"
+      "firstName lastName email password stores",
     );
 
     return user;

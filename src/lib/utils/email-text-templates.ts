@@ -87,7 +87,7 @@ The ${siteConfig.name} Team`;
     const itemsText = details.items
       .map(
         (item) =>
-          `${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`
+          `${item.name} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`,
       )
       .join("\n");
 
@@ -201,7 +201,7 @@ The ${details.siteName} Support Team`;
     const itemsText = details.items
       .map(
         (item) =>
-          `${item.name} (Qty: ${item.quantity}) - $${item.price.toFixed(2)} each - Subtotal: $${(item.price * item.quantity).toFixed(2)}`
+          `${item.name} (Qty: ${item.quantity}) - $${item.price.toFixed(2)} each - Subtotal: $${(item.price * item.quantity).toFixed(2)}`,
       )
       .join("\n");
 
@@ -341,5 +341,152 @@ The ${siteConfig.name} Team`;
       Best regards,
       The ${siteConfig.name} Team
       `;
+  },
+
+  /**
+   * Generate plain text for store approved notification
+   */
+  generateStoreApprovedText: ({
+    storeName,
+    storeId,
+  }: {
+    storeName: string;
+    storeId: string;
+  }): string => {
+    return `Hi ${storeName},
+
+Great news! Your store application has been approved and is now live on ${siteConfig.name}.
+
+Your store is now active and ready to start selling.
+
+Store Details:
+- Store ID: STR-${storeId.substring(0, 8).toUpperCase()}
+- Status: Active
+
+You can now:
+- Upload and manage your products
+- Set up shipping methods
+- Configure your payout account
+- Start receiving customer orders
+
+Access your store dashboard here:
+${process.env.NEXT_PUBLIC_APP_URL}/store/${storeId}/dashboard
+
+If you need any help getting started, our support team is always available to assist you.
+
+Thank you for choosing ${siteConfig.name}!
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
+
+  /**
+   * Generate plain text for store reactivated notification
+   */
+  generateStoreReactivatedText: ({
+    storeName,
+    storeId,
+  }: {
+    storeName: string;
+    storeId: string;
+  }): string => {
+    return `Hi ${storeName},
+
+Great news! Your store on ${siteConfig.name} has been successfully reactivated and is now live again.
+
+Your store is back online and fully operational.
+
+Store Details:
+- Status: Active
+
+What's now available:
+- Your products are visible to customers
+- You can receive new orders
+- Customers can interact with your store
+- Full store functionality has been restored
+
+We appreciate your cooperation in resolving the previous issues and look forward to your continued success on ${siteConfig.name}.
+
+Access your store dashboard here:
+${process.env.NEXT_PUBLIC_APP_URL}/store/${storeId}/dashboard
+
+If you need any assistance, our support team is always available to help.
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
+
+  /**
+   * Generate plain text for store rejected notification
+   */
+  generateStoreRejectedText: ({
+    storeName,
+    // storeId,
+  }: {
+    storeName: string;
+    // storeId: string;
+  }): string => {
+    return `Hi ${storeName},
+
+Thank you for your interest in joining ${siteConfig.name}. Unfortunately, your store application was not approved at this time.
+
+Application Status: Rejected
+Your application does not meet our current platform requirements.
+
+What You Can Do:
+- Review your business information and documentation
+- Ensure all required fields are accurately filled
+- Reapply once you have addressed any concerns
+
+Store Details:
+- Status: Rejected
+
+We believe in supporting quality businesses and would love to see you succeed on our platform. Don’t be discouraged—many successful stores had to refine their applications before being accepted.
+
+Contact support for guidance:
+${process.env.NEXT_PUBLIC_APP_URL}/support
+
+Our support team can provide guidance on what might improve your application chances. Reach out anytime—we’re here to help.
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
+
+  /**
+   * Generate plain text for store suspended notification
+   */
+  generateStoreSuspendedText: ({
+    storeName,
+    // storeId,
+  }: {
+    storeName: string;
+    // storeId: string;
+  }): string => {
+    return `Hi ${storeName},
+
+We are writing to inform you that your store on ${siteConfig.name} has been suspended by our admin team.
+
+Your Store Status: Suspended
+Your store is temporarily unavailable. You will not be able to receive orders until further notice.
+
+What This Means:
+- Your products are no longer visible to customers
+- New orders cannot be placed
+- Customers cannot contact your store
+- Your account remains active but temporarily inactive
+
+Store Details:
+- Status: Suspended
+
+Next Steps:
+To understand why your store was suspended and to discuss potential resolution, please contact our support team immediately. We're committed to working with you to address any concerns.
+
+Contact support here:
+${process.env.NEXT_PUBLIC_APP_URL}/support
+
+Please note that suspensions are typically temporary. Our support team will explain the specific reasons and steps you can take to have your store reactivated.
+
+Best regards,
+The ${siteConfig.name} Team`;
   },
 };

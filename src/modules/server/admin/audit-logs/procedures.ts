@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { getAuditLogModel } from "@/lib/db/models/audit-log.model";
 import {
   GetAuditLogsOutputSchema,
   GetAuditLogsOutputSchemaForAnId,
 } from "@/types/admin-audit-log-types"; // Import the new output schema
+import { AdminGuard } from "@/domain/admin/admin-guard";
 
 export const auditLogRouter = createTRPCRouter({
   /**
@@ -41,26 +41,17 @@ export const auditLogRouter = createTRPCRouter({
         // Date range parameters
         startDate: z.string().optional(),
         endDate: z.string().optional(),
-      })
+      }),
     )
     .output(GetAuditLogsOutputSchema) // Apply the Zod output schema here
     .query(async ({ input, ctx }) => {
+      const { admin: unAuthenticatedAdmin } = ctx;
+
       try {
         // ==================== Authentication & Authorization ====================
-        if (!ctx.admin) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
-          });
-        }
-
-        // Check if the requester has VIEW_AUDIT_LOGS permission
-        if (!checkAdminPermission(ctx.admin, [PERMISSIONS.VIEW_AUDIT_LOGS])) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to view audit logs",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.VIEW_AUDIT_LOGS,
+        );
 
         // Build query
         const query: Record<string, any> = {};
@@ -153,26 +144,17 @@ export const auditLogRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.string().min(1, "Audit log ID is required"),
-      })
+      }),
     )
     .output(GetAuditLogsOutputSchemaForAnId)
     .query(async ({ input, ctx }) => {
+      const { admin: unAuthenticatedAdmin } = ctx;
+
       try {
         // ==================== Authentication & Authorization ====================
-        if (!ctx.admin) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
-          });
-        }
-
-        // Check if the requester has VIEW_AUDIT_LOGS permission
-        if (!checkAdminPermission(ctx.admin, [PERMISSIONS.VIEW_AUDIT_LOGS])) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You don't have permission to view audit logs",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.VIEW_AUDIT_LOGS,
+        );
 
         const AuditLog = await getAuditLogModel();
 

@@ -29,13 +29,13 @@ export async function POST(request: NextRequest) {
       console.error("Missing required environment variables");
       throw new AppError(
         "Server configuration error: Missing required JWT environment variables",
-        500
+        500,
       );
     }
 
     await connectToDatabase();
     // Check authentication - user must be logged in to create a store
-    const userData = await getUserDataFromToken(request);
+    const userData = getUserDataFromToken(request);
     if (!userData) {
       throw new AppError("Unauthorized - Please sign in first", 401);
     }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       throw new AppError(
         storeNameRes.error.errors[0].message ||
           `Store name can only contain letters, numbers, spaces, hyphens, and underscores`,
-        400
+        400,
       );
     }
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       throw new AppError(
         storeEmailRes.error.errors[0].message ||
           "Please enter a valid email address",
-        400
+        400,
       );
     }
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       throw new AppError(
         storePasswordres.error.errors[0].message ||
           "Password must contain at least one uppercase letter, one lowercase letter, and one number",
-        400
+        400,
       );
     }
 
@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
       name: storeName.trim(),
       storeEmail: storeEmail.toLowerCase().trim(),
       password: hashedPassword,
-      storeOwner: userData.id, // ✅ Associate store with authenticated user
+      storeOwner: userData.id, // Associate store with authenticated user
       uniqueId,
-      status: StoreStatusEnum.Pending, // ✅ Set initial status to pending
+      status: StoreStatusEnum.Pending, // Set initial status to pending
       verification: {
-        isVerified: false, // ✅ Not verified initially
+        isVerified: false, // Not verified initially
         method: StoreVerificationStatusEnum.Email,
       },
       // Initialize empty arrays and default values
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
           createdAt: savedStore.createdAt,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
 
     const hostname = request.nextUrl.hostname;

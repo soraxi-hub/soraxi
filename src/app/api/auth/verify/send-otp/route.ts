@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!data.success || data.data === null) {
-      throw new AppError(data.message, 404, "", data.message);
+      throw new AppError(data.message, 429, "", data.message);
     }
 
     const { userName, otpCode, userEmail } = data.data;
