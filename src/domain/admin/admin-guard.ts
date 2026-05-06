@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { checkAdminPermission } from "@/modules/admin/security/access-control";
-import { AdminTokenData } from "@/lib/helpers/get-admin-from-cookie";
 import { Permission } from "@/modules/admin/security/permissions";
+import { AdminTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 export class AdminGuard {
-  private admin: AdminTokenData | null;
+  private admin: AdminTokenPayload | null;
 
-  constructor(admin: AdminTokenData | null) {
+  constructor(admin: AdminTokenPayload | null) {
     this.admin = admin;
   }
 
@@ -25,7 +25,7 @@ export class AdminGuard {
   /**
    * Require a single permission
    */
-  require(permission: Permission): AdminTokenData {
+  require(permission: Permission): AdminTokenPayload {
     this.ensureAuthenticated();
 
     if (!checkAdminPermission(this.admin!, [permission])) {
@@ -41,7 +41,7 @@ export class AdminGuard {
   /**
    * Require at least one permission from a list
    */
-  requireAny(permissions: Permission[]): AdminTokenData {
+  requireAny(permissions: Permission[]): AdminTokenPayload {
     this.ensureAuthenticated();
 
     if (!checkAdminPermission(this.admin!, permissions)) {
@@ -57,7 +57,7 @@ export class AdminGuard {
   /**
    * Require all permissions
    */
-  requireAll(permissions: Permission[]): AdminTokenData {
+  requireAll(permissions: Permission[]): AdminTokenPayload {
     this.ensureAuthenticated();
 
     if (!checkAdminPermission(this.admin!, permissions)) {
@@ -70,7 +70,7 @@ export class AdminGuard {
     return this.admin!;
   }
 
-  static from(admin: AdminTokenData | null) {
+  static from(admin: AdminTokenPayload | null) {
     return new AdminGuard(admin);
   }
 }

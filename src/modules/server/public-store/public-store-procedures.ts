@@ -71,8 +71,6 @@ export const publicStoreRouter = createTRPCRouter({
         name: storeData.name,
         uniqueId: storeData.uniqueId,
         description: storeData.description,
-        logoUrl: storeData.logoUrl,
-        bannerUrl: storeData.bannerUrl,
         verification: {
           isVerified: storeData.verification?.isVerified || false,
           verifiedAt: storeData.verification?.verifiedAt,

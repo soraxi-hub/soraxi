@@ -13,8 +13,6 @@ type UpdateData = Partial<
     IStore,
     | "name"
     | "description"
-    | "logoUrl"
-    | "bannerUrl"
     | "businessInfo"
     | "shippingMethods"
     | "payoutAccounts"
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!storeId) {
       return NextResponse.json(
         { error: "Store ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (store.storeOwner.toString() !== userData.id) {
       return NextResponse.json(
         { error: "Unauthorized - not store owner" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -72,8 +70,6 @@ export async function POST(request: NextRequest) {
     if (data.profile) {
       updateData.name = data.profile.name;
       updateData.description = data.profile.description;
-      if (data.profile.logoUrl) updateData.logoUrl = data.profile.logoUrl;
-      if (data.profile.bannerUrl) updateData.bannerUrl = data.profile.bannerUrl;
     }
 
     // Update business info if provided
@@ -108,7 +104,7 @@ export async function POST(request: NextRequest) {
     console.error("Error saving onboarding draft:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -133,7 +129,7 @@ export async function GET(request: NextRequest) {
     if (!storeId) {
       return NextResponse.json(
         { error: "Store ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -155,8 +151,6 @@ export async function GET(request: NextRequest) {
       profile: {
         name: store.name || "",
         description: store.description || "",
-        logoUrl: store.logoUrl || "",
-        bannerUrl: store.bannerUrl || "",
       },
       businessInfo: store.businessInfo || {
         type: "individual",
@@ -183,7 +177,7 @@ export async function GET(request: NextRequest) {
     console.error("Error retrieving onboarding draft:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

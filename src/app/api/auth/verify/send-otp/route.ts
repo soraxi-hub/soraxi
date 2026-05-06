@@ -14,7 +14,7 @@ import { OtpPurpose } from "@/lib/db/models/otp.model";
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
-    const userData = getUserDataFromToken(request);
+    const userData = await getUserDataFromToken(request);
     const otp = new OTP();
 
     if (!userData) {

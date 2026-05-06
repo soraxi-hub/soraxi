@@ -179,8 +179,6 @@ export const adminStoreRouter = createTRPCRouter({
           isVerifiedProduct: product.isVerifiedProduct,
           productType: product.productType,
         })),
-        logoUrl: storeData.logoUrl,
-        bannerUrl: storeData.bannerUrl,
         description: storeData.description,
         verification: storeData.verification,
         businessInfo: storeData.businessInfo,

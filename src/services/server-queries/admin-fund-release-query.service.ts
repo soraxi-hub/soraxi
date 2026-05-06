@@ -13,7 +13,6 @@ import {
 } from "@/lib/db/models/fund-release.model";
 import { getOrderModel, IOrder } from "@/lib/db/models/order.model";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
-import { AdminTokenData } from "@/lib/helpers/get-admin-from-cookie";
 import {
   processFundRelease,
   reverseProcessedFundRelease,
@@ -21,6 +20,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import type { FilterQuery, QueryOptions } from "mongoose";
 import { AuditLogService } from "../audit-log.service";
+import { AdminTokenPayload } from "../cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 interface PaginationParams {
   page: number;
@@ -73,7 +73,7 @@ export class AdminFundReleaseQueryService {
   static async getAllFundReleases(
     filters: AdminQueryFilters = {},
     pagination: PaginationParams = { page: 1, pageSize: 20 },
-    sort: SortOptions = { field: "createdAt", order: "desc" }
+    sort: SortOptions = { field: "createdAt", order: "desc" },
   ): Promise<QueryResult> {
     const FundRelease = await getFundReleaseModel();
 
@@ -195,7 +195,7 @@ export class AdminFundReleaseQueryService {
         acc[item._id] = item.count;
         return acc;
       },
-      {}
+      {},
     );
 
     return {
@@ -250,7 +250,7 @@ export class AdminFundReleaseQueryService {
     }
 
     const relatedSubOrder = order.subOrders.find(
-      (sub) => sub._id.toString() === fundRelease.subOrderId.toString()
+      (sub) => sub._id.toString() === fundRelease.subOrderId.toString(),
     );
 
     if (!relatedSubOrder) {
@@ -274,8 +274,8 @@ export class AdminFundReleaseQueryService {
   static async adminAction(
     id: string,
     action: "approve" | "force-release" | "reverse" | "add-notes",
-    admin: AdminTokenData,
-    adminNotes?: string
+    admin: AdminTokenPayload,
+    adminNotes?: string,
   ) {
     const FundRelease = await getFundReleaseModel();
     const fundRelease = await FundRelease.findById(id).exec();
@@ -319,7 +319,7 @@ export class AdminFundReleaseQueryService {
           });
         }
         const processedRelease = await processFundRelease(
-          fundRelease._id.toString()
+          fundRelease._id.toString(),
         );
         if (!processedRelease.success) {
           throw new TRPCError({
@@ -340,7 +340,7 @@ export class AdminFundReleaseQueryService {
           });
         }
         const reversedRelease = await reverseProcessedFundRelease(
-          fundRelease._id.toString()
+          fundRelease._id.toString(),
         );
         if (!reversedRelease.success) {
           throw new TRPCError({
@@ -393,12 +393,12 @@ export class AdminFundReleaseQueryService {
    */
   static validatePagination(
     page?: string | number | null,
-    pageSize?: string | number | null
+    pageSize?: string | number | null,
   ): PaginationParams {
     const normalizedPage = Math.max(1, Number(page) || 1);
     const normalizedPageSize = Math.min(
       100,
-      Math.max(1, Number(pageSize) || 20)
+      Math.max(1, Number(pageSize) || 20),
     );
 
     return { page: normalizedPage, pageSize: normalizedPageSize };

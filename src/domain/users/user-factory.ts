@@ -1,6 +1,5 @@
 import { IUser } from "@/lib/db/models/user.model";
 import { AuthUser, PublicUser } from "./user";
-import { Admin } from "./admin";
 import { ProfileUser, ProfileUserType } from "./profile-user";
 
 export class UserFactory {
@@ -40,22 +39,6 @@ export class UserFactory {
       dbUser.stores && dbUser.stores.length > 0 && dbUser.stores[0].storeId
         ? dbUser.stores[0].storeId.toString()
         : undefined,
-    );
-  }
-
-  static async createAdmin(props: {
-    email: string;
-    password: string;
-    name: string;
-    roles: string[];
-    isActive: boolean;
-  }): Promise<Admin> {
-    return new Admin(
-      props.email,
-      props.password,
-      props.name,
-      props.roles,
-      props.isActive,
     );
   }
 

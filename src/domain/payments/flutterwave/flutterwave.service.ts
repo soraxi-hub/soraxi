@@ -3,10 +3,10 @@ import { TRPCError } from "@trpc/server";
 import { koboToNaira } from "@/lib/utils/naira";
 import { getCartByUserId } from "@/lib/db/models/cart.model";
 import { OrderService } from "@/services/order.service";
-import { TokenData } from "@/lib/helpers/get-user-from-cookie";
 import { FlutterwaveInput } from "@/validators/order-input-validators";
 import { FlutterwavePayment } from "./payment";
 import mongoose from "mongoose";
+import { UserTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 export type FlutterwavePayload = {
   tx_ref: string | undefined;
@@ -35,7 +35,7 @@ export class FlutterwavePaymentService {
   private flutterwave = new FlutterwavePayment();
   private orderService = new OrderService();
 
-  async initializePayment(input: FlutterwaveInput, user: TokenData) {
+  async initializePayment(input: FlutterwaveInput, user: UserTokenPayload) {
     /**
      * Step 1: Validate Cart
      */

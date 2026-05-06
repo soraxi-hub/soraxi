@@ -23,8 +23,6 @@ import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
 interface OnboardingProfile {
   name: string;
   description: string;
-  logoUrl?: string;
-  bannerUrl?: string;
 }
 
 // Business info section
@@ -82,7 +80,7 @@ export async function POST(request: NextRequest) {
     if (!process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL) {
       console.error("Missing required environment variables");
       throw new Error(
-        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables"
+        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables",
       );
     }
 
@@ -100,7 +98,7 @@ export async function POST(request: NextRequest) {
     if (!storeId || !onboardingData) {
       return NextResponse.json(
         { error: "Store ID and onboarding data are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -116,7 +114,7 @@ export async function POST(request: NextRequest) {
     if (store.storeOwner.toString() !== userData.id) {
       return NextResponse.json(
         { error: "Unauthorized - not store owner" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -128,7 +126,7 @@ export async function POST(request: NextRequest) {
     if (!profile?.name || !profile?.description) {
       return NextResponse.json(
         { error: "Store profile is incomplete" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -136,7 +134,7 @@ export async function POST(request: NextRequest) {
     if (!businessInfo?.type) {
       return NextResponse.json(
         { error: "Business information is incomplete" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,7 +144,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Company registration details are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -154,7 +152,7 @@ export async function POST(request: NextRequest) {
     if (!shipping || shipping.length === 0) {
       return NextResponse.json(
         { error: "At least one shipping method is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -162,7 +160,7 @@ export async function POST(request: NextRequest) {
     if (!termsAgreed) {
       return NextResponse.json(
         { error: "Terms agreement is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -180,8 +178,6 @@ export async function POST(request: NextRequest) {
         IStore,
         | "name"
         | "description"
-        | "logoUrl"
-        | "bannerUrl"
         | "businessInfo"
         | "shippingMethods"
         | "payoutAccounts"
@@ -193,8 +189,6 @@ export async function POST(request: NextRequest) {
       // Profile data
       name: profile.name,
       description: profile.description,
-      logoUrl: profile.logoUrl || undefined,
-      bannerUrl: profile.bannerUrl || undefined,
 
       // Business info
       businessInfo: {
@@ -238,7 +232,7 @@ export async function POST(request: NextRequest) {
     if (!updatedStore) {
       return NextResponse.json(
         { error: "Failed to update store" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -249,7 +243,7 @@ export async function POST(request: NextRequest) {
 
       // Get store owner name properly
       const storeOwnerName = await getStoreOwnerName(
-        store.storeOwner.toString()
+        store.storeOwner.toString(),
       );
 
       // 1. Send admin notification using AdminNotificationEmail template
@@ -267,7 +261,7 @@ export async function POST(request: NextRequest) {
           },
           actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/stores/${updatedStore._id}`,
           actionLabel: "Review Store",
-        })
+        }),
       );
 
       const adminText = EmailTextTemplates.generateAdminNotificationText({
@@ -299,7 +293,7 @@ export async function POST(request: NextRequest) {
         React.createElement(StoreOnboardingEmail, {
           ownerName: storeOwnerName,
           storeName: updatedStore.name,
-        })
+        }),
       );
 
       const storeOwnerText = EmailTextTemplates.generateStoreOnboardingText({
@@ -324,13 +318,13 @@ export async function POST(request: NextRequest) {
       await storeOwnerNotification.send();
 
       console.log(
-        `Store submission emails sent successfully for store: ${updatedStore.name}`
+        `Store submission emails sent successfully for store: ${updatedStore.name}`,
       );
     } catch (error) {
       console.error(
         `Failed to send store submission emails (admin notification or store owner confirmation).
      Store ID: ${store.id}, Store Name: ${updatedStore.name}, Store Email: ${store.storeEmail}.
-     Error: ${error instanceof Error ? error.message : error}`
+     Error: ${error instanceof Error ? error.message : error}`,
       );
       // Don't throw error here - the store was successfully updated, just email failed
     }
@@ -351,7 +345,7 @@ export async function POST(request: NextRequest) {
     console.error("Error submitting onboarding:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

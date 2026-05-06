@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
 
-    const userData = getUserDataFromToken(request);
+    const userData = await getUserDataFromToken(request);
     if (!userData) {
       throw new AppError("Unauthorized", 401, "UNAUTHORIZED", "Login required");
     }

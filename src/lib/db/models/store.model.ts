@@ -52,10 +52,6 @@ export interface IStore extends Document {
   uniqueId: string;
   followers: mongoose.Types.ObjectId[];
   physicalProducts: mongoose.Types.ObjectId[];
-
-  // Branding
-  logoUrl?: string;
-  bannerUrl?: string;
   description?: string;
 
   // Verification
@@ -187,14 +183,14 @@ const StoreSchema = new Schema<IStore>(
       required: [true, "Store unique ID is required"],
       unique: true,
     },
-    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    physicalProducts: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-    ],
-
-    // Optional store branding
-    logoUrl: String,
-    bannerUrl: String,
+    followers: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      default: [],
+    },
+    physicalProducts: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+      default: [],
+    },
 
     // Store description
     description: String,
@@ -254,26 +250,20 @@ const StoreSchema = new Schema<IStore>(
     walletId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
-      validate: {
-        validator: async (walletId: mongoose.Schema.Types.ObjectId) => {
-          if (!walletId) return true; // Allow null/undefined wallets
-
-          // Check if wallet exists in database
-          const Wallet = mongoose.models.Wallet;
-          if (!Wallet) return true; // Skip validation if Wallet model not available
-
-          const wallet = await Wallet.findById(walletId);
-          return !!wallet;
-        },
-        message: "Referenced wallet does not exist",
-      },
+      required: false,
     },
 
-    // ✅ Shipping
-    shippingMethods: [ShippingMethodSchema],
+    // Shipping
+    shippingMethods: {
+      type: [ShippingMethodSchema],
+      default: [],
+    },
 
-    // ✅ Payout setup
-    payoutAccounts: [PayoutAccountSchema],
+    // Payout setup
+    payoutAccounts: {
+      type: [PayoutAccountSchema],
+      default: [],
+    },
   },
   { timestamps: true },
 );
@@ -309,15 +299,4 @@ export async function getStoreModel(): Promise<Model<IStore>> {
     (mongoose.models.Store as Model<IStore>) ||
     mongoose.model<IStore>("Store", StoreSchema)
   );
-}
-
-/**
- * Get store by unique ID
- */
-export async function getStoreByUniqueId(
-  uniqueId: string,
-): Promise<IStore | null> {
-  await connectToDatabase();
-  const Store = await getStoreModel();
-  return Store.findById(uniqueId).lean<IStore>();
 }

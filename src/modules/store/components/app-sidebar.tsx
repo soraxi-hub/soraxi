@@ -31,7 +31,6 @@ import {
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { StoreTokenData } from "@/lib/helpers/get-store-from-cookie";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
@@ -39,8 +38,9 @@ import { siteConfig } from "@/config/site";
 import { getInitials, truncateText } from "@/lib/utils";
 import Link from "next/link";
 import { storeSidebarItems } from "./constant";
+import { StoreTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
-export function StoreSidebar({ store }: { store: StoreTokenData }) {
+export function StoreSidebar({ store }: { store: StoreTokenPayload }) {
   const router = useRouter();
   const handleLogout = async () => {
     try {

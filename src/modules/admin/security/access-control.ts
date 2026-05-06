@@ -1,6 +1,6 @@
-import { AdminUser } from "@/lib/helpers/get-admin-from-cookie";
 import { Permission } from "./permissions";
 import { Role, ROLE_PERMISSIONS } from "./roles";
+import { AdminTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 /**
  * Check if a user has at least one of the required permissions
@@ -9,11 +9,11 @@ import { Role, ROLE_PERMISSIONS } from "./roles";
  */
 export function hasPermission(
   userPermissions: Permission[],
-  requiredPermissions: Permission[]
+  requiredPermissions: Permission[],
 ): boolean {
   if (requiredPermissions.length === 0) return true;
   return requiredPermissions.some((permission) =>
-    userPermissions.includes(permission)
+    userPermissions.includes(permission),
   );
 }
 
@@ -31,8 +31,8 @@ export function getPermissionsForRoles(roles: Role[]): Permission[] {
  * Check if admin has required permissions
  */
 export function checkAdminPermission(
-  admin: AdminUser,
-  requiredPermissions: Permission[]
+  admin: AdminTokenPayload,
+  requiredPermissions: Permission[],
 ): boolean {
   if (!admin.isActive) return false;
 
@@ -43,13 +43,13 @@ export function checkAdminPermission(
 /**
  * Get all permissions for an admin
  */
-export function getAdminPermissions(admin: AdminUser): Permission[] {
+export function getAdminPermissions(admin: AdminTokenPayload): Permission[] {
   return getPermissionsForRoles(admin.roles as Role[]);
 }
 
 /**
  * Check if admin is super admin
  */
-export function isSuperAdmin(admin: AdminUser): boolean {
+export function isSuperAdmin(admin: AdminTokenPayload): boolean {
   return admin.roles.includes("super_admin");
 }

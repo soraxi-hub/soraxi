@@ -28,8 +28,8 @@ import { toast } from "sonner";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import AlertUI from "@/modules/shared/alert";
 import Link from "next/link";
-import { StoreTokenPayload } from "@/lib/helpers/get-store-data-from-token";
 import { IStore } from "@/lib/db/models/store.model";
+import { StoreTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 type ApiResponse = {
   success: boolean;
@@ -142,7 +142,7 @@ export default function StoreLoginPage() {
       setLoginError(
         error instanceof Error
           ? error.message
-          : "Login failed. Please try again."
+          : "Login failed. Please try again.",
       );
     } finally {
       setIsLoading(false);

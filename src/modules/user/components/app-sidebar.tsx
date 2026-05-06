@@ -32,15 +32,15 @@ import { siteConfig } from "@/config/site";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { TokenData } from "@/lib/helpers/get-user-data-from-token";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getInitials, truncateText } from "@/lib/utils";
 import Link from "next/link";
 import { userSidebarItems } from "./constant";
+import { UserTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
-export function AppSidebar({ user }: { user: TokenData | null }) {
+export function AppSidebar({ user }: { user: UserTokenPayload | null }) {
   const router = useRouter();
   const handleLogout = async () => {
     try {

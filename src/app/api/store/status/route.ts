@@ -1,9 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import {
-  getStoreFromCookie,
-  StoreTokenData,
-} from "@/lib/helpers/get-store-from-cookie";
+import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { StoreBusinessInfoEnum } from "@/validators/store-validators";
 
 /**
@@ -16,7 +13,7 @@ import { StoreBusinessInfoEnum } from "@/validators/store-validators";
 export async function GET(_request: NextRequest) {
   try {
     // Check authentication
-    const storeData = (await getStoreFromCookie()) as StoreTokenData;
+    const storeData = await getStoreFromCookie();
 
     if (!storeData) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,7 +22,7 @@ export async function GET(_request: NextRequest) {
     // Get store model and find user's store
     const Store = await getStoreModel();
     const store = await Store.findById(storeData.id).select(
-      "name description logoUrl bannerUrl businessInfo shippingMethods status verification agreedToTermsAt"
+      "name description logoUrl bannerUrl businessInfo shippingMethods status verification agreedToTermsAt",
     );
 
     if (!store) {
@@ -77,7 +74,7 @@ export async function GET(_request: NextRequest) {
     console.error("Error getting store status:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

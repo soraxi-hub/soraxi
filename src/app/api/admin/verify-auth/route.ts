@@ -1,9 +1,7 @@
 import { getAdminById } from "@/lib/db/models/admin.model";
 import { connectToDatabase } from "@/lib/db/mongoose";
-import {
-  getAdminPermissions,
-  verifyAdminToken,
-} from "@/modules/admin/jwt-utils";
+import { getAdminPermissions } from "@/modules/admin/jwt-utils";
+import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -13,18 +11,18 @@ export async function GET(request: NextRequest) {
     if (!adminToken) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
     // Connect to database to get the latest admin data
     await connectToDatabase();
 
-    const tokenData = await verifyAdminToken(adminToken);
+    const tokenData = await CookieService.verifyAdminToken(adminToken);
 
     if (!tokenData) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -34,7 +32,7 @@ export async function GET(request: NextRequest) {
     if (!admin || !admin.isActive) {
       return NextResponse.json(
         { error: "Admin account not found or inactive" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -54,7 +52,7 @@ export async function GET(request: NextRequest) {
     console.error("Error verifying admin auth:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

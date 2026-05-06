@@ -35,8 +35,6 @@ export const storeRouter = createTRPCRouter({
         storeEmail: store.storeEmail,
         status: store.status,
         verification: store.verification,
-        logoUrl: store.logoUrl,
-        bannerUrl: store.bannerUrl,
         onboarding: computeOnboardingStatus(store),
       };
     }),
@@ -92,8 +90,6 @@ export const storeRouter = createTRPCRouter({
           profile: {
             name: store.name,
             description: store.description,
-            logoUrl: store.logoUrl,
-            bannerUrl: store.bannerUrl,
           },
           "business-info": store.businessInfo || {},
           shipping: store.shippingMethods,

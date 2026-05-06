@@ -1,5 +1,7 @@
 import { PublicUser } from "@/domain/users/user";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
+import { AppError } from "@/lib/errors/app-error";
+import mongoose from "mongoose";
 
 export class UserRepository {
   // Methods for user data access would go here
@@ -40,5 +42,47 @@ export class UserRepository {
     );
 
     return user;
+  }
+
+  // Check if user already has a store
+  static async hasStore(userId: string): Promise<boolean> {
+    const User = await getUserModel();
+    const existingUserStore = await User.findById(userId).select("stores");
+
+    if (
+      existingUserStore &&
+      Array.isArray(existingUserStore.stores) &&
+      existingUserStore.stores.length > 0
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Update a user's stores array
+  static async updateUserStoreArray(
+    userId: string,
+    storeId: string,
+    session: mongoose.mongo.ClientSession,
+  ) {
+    const User = await getUserModel();
+
+    const updatedUser = await User.findByIdAndUpdate(
+      new mongoose.Types.ObjectId(userId),
+      {
+        $push: {
+          stores: { storeId: new mongoose.Types.ObjectId(storeId) },
+        },
+      },
+      {
+        session,
+        new: true,
+      },
+    );
+
+    if (!updatedUser) {
+      throw new AppError("User not found while updating store array", 400);
+    }
   }
 }

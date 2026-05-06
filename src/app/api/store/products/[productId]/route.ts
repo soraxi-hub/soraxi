@@ -20,7 +20,7 @@ export async function PUT(
 ) {
   try {
     // Check store authentication
-    const storeSession = getStoreDataFromToken(request);
+    const storeSession = await getStoreDataFromToken(request);
     if (!storeSession) {
       throw new AppError("Store authentication required", 401);
     }

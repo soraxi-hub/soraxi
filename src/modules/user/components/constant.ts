@@ -1,4 +1,4 @@
-import { TokenData } from "@/lib/helpers/get-user-data-from-token";
+import { UserTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import {
   UserIcon,
   PackageIcon,
@@ -10,7 +10,7 @@ import {
   BadgeInfoIcon,
 } from "lucide-react";
 
-export const userSidebarItems = (user: TokenData) => [
+export const userSidebarItems = (user: UserTokenPayload) => [
   {
     label: "My Account",
     items: [

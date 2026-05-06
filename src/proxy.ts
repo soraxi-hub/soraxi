@@ -1,16 +1,14 @@
 import { NextResponse, NextRequest } from "next/server";
-import {
-  getAdminPermissions,
-  verifyAdminToken,
-} from "./modules/admin/jwt-utils";
+import { getAdminPermissions } from "./modules/admin/jwt-utils";
 import { ROUTE_PERMISSIONS } from "./modules/admin/security/route-permissions";
 import { hasPermission } from "./modules/admin/security/access-control";
 import { publicPaths } from "./constants/constant";
 import { ProxyUtils } from "./lib/utils/proxy-utils";
+import { getStoreDataFromToken } from "./lib/helpers/get-store-data-from-token";
 import {
-  getStoreDataFromToken,
+  CookieService,
   StoreTokenPayload,
-} from "./lib/helpers/get-store-data-from-token";
+} from "./services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 export async function proxy(request: NextRequest) {
   const proxyUtils = new ProxyUtils(request);
@@ -46,7 +44,9 @@ export async function proxy(request: NextRequest) {
     }
 
     // Otherwise, dynamically redirect based on storeId from token
-    const storeToken = getStoreDataFromToken(request) as StoreTokenPayload; // We know that this will always exist because the store is authenticated
+    const storeToken = (await getStoreDataFromToken(
+      request,
+    )) as StoreTokenPayload; // We know that this will always exist because the store is authenticated
     const storeId = storeToken.id;
 
     const target = storeId ? `/store/${storeId}/dashboard` : "/";
@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest) {
     }
 
     // Verify admin token and check permissions
-    const adminData = await verifyAdminToken(adminToken);
+    const adminData = await CookieService.verifyAdminToken(adminToken);
     if (!adminData) {
       // Invalid token, redirect to admin sign-in
       return proxyUtils.createRedirectWithReturn("/admin-sign-in", pathname);
@@ -98,5 +98,4 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
-  //   runtime: "nodejs",
 };

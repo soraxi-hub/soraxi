@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const Store = await getStoreModel();
 
     // Authenticate store from token
-    const storeSession = getStoreDataFromToken(request);
+    const storeSession = await getStoreDataFromToken(request);
     if (!storeSession) {
       throw new AppError("Store authentication required", 401);
     }

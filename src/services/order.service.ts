@@ -7,7 +7,6 @@ import {
   PaymentStatus,
   PaymentGateway,
 } from "@/enums";
-import type { TokenData } from "@/lib/helpers/get-user-from-cookie";
 import type { FlutterwaveInput } from "@/validators/order-input-validators";
 import type { ICart } from "@/lib/db/models/cart.model";
 import { TRPCError } from "@trpc/server";
@@ -15,9 +14,10 @@ import { DiscountCalculator } from "@/lib/utils/discount-calculator";
 import { CouponService } from "./coupon.service";
 import { currencyOperations } from "@/lib/utils/naira";
 import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { UserTokenPayload } from "./cookies-&-auth-tokens/cookies-auth-tokens.service";
 
 type CreatePendingOrderParams = {
-  user: TokenData;
+  user: UserTokenPayload;
   cart: ICart;
   input: FlutterwaveInput;
 };
@@ -63,14 +63,14 @@ export class OrderService {
           const price = item.selectedSize?.price || item.product.price;
           return currencyOperations.add(
             sum,
-            currencyOperations.multiply(Number(price), item.quantity)
+            currencyOperations.multiply(Number(price), item.quantity),
           );
         }, 0);
       });
 
       const orderTotal = storeAmounts.reduce(
         (sum, amount) => currencyOperations.add(sum, amount),
-        0
+        0,
       );
 
       // If couponCode is present, calculate and distribute discount proportionally
@@ -92,13 +92,13 @@ export class OrderService {
         };
         totalDiscount = DiscountCalculator.calculateDiscount(
           params,
-          orderTotal
+          orderTotal,
         );
         // For this implementation, we'll prepare the structure
         const proportionalBreakdown =
           DiscountCalculator.distributeDiscountProportionally(
             totalDiscount,
-            storeAmounts
+            storeAmounts,
           );
         discountsPerStore = proportionalBreakdown.distribution;
       }
@@ -136,17 +136,17 @@ export class OrderService {
               sum,
               currencyOperations.multiply(
                 p.productSnapshot.price,
-                p.productSnapshot.quantity
-              )
+                p.productSnapshot.quantity,
+              ),
             ),
-          0
+          0,
         );
 
         const storeDiscount = discountsPerStore[index] || 0;
         // The discount is tracked but doesn't affect store settlement
         const discountedTotal = currencyOperations.subtract(
           storeTotal,
-          storeDiscount
+          storeDiscount,
         );
 
         return {
@@ -169,7 +169,7 @@ export class OrderService {
             name: store.selectedShippingMethod?.name,
             price: Number(store.selectedShippingMethod?.price || 0),
             estimatedDeliveryDays: calculateEstimatedDeliveryDays(
-              Number(store.selectedShippingMethod?.estimatedDeliveryDays || 5)
+              Number(store.selectedShippingMethod?.estimatedDeliveryDays || 5),
             ),
             description: store.selectedShippingMethod?.description,
           },
