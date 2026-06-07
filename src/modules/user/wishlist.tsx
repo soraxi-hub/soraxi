@@ -15,14 +15,13 @@ export function Wishlist() {
   const trpc = useTRPC();
 
   const { data: wishlist, refetch } = useSuspenseQuery(
-    trpc.wishlist.getByUserId.queryOptions()
+    trpc.wishlist.getByUserId.queryOptions(),
   );
   const { products } = wishlist;
 
   // React Query mutation to remove an item from wishlist
   const removeFromWishlist = useMutation(
     trpc.wishlist.removeItem.mutationOptions({
-      // On success: show toast and refresh wishlist query for up-to-date data
       onSuccess: () => {
         toast.success(`Product removed from wishlist`);
         refetch();
@@ -30,7 +29,7 @@ export function Wishlist() {
       onError: () => {
         toast.error(`Error removing Product from wishlist`);
       },
-    })
+    }),
   );
 
   const handleRemove = async (productId: string) => {
@@ -60,15 +59,15 @@ export function Wishlist() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => {
               return (
-                <div key={product.productId.id} className="relative group">
+                <div key={product.productId} className="relative group">
                   <Button
-                    onClick={() => handleRemove(product.productId.id)}
-                    disabled={removingId === product.productId.id}
+                    onClick={() => handleRemove(product.productId)}
+                    disabled={removingId === product.productId}
                     className="absolute top-2 right-2 z-10 p-2 bg-background rounded-full shadow-sm hover:bg-red-100 transition-colors"
                     aria-label="Remove from wishlist"
                     size={`icon`}
                   >
-                    {removingId === product.productId.id ? (
+                    {removingId === product.productId ? (
                       <Heart className="w-6 h-6 fill-red-500 text-red-500 animate-pulse" />
                     ) : (
                       <Heart className="w-6 h-6 fill-red-500 text-red-500" />
@@ -76,10 +75,10 @@ export function Wishlist() {
                   </Button>
 
                   <Link
-                    href={`/products/${product.productId.slug}`}
+                    href={`/products/${product.slug}`}
                     className="text-sm space-y-1"
                   >
-                    <ProductCard product={product.productId} />
+                    <ProductCard product={product} />
                   </Link>
                 </div>
               );

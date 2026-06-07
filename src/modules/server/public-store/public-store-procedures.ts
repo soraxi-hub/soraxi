@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
 import { koboToNaira } from "@/lib/utils/naira";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 
 type Product = Pick<
   IProduct,
@@ -71,8 +71,6 @@ export const publicStoreRouter = createTRPCRouter({
         name: storeData.name,
         uniqueId: storeData.uniqueId,
         description: storeData.description,
-        logoUrl: storeData.logoUrl,
-        bannerUrl: storeData.bannerUrl,
         verification: {
           isVerified: storeData.verification?.isVerified || false,
           verifiedAt: storeData.verification?.verifiedAt,

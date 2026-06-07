@@ -32,6 +32,10 @@ export const PERMISSIONS = {
   PROCESS_ESCROW: "process_escrow",
   PROCESS_REFUND: "process_refund",
   PROCESS_WITHDRAWAL: "process_withdrawal",
+  VIEW_PLATFORM_WALLET: "view_platform_wallet",
+
+  // Disputes
+  RESOLVE_DISPUTES: "resolve_dispuptes",
 
   // Coupons permissions
   VIEW_COUPONS: "view_coupons",

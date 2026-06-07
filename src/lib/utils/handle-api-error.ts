@@ -6,7 +6,7 @@ import { AppError } from "@/lib/errors/app-error";
  * Supports both custom AppError instances and unexpected errors.
  */
 export function handleApiError(error: unknown) {
-  console.error("API Error:", error);
+  // console.error("API Error:", error);
 
   if (error instanceof AppError) {
     return NextResponse.json(
@@ -15,9 +15,10 @@ export function handleApiError(error: unknown) {
           message: error.message,
           code: error.code || "APP_ERROR",
           cause: error.cause || null,
+          errors: error.meta || null,
         },
       },
-      { status: error.statusCode }
+      { status: error.statusCode },
     );
   }
 
@@ -27,6 +28,6 @@ export function handleApiError(error: unknown) {
         message: "An unexpected error occurred",
       },
     },
-    { status: 500 }
+    { status: 500 },
   );
 }

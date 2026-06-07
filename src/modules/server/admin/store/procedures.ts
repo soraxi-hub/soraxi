@@ -6,16 +6,17 @@ import { getStoreModel, type IStore } from "@/lib/db/models/store.model";
 import mongoose from "mongoose";
 import type { Product } from "@/types";
 import { koboToNaira } from "@/lib/utils/naira";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import { getProductModel } from "@/lib/db/models/product.model";
 import {
   AUDIT_ACTIONS,
   AUDIT_MODULES,
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
-import { sendMail } from "@/services/mail.service";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { getStoreEmailTemplates } from "@/services/notifications/utils/utils";
+import { NotificationFactory } from "@/domain/notification";
+import { AdminGuard } from "@/domain/admin/admin-guard";
 
 export const adminStoreRouter = createTRPCRouter({
   listStores: baseProcedure
@@ -28,17 +29,18 @@ export const adminStoreRouter = createTRPCRouter({
         search: z.string().optional(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(20),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
+      const { admin: unAuthenticatedAdmin } = ctx;
       try {
-        // Add admin authentication check here
-        if (!ctx.admin || !checkAdminPermission(ctx.admin, ["view_stores"])) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Unauthorized access",
-          });
-        }
+        /**
+         * Admin Authentication Check
+         *
+         * Verifies that the request is coming from an authenticated admin user
+         * with appropriate permissions.
+         */
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_STORES);
 
         const { status, verified, search, page, limit } = input;
 
@@ -65,7 +67,7 @@ export const adminStoreRouter = createTRPCRouter({
         // Get stores with pagination
         const stores = await Store.find(query)
           .select(
-            "name storeEmail status verification businessInfo createdAt updatedAt"
+            "name storeEmail status verification businessInfo createdAt updatedAt",
           )
           .sort({ createdAt: -1 })
           .skip((page - 1) * limit)
@@ -110,11 +112,11 @@ export const adminStoreRouter = createTRPCRouter({
     .input(
       z.object({
         storeId: z.string(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       const { storeId } = input;
-      const { admin } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
 
       /**
        * Admin Authentication Check
@@ -122,23 +124,11 @@ export const adminStoreRouter = createTRPCRouter({
        * Verifies that the request is coming from an authenticated admin user
        * with appropriate permissions.
        */
-      const allowedPermissions = [
+      AdminGuard.from(unAuthenticatedAdmin).requireAny([
         PERMISSIONS.SUSPEND_STORE,
         PERMISSIONS.VERIFY_STORE,
         PERMISSIONS.REJECT_STORE,
-      ];
-
-      if (
-        !admin ||
-        !allowedPermissions.some((permission) =>
-          checkAdminPermission(admin, [permission])
-        )
-      ) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Admin authentication required",
-        });
-      }
+      ]);
 
       // Validate user ID format
       if (!mongoose.Types.ObjectId.isValid(storeId)) {
@@ -152,7 +142,7 @@ export const adminStoreRouter = createTRPCRouter({
       await getProductModel();
       const storeData = await Store.findById(storeId)
         .select(
-          "-password -storeOwner -recipientCode -walletId -suspensionReason -forgotpasswordToken -forgotpasswordTokenExpiry"
+          "-password -storeOwner -recipientCode -walletId -suspensionReason -forgotpasswordToken -forgotpasswordTokenExpiry",
         )
         .populate({
           path: "physicalProducts",
@@ -174,7 +164,7 @@ export const adminStoreRouter = createTRPCRouter({
         storeEmail: storeData.storeEmail,
         uniqueId: storeData.uniqueId,
         followers: storeData.followers.map(
-          (follower: mongoose.Types.ObjectId) => follower.toString()
+          (follower: mongoose.Types.ObjectId) => follower.toString(),
         ),
         products: (
           (storeData.physicalProducts as unknown as Product[]) || []
@@ -189,8 +179,6 @@ export const adminStoreRouter = createTRPCRouter({
           isVerifiedProduct: product.isVerifiedProduct,
           productType: product.productType,
         })),
-        logoUrl: storeData.logoUrl,
-        bannerUrl: storeData.bannerUrl,
         description: storeData.description,
         verification: storeData.verification,
         businessInfo: storeData.businessInfo,
@@ -211,13 +199,13 @@ export const adminStoreRouter = createTRPCRouter({
       z.object({
         storeId: z.string(),
         action: z.enum(["reactivate", "approved", "rejected", "suspend"]),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       let session: mongoose.ClientSession | null = null;
       try {
         const { storeId, action } = input;
-        const { admin } = ctx;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
         /**
          * Admin Authentication Check
@@ -225,24 +213,13 @@ export const adminStoreRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions.
          */
-        const allowedPermissions = [
+        const admin = AdminGuard.from(unAuthenticatedAdmin).requireAny([
           PERMISSIONS.SUSPEND_STORE,
           PERMISSIONS.VERIFY_STORE,
           PERMISSIONS.REJECT_STORE,
-        ];
-        if (
-          !admin ||
-          !allowedPermissions.some((permission) =>
-            checkAdminPermission(admin, [permission])
-          )
-        ) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Admin authentication required",
-          });
-        }
+        ]);
 
-        // Validate user ID format
+        // Validate store ID format
         if (!mongoose.Types.ObjectId.isValid(storeId)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -252,7 +229,7 @@ export const adminStoreRouter = createTRPCRouter({
 
         const Store = await getStoreModel();
         const store = await Store.findById(storeId).select(
-          "storeEmail verification status"
+          "storeEmail verification status name",
         );
 
         if (!store) {
@@ -262,6 +239,8 @@ export const adminStoreRouter = createTRPCRouter({
           });
         }
 
+        const storeName = store.name;
+        const storeEmail = store.storeEmail;
         let updateData = {};
         let auditAction = "";
         let message = "";
@@ -272,7 +251,7 @@ export const adminStoreRouter = createTRPCRouter({
           case "approved":
             if (
               ![StoreStatusEnum.Pending, StoreStatusEnum.Rejected].includes(
-                store.status
+                store.status,
               )
             ) {
               throw new TRPCError({
@@ -359,7 +338,7 @@ export const adminStoreRouter = createTRPCRouter({
           await Product.updateMany(
             { storeId },
             { $set: { isVisible: false } },
-            { session }
+            { session },
           );
         }
 
@@ -383,74 +362,30 @@ export const adminStoreRouter = createTRPCRouter({
           await logAdminAction(data);
         } catch (error) {
           console.log(
-            error || `Failed to Log admin action of susspending a store`
+            error || `Failed to Log admin action of susspending a store`,
           );
         }
 
         // Send notification email to store owner
-        const storeEmail = store.storeEmail;
-        let subject = "";
-        let html = "";
+        try {
+          const { subject, html, text } = await getStoreEmailTemplates(action, {
+            storeName,
+            storeId,
+          });
 
-        // Choose email subject and body based on the action
-        switch (action) {
-          case "approved":
-            subject = "🎉 Your store has been approved!";
-            html = `
-      <p>Hello,</p>
-      <p>We’re excited to let you know that your store has been approved by our admin team and is now active on SoraxiHub.</p>
-      <p>You can now start listing products and receiving orders.</p>
-      <p><strong>Status:</strong> Active</p>
-      <p>– The SoraxiHub Team</p>
-    `;
-            break;
+          // Create and send email notification using factory
+          const notification = NotificationFactory.create("email", {
+            recipient: storeEmail,
+            subject,
+            emailType: "noreply",
+            fromAddress: "noreply@soraxihub.com",
+            html,
+            text,
+          });
 
-          case "rejected":
-            subject = "⚠️ Your store application was rejected";
-            html = `
-      <p>Hello,</p>
-      <p>Unfortunately, your store application was not approved at this time.</p>
-      <p><strong>Status:</strong> Rejected</p>
-      <p>If you believe this was in error or would like to reapply, please contact support.</p>
-      <p>– The SoraxiHub Team</p>
-    `;
-            break;
-
-          case "suspend":
-            subject = "⏸️ Your store has been suspended";
-            html = `
-      <p>Hello,</p>
-      <p>Your store has been suspended by our admin team. You will not be able to receive orders until further notice.</p>
-      <p><strong>Status:</strong> Suspended</p>
-      <p>Please contact support if you’d like more information.</p>
-      <p>– The SoraxiHub Team</p>
-    `;
-            break;
-
-          case "reactivate":
-            subject = "✅ Your store has been reactivated";
-            html = `
-      <p>Hello,</p>
-      <p>Good news! Your store has been reactivated and is now live again on SoraxiHub.</p>
-      <p><strong>Status:</strong> Active</p>
-      <p>– The SoraxiHub Team</p>
-    `;
-            break;
-        }
-
-        if (storeEmail) {
-          try {
-            await sendMail({
-              email: storeEmail,
-              emailType: "noreply",
-              fromAddress: "noreply@soraxihub.com",
-              subject,
-              html,
-            });
-          } catch (err) {
-            // Log the failure but don’t break the flow
-            console.error("Failed to send store email:", err);
-          }
+          await notification.send();
+        } catch (error) {
+          console.error(`Failed to send store email:: ${error}`);
         }
 
         return {
@@ -472,7 +407,7 @@ export const adminStoreRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Something went wrong while performing the store action",
-          cause: error, // optional, lets you inspect the raw error in dev
+          cause: error,
         });
       } finally {
         // Always end the session

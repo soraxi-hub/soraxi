@@ -225,9 +225,9 @@ export function HomeHero({ products }: { products: Products }) {
               className="grid grid-cols-2 gap-4 max-w-md"
             >
               {heroProducts.map((product, index) => (
-                <Link key={product.id} href={`/products/${product.slug}`}>
+                <Link key={product.slug} href={`/products/${product.slug}`}>
                   <motion.div
-                    key={product.id}
+                    key={product.productId}
                     className="bg-white rounded-xl shadow-lg p-3"
                     style={{
                       transform: `rotate(${index % 2 === 0 ? "-2" : "2"}deg)`,

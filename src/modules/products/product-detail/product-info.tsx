@@ -1,14 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Star, Shield, RotateCcw } from "lucide-react";
-import { formatNaira } from "@/lib/utils/naira";
 import { useProductInfo } from "@/hooks/use-product-info";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
-import Link from "next/link";
+// import Link from "next/link";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
@@ -29,14 +27,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
   if (!product) {
     return null;
   }
-
-  const hasVariants = product.sizes && product.sizes.length > 0;
-  const basePrice = hasVariants
-    ? Math.min(...product.sizes!.map((s) => s.price))
-    : product.price;
-  const maxPrice = hasVariants
-    ? Math.max(...product.sizes!.map((s) => s.price))
-    : product.price;
 
   return (
     <div className="space-y-6">
@@ -68,62 +58,14 @@ export function ProductInfo({ product }: ProductInfoProps) {
       {/* Price */}
       <div className="space-y-2">
         <div className="text-3xl font-bold text-gray-900 dark:text-white">
-          {hasVariants && basePrice !== maxPrice ? (
-            <span>
-              {formatNaira(basePrice!)} - {formatNaira(maxPrice!)}
-            </span>
-          ) : (
-            formatNaira(basePrice!)
-          )}
+          {product.formattedPrice}
         </div>
-        {hasVariants && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Price varies by size
-          </p>
-        )}
       </div>
 
       <Separator />
 
-      {/* Size Selection (if applicable) */}
-      {hasVariants && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Available Sizes</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {product.sizes!.map((sizeOption, index) => (
-              <Card
-                key={index}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold">{sizeOption.size}</div>
-                      <div className="text-sm text-gray-600">
-                        {formatNaira(sizeOption.price)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">
-                        {sizeOption.quantity > 0 ? (
-                          <span className="text-soraxi-green">
-                            {sizeOption.quantity} in stock
-                          </span>
-                        ) : (
-                          <span className="text-red-600">Out of stock</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Stock Info for non-variant products */}
-      {!hasVariants && product.productQuantity && (
+      {product.productQuantity && (
         <div className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2">
             <div
@@ -137,14 +79,14 @@ export function ProductInfo({ product }: ProductInfoProps) {
                 : "Out of stock"}
             </span>
           </div>
-          <div>
+          {/* <div>
             <Link
               className="hover:underline hover:text-soraxi-green-hover text-sm"
               href={`/brand/${product.storeId}`}
             >
               Visit Store
             </Link>
-          </div>
+          </div> */}
         </div>
       )}
 
@@ -155,7 +97,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <Button
           size="lg"
           className="w-full col-span-2 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-          disabled={!hasVariants ? product.productQuantity === 0 : false}
+          disabled={product.productQuantity === 0}
           onClick={() => handleAddToCart(product)}
         >
           Add to Cart

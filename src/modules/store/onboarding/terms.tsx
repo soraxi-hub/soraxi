@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { TermsForm } from "@/components/forms/terms-form";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 
 /**
  * Terms and Conditions Onboarding Page

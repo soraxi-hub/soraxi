@@ -13,7 +13,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
-import { RequestStatus } from "@/lib/db/models/request.model";
+import { RequestStatus } from "@/enums";
 import { formatNaira } from "@/lib/utils/naira";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

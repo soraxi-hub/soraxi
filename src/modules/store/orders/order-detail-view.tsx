@@ -56,11 +56,16 @@ import {
   allStatuses,
 } from "../components/order-details.index";
 
+import { useQuery } from "@tanstack/react-query";
+import { VendorDisputeBanner } from "@/modules/store/disputes/vendor-dispute-banner";
+import { SuborderFinancialStatus } from "@/enums/financial.enums";
+
 /**
  * Order Detail View Component Props
  */
 interface OrderDetailViewProps {
   orderId: string;
+  storeId: string;
 }
 
 /**
@@ -82,7 +87,10 @@ interface OrderDetailViewProps {
  * perspective, providing tools for order fulfillment, customer communication,
  * and financial tracking.
  */
-export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
+export default function OrderDetailView({
+  orderId,
+  storeId,
+}: OrderDetailViewProps) {
   // ==================== State Management ====================
 
   /**
@@ -125,9 +133,16 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
     refetch: refetchOrder,
     error,
   } = useSuspenseQuery(
-    trpc.storeOrders.getStoreOrderById.queryOptions({ orderId })
+    trpc.storeOrders.getStoreOrderById.queryOptions({ orderId }),
   );
 
+  const { data: financialData } = useQuery(
+    trpc.vendorDispute.getOrderFinancialStatuses.queryOptions({
+      orderId,
+    }),
+  );
+
+  const financialStatuses = financialData?.statuses ?? {};
   const { order } = data;
 
   const StatusUpdate = useMutation(
@@ -144,7 +159,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         toast.error(error.message || `Failed to update order status`);
         setUpdating(false);
       },
-    })
+    }),
   );
 
   // ==================== Event Handlers ====================
@@ -160,7 +175,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
    */
   const handleStatusUpdate = async (
     subOrderId: string,
-    newStatus: DeliveryStatus
+    newStatus: DeliveryStatus,
   ) => {
     setSubOrderId(subOrderId);
     setNewStatus(newStatus);
@@ -261,6 +276,8 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               {order.subOrders.map((subOrder, index) => {
                 const statusConfig = getStatusBadge(subOrder.deliveryStatus);
                 const StatusIcon = statusConfig.icon;
+                const subOrderId = subOrder._id?.toString() ?? "";
+                const financialStatus = financialStatuses[subOrderId];
                 return (
                   <div key={index} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
@@ -280,6 +297,21 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                         {deliveryStatusLabel(subOrder.deliveryStatus)}
                       </Badge>
                     </div>
+
+                    {/* Dispute banner — shown when suborder is DISPUTED or REFUNDED */}
+                    {financialStatus &&
+                      (financialStatus.status ===
+                        SuborderFinancialStatus.DISPUTED ||
+                        financialStatus.status ===
+                          SuborderFinancialStatus.REFUNDED) && (
+                        <VendorDisputeBanner
+                          storeId={storeId} // from ctx.store in the page
+                          suborderId={subOrderId}
+                          status={financialStatus.status}
+                          disputeId={financialStatus.disputeId}
+                          frozenAmount={financialStatus.frozenAmount}
+                        />
+                      )}
 
                     {/* Status Update Controls */}
                     <SellerStatusUpdate
@@ -352,7 +384,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                           <p className="font-medium">
                             {formatNaira(
                               item.productSnapshot.price *
-                                item.productSnapshot.quantity
+                                item.productSnapshot.quantity,
                             )}
                           </p>
                         </div>
@@ -573,7 +605,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                                 <p className="text-sm text-muted-foreground">
                                   {format(
                                     new Date(statusItem.timestamp),
-                                    "MMM dd, yyyy 'at' h:mm a"
+                                    "MMM dd, yyyy 'at' h:mm a",
                                   )}
                                 </p>
                                 {statusItem.notes && (
@@ -583,7 +615,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
                                 )}
                               </div>
                             </div>
-                          )
+                          ),
                         )
                       ) : (
                         <p className="text-sm text-muted-foreground">
@@ -629,7 +661,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
               onClick={confirmAction}
               disabled={StatusUpdate.isPending}
               className={cn(
-                "bg-soraxi-green hover:bg-soraxi-green-hover text-white hover:text-white"
+                "bg-soraxi-green hover:bg-soraxi-green-hover text-white hover:text-white",
               )}
             >
               {StatusUpdate.isPending
@@ -671,7 +703,7 @@ function SellerStatusUpdate({
   // Explanation message
   const explanationMessage = disableEntireSelect
     ? `This order is already marked as "${deliveryStatusLabel(
-        currentStatus
+        currentStatus,
       )}". Further updates are disabled.`
     : "Only valid status transitions are enabled based on the current order state.";
 

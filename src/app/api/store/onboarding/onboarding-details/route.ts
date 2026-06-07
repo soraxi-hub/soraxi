@@ -1,13 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
-import {
-  getStoreFromCookie,
-  StoreTokenData,
-} from "@/lib/helpers/get-store-from-cookie";
+import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { AppError } from "@/lib/errors/app-error";
 import mongoose from "mongoose";
 import { koboToNaira } from "@/lib/utils/naira";
-import { StoreBusinessInfoEnum } from "@/validators/store-validators";
+import { StoreBusinessInfoEnum } from "@/enums";
 
 /**
  * API Route: Get Store Onboarding Details
@@ -17,7 +14,7 @@ import { StoreBusinessInfoEnum } from "@/validators/store-validators";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_request: NextRequest) {
   try {
-    const storeData = (await getStoreFromCookie()) as StoreTokenData;
+    const storeData = await getStoreFromCookie();
 
     if (!storeData) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,7 +23,7 @@ export async function GET(_request: NextRequest) {
     const Store = await getStoreModel();
     const store = (await Store.findById(storeData.id)
       .select(
-        "name description logoUrl bannerUrl businessInfo shippingMethods agreedToTermsAt"
+        "name description logoUrl bannerUrl businessInfo shippingMethods agreedToTermsAt",
       )
       .lean()) as IStore | null;
 
@@ -35,7 +32,7 @@ export async function GET(_request: NextRequest) {
         "Store not found",
         400,
         "NOT_FOUND",
-        "Store not found"
+        "Store not found",
       );
     }
 
@@ -67,7 +64,7 @@ export async function GET(_request: NextRequest) {
           ...shippingMethod,
           price: koboToNaira(shippingMethod.price),
         };
-      }
+      },
     );
 
     return NextResponse.json({
@@ -78,8 +75,6 @@ export async function GET(_request: NextRequest) {
           profile: {
             name: store.name,
             description: store.description,
-            logoUrl: store.logoUrl,
-            bannerUrl: store.bannerUrl,
           },
           "business-info": store.businessInfo || {},
           shipping: shippingMethods,
@@ -97,7 +92,7 @@ export async function GET(_request: NextRequest) {
     console.error("Error getting store status:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

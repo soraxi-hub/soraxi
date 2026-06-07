@@ -1,4 +1,4 @@
-import { ProductStatusEnum } from "@/validators/product-validators";
+import { ProductStatusEnum } from "@/enums";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
 
@@ -55,7 +55,7 @@ export class ProductAdminManager {
             label: "Reject Product",
             variant: "destructive",
             icon: "XCircle",
-          }
+          },
         );
         break;
       case ProductStatusEnum.Approved:
@@ -165,7 +165,7 @@ export class ProductAdminManager {
     ];
 
     const passedChecks = checks.filter(
-      (check) => check.status === "passed"
+      (check) => check.status === "passed",
     ).length;
     const totalChecks = checks.length;
     const complianceScore = Math.round((passedChecks / totalChecks) * 100);
@@ -177,8 +177,8 @@ export class ProductAdminManager {
         complianceScore >= 80
           ? "high"
           : complianceScore >= 60
-          ? "medium"
-          : "low",
+            ? "medium"
+            : "low",
     };
   }
 
@@ -203,7 +203,7 @@ export class ProductAdminManager {
     const createdAt = new Date(this.productData.createdAt);
     const now = new Date();
     return Math.floor(
-      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
     );
   }
 
@@ -215,7 +215,7 @@ export class ProductAdminManager {
 
   private getRecommendedAction(
     risk: RiskAssessment,
-    compliance: ComplianceStatus
+    compliance: ComplianceStatus,
   ): string {
     if (risk.level === "high") {
       return "Requires immediate review - High risk factors detected";
@@ -234,7 +234,7 @@ export class ProductAdminManager {
 
   private getActionPriority(
     risk: RiskAssessment,
-    compliance: ComplianceStatus
+    compliance: ComplianceStatus,
   ): "low" | "medium" | "high" {
     if (risk.level === "high") return "high";
     if (compliance.level === "low") return "medium";

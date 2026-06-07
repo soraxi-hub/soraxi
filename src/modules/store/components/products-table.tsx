@@ -23,7 +23,7 @@ import Image from "next/image";
 import { formatNaira } from "@/lib/utils/naira";
 import { siteConfig } from "@/config/site";
 import { truncateText } from "@/lib/utils";
-import { ProductStatusEnum } from "@/validators/product-validators";
+import { ProductStatusEnum } from "@/enums";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
@@ -138,7 +138,11 @@ export function ProductsTable({
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Open actions menu"
+                    >
                       <MoreHorizontal />
                     </Button>
                   </DropdownMenuTrigger>

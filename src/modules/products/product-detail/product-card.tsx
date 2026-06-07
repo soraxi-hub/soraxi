@@ -1,22 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { siteConfig } from "@/config/site";
-import { getCategoryName } from "@/constants/constant";
-import { addNairaSign } from "@/lib/utils/naira";
+import { PublicToJSON } from "@/domain/products/product-interface";
 import { Shield, Star } from "lucide-react";
 import Image from "next/image";
 
 interface ProductCardProps {
-  product: {
-    id: string;
-    name: string;
-    price?: number;
-    images?: string[];
-    category?: string[];
-    rating?: number;
-    slug: string;
-    isVerifiedProduct?: boolean;
-  };
+  product: PublicToJSON;
 }
 
 const renderStars = (rating: number) => {
@@ -35,9 +24,7 @@ export const ProductCard = ({ product }: ProductCardProps) => (
     <CardHeader className="p-0">
       <div className="relative overflow-hidden rounded-t-lg">
         <Image
-          src={
-            (product.images && product.images[0]) || siteConfig.placeHolderImg
-          }
+          src={product.images[0]}
           height={200}
           width={300}
           alt={product.name}
@@ -57,24 +44,21 @@ export const ProductCard = ({ product }: ProductCardProps) => (
           {product.name}
         </h3>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            {renderStars(product.rating || 0)}
-          </div>
+          <div className="flex items-center">{renderStars(product.rating)}</div>
           <span className="text-sm text-muted-foreground">
-            ({product.rating ? product.rating.toFixed(1) : 0} reviews)
+            ({product.rating.toFixed(1)} reviews)
           </span>
         </div>
         <div className="flex items-center space-x-2 justify-between truncate">
           <span className="text-2xl font-bold text-soraxi-green">
-            {addNairaSign(product.price || 0)}
+            {product.formattedPrice}
           </span>
-          {product.category && getCategoryName(product.category[0]) && (
+          {product.category && (
             <Badge variant="outline" className="text-xs">
-              {getCategoryName(product.category[0])}
+              {product.formattedCategory}
             </Badge>
           )}
         </div>
-        {/* <p className="text-sm text-muted-foreground">by {product.storeName}</p> */}
       </div>
     </CardContent>
   </Card>

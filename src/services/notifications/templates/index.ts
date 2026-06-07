@@ -15,7 +15,8 @@ export {
 } from "./order-confirmation-email";
 export { PasswordResetEmail } from "./password-reset-email";
 export { StoreOnboardingEmail } from "./store-onboarding-email";
-export { PaymentSettlementEmail } from "./payment-settlement-email";
+export { PayoutCompletedEmail } from "./payout-completed-email";
+export { PayoutFailedEmail } from "./payout-failed-email";
 export { PromotionalEmail } from "./promotional-email";
 export { OrderStatusEmail } from "./order-status-email";
 export { AdminNotificationEmail } from "./admin-notification-email";
@@ -24,3 +25,7 @@ export { StoreOrderNotificationEmail } from "./store-order-notification-email";
 export { OTPVerificationEmail } from "./otp-verification-email";
 export { SupportContactEmail } from "./support-contact-email";
 export { EscrowReleaseEmail } from "./escrow-release-email";
+export { StoreApprovedEmail } from "../templates/store/store-approved-email";
+export { StoreReactivatedEmail } from "../templates/store/store-reactivated-email";
+export { StoreRejectedEmail } from "../templates/store/store-rejected-email";
+export { StoreSuspendedEmail } from "../templates/store/store-suspended-email";

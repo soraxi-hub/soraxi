@@ -45,13 +45,13 @@ const ResetPassword = () => {
       } else {
         toast.error(
           response?.data?.message ||
-            "There was an error resetting your password. Please try again."
+            "There was an error resetting your password. Please try again.",
         );
       }
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.message ||
-          "There was an error resetting your password. Please try again."
+        error?.response?.data?.error?.message ||
+          "There was an error resetting your password. Please try again.",
       );
     }
   };

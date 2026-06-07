@@ -40,8 +40,6 @@ export const storeShippingRouter = createTRPCRouter({
               estimatedDeliveryDays: 0,
               isActive: false,
               description: "",
-              applicableRegions: [],
-              conditions: {},
             };
           }
           return {
@@ -51,8 +49,6 @@ export const storeShippingRouter = createTRPCRouter({
             estimatedDeliveryDays: method.estimatedDeliveryDays,
             isActive: method.isActive,
             description: method.description,
-            applicableRegions: method.applicableRegions,
-            conditions: method.conditions,
           };
         })
       : [];
@@ -82,7 +78,7 @@ export const storeShippingRouter = createTRPCRouter({
             maxWeight: z.number().optional(),
           })
           .optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { store: StoreTokenData } = ctx;
@@ -116,7 +112,7 @@ export const storeShippingRouter = createTRPCRouter({
       if (input.id) {
         // Update existing shipping method
         const methodIndex = store.shippingMethods.findIndex(
-          (method) => method._id!.toString() === input.id
+          (method) => method._id!.toString() === input.id,
         );
 
         if (methodIndex === -1) {

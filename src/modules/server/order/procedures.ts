@@ -11,8 +11,20 @@ import {
 import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { getFundReleaseModel } from "@/lib/db/models/fund-release.model";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
+import {
+  getTransactionRecordByOrderId,
+  updateSuborderFinancialStatus,
+} from "@/lib/db/models/transaction-record.model";
+import { releaseVendorPendingToAvailable } from "@/lib/db/models/vendor-wallet.model";
+import {
+  LedgerEntryType,
+  LedgerEntryCategory,
+  LedgerEntityType,
+  LedgerReferenceType,
+  SuborderFinancialStatus,
+} from "@/enums/financial.enums";
 
 /**
  * Order Router with Type-Safe Procedures
@@ -77,7 +89,7 @@ export const orderRouter = createTRPCRouter({
           select: "_id name storeEmail logoUrl",
         })
         .select(
-          "_id userId stores totalAmount paymentStatus discount createdAt subOrders"
+          "_id userId stores totalAmount paymentStatus discount createdAt subOrders",
         )
         .sort({ createdAt: -1 })
         .lean<RawOrderDocument[]>()
@@ -124,7 +136,7 @@ export const orderRouter = createTRPCRouter({
     .input(
       z.object({
         orderId: z.string().min(1, "Order ID is required"),
-      })
+      }),
     )
     .query(async ({ input }) => {
       try {
@@ -148,7 +160,7 @@ export const orderRouter = createTRPCRouter({
          */
         const rawOrder = (await getOrderById(
           input.orderId,
-          true
+          true,
         )) as RawOrderDocument | null;
 
         // Handle case where order is not found
@@ -181,7 +193,7 @@ export const orderRouter = createTRPCRouter({
         mainOrderId: z.string(),
         subOrderId: z.string(),
         deliveryStatus: z.enum([DeliveryStatus.Delivered]),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const { mainOrderId, subOrderId, deliveryStatus } = input;
@@ -218,7 +230,7 @@ export const orderRouter = createTRPCRouter({
        * status update along with any additional information.
        */
       const subOrder = order.subOrders.find(
-        (sub) => sub._id?.toString() === subOrderId
+        (sub) => sub._id?.toString() === subOrderId,
       );
 
       if (deliveryStatus !== DeliveryStatus.Delivered) {
@@ -268,30 +280,96 @@ export const orderRouter = createTRPCRouter({
         subOrder.deliveryDate = currentDate;
       }
 
-      const FundRelease = await getFundReleaseModel();
+      // ==================== Stage 2: Financial Settlement ====================
 
-      // Update the fund release record associated with this sub-order
-      const fundRelease = await FundRelease.findOne({
-        orderId: order._id,
-        subOrderId: subOrder._id,
-      });
+      const session = await mongoose.startSession();
+      session.startTransaction();
 
-      if (!fundRelease) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Fund release record not found for order ID ${order._id} and sub-order ID ${subOrder._id}.`,
-        });
+      try {
+        // --- Fetch the transaction record to get this suborder's settleAmount ---
+        const transactionRecord = await getTransactionRecordByOrderId(
+          mainOrderId,
+          // NOTE: Pass session once helpers support it
+        );
+
+        if (!transactionRecord) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Transaction record not found for order ${mainOrderId}`,
+          });
+        }
+
+        const breakdown = transactionRecord.suborderBreakdowns.find(
+          (b) => b.suborderId.toString() === subOrderId,
+        );
+
+        if (!breakdown) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `No financial breakdown found for suborder ${subOrderId}`,
+          });
+        }
+
+        // Guard: only settle suborders that are still in PENDING status.
+        // Prevents double-settlement if this procedure is called more than once.
+        if (breakdown.status !== SuborderFinancialStatus.PENDING) {
+          // Suborder already settled, disputed, or refunded — skip financial writes
+          // but still save the delivery confirmation on the order document
+          await order.save({ session });
+          await session.commitTransaction();
+          return { success: true, message: "Delivery Confirmed." };
+        }
+
+        // --- FUNDS_RELEASED ledger entry ---
+        // Records the movement of funds from pending to available for this suborder
+        await createLedgerEntry(
+          {
+            type: LedgerEntryType.CREDIT,
+            category: LedgerEntryCategory.FUNDS_RELEASED,
+            amount: breakdown.settleAmount,
+            entityType: LedgerEntityType.VENDOR,
+            entityId: breakdown.vendorId,
+            referenceType: LedgerReferenceType.SUBORDER,
+            referenceId: breakdown.suborderId,
+            description: `Funds released for confirmed suborder ${subOrderId}`,
+            metadata: {
+              triggeredBy: "CUSTOMER_CONFIRMATION",
+              confirmedAt: now,
+              orderId: mainOrderId,
+            },
+          },
+          session,
+        );
+
+        // --- Update Transaction Record: suborder status → SETTLED ---
+        await updateSuborderFinancialStatus(
+          mainOrderId,
+          subOrderId,
+          SuborderFinancialStatus.SETTLED,
+          session,
+        );
+
+        // --- Update Vendor Wallet: pending → available ---
+        await releaseVendorPendingToAvailable(
+          breakdown.vendorId.toString(),
+          breakdown.settleAmount,
+          session,
+        );
+
+        // --- Save the order with delivery confirmation updates ---
+        await order.save({ session });
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
       }
-
-      fundRelease.conditionsMet.deliveryConfirmed = true;
-      fundRelease.conditionsMet.deliveryConfirmedAt = now;
-
-      await fundRelease.save();
-      await order.save();
 
       return {
         success: true,
-        message: `Delivery Confirmed.`,
+        message: "Delivery Confirmed.",
       };
     }),
 
@@ -309,7 +387,7 @@ export const orderRouter = createTRPCRouter({
       z.object({
         userId: z.string().min(1, "User ID is required"),
         limit: z.number().min(1).max(50).default(10),
-      })
+      }),
     )
     .query(async ({ input }) => {
       try {

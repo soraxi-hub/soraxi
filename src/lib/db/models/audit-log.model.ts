@@ -6,7 +6,7 @@ import type { Role } from "@/modules/admin/security/roles";
  * Interface for Admin Audit Logs
  * Tracks admin activities across the platform.
  */
-export interface IAuditLog extends Document {
+export interface IAuditLog {
   adminId: mongoose.Types.ObjectId;
   adminName: string;
   adminEmail: string;
@@ -23,11 +23,13 @@ export interface IAuditLog extends Document {
   expireAt: Date;
 }
 
+export type IAuditLogDocument = IAuditLog & Document;
+
 /**
  * Schema for Audit Logs
  * Stores metadata for each admin action for traceability and accountability.
  */
-const AuditLogSchema = new Schema<IAuditLog>(
+const AuditLogSchema = new Schema<IAuditLogDocument>(
   {
     adminId: {
       type: Schema.Types.ObjectId,
@@ -81,7 +83,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Create indexes for query performance
@@ -96,10 +98,10 @@ AuditLogSchema.index({ resourceId: 1, resourceType: 1 });
  *
  * Returns the Mongoose model for audit logs, creating it if it doesn't exist.
  */
-export async function getAuditLogModel(): Promise<Model<IAuditLog>> {
+export async function getAuditLogModel(): Promise<Model<IAuditLogDocument>> {
   await connectToDatabase();
   return (
-    (mongoose.models.AuditLog as Model<IAuditLog>) ||
-    mongoose.model<IAuditLog>("AuditLog", AuditLogSchema)
+    (mongoose.models.AuditLog as Model<IAuditLogDocument>) ||
+    mongoose.model<IAuditLogDocument>("AuditLog", AuditLogSchema)
   );
 }

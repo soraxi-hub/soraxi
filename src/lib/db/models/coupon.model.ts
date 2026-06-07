@@ -1,15 +1,18 @@
-import { CouponTypeEnum, ICoupon } from "@/validators/coupon-validations";
-import { type Model, Schema, model, models } from "mongoose";
+import { ICoupon } from "@/validators/coupon-validations";
+import { Document, type Model, Schema, model, models } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import { nairaToKobo } from "@/lib/utils/naira";
+import { CouponTypeEnum } from "@/enums";
+
+export type ICouponDocument = ICoupon & Document;
 
 /**
- * 🎟️ Coupon Schema (Mongoose)
+ * Coupon Schema (Mongoose)
  *
  * Defines database structure and constraints for coupons.
  * Validations and defaults mirror the Zod schema for consistency.
  */
-const couponSchema = new Schema<ICoupon>(
+const couponSchema = new Schema<ICouponDocument>(
   {
     code: {
       type: String,
@@ -82,7 +85,7 @@ const couponSchema = new Schema<ICoupon>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /** Index expiration date to quickly disable expired coupons */
@@ -106,10 +109,11 @@ couponSchema.methods.isCurrentlyValid = function (): boolean {
 /**
  * Getter function to prevent model recompilation errors in Next.js
  */
-export const getCouponModel = async (): Promise<Model<ICoupon>> => {
+export const getCouponModel = async (): Promise<Model<ICouponDocument>> => {
   await connectToDatabase();
 
   return (
-    (models.Coupon as Model<ICoupon>) || model<ICoupon>("Coupon", couponSchema)
+    (models.Coupon as Model<ICouponDocument>) ||
+    model<ICouponDocument>("Coupon", couponSchema)
   );
 };

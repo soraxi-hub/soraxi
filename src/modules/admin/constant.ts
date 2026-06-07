@@ -2,14 +2,13 @@ import {
   Store,
   Package,
   ShoppingCart,
-  ShoppingBag,
   Wallet,
   CreditCard,
-  RefreshCcw,
   Users,
   FileText,
   BarChart3,
   Ticket,
+  AlertTriangle,
 } from "lucide-react";
 import { PERMISSIONS } from "./security/permissions";
 
@@ -63,21 +62,10 @@ export const adminNavigationItems = [
         permissions: [PERMISSIONS.VIEW_ORDERS],
       },
       {
-        title: "Stale Orders",
-        url: "/admin/orders/stale",
-        icon: ShoppingBag,
-        permissions: [PERMISSIONS.STALE_ORDERS],
-      },
-    ],
-  },
-  {
-    title: "Escrow Management",
-    items: [
-      {
-        title: "Escrow Release",
-        url: "/admin/escrow",
-        icon: Wallet,
-        permissions: [PERMISSIONS.VIEW_ESCROW],
+        title: "Disputes",
+        url: "/admin/disputes",
+        icon: AlertTriangle,
+        permissions: [PERMISSIONS.RESOLVE_DISPUTES],
       },
     ],
   },
@@ -85,16 +73,16 @@ export const adminNavigationItems = [
     title: "Finance",
     items: [
       {
-        title: "withdrawals",
-        url: "/admin/finance/withdrawals",
+        title: "Payouts",
+        url: "/admin/payouts",
         icon: CreditCard,
         permissions: [PERMISSIONS.VIEW_WITHDRAWALS],
       },
       {
-        title: "Refunds",
-        url: "/admin/refunds/queue",
-        icon: RefreshCcw,
-        permissions: [PERMISSIONS.VIEW_REFUNDS],
+        title: "Wallet",
+        url: "/admin/platform-wallet",
+        icon: Wallet,
+        permissions: [PERMISSIONS.VIEW_PLATFORM_WALLET],
       },
     ],
   },

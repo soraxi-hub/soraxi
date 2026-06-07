@@ -6,11 +6,11 @@ import {
   PaymentGateway,
   PaymentStatus,
   StatusHistory,
+  CouponTypeEnum,
 } from "@/enums";
 import { getUserModel } from "./user.model";
 import { getStoreModel } from "./store.model";
 import { getProductModel } from "./product.model";
-import { CouponTypeEnum } from "@/validators/coupon-validations";
 import { IDiscount } from "@/validators/discount-validation";
 
 /**
@@ -18,10 +18,10 @@ import { IDiscount } from "@/validators/discount-validation";
  * All monetary values are stored in kobo to avoid floating-point errors.
  */
 export interface IOrderProduct {
-  productId: mongoose.Schema.Types.ObjectId;
-  storeId: mongoose.Schema.Types.ObjectId;
+  productId: mongoose.Types.ObjectId;
+  storeId: mongoose.Types.ObjectId;
   productSnapshot: {
-    _id: mongoose.Schema.Types.ObjectId;
+    _id: mongoose.Types.ObjectId;
     name: string;
     images: string[];
     quantity: number;
@@ -34,10 +34,8 @@ export interface IOrderProduct {
     };
   };
   storeSnapshot: {
-    _id: mongoose.Schema.Types.ObjectId;
+    _id: mongoose.Types.ObjectId;
     name: string;
-    logo?: string;
-    email?: string;
   };
 }
 
@@ -45,8 +43,8 @@ export interface IOrderProduct {
  * Interface representing a sub-order within an order.
  */
 export interface ISubOrder {
-  _id: mongoose.Schema.Types.ObjectId;
-  storeId: mongoose.Schema.Types.ObjectId;
+  _id: mongoose.Types.ObjectId;
+  storeId: mongoose.Types.ObjectId;
   products: IOrderProduct[];
   originalAmount: number; // Add original amount before discount
   totalAmount: number;
@@ -65,27 +63,6 @@ export interface ISubOrder {
     confirmedAt?: Date; // when the customer confirmed
     autoConfirmed: boolean; // true if system auto-confirmed
   };
-
-  // <CHANGE> Add returns tracking for individual product returns
-  returns?: {
-    _id: mongoose.Schema.Types.ObjectId; // Optional ID for the return request
-    userId: mongoose.Schema.Types.ObjectId;
-    productId: mongoose.Schema.Types.ObjectId;
-    quantity: number; // How many units being returned
-    reason: string;
-    status:
-      | "Requested"
-      | "Approved"
-      | "Rejected"
-      | "In-Transit"
-      | "Received"
-      | "Refunded";
-    requestedAt: Date;
-    approvedAt?: Date;
-    refundAmount: number;
-    returnShippingCost?: number;
-  }[];
-
   statusHistory: Array<{
     status: StatusHistory;
     timestamp: Date;
@@ -96,15 +73,15 @@ export interface ISubOrder {
 /**
  * Interface representing the main Order document.
  */
-export interface IOrder extends Document {
-  userId: mongoose.Schema.Types.ObjectId;
-  stores: mongoose.Schema.Types.ObjectId[];
+export interface IOrder {
+  _id: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  stores: mongoose.Types.ObjectId[];
   subOrders: ISubOrder[];
   totalAmount: number;
   shippingAddress: {
     postalCode: string;
     address: string;
-    // New fields for delivery type
     deliveryType: DeliveryType;
     campusName?: string;
     campusLocation?: string;
@@ -120,6 +97,8 @@ export interface IOrder extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type IOrderDocument = IOrder & Document;
 
 /**
  * Schema for individual products inside a sub-order.
@@ -174,8 +153,6 @@ const OrderProductSchema = new Schema<IOrderProduct>({
       type: String,
       required: [true, "Store name is required for store snapshot"],
     },
-    logo: { type: String },
-    email: { type: String },
   },
 });
 
@@ -222,44 +199,6 @@ const SubOrderSchema = new Schema<ISubOrder>({
     confirmedAt: { type: Date },
     autoConfirmed: { type: Boolean, default: false },
   },
-  // <CHANGE> Add returns schema for tracking individual product returns
-  returns: [
-    {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: [true, "ProductId is required for return"],
-      },
-      quantity: {
-        type: Number,
-        required: [true, "Quantity is required for return"],
-      },
-      reason: {
-        type: String,
-        required: [true, "Reason is required for return"],
-      },
-      status: {
-        type: String,
-        enum: [
-          "Requested",
-          "Approved",
-          "Rejected",
-          "In-Transit",
-          "Received",
-          "Refunded",
-        ],
-        default: "Requested",
-      },
-      requestedAt: { type: Date, default: Date.now },
-      approvedAt: { type: Date },
-      refundAmount: { type: Number, required: true },
-      returnShippingCost: { type: Number },
-    },
-  ],
   statusHistory: [
     {
       status: {
@@ -276,7 +215,7 @@ const SubOrderSchema = new Schema<ISubOrder>({
 /**
  * Main Order schema
  */
-const OrderSchema = new Schema<IOrder>(
+const OrderSchema = new Schema<IOrderDocument>(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -333,17 +272,17 @@ const OrderSchema = new Schema<IOrder>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /**
  * Get the Order model
  */
-export async function getOrderModel(): Promise<Model<IOrder>> {
+export async function getOrderModel(): Promise<Model<IOrderDocument>> {
   await connectToDatabase();
   return (
-    (mongoose.models.Order as Model<IOrder>) ||
-    mongoose.model<IOrder>("Order", OrderSchema)
+    (mongoose.models.Order as Model<IOrderDocument>) ||
+    mongoose.model<IOrderDocument>("Order", OrderSchema)
   );
 }
 
@@ -354,7 +293,15 @@ export async function getOrderModel(): Promise<Model<IOrder>> {
  */
 export async function getOrderById(
   id: string,
-  lean = false
+  lean: true,
+): Promise<IOrder | null>;
+export async function getOrderById(
+  id: string,
+  lean?: false,
+): Promise<IOrderDocument | null>;
+export async function getOrderById(
+  id: string,
+  lean = false,
 ): Promise<IOrder | null> {
   await connectToDatabase();
   await getUserModel();
@@ -379,7 +326,7 @@ export async function getOrderById(
       select: "name storeEmail logo",
     })
     .select(
-      "_id userId stores totalAmount paymentStatus discount createdAt subOrders"
+      "_id userId stores totalAmount paymentStatus discount createdAt subOrders",
     );
 
   return lean ? query.lean<IOrder>().exec() : query.exec();
@@ -392,7 +339,7 @@ export async function getOrderById(
  */
 export async function getOrdersByUserId(
   userId: string,
-  lean = false
+  lean = false,
 ): Promise<IOrder[] | null> {
   await connectToDatabase();
   const Order = await getOrderModel();

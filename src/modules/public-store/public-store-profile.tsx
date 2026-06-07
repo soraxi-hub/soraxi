@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { truncateText } from "@/lib/utils";
 import { StoreProfileManagerPublic } from "@/domain/stores/store-profile-manager-public";
-import { ProductCard } from "../products/product-detail/product-card";
+// import { ProductCard } from "../products/product-detail/product-card";
 import {
   Tooltip,
   TooltipContent,
@@ -239,12 +239,12 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                             key={product._id}
                             href={`/products/${product.slug}`}
                           >
-                            <ProductCard
+                            {/* <ProductCard
                               product={{
                                 ...product,
                                 id: product._id,
                               }}
-                            />
+                            /> */}
                           </Link>
                         ))}
                       </div>

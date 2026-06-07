@@ -1,45 +1,21 @@
 "use server";
 
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
-
-export interface StoreTokenData {
-  id: string;
-  name: string;
-  storeEmail: string;
-  status: string;
-}
+import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { TokenType } from "@/enums";
 
 /**
  * Safely extracts store token data from the "store" cookie.
  * Returns null if the token is missing or invalid.
  */
-export async function getStoreFromCookie(): Promise<StoreTokenData | null> {
+export async function getStoreFromCookie() {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("store")?.value;
-
-    if (!process.env.JWT_SECRET_KEY) {
-      console.error("Missing required environment variables");
-      throw new Error(
-        "Server configuration error: Missing required JWT environment variables"
-      );
-    }
+    const token = cookieStore.get(TokenType.Store)?.value;
 
     if (!token) return null;
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET_KEY
-    ) as StoreTokenData;
-
-    const isValid =
-      typeof decoded.id === "string" &&
-      typeof decoded.name === "string" &&
-      typeof decoded.storeEmail === "string" &&
-      typeof decoded.status === "string";
-
-    return isValid ? decoded : null;
+    return CookieService.verifyStoreToken(token);
   } catch (err) {
     console.error("Invalid store token:", err);
     return null;

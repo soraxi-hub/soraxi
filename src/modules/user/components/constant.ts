@@ -1,4 +1,4 @@
-import { TokenData } from "@/lib/helpers/get-user-data-from-token";
+import { UserTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import {
   UserIcon,
   PackageIcon,
@@ -8,14 +8,16 @@ import {
   HelpCircleIcon,
   BuildingIcon,
   BadgeInfoIcon,
+  // AlertTriangleIcon,
 } from "lucide-react";
 
-export const userSidebarItems = (user: TokenData) => [
+export const userSidebarItems = (user: UserTokenPayload) => [
   {
     label: "My Account",
     items: [
       { title: "Profile", url: "/profile", icon: UserIcon },
       { title: "Order History", url: "/orders", icon: PackageIcon },
+      // { title: "My Disputes", url: "/disputes", icon: AlertTriangleIcon },
       { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
       { title: "My Requests", url: "/my-requests", icon: BadgeInfoIcon },
     ],

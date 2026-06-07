@@ -9,11 +9,10 @@ import {
  * Interface for User document
  * All monetary values (if any) are assumed to be stored in kobo to avoid floating-point errors.
  */
-export interface IUser extends Document {
-  _id: mongoose.Types.ObjectId;
+export interface IUser {
+  _id?: mongoose.Types.ObjectId;
   firstName: string;
   lastName: string;
-  otherNames: string;
   email: string;
   password: string;
   phoneNumber: string;
@@ -26,21 +25,19 @@ export interface IUser extends Document {
   stores?: {
     storeId: mongoose.Types.ObjectId;
   }[];
-  forgotpasswordToken?: string;
-  forgotpasswordTokenExpiry?: Date;
-  verifyToken?: string;
-  verifyTokenExpiry?: Date;
-  otpAttempts?: number; // NEW: Track failed verification attempts
-  otpAttemptsResetAt?: Date; // NEW: When to reset attempt counter
   lastOtpRequestAt?: Date; // NEW: Prevent OTP spam
+  otpRequestBlockedUntil?: Date; // NEW: Prevent a user from requesting many OTPs within a short period of time
   createdAt: Date;
   updatedAt: Date;
 }
 
+// Mongoose-aware version — only used in DB layer
+export type IUserDocument = IUser & Document;
+
 /**
  * Mongoose schema for users
  */
-const UserSchema = new Schema<IUser>(
+const UserSchema = new Schema<IUserDocument>(
   {
     firstName: {
       type: String,
@@ -50,11 +47,6 @@ const UserSchema = new Schema<IUser>(
     lastName: {
       type: String,
       required: [true, "Last name is required"],
-      trim: true,
-    },
-    otherNames: {
-      type: String,
-      required: [true, "Other names are required"],
       trim: true,
     },
     email: {
@@ -118,32 +110,17 @@ const UserSchema = new Schema<IUser>(
         },
       },
     ],
-    forgotpasswordToken: {
-      type: String,
-    },
-    forgotpasswordTokenExpiry: {
-      type: Date,
-    },
-    verifyToken: {
-      type: String,
-    },
-    verifyTokenExpiry: {
-      type: Date,
-    },
-    otpAttempts: {
-      type: Number,
-    },
-    otpAttemptsResetAt: {
-      type: Date,
-    },
     lastOtpRequestAt: {
+      type: Date,
+    },
+    otpRequestBlockedUntil: {
       type: Date,
     },
   },
   {
     // Adds createdAt and updatedAt timestamps
     timestamps: true,
-  }
+  },
 );
 
 /**
@@ -152,14 +129,14 @@ const UserSchema = new Schema<IUser>(
  *
  * @returns Mongoose User model
  */
-export async function getUserModel(): Promise<Model<IUser>> {
+export async function getUserModel(): Promise<Model<IUserDocument>> {
   // Connect to the database
   await connectToDatabase();
 
   // Use existing model if it exists, otherwise create a new one
   return (
-    (mongoose.models.User as Model<IUser>) ||
-    mongoose.model<IUser>("User", UserSchema)
+    (mongoose.models.User as Model<IUserDocument>) ||
+    mongoose.model<IUserDocument>("User", UserSchema)
   );
 }
 
@@ -171,8 +148,16 @@ export async function getUserModel(): Promise<Model<IUser>> {
  */
 export async function getUserByEmail(
   email: string,
-  lean = false
-): Promise<IUser | null> {
+  lean: true,
+): Promise<IUser | null>;
+export async function getUserByEmail(
+  email: string,
+  lean?: false,
+): Promise<IUserDocument | null>;
+export async function getUserByEmail(
+  email: string,
+  lean = false,
+): Promise<IUser | IUserDocument | null> {
   await connectToDatabase();
   const User = await getUserModel();
 
@@ -187,18 +172,26 @@ export async function getUserByEmail(
  */
 export async function getUserById(
   id: string,
-  lean = false
-): Promise<IUser | null> {
+  lean: true,
+): Promise<IUser | null>;
+export async function getUserById(
+  id: string,
+  lean?: false,
+): Promise<IUserDocument | null>;
+export async function getUserById(
+  id: string,
+  lean = false,
+): Promise<IUser | IUserDocument | null> {
   await connectToDatabase();
   const User = await getUserModel();
 
   return lean
     ? User.findById(id)
         .select(
-          "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+          "firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode",
         )
         .lean<IUser>()
     : User.findById(id).select(
-        "firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode"
+        "firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode",
       );
 }

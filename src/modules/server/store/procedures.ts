@@ -3,12 +3,12 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { getProductModel } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import {
+  ProductStatusEnum,
   StoreBusinessInfoEnum,
   StoreStatusEnum,
-} from "@/validators/store-validators";
-import { ProductStatusEnum } from "@/validators/product-validators";
+} from "@/enums";
 
 export const storeRouter = createTRPCRouter({
   getById: baseProcedure
@@ -35,8 +35,6 @@ export const storeRouter = createTRPCRouter({
         storeEmail: store.storeEmail,
         status: store.status,
         verification: store.verification,
-        logoUrl: store.logoUrl,
-        bannerUrl: store.bannerUrl,
         onboarding: computeOnboardingStatus(store),
       };
     }),
@@ -92,8 +90,6 @@ export const storeRouter = createTRPCRouter({
           profile: {
             name: store.name,
             description: store.description,
-            logoUrl: store.logoUrl,
-            bannerUrl: store.bannerUrl,
           },
           "business-info": store.businessInfo || {},
           shipping: store.shippingMethods,
@@ -347,6 +343,29 @@ export const storeRouter = createTRPCRouter({
         }
 
         const Product = await getProductModel();
+        const product = await Product.findById(productId)
+          .select("images")
+          .lean<IProduct>();
+
+        if (!product) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found",
+          });
+        }
+
+        // validate that the images already exist before rearranging or reordering them
+        const isValidImages = images.every((img) =>
+          product.images?.includes(img),
+        );
+
+        if (!isValidImages) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid image list provided",
+          });
+        }
+
         const result = await Product.updateOne(
           { _id: productId, storeId: store.id },
           { $set: { images } },

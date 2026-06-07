@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { CouponTypeEnum } from "@/enums";
 import { Document } from "mongoose";
 
 export const DiscountSchema = z.object({

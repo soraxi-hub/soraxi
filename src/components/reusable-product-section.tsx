@@ -61,7 +61,7 @@ function ReusableProductSection({
         ) : display === "vertical" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Link key={product.id} href={`/products/${product.slug}`}>
+              <Link key={product.productId} href={`/products/${product.slug}`}>
                 <ProductCard product={product} />
               </Link>
             ))}
@@ -75,7 +75,10 @@ function ReusableProductSection({
             >
               <div className="flex gap-6 min-w-max">
                 {products.map((product) => (
-                  <div key={product.id} className="w-[280px] flex-shrink-0">
+                  <div
+                    key={product.productId}
+                    className="w-[280px] flex-shrink-0"
+                  >
                     <Link href={`/products/${product.slug}`}>
                       <ProductCard product={product} />
                     </Link>

@@ -1,11 +1,11 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { ProductTypeEnum } from "@/enums";
 
 /**
  * Product Review Interface - represents a single review of a product by a buyer
  */
-export interface IProductReview extends Document {
+export interface IProductReview {
   productId: mongoose.Schema.Types.ObjectId;
   productType: ProductTypeEnum;
   customerId: mongoose.Schema.Types.ObjectId;
@@ -16,8 +16,10 @@ export interface IProductReview extends Document {
   updatedAt: Date;
 }
 
+export type IProductReviewDocument = IProductReview & Document;
+
 // Product Review Schema
-const ProductReviewSchema = new Schema<IProductReview>(
+const ProductReviewSchema = new Schema<IProductReviewDocument>(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -50,7 +52,7 @@ const ProductReviewSchema = new Schema<IProductReview>(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Ensure unique review per product per buyer
@@ -59,10 +61,12 @@ ProductReviewSchema.index({ productId: 1, customerId: 1 }, { unique: true });
 /**
  * Model getter for ProductReview
  */
-export async function getProductReviewModel(): Promise<Model<IProductReview>> {
+export async function getProductReviewModel(): Promise<
+  Model<IProductReviewDocument>
+> {
   await connectToDatabase();
   return (
-    (mongoose.models.ProductReview as Model<IProductReview>) ||
-    mongoose.model<IProductReview>("ProductReview", ProductReviewSchema)
+    (mongoose.models.ProductReview as Model<IProductReviewDocument>) ||
+    mongoose.model<IProductReviewDocument>("ProductReview", ProductReviewSchema)
   );
 }

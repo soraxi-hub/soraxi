@@ -36,12 +36,6 @@ export const userSignUpInfoValidation = z.object({
     })
     .min(3, { message: "Minimum 3 Characters" })
     .max(15),
-  otherNames: z
-    .string({
-      required_error: "Required",
-    })
-    .min(3, { message: "Minimum 3 Characters" })
-    .max(15),
   email: z
     .string({
       required_error: "Required",

@@ -28,7 +28,7 @@ import AlertUI from "@/modules/shared/alert";
 const steps = [
   {
     title: "Personal Details",
-    fields: ["firstName", "lastName", "otherNames"],
+    fields: ["firstName", "lastName"],
   },
   {
     title: "Address Information",
@@ -64,7 +64,6 @@ function SignUp() {
     defaultValues: {
       firstName: "",
       lastName: "",
-      otherNames: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -80,7 +79,6 @@ function SignUp() {
     const fields = steps[currentStep - 1].fields as Array<
       | "firstName"
       | "lastName"
-      | "otherNames"
       | "email"
       | "password"
       | "confirmPassword"
@@ -171,7 +169,7 @@ function SignUp() {
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         toast.error(
-          error.response?.data?.error?.message || "An error occurred"
+          error.response?.data?.error?.message || "An error occurred",
         );
         setError(error.response?.data?.error?.message || "An error occurred");
       } else {
@@ -197,8 +195,8 @@ function SignUp() {
                   currentStep > index + 1
                     ? "bg-soraxi-green text-white"
                     : currentStep === index + 1
-                    ? "bg-blue-400 text-white"
-                    : "bg-gray-400 text-white"
+                      ? "bg-blue-400 text-white"
+                      : "bg-gray-400 text-white"
                 }`}
               >
                 {index + 1}
@@ -247,11 +245,11 @@ function SignUp() {
                 {/* Step 1 */}
                 {currentStep === 1 && (
                   <div className="space-y-4">
-                    {["firstName", "lastName", "otherNames"].map((field) => (
+                    {["firstName", "lastName"].map((field) => (
                       <FormField
                         key={field}
                         control={form.control}
-                        name={field as "firstName" | "lastName" | "otherNames"}
+                        name={field as "firstName" | "lastName"}
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
@@ -259,9 +257,7 @@ function SignUp() {
                                 placeholder={
                                   field.name === "firstName"
                                     ? "First Name"
-                                    : field.name === "lastName"
-                                    ? "Last Name"
-                                    : "Other Names"
+                                    : "Last Name"
                                 }
                                 className={inputClass}
                                 {...field}
@@ -306,10 +302,10 @@ function SignUp() {
                                   field.name === "address"
                                     ? "Street Address"
                                     : field.name === "cityOfResidence"
-                                    ? "City"
-                                    : field.name === "stateOfResidence"
-                                    ? "State"
-                                    : "Postal Code"
+                                      ? "City"
+                                      : field.name === "stateOfResidence"
+                                        ? "State"
+                                        : "Postal Code"
                                 }
                                 className={inputClass}
                                 {...field}
@@ -352,10 +348,10 @@ function SignUp() {
                                     field.name === "email"
                                       ? "Email Address"
                                       : field.name === "phoneNumber"
-                                      ? "Phone Number"
-                                      : field.name === "password"
-                                      ? "Password"
-                                      : "Confirm Password"
+                                        ? "Phone Number"
+                                        : field.name === "password"
+                                          ? "Password"
+                                          : "Confirm Password"
                                   }
                                   className={inputClass}
                                   {...field}

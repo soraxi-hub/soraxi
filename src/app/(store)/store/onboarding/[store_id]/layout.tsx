@@ -3,9 +3,9 @@
 import {
   StoreOnboardingProvider,
   useStoreOnboarding,
-} from "@/contexts/StoreOnboardingContext";
+} from "@/contexts/store-onboarding-context";
 import { IShippingMethod } from "@/lib/db/models/store.model";
-import { StoreBusinessInfoEnum } from "@/validators/store-validators";
+import { StoreBusinessInfoEnum } from "@/enums";
 import axios from "axios";
 import { useEffect } from "react";
 
@@ -53,7 +53,7 @@ function OnboardingInitializer() {
 
       try {
         const response = await axios.get<{ store: Store }>(
-          "/api/store/onboarding/onboarding-details"
+          "/api/store/onboarding/onboarding-details",
         );
 
         const { store } = response.data;

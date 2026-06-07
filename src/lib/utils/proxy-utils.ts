@@ -1,3 +1,4 @@
+import { TokenType } from "@/enums";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -54,21 +55,21 @@ export class ProxyUtils {
    * Retrieves the authenticated user token.
    */
   getUserToken() {
-    return this.getToken("user");
+    return this.getToken(TokenType.User);
   }
 
   /**
    * Retrieves the authenticated store token.
    */
   getStoreToken() {
-    return this.getToken("store");
+    return this.getToken(TokenType.Store);
   }
 
   /**
    * Retrieves the authenticated admin token.
    */
   getAdminToken() {
-    return this.getToken("adminToken");
+    return this.getToken(TokenType.Admin);
   }
 
   /**

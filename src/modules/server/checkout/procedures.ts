@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, baseProcedure } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { CheckoutQueryService } from "@/services/server-queries/checkout-query.service";
+// import { CheckoutQueryService } from "@/services/server-queries/checkout-query.service";
+import { CartService } from "@/services/cart/cart.service";
 
 export const checkoutRouter = createTRPCRouter({
   /**
@@ -18,7 +19,8 @@ export const checkoutRouter = createTRPCRouter({
         });
       }
 
-      return await CheckoutQueryService.getGroupedCart(user.id);
+      return await CartService.getGroupedCart(user.id);
+      // return await CheckoutQueryService.getGroupedCart(user.id);
     } catch (error) {
       throw handleTRPCError(error);
     }
@@ -39,7 +41,8 @@ export const checkoutRouter = createTRPCRouter({
         });
       }
 
-      return await CheckoutQueryService.validateUserCart(user.id);
+      return await CartService.validateUserCart(user.id);
+      // return await CheckoutQueryService.validateUserCart(user.id);
     } catch (error) {
       throw handleTRPCError(error);
     }

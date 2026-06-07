@@ -5,6 +5,7 @@ import {
   CheckCircle2Icon,
   Clock,
   DollarSign,
+  ExternalLink,
   Loader,
   ShoppingBag,
   Store,
@@ -33,25 +34,35 @@ import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { OrderTimeline } from "./order-timeline";
 import { DeliveryStatus, deliveryStatusLabel } from "@/enums";
+import { SuborderFinancialStatus } from "@/enums/financial.enums";
+import Link from "next/link";
 
 type ProductsOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
+
+/**
+ * Financial status map returned by getSuborderFinancialStatuses
+ * keyed by suborderId
+ */
+type FinancialStatusMap = Record<
+  string,
+  {
+    status: SuborderFinancialStatus;
+    disputeId: string | null;
+  }
+>;
 
 interface StoreAccordionProps {
   subOrders: ProductsOutput["subOrders"];
   totalProducts: number;
   storesCount: number;
+  orderId: string; // Needed for dispute status page link
+  financialStatuses: FinancialStatusMap; // From getSuborderFinancialStatuses
   onUpdateDeliveryStatusAction: (subOrderId: string) => void;
   onReviewInitAction: (productId: string) => void;
-  onReturnInitAction: (
-    product: { _id: string; name: string; quantity: number; images?: string[] },
-    subOrderId: string
-  ) => void;
+  onDisputeInitAction: (subOrderId: string, storeName: string) => void;
   submitting: boolean;
 }
 
-/**
- * Enhanced DetailItem component with icon
- */
 const DetailItem = ({
   icon,
   label,
@@ -78,9 +89,11 @@ export function StoreAccordion({
   subOrders,
   totalProducts,
   storesCount,
+  orderId,
+  financialStatuses,
   onUpdateDeliveryStatusAction,
   onReviewInitAction,
-  onReturnInitAction,
+  onDisputeInitAction,
   submitting,
 }: StoreAccordionProps) {
   return (
@@ -99,6 +112,30 @@ export function StoreAccordion({
             {subOrders.map((subOrder, index) => {
               const statusConfig = getStatusBadge(subOrder.deliveryStatus);
               const StatusIcon = statusConfig.icon;
+
+              const subOrderId = subOrder._id ?? "";
+              const financialStatus = financialStatuses[subOrderId];
+              const storeName =
+                typeof subOrder.store === "object" && "name" in subOrder.store
+                  ? subOrder.store.name
+                  : `Store ${index + 1}`;
+
+              // Determine dispute UI state for this suborder
+              const isDisputeOpen =
+                financialStatus?.status === SuborderFinancialStatus.DISPUTED;
+              const isRefunded =
+                financialStatus?.status === SuborderFinancialStatus.REFUNDED;
+
+              // Show dispute button only when:
+              // - Order is in a deliverable state (delivered)
+              // - Financial status is PENDING (not yet settled, disputed, or refunded)
+              // - Delivery has not been confirmed yet
+              const canRaiseDispute =
+                financialStatus?.status !== SuborderFinancialStatus.REFUNDED &&
+                financialStatus?.status !== SuborderFinancialStatus.DISPUTED &&
+                financialStatus?.status !== SuborderFinancialStatus.HELD &&
+                subOrder.deliveryStatus === DeliveryStatus.Delivered;
+
               return (
                 <AccordionItem
                   key={index}
@@ -110,13 +147,27 @@ export function StoreAccordion({
                       <div className="flex items-center gap-4">
                         <Store className="w-5 h-5 text-primary hidden sm:inline-flex" />
                         <span className="font-medium">
-                          {typeof subOrder.store === "object" &&
-                          "name" in subOrder.store
-                            ? truncateText(subOrder.store.name, 15)
-                            : `Store ${index + 1}`}
+                          {truncateText(storeName, 15)}
                         </span>
                       </div>
                       <div className="flex gap-2">
+                        {/* Dispute status badges */}
+                        {isDisputeOpen && (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-400 text-amber-600 dark:text-amber-400 text-xs"
+                          >
+                            Dispute Open
+                          </Badge>
+                        )}
+                        {isRefunded && (
+                          <Badge
+                            variant="outline"
+                            className="border-soraxi-green text-soraxi-green text-xs"
+                          >
+                            Refunded
+                          </Badge>
+                        )}
                         <div
                           className={`p-2 rounded-full ${statusConfig.color}`}
                         >
@@ -139,7 +190,6 @@ export function StoreAccordion({
                           label="Shipping Method"
                           value={subOrder.shippingMethod?.name || "N/A"}
                         />
-
                         <DetailItem
                           icon={
                             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -148,12 +198,11 @@ export function StoreAccordion({
                           value={
                             subOrder.deliveryDate
                               ? new Date(
-                                  subOrder.deliveryDate
+                                  subOrder.deliveryDate,
                                 ).toLocaleDateString()
                               : "N/A"
                           }
                         />
-
                         {subOrder.customerConfirmedDelivery.confirmed && (
                           <DetailItem
                             icon={
@@ -162,6 +211,29 @@ export function StoreAccordion({
                             label=""
                             value={"Delivery Confirmed"}
                           />
+                        )}
+
+                        {/* Raise Dispute button */}
+                        {canRaiseDispute && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  onDisputeInitAction(subOrderId, storeName)
+                                }
+                                disabled={submitting}
+                                className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                Raise a Dispute
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-sm leading-snug">
+                              Received the wrong item or something damaged?{" "}
+                              <br />
+                              Raise a dispute and we&#39;ll investigate.
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
 
@@ -172,7 +244,7 @@ export function StoreAccordion({
                           }
                           label="Shipping Cost"
                           value={formatNaira(
-                            subOrder.shippingMethod?.price || 0
+                            subOrder.shippingMethod?.price || 0,
                           )}
                         />
                         <DetailItem
@@ -186,6 +258,7 @@ export function StoreAccordion({
                           }
                         />
 
+                        {/* Confirm Delivery button */}
                         {!subOrder.customerConfirmedDelivery.confirmed &&
                           !subOrder.customerConfirmedDelivery.autoConfirmed &&
                           (subOrder.deliveryStatus ===
@@ -196,9 +269,7 @@ export function StoreAccordion({
                               <TooltipTrigger asChild>
                                 <Button
                                   onClick={() =>
-                                    onUpdateDeliveryStatusAction(
-                                      subOrder._id || ""
-                                    )
+                                    onUpdateDeliveryStatusAction(subOrderId)
                                   }
                                   disabled={submitting}
                                   className="w-full mt-2 text-white bg-soraxi-green hover:bg-soraxi-green-hover"
@@ -221,6 +292,21 @@ export function StoreAccordion({
                             </Tooltip>
                           )}
 
+                        {/* Dispute open — link to status page */}
+                        {isDisputeOpen && financialStatus?.disputeId && (
+                          <Link
+                            href={`/orders/${orderId}/dispute/${financialStatus.disputeId}`}
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full mt-2 border-amber-400/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              View Dispute
+                            </Button>
+                          </Link>
+                        )}
+
                         {subOrder.customerConfirmedDelivery.confirmed && (
                           <DetailItem
                             icon={
@@ -230,7 +316,7 @@ export function StoreAccordion({
                             value={
                               subOrder.customerConfirmedDelivery.confirmedAt
                                 ? new Date(
-                                    subOrder.customerConfirmedDelivery.confirmedAt
+                                    subOrder.customerConfirmedDelivery.confirmedAt,
                                   ).toLocaleDateString()
                                 : "N/A"
                             }
@@ -253,7 +339,6 @@ export function StoreAccordion({
 
                     <Separator className="mb-6" />
 
-                    {/* Products Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subOrder.products.map(
                         (product, productIndex: number) => (
@@ -261,13 +346,12 @@ export function StoreAccordion({
                             key={`${productIndex}`}
                             product={product}
                             onReviewInitAction={(id) => onReviewInitAction(id)}
-                            onReturnInitAction={(product) =>
-                              onReturnInitAction(product, subOrder._id)
-                            }
+                            // Returns functionality removed — replaced by disputes
+                            onReturnInitAction={() => {}}
                             deliveryStatus={subOrder.deliveryStatus}
-                            subOrderId={subOrder._id}
+                            subOrderId={subOrderId}
                           />
-                        )
+                        ),
                       )}
                     </div>
                   </AccordionContent>

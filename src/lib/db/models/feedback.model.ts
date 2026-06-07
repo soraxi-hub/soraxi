@@ -1,7 +1,7 @@
 import mongoose, { type Document, Model, Schema } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 
-export interface IFeedback extends Document {
+export interface IFeedback {
   userId?: mongoose.Schema.Types.ObjectId;
   feedBackPage: "user" | "store-dashboard" | "payment-success";
   answers: {
@@ -15,7 +15,9 @@ export interface IFeedback extends Document {
   updatedAt: Date;
 }
 
-const FeedbackSchema = new Schema<IFeedback>(
+export type IFeedbackDocument = IFeedback & Document;
+
+const FeedbackSchema = new Schema<IFeedbackDocument>(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -55,21 +57,18 @@ const FeedbackSchema = new Schema<IFeedback>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index for efficient querying
 FeedbackSchema.index({ feedBackPage: 1, createdAt: -1 });
 FeedbackSchema.index({ userId: 1, createdAt: -1 });
 
-export async function getFeedbackModel(): Promise<Model<IFeedback>> {
+export async function getFeedbackModel(): Promise<Model<IFeedbackDocument>> {
   await connectToDatabase();
 
   return (
-    (mongoose.models.Feedback as Model<IFeedback>) ||
-    mongoose.model<IFeedback>("Feedback", FeedbackSchema)
+    (mongoose.models.Feedback as Model<IFeedbackDocument>) ||
+    mongoose.model<IFeedbackDocument>("Feedback", FeedbackSchema)
   );
 }
-
-// export default mongoose.models.Feedback ||
-//   mongoose.model<IFeedback>("Feedback", FeedbackSchema);

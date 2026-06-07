@@ -1,12 +1,9 @@
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
 import { z } from "zod";
-import {
-  storeDescription,
-  storeName,
-  StoreStatusEnum,
-} from "@/validators/store-validators";
+import { storeDescription, storeName } from "@/validators/store-validators";
 import { DateFormatter } from "@/lib/utils/date-formatter";
+import { StoreStatusEnum } from "@/enums";
 
 type StoreProfileData = inferProcedureOutput<
   AppRouter["storeProfile"]["getStoreProfilePrivate"]

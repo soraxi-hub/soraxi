@@ -1,12 +1,9 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import {
-  getProductBySlug,
-  getProductModel,
-  getProducts,
-} from "@/lib/db/models/product.model";
+import { getProductModel, getProducts } from "@/lib/db/models/product.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { ProductService } from "@/services/products/product.service";
 
 /**
  * tRPC Router: homeRouter
@@ -36,79 +33,12 @@ export const homeRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
-      const {
-        page,
-        limit,
-        category,
-        subCategory,
-        targetAudience,
-        search,
-        sort,
-        priceMin,
-        priceMax,
-        ratings,
-      } = input;
-
       try {
-        const products = await getProducts({
-          visibleOnly: true,
-          limit,
-          skip: (page - 1) * limit,
-          category: category !== "all" ? category : undefined,
-          subCategory,
-          targetAudience,
-          verified: true,
-          search,
-          sort,
-          priceMin,
-          priceMax,
-          ratings,
-        });
-
-        const formattedProducts = products.map((product) => ({
-          id: (product._id as string).toString(),
-          name: product.name,
-          price: product.price,
-          images: product.images,
-          category: product.category,
-          subCategory: product.subCategory,
-          targetAudience: product.targetAudience,
-          rating: product.rating || 0,
-          slug: product.slug,
-          isVerifiedProduct: product.isVerifiedProduct,
-        }));
-
-        // console.log("Products returned:", formattedProducts.length);
-
-        const groupedProducts: Record<string, typeof formattedProducts> = {};
-
-        for (const product of formattedProducts) {
-          if (!product.targetAudience) continue;
-
-          for (const audience of product.targetAudience) {
-            if (!groupedProducts[audience]) {
-              groupedProducts[audience] = [];
-            }
-            groupedProducts[audience].push(product);
-          }
-        } // Big O(n*m) but we expect small arrays here
-
-        // console.log(
-        //   "Grouped Products:",
-        //   Object.keys(groupedProducts)
-        //     .map((key) => `${key}: ${groupedProducts[key].length} products`)
-        //     .join(", "),
-        // );
+        const data = await ProductService.getPublicProducts(input);
 
         return {
           success: true,
-          products: formattedProducts,
-          groupedProducts: groupedProducts,
-          pagination: {
-            page,
-            limit,
-            total: formattedProducts.length,
-          },
+          ...data,
         };
       } catch (err: any) {
         throw handleTRPCError(
@@ -132,7 +62,7 @@ export const homeRouter = createTRPCRouter({
       const { slug } = input;
 
       try {
-        const product = await getProductBySlug(slug);
+        const product = await ProductService.getPublicProductBySlug(slug);
 
         if (!product) {
           // Return a safe response indicating product not found
@@ -157,42 +87,12 @@ export const homeRouter = createTRPCRouter({
           };
         }
 
-        const formattedProduct = {
-          id: (product._id as string).toString(),
-          storeId: product.storeId.toString(),
-          productType: product.productType,
-          name: product.name,
-          description: product.description,
-          specifications: product.specifications,
-          productQuantity: product.productQuantity,
-          sizes: product.sizes,
-          price: product.price,
-          images: product.images,
-          category: product.category,
-          subCategory: product.subCategory,
-          rating: product.rating || 0,
-          slug: product.slug,
-          isVerifiedProduct: product.isVerifiedProduct,
-        };
-
         return {
           success: true,
-          product: formattedProduct,
+          product,
           storeStatus: storeDoc.status,
         };
       } catch (err: any) {
-        // if (
-        //   err?.code === "ENOTFOUND" ||
-        //   err?.name === "MongoNetworkError" ||
-        //   err?.message?.includes("getaddrinfo")
-        // ) {
-        //   throw new TRPCError({
-        //     code: "INTERNAL_SERVER_ERROR",
-        //     message: "NETWORK_ERROR",
-        //     cause: err,
-        //   });
-        // }
-
         throw handleTRPCError(
           err,
           "Failed to fetch product. Please try again later.",
@@ -236,7 +136,7 @@ export const homeRouter = createTRPCRouter({
           .lean();
 
         return related.map((product) => ({
-          id: (product._id as string).toString(),
+          id: product._id.toString(),
           name: product.name,
           images: product.images,
           sizes: product.sizes,
@@ -267,7 +167,7 @@ export const homeRouter = createTRPCRouter({
       });
 
       const formattedProducts = products.map((product) => ({
-        id: (product._id as string).toString(),
+        id: product._id!.toString(),
         name: product.name,
         price: product.price,
         images: product.images,

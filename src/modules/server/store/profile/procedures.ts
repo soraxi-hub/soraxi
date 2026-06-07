@@ -35,7 +35,7 @@ export const storeProfileRouter = createTRPCRouter({
     await getProductModel();
     const storeData = await Store.findById(store.id)
       .select(
-        "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+        "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry",
       )
       .populate({
         path: "physicalProducts",
@@ -59,7 +59,7 @@ export const storeProfileRouter = createTRPCRouter({
       storeEmail: storeData.storeEmail,
       uniqueId: storeData.uniqueId,
       followers: storeData.followers.map((follower: mongoose.Types.ObjectId) =>
-        follower.toString()
+        follower.toString(),
       ),
       products: (
         (storeData.physicalProducts as unknown as Product[]) || []
@@ -74,8 +74,6 @@ export const storeProfileRouter = createTRPCRouter({
         isVerifiedProduct: product.isVerifiedProduct,
         productType: product.productType,
       })),
-      logoUrl: storeData.logoUrl,
-      bannerUrl: storeData.bannerUrl,
       description: storeData.description,
       verification: storeData.verification,
       businessInfo: storeData.businessInfo,
@@ -92,7 +90,7 @@ export const storeProfileRouter = createTRPCRouter({
     .input(
       z.object({
         name: storeName,
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { store } = ctx;
@@ -125,10 +123,10 @@ export const storeProfileRouter = createTRPCRouter({
         updatedStore = await Store.findByIdAndUpdate(
           store.id,
           { name: input.name },
-          { new: true, runValidators: true }
+          { new: true, runValidators: true },
         )
           .select(
-            "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+            "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry",
           )
           .lean();
       } catch (err: unknown) {
@@ -159,7 +157,7 @@ export const storeProfileRouter = createTRPCRouter({
     .input(
       z.object({
         description: storeDescription,
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { store } = ctx;
@@ -175,10 +173,10 @@ export const storeProfileRouter = createTRPCRouter({
       const updatedStore = await Store.findByIdAndUpdate(
         store.id,
         { description: input.description },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       )
         .select(
-          "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry"
+          "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry",
         )
         .lean();
 

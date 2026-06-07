@@ -4,18 +4,17 @@ import { TRPCError } from "@trpc/server";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
-// import {
-//   logAdminAction,
-//   AUDIT_ACTIONS,
-//   AUDIT_MODULES,
-// } from "@/modules/admin/security/audit-logger";
-// import { Role } from "@/modules/admin/security/roles";
 import mongoose from "mongoose";
 import { RawOrderDocument } from "@/types/order";
 import { formatOrderDocumentsForAdmins } from "@/lib/utils/order-formatter";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { AdminGuard } from "@/domain/admin/admin-guard";
+import { connectToDatabase } from "@/lib/db/mongoose";
+import { getTransactionRecordByOrderId } from "@/lib/db/models/transaction-record.model";
+// import { koboToNaira } from "@/lib/utils/naira";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { SuborderFinancialStatus } from "@/enums/financial.enums";
 
 /**
  * Admin Orders TRPC Router
@@ -55,10 +54,10 @@ export const adminOrdersRouter = createTRPCRouter({
 
         // Search parameters
         search: z.string().optional(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
-      const { admin } = ctx;
+      const { admin: unAuthenticatedAdmin } = ctx;
       try {
         // ==================== Authentication & Authorization ====================
         /**
@@ -67,12 +66,7 @@ export const adminOrdersRouter = createTRPCRouter({
          * Verifies that the request is coming from an authenticated admin user
          * with appropriate permissions to view order data.
          */
-        if (!admin || !checkAdminPermission(admin, [PERMISSIONS.VIEW_ORDERS])) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Unauthorized access",
-          });
-        }
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_ORDERS);
 
         // ==================== Request Parameters ====================
         /**
@@ -192,30 +186,6 @@ export const adminOrdersRouter = createTRPCRouter({
 
         const formattedOrders = formatOrderDocumentsForAdmins(orders);
 
-        // ==================== Audit Logging ====================
-        /**
-         * Log Admin Action
-         */
-        // await logAdminAction({
-        //   adminId: admin.id,
-        //   adminName: admin.name,
-        //   adminEmail: admin.email,
-        //   adminRoles: admin.roles as Role[],
-        //   action: AUDIT_ACTIONS.ORDER_VIEWED,
-        //   module: AUDIT_MODULES.ORDERS,
-        //   details: {
-        //     filters: {
-        //       page,
-        //       limit,
-        //       fromDate: fromDateObj?.toISOString(),
-        //       toDate: toDateObj?.toISOString(),
-        //       status,
-        //       search,
-        //     },
-        //     resultCount: formattedOrders.length,
-        //   },
-        // });
-
         // ==================== Response ====================
         /**
          * Return Formatted Response
@@ -265,6 +235,133 @@ export const adminOrdersRouter = createTRPCRouter({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch orders. Please try again later.",
         });
+      }
+    }),
+
+  getAdminOrderById: baseProcedure
+    .input(z.object({ orderId: z.string().min(1) }))
+    .query(async ({ input, ctx }) => {
+      try {
+        const { admin: unAuthenticatedAdmin } = ctx;
+        AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.VIEW_ORDERS);
+
+        if (!mongoose.Types.ObjectId.isValid(input.orderId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid order ID format.",
+          });
+        }
+
+        await connectToDatabase();
+        const Order = await getOrderModel();
+
+        const order = await Order.findById(input.orderId)
+          .populate({
+            path: "userId",
+            select: "firstName lastName email phoneNumber",
+          })
+          .populate({
+            path: "subOrders.storeId",
+            select: "name storeEmail",
+          })
+          .lean();
+
+        if (!order) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Order not found.",
+          });
+        }
+
+        // Fetch financial statuses for all suborders
+        const transactionRecord = await getTransactionRecordByOrderId(
+          input.orderId,
+        );
+
+        const financialStatuses: Record<
+          string,
+          {
+            status: string;
+            grossAmount: number;
+            commission: number;
+            settleAmount: number;
+            disputeId: string | null;
+          }
+        > = {};
+
+        if (transactionRecord) {
+          const { getActiveDisputeBySuborderId } = await import(
+            "@/lib/db/models/dispute-record.model"
+          );
+
+          for (const breakdown of transactionRecord.suborderBreakdowns) {
+            const suborderId = breakdown.suborderId.toString();
+            let disputeId: string | null = null;
+
+            if (breakdown.status === SuborderFinancialStatus.DISPUTED) {
+              const activeDispute =
+                await getActiveDisputeBySuborderId(suborderId);
+              disputeId = activeDispute
+                ? (activeDispute._id as mongoose.Types.ObjectId).toString()
+                : null;
+            }
+
+            financialStatuses[suborderId] = {
+              status: breakdown.status,
+              grossAmount: breakdown.grossAmount,
+              commission: breakdown.commission,
+              settleAmount: breakdown.settleAmount,
+              disputeId,
+            };
+          }
+        }
+
+        const user = order.userId as any;
+
+        return {
+          orderId: (order._id as mongoose.Types.ObjectId).toString(),
+          orderNumber: `ORD-${(order._id as mongoose.Types.ObjectId).toString().slice(-8).toUpperCase()}`,
+          paymentStatus: order.paymentStatus,
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt,
+          notes: order.notes ?? null,
+          shippingAddress: order.shippingAddress,
+          customer: {
+            id: user?._id?.toString() ?? order.userId.toString(),
+            name: user ? `${user.firstName} ${user.lastName}` : "Unknown",
+            email: user?.email ?? "Unknown",
+            phone: user?.phoneNumber ?? null,
+          },
+          subOrders: order.subOrders.map((sub) => {
+            const store = sub.storeId as any;
+            const suborderId = sub._id?.toString() ?? "";
+            return {
+              subOrderId: suborderId,
+              storeName: store?.name ?? "Unknown Store",
+              storeEmail: store?.storeEmail ?? null,
+              deliveryStatus: sub.deliveryStatus,
+              totalAmount: sub.totalAmount,
+              shippingMethod: sub.shippingMethod ?? null,
+              deliveryDate: sub.deliveryDate ?? null,
+              customerConfirmedDelivery: sub.customerConfirmedDelivery,
+              financialStatus: financialStatuses[suborderId] ?? null,
+              products: sub.products.map((p) => ({
+                name: p.productSnapshot.name,
+                quantity: p.productSnapshot.quantity,
+                price: p.productSnapshot.price,
+                image: p.productSnapshot.images?.[0] ?? null,
+              })),
+              statusHistory: sub.statusHistory.map((h) => ({
+                status: h.status,
+                timestamp: h.timestamp,
+                notes: h.notes ?? null,
+              })),
+            };
+          }),
+          flutterwaveReference: transactionRecord?.flutterwaveReference ?? null,
+        };
+      } catch (error) {
+        throw handleTRPCError(error, "Failed to fetch order details.");
       }
     }),
 });

@@ -8,15 +8,15 @@ import {
   RawProductDocumentAdminManagement,
   type RawProductDocument,
 } from "@/modules/admin/product-formatter";
-import { ProductStatusEnum } from "@/validators/product-validators";
+import { ProductStatusEnum } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { checkAdminPermission } from "@/modules/admin/security/access-control";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import {
   AUDIT_ACTIONS,
   AUDIT_MODULES,
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
+import { AdminGuard } from "@/domain/admin/admin-guard";
 
 const ProductStatusWithAll = {
   ...ProductStatusEnum,
@@ -128,23 +128,12 @@ export const adminProductRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const { productId, action } = input;
-      const { admin } = ctx;
-      const allowedPermissions = [
+      const { admin: unAuthenticatedAdmin } = ctx;
+
+      const admin = AdminGuard.from(unAuthenticatedAdmin).requireAny([
         PERMISSIONS.VERIFY_PRODUCT,
         PERMISSIONS.REJECT_PRODUCT,
-      ];
-
-      if (
-        !admin ||
-        !allowedPermissions.some((permission) =>
-          checkAdminPermission(admin, [permission]),
-        )
-      ) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Admin authentication required",
-        });
-      }
+      ]);
 
       const Product = await getProductModel();
       const product = await Product.findById(productId);

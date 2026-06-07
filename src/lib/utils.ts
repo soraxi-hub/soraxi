@@ -139,7 +139,7 @@ export const getStatusBadge = (status: DeliveryStatus) => {
  * // Can be used to generate request numbers like "WDR-3F7A9B2E"
  * const requestNumber = `WDR-${generateUniqueId(8).toUpperCase()}`;
  */
-export function generateUniqueId(length: number) {
+export function generateUniqueId(length: number): string {
   // Generate a UUID and remove all hyphens
   const uuid = uuidv4().replace(/-/g, "");
 
@@ -154,9 +154,9 @@ export class PasswordService {
   }
   static async validatePassword(
     password: string,
-    dbPassword: string
+    dbPassword: string,
   ): Promise<boolean> {
-    return await bcryptjs.compare(dbPassword, password);
+    return await bcryptjs.compare(password, dbPassword);
   }
 }
 
@@ -182,11 +182,11 @@ export class PasswordService {
  */
 export function truncateText(
   word: string | string[],
-  maxNumber: number = 20
+  maxNumber: number = 20,
 ): string | string[] {
   if (Array.isArray(word)) {
     return word.map((w) =>
-      w.length > maxNumber ? w.slice(0, maxNumber) + "..." : w
+      w.length > maxNumber ? w.slice(0, maxNumber) + "..." : w,
     );
   }
 
@@ -225,3 +225,20 @@ export const getInitials = (name: string) => {
     .join("")
     .toUpperCase();
 };
+
+/**
+ * Smoothly scrolls the browser window back to the top of the page.
+ *
+ * Useful after page navigation, form submissions, pagination changes,
+ * or any action where the user should be returned to the beginning
+ * of the content.
+ *
+ * Uses the browser's native smooth scrolling behavior for a better
+ * user experience.
+ */
+export function scrollToTop() {
+  return window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}

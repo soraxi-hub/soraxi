@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { getProductReviewModel } from "@/lib/db/models/product-review.model";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 
 type PopulatedUser = Pick<IUser, "firstName" | "email" | "lastName">;
@@ -21,7 +21,7 @@ export const productReviewRouter = createTRPCRouter({
         rating: z.number().min(1).max(5),
         writeUp: z.string().min(1),
         orderID: z.string(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const { productId, rating, writeUp, orderID } = input;

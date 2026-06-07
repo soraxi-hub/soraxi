@@ -1,6 +1,8 @@
 import { ICouponRedemption } from "@/validators/coupon-redemption-validation";
-import { type Model, Schema, model, models } from "mongoose";
+import { Document, type Model, Schema, model, models } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+
+export type ICouponRedemptionDocument = ICouponRedemption & Document;
 
 /**
  * Coupon Redemption Schema (Mongoose)
@@ -8,7 +10,7 @@ import { connectToDatabase } from "../mongoose";
  * Tracks each time a coupon is redeemed.
  * Useful for analytics, fraud prevention, and enforcing max usage limits.
  */
-const couponRedemptionSchema = new Schema<ICouponRedemption>(
+const couponRedemptionSchema = new Schema<ICouponRedemptionDocument>(
   {
     couponId: {
       type: String,
@@ -34,7 +36,7 @@ const couponRedemptionSchema = new Schema<ICouponRedemption>(
   },
   {
     timestamps: false,
-  }
+  },
 );
 
 /**
@@ -48,12 +50,12 @@ couponRedemptionSchema.index({ couponId: 1, userId: 1 }, { unique: true });
  * Avoids "Cannot overwrite model once compiled" errors.
  */
 export const getCouponRedemptionModel = async (): Promise<
-  Model<ICouponRedemption>
+  Model<ICouponRedemptionDocument>
 > => {
   await connectToDatabase();
 
   return (
-    (models.CouponRedemption as Model<ICouponRedemption>) ||
-    model<ICouponRedemption>("CouponRedemption", couponRedemptionSchema)
+    (models.CouponRedemption as Model<ICouponRedemptionDocument>) ||
+    model<ICouponRedemptionDocument>("CouponRedemption", couponRedemptionSchema)
   );
 };

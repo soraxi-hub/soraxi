@@ -1,34 +1,32 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
-import { useCartStore } from "@/modules/store/cart-store";
-import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import { useRouter } from "next/navigation";
+import { useCart } from "./use-cart-hook";
+import { useAuth } from "./use-auth-hook";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
 
 interface UseProductInfoReturn {
-  // State
   isCopied: boolean;
   userId: string | null;
   isInWishlist: boolean;
-
-  // Actions
   handleWishlistToggle: (product: Product) => Promise<void>;
   handleAddToCart: (product: Product, size?: string) => Promise<void>;
   handleShareProduct: () => void;
 }
 
 export function useProductInfo(product: Product): UseProductInfoReturn {
+  const { userId } = useAuth();
   const trpc = useTRPC();
   const [isCopied, setIsCopied] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { addItem } = useCart(userId);
   const router = useRouter();
 
   function redirectToLogin(
@@ -37,11 +35,6 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   ) {
     router.push(`/sign-in?redirect=${encodeURIComponent(redirect)}`);
   }
-
-  // Fetch user ID on component mount
-  useEffect(() => {
-    getUserFromCookie().then((user) => setUserId(user?.id ?? null));
-  }, []);
 
   // Fetch user's wishlist
   const { data: wishlist, refetch: refetchWishlist } = useQuery(
@@ -52,9 +45,9 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   const isInWishlist = useMemo(() => {
     if (!product || !wishlist?.products) return false;
     return wishlist.products.some(
-      (item) => item.productId.toString() === product!.id,
+      (item) => item.productId.toString() === product.productId,
     );
-  }, [wishlist, product?.id]);
+  }, [wishlist, product?.productId ?? ""]);
 
   // Wishlist mutations
   const addToWishlist = useMutation(
@@ -90,26 +83,6 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
     }),
   );
 
-  // Cart mutation
-  const addToCart = useMutation(
-    trpc.cart.addItem.mutationOptions({
-      onSuccess: (_, variables) => {
-        useCartStore.getState().addItem({
-          productId: variables.productId,
-          quantity: variables.quantity,
-          size: variables.selectedSize?.size,
-        });
-        toast.success(`${product?.name ?? "Unknown Product"} added to cart`);
-      },
-      onError: (error) => {
-        toast.error(
-          error.message ||
-            `Error adding ${product?.name ?? "Unknown Product"} to cart`,
-        );
-      },
-    }),
-  );
-
   // Handlers
   const handleWishlistToggle = async (product: Product) => {
     if (!product) {
@@ -132,49 +105,26 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
     }
 
     if (isInWishlist) {
-      removeFromWishlist.mutate({ productId: product.id });
+      removeFromWishlist.mutate({ productId: product.productId });
     } else {
       addToWishlist.mutate({
-        productId: product.id,
+        productId: product.productId,
         productType: product.productType,
       });
     }
   };
 
-  const handleAddToCart = async (product: Product, size?: string) => {
+  const handleAddToCart = async (product: Product) => {
     if (!product) {
       toast.info("Product data is unavailable.");
       return;
     }
 
-    if (!userId) {
-      toast.error("Please login to continue.", {
-        action: {
-          label: "Login",
-          onClick: () => redirectToLogin(router, `/products/${product.slug}`),
-        },
-        actionButtonStyle: {
-          backgroundColor: "#14a800",
-          color: "white",
-        },
-      });
-      return;
-    }
-
-    const selectedSizeData = product.sizes?.find((s) => s.size === size);
-
-    addToCart.mutate({
-      productId: product.id,
+    await addItem({
+      productId: product.productId,
       storeId: product.storeId,
-      quantity: 1,
       productType: product.productType,
-      selectedSize: selectedSizeData
-        ? {
-            size: selectedSizeData.size,
-            price: selectedSizeData.price,
-            quantity: selectedSizeData.quantity,
-          }
-        : undefined,
+      quantity: 1,
     });
   };
 

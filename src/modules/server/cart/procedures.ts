@@ -1,20 +1,15 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import {
-  getCartByUserId,
-  addItemToCart,
-  removeItemFromCart,
-  updateCartItemQuantity,
-  addIdempotencyKeyToCart,
-  ICartItem,
-} from "@/lib/db/models/cart.model";
+import { ICartItem } from "@/lib/db/models/cart.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { generateUniqueId } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { CartRepository } from "@/repositories/cart-repo";
+import { CartService } from "@/services/cart/cart.service";
 
 export const cartRouter = createTRPCRouter({
   /**
@@ -33,7 +28,7 @@ export const cartRouter = createTRPCRouter({
         });
       }
 
-      const cart = await getCartByUserId(user.id);
+      const cart = await CartRepository.getCartByUserId(user.id);
       if (!cart) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -73,7 +68,7 @@ export const cartRouter = createTRPCRouter({
 
       if (!user) return emptyCartItems;
 
-      const cart = await getCartByUserId(user.id);
+      const cart = await CartRepository.getCartByUserId(user.id);
       if (!cart) return emptyCartItems;
 
       const cartItems =
@@ -111,7 +106,7 @@ export const cartRouter = createTRPCRouter({
             quantity: z.number(),
           })
           .optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -138,7 +133,7 @@ export const cartRouter = createTRPCRouter({
         const Product = await getProductModel();
 
         const product = await Product.findById(
-          new mongoose.Types.ObjectId(input.productId)
+          new mongoose.Types.ObjectId(input.productId),
         )
           .select("isVisible isVerifiedProduct")
           .lean<IProduct>();
@@ -165,9 +160,9 @@ export const cartRouter = createTRPCRouter({
           });
         }
 
-        const updatedCart = await addItemToCart(user.id, {
-          productId: new mongoose.Types.ObjectId(input.productId),
-          storeId: new mongoose.Types.ObjectId(input.storeId),
+        const updatedCart = await CartService.addToCart(user.id, {
+          productId: input.productId,
+          storeId: input.storeId,
           quantity: input.quantity,
           productType: input.productType,
           selectedSize: input.selectedSize,
@@ -190,7 +185,7 @@ export const cartRouter = createTRPCRouter({
       z.object({
         productId: z.string(),
         size: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -210,10 +205,9 @@ export const cartRouter = createTRPCRouter({
           });
         }
 
-        const updatedCart = await removeItemFromCart(
+        const updatedCart = await CartService.removeFromCart(
           user.id,
           input.productId,
-          input.size
         );
 
         if (!updatedCart) {
@@ -242,7 +236,7 @@ export const cartRouter = createTRPCRouter({
         productId: z.string(),
         quantity: z.number().min(0),
         size: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -256,19 +250,17 @@ export const cartRouter = createTRPCRouter({
         }
 
         if (input.quantity === 0) {
-          const removed = await removeItemFromCart(
+          const removed = await CartService.removeFromCart(
             user.id,
             input.productId,
-            input.size
           );
           return removed;
         }
 
-        const updatedCart = await updateCartItemQuantity(
+        const updatedCart = await CartService.updateItemQuantity(
           user.id,
           input.productId,
           input.quantity,
-          input.size
         );
 
         if (!updatedCart) {
@@ -333,9 +325,9 @@ export const cartRouter = createTRPCRouter({
 
       const idempotencyKey = `IDK-${generateUniqueId(12).toUpperCase()}`;
 
-      const updatedCart = await addIdempotencyKeyToCart(
+      const updatedCart = await CartService.addIdempotencyKey(
         user.id,
-        idempotencyKey
+        idempotencyKey,
       );
 
       if (!updatedCart) {

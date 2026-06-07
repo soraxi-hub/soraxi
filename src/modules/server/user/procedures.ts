@@ -3,24 +3,17 @@ import {
   getUserByEmail,
   getUserModel,
   IUser,
+  IUserDocument,
+  // IUser,
 } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { User } from "@/types";
 import mongoose from "mongoose";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { StoreStatusEnum } from "@/validators/store-validators";
-import { getStoreModel } from "@/lib/db/models/store.model";
-
-type LeanedUser = Omit<IUser, "stores"> & {
-  stores?: {
-    storeId: {
-      _id: mongoose.Types.ObjectId;
-      name: string;
-      status: StoreStatusEnum;
-    };
-  }[];
-};
+import { editProfileValidation } from "@/validators/user-signUp-info-validation";
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import { UserFactory } from "@/domain/users/user-factory";
 
 /**
  * @module userRouter
@@ -57,19 +50,16 @@ export const userRouter = createTRPCRouter({
         });
 
       const User = await getUserModel();
-      await getStoreModel();
+      // const StoreModel = await getStoreModel();
 
-      const user = await User.findById(userTokenData.id)
-        .populate({
-          path: "stores.storeId",
-          select: "_id name status",
-        })
-        .select(
-          "_id firstName lastName otherNames email phoneNumber address cityOfResidence stateOfResidence postalCode isVerified stores"
-        )
-        .lean<LeanedUser>();
+      const userDoc = await QueryBuilderFactory.queryBuilder<
+        IUser,
+        IUserDocument
+      >(User)
+        .where("_id", new mongoose.Types.ObjectId(userTokenData.id))
+        .executeOne();
 
-      if (!user) {
+      if (!userDoc) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `User with id ${userTokenData.id} not found.`,
@@ -77,26 +67,16 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      const serializedUser = {
-        _id: (user._id as unknown as mongoose.Types.ObjectId).toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        otherNames: user.otherNames,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        address: user.address,
-        cityOfResidence: user.cityOfResidence,
-        stateOfResidence: user.stateOfResidence,
-        postalCode: user.postalCode,
-        isVerified: user.isVerified,
-        stores: user.stores?.map((store) => ({
-          storeId: store.storeId._id.toString(),
-          name: store.storeId.name,
-          status: store.storeId.status,
-        })),
-      };
+      // coming up later
+      // const storeIds = (user.stores ?? []).map((s) => s.storeId);
 
-      return serializedUser;
+      // const stores = await StoreModel.find({
+      //   _id: { $in: storeIds },
+      // }).lean<IStore>();
+
+      const user = UserFactory.createBaseUser(userDoc).toJSON();
+
+      return user;
     } catch (error) {
       console.error("Error fetching user by ID:", error);
       throw handleTRPCError(error, "Error fetching user by ID");
@@ -113,7 +93,7 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         email: z.string().email(),
-      })
+      }),
     )
     .query(async (input) => {
       try {
@@ -144,18 +124,7 @@ export const userRouter = createTRPCRouter({
    * Returns the updated user object upon success.
    */
   updateProfile: baseProcedure
-    .input(
-      z.object({
-        firstName: z.string().min(1),
-        lastName: z.string().min(1),
-        phoneNumber: z.string().min(1),
-        email: z.string().email(),
-        address: z.string().min(1),
-        cityOfResidence: z.string().min(1),
-        stateOfResidence: z.string().min(1),
-        postalCode: z.string().min(1),
-      })
-    )
+    .input(editProfileValidation)
     .mutation(async ({ input, ctx }) => {
       try {
         const { user } = ctx;
@@ -169,38 +138,44 @@ export const userRouter = createTRPCRouter({
 
         const User = await getUserModel();
 
-        const updatedUser = await User.findByIdAndUpdate(
-          user.id,
-          {
-            $set: {
-              firstName: input.firstName,
-              lastName: input.lastName,
-              phoneNumber: input.phoneNumber,
-              email: input.email.toLowerCase(),
-              address: input.address,
-              cityOfResidence: input.cityOfResidence,
-              stateOfResidence: input.stateOfResidence,
-              postalCode: input.postalCode,
-            },
-          },
-          { new: true, runValidators: true }
-        ).lean();
+        const dbUser = await User.findById(user.id);
 
-        if (!updatedUser) {
+        if (!dbUser) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "User not found",
+            message: "User Not Found",
           });
         }
 
+        const normalizedInputEmail = input.email.toLowerCase();
+        const existingUser = await User.findOne({
+          email: normalizedInputEmail,
+        });
+
+        if (existingUser && existingUser._id.toString() !== user.id) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Email already in use",
+          });
+        }
+
+        const isUpdated = dbUser.email.toLowerCase() !== normalizedInputEmail;
+
+        // update fields
+        dbUser.firstName = input.firstName;
+        dbUser.lastName = input.lastName;
+        dbUser.phoneNumber = input.phoneNumber;
+        dbUser.email = normalizedInputEmail;
+        dbUser.address = input.address;
+        dbUser.cityOfResidence = input.cityOfResidence;
+        dbUser.stateOfResidence = input.stateOfResidence;
+        dbUser.postalCode = input.postalCode;
+        dbUser.isVerified = !isUpdated;
+
+        await dbUser.save();
+
         return {
           message: "User updated successfully",
-          user: {
-            ...updatedUser,
-            _id: (
-              updatedUser._id as unknown as mongoose.Types.ObjectId
-            ).toString(),
-          },
         };
       } catch (error) {
         console.error("Error updating user profile:", error);

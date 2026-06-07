@@ -1,12 +1,12 @@
-import { ProductEditForm } from "@/modules/store/components/product-edit-form";
 import { caller } from "@/trpc/server";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
 import { Metadata } from "next";
+import { ProductEditWizard } from "@/modules/store/components/product-edit-wizard";
 
 export async function generateMetadata(): Promise<Metadata> {
   return generateStoreMetadata(
     "Edit Product",
-    "Edit and update your product details including pricing, descriptions, and inventory. Keep your listings accurate and up to date to ensure a smooth shopping experience for customers."
+    "Edit and update your product details including pricing, descriptions, and inventory. Keep your listings accurate and up to date to ensure a smooth shopping experience for customers.",
   );
 }
 
@@ -27,18 +27,16 @@ export default async function ProductEditPage({
   const { store_id, productId } = await params;
 
   const data = await caller.storeProducts.getStoreProductById({
-    id: productId,
+    productId,
   });
-
-  const productData = data.product;
 
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
-        <ProductEditForm
+        <ProductEditWizard
           storeId={store_id}
           productId={productId}
-          initialProductData={productData}
+          initialProductData={data.product}
         />
       </div>
     </div>

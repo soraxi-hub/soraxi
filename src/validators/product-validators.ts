@@ -1,26 +1,7 @@
 import { z } from "zod";
 import { storePassword } from "./store-validators";
 import { formatNaira } from "@/lib/utils/naira";
-
-/**
- * Enum for Product Status
- */
-export enum ProductStatusEnum {
-  Draft = "draft",
-  Pending = "pending",
-  Approved = "approved",
-  Rejected = "rejected",
-  Archived = "archived",
-}
-
-export enum ProductActionEnum {
-  Draft = "draft",
-  Publish = "publish",
-}
-
-export enum ProductTypeEnum {
-  Product = "Product", // Keep it like this for proper DB reference to the Product Schema
-}
+import { ProductTypeEnum } from "@/enums";
 
 export const ProductSizesSchema = z
   .array(
@@ -45,7 +26,7 @@ export const productType = z
   .nativeEnum(ProductTypeEnum)
   .default(ProductTypeEnum.Product);
 
-export const productPrice = z
+export const productPrice: z.ZodOptional<z.ZodNumber> = z
   .number()
   .min(500, "Price must be greater than 499")
   .max(100000, `Price must be less than ${formatNaira(10000000)}.`)

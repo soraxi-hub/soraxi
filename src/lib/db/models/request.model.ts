@@ -1,18 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
-
-/**
- * Status of a request post.
- * - Open: Request is active and still looking for responses
- * - Fulfilled: User has found what they were looking for
- * - Expired: Request is no longer valid (auto or manual expiry)
- */
-export enum RequestStatus {
-  Open = "open",
-  Fulfilled = "fulfilled",
-  Expired = "expired",
-}
+import { RequestStatus } from "@/enums";
 
 /**
  * IRequest Interface

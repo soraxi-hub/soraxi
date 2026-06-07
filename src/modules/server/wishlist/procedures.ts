@@ -1,16 +1,10 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import {
-  getWishlistByUserId,
-  addItemToWishlist,
-  removeItemFromWishlist,
-  getWishlistModel,
-} from "@/lib/db/models/wishlist.model";
+import { getWishlistModel } from "@/lib/db/models/wishlist.model";
 import { TRPCError } from "@trpc/server";
-import mongoose from "mongoose";
-import { IProduct } from "@/lib/db/models/product.model";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { WishlistService } from "@/services/wishlist.service";
 
 /**
  * @module wishlistRouter
@@ -78,45 +72,26 @@ export const wishlistRouter = createTRPCRouter({
       const { user } = ctx;
 
       if (!user || !user.id) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You must be logged in to access your wishlist.",
-        });
+        return {
+          userId: "",
+          products: [],
+        };
       }
 
-      const wishlist = await getWishlistByUserId(user.id);
+      const wishlist =
+        await WishlistService.getUserWishlistWithPopulatedProducts(user.id);
 
       // If no wishlist exists, return an empty placeholder structure
       if (!wishlist) {
         return {
           userId: user.id,
           products: [],
-          createdAt: null,
-          updatedAt: null,
         };
       }
 
       const formattedWishlist = {
         userId: wishlist.userId.toString(),
-        products: wishlist.products.map((p) => {
-          const product = p.productId as unknown as IProduct;
-          return {
-            productId: {
-              id: (product._id as mongoose.Types.ObjectId).toString(),
-              slug: product.slug,
-              name: product.name,
-              price: product.price,
-              sizes: product.sizes,
-              images: product.images,
-              category: product.category,
-              rating: product.rating,
-              productType: product.productType,
-            },
-            productType: p.productType,
-          };
-        }),
-        createdAt: wishlist.createdAt,
-        updatedAt: wishlist.updatedAt,
+        products: wishlist.products.map((p) => p.productData),
       };
 
       return formattedWishlist;
@@ -137,7 +112,7 @@ export const wishlistRouter = createTRPCRouter({
       z.object({
         productId: z.string(),
         productType: z.nativeEnum(ProductTypeEnum),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -150,8 +125,8 @@ export const wishlistRouter = createTRPCRouter({
           });
         }
 
-        const updated = await addItemToWishlist(user.id, {
-          productId: new mongoose.Types.ObjectId(input.productId),
+        const updated = await WishlistService.addProduct(user.id, {
+          productId: input.productId,
           productType: input.productType,
         });
 
@@ -172,7 +147,7 @@ export const wishlistRouter = createTRPCRouter({
     .input(
       z.object({
         productId: z.string(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -185,7 +160,10 @@ export const wishlistRouter = createTRPCRouter({
           });
         }
 
-        const updated = await removeItemFromWishlist(user.id, input.productId);
+        const updated = await WishlistService.removeProduct(
+          user.id,
+          input.productId,
+        );
 
         if (!updated) {
           throw new TRPCError({

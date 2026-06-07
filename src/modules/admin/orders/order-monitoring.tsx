@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +17,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -32,9 +27,6 @@ import {
   ShoppingCart,
   MoreHorizontal,
   Eye,
-  Package,
-  User,
-  Store,
   Search,
   Filter,
   Calendar,
@@ -47,30 +39,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-// import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { AppRouter } from "@/trpc/routers/_app";
-import { inferProcedureOutput } from "@trpc/server";
-import { currencyOperations, formatNaira } from "@/lib/utils/naira";
-import Image from "next/image";
-import { DeliveryType } from "@/enums";
-import { campusLocations } from "@/modules/checkout/order-summary";
+import { formatNaira } from "@/lib/utils/naira";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
-import { siteConfig } from "@/config/site";
-
-/**
- * Order Monitoring Component
- * Interface for monitoring and managing customer orders
- */
-type Output = inferProcedureOutput<AppRouter["adminOrders"]["listOrders"]>;
-type OrderData = Output["orders"][number];
+import Link from "next/link";
 
 function OrderMonitoring() {
   const trpc = useTRPC();
-  const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
-  const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -95,39 +72,12 @@ function OrderMonitoring() {
       toDate: toDate?.toISOString(),
       status: statusFilter,
       search: searchQuery,
-    })
+    }),
   );
 
   const orders = data?.orders || [];
   const totalOrders = data?.pagination?.total || 0;
   const totalPages = data?.pagination?.pages || 1;
-
-  // const handleOrderAction = async (
-  //   orderId: string,
-  //   action: string,
-  //   subOrderId?: string
-  // ) => {
-  //   try {
-  //     const response = await fetch(`/api/admin/orders/${orderId}/action`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ action, subOrderId }),
-  //     });
-
-  //     const result = await response.json();
-
-  //     if (response.ok) {
-  //       toast.success(result.message);
-  //       // loadOrders();
-  //       setSelectedOrder(null);
-  //       setShowOrderDetails(false);
-  //     } else {
-  //       throw new Error(result.error);
-  //     }
-  //   } catch (error) {
-  //     toast.error(error instanceof Error ? error.message : "Action failed");
-  //   }
-  // };
 
   const getPaymentBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -136,7 +86,6 @@ function OrderMonitoring() {
       failed: "bg-red-100 text-red-800",
       refunded: "bg-gray-100 text-gray-800",
     };
-
     return (
       <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -145,7 +94,7 @@ function OrderMonitoring() {
   };
 
   const handleApplyFilters = () => {
-    setPage(1); // Reset to first page when applying new filters
+    setPage(1);
     loadOrders();
   };
 
@@ -155,10 +104,7 @@ function OrderMonitoring() {
     setToDate(undefined);
     setSearchQuery("");
     setPage(1);
-    // Load orders with reset filters
-    setTimeout(() => {
-      loadOrders();
-    }, 0);
+    setTimeout(() => loadOrders(), 0);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -168,12 +114,7 @@ function OrderMonitoring() {
   };
 
   if (error) {
-    // You can customize how you want to show the error
-    return (
-      <div className="text-red-500">
-        {error.message} {/* Will show "Unauthorized access" */}
-      </div>
-    );
+    return <div className="text-red-500">{error.message}</div>;
   }
 
   return (
@@ -224,10 +165,10 @@ function OrderMonitoring() {
                       }`}
                     >
                       <Calendar className="mr-2 h-4 w-4" />
-                      {fromDate ? format(fromDate, "PPP") : "From Date"}
+                      {fromDate ? format(fromDate, "PPP") : "From date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0">
                     <CalendarComponent
                       mode="single"
                       selected={fromDate}
@@ -236,7 +177,6 @@ function OrderMonitoring() {
                     />
                   </PopoverContent>
                 </Popover>
-
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -246,39 +186,46 @@ function OrderMonitoring() {
                       }`}
                     >
                       <Calendar className="mr-2 h-4 w-4" />
-                      {toDate ? format(toDate, "PPP") : "To Date"}
+                      {toDate ? format(toDate, "PPP") : "To date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0">
                     <CalendarComponent
                       mode="single"
                       selected={toDate}
                       onSelect={setToDate}
                       initialFocus
-                      disabled={(date) => (fromDate ? date < fromDate : false)}
                     />
                   </PopoverContent>
                 </Popover>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Apply Changes</Label>
-              <Button
-                onClick={handleApplyFilters}
-                className="flex-1 bg-soraxi-green hover:bg-soraxi-green/90"
+            <div className="space-y-2">
+              <Label>Payment Status</Label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
               >
-                <Filter className="w-4 h-4 mr-2" />
-                Apply Filters
-              </Button>
-              <Button
-                onClick={handleResetFilters}
-                variant="outline"
-                className="flex-1 bg-transparent"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="failed">Failed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={handleApplyFilters}
+              className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
+            >
+              Apply Filters
+            </Button>
+            <Button variant="outline" onClick={handleResetFilters}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -286,102 +233,71 @@ function OrderMonitoring() {
       {/* Orders Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <ShoppingCart className="w-5 h-5 mr-2 text-soraxi-green" />
-            Orders ({totalOrders})
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span className="flex items-center">
+              <ShoppingCart className="w-5 h-5 mr-2 text-soraxi-green" />
+              Orders ({totalOrders})
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Store</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-soraxi-green" />
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No orders found matching your filters.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <div className="flex flex-col items-center justify-center">
-                      <RefreshCw className="h-8 w-8 animate-spin text-soraxi-green mb-2" />
-                      <span>Loading orders...</span>
-                    </div>
-                  </TableCell>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Store</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : orders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <div className="flex flex-col items-center justify-center">
-                      <ShoppingCart className="h-12 w-12 text-muted-foreground mb-2" />
-                      <h3 className="font-medium text-lg">No orders found</h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your filters or search criteria
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-muted/30">
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-soraxi-green/10 rounded-lg flex items-center justify-center">
-                          <ShoppingCart className="w-5 h-5 text-soraxi-green" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{order.orderNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {order.items.length} item
-                            {order.items.length !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-mono text-sm">
+                      {order.orderNumber}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            {order.customer.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {order.customer.email}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Store className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            {order.store.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {order.store.email}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatNaira(order.totalAmount)}</TableCell>
-                    <TableCell>
-                      {getPaymentBadge(order.paymentStatus)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <p>{new Date(order.createdAt).toLocaleDateString()}</p>
-                        <p className="text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleTimeString()}
+                      <div>
+                        <p className="font-medium text-sm">
+                          {order.customer.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {order.customer.email}
                         </p>
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {order.store.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {order.store.email}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatNaira(order.totalAmount)}
+                    </TableCell>
+                    <TableCell>
+                      {getPaymentBadge(order.paymentStatus)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(order.createdAt), "MMM dd, yyyy")}
+                    </TableCell>
+                    <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
@@ -390,32 +306,30 @@ function OrderMonitoring() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setShowOrderDetails(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
+                          {/* CHANGED: Link to dedicated page instead of opening dialog */}
+                          <Link href={`/admin/orders/${order.id}`}>
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Order
+                            </DropdownMenuItem>
+                          </Link>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          )}
 
           {/* Pagination */}
-          {!loading && orders.length > 0 && (
+          {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {(page - 1) * limit + 1} to{" "}
+              <p className="text-sm text-muted-foreground">
+                Showing {(page - 1) * limit + 1}–
                 {Math.min(page * limit, totalOrders)} of {totalOrders} orders
-              </div>
-              <div className="flex items-center space-x-2">
+              </p>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -424,37 +338,39 @@ function OrderMonitoring() {
                 >
                   Previous
                 </Button>
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    // Show pages around current page
-                    let pageNum = page;
-                    if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
-
-                    if (pageNum > 0 && pageNum <= totalPages) {
-                      return (
-                        <Button
-                          key={i}
-                          variant={pageNum === page ? "default" : "outline"}
-                          size="sm"
-                          className={
-                            pageNum === page
-                              ? "bg-soraxi-green hover:bg-soraxi-green/90"
-                              : ""
-                          }
-                          onClick={() => handlePageChange(pageNum)}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    }
-                    return null;
-                  })}
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }).map(
+                    (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (page <= 3) {
+                        pageNum = i + 1;
+                      } else if (page >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = page - 2 + i;
+                      }
+                      if (pageNum > 0 && pageNum <= totalPages) {
+                        return (
+                          <Button
+                            key={i}
+                            variant={pageNum === page ? "default" : "outline"}
+                            size="sm"
+                            className={
+                              pageNum === page
+                                ? "bg-soraxi-green hover:bg-soraxi-green/90"
+                                : ""
+                            }
+                            onClick={() => handlePageChange(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      }
+                      return null;
+                    },
+                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -469,186 +385,6 @@ function OrderMonitoring() {
           )}
         </CardContent>
       </Card>
-
-      {/* Order Details Dialog */}
-      <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <ShoppingCart className="w-5 h-5 mr-2 text-soraxi-green" />
-              Order Details
-            </DialogTitle>
-            <DialogDescription>
-              Complete information for order {selectedOrder?.orderNumber}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedOrder && (
-            <div className="space-y-6">
-              {/* Order Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Order Info</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Order Number
-                      </Label>
-                      <p className="text-sm">{selectedOrder.orderNumber}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Payment Status
-                      </Label>
-                      <div className="mt-1">
-                        {getPaymentBadge(selectedOrder.paymentStatus)}
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Total Amount
-                      </Label>
-                      <p className="text-sm font-medium">
-                        {formatNaira(selectedOrder.totalAmount)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Customer</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Name</Label>
-                      <p className="text-sm">{selectedOrder.customer.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Email</Label>
-                      <p className="text-sm">{selectedOrder.customer.email}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Store</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Store Name</Label>
-                      <p className="text-sm">{selectedOrder.store.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Store Email</Label>
-                      <p className="text-sm">{selectedOrder.store.email}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Order Items */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Order Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {selectedOrder.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center space-x-4 p-3 border border-border rounded-lg"
-                      >
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          {item.productSnapshot.images ? (
-                            <Image
-                              src={
-                                item.productSnapshot.images[0] ||
-                                siteConfig.placeHolderImg
-                              }
-                              alt={item.productSnapshot.name}
-                              width={48}
-                              height={48}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Package className="w-6 h-6 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            {item.productSnapshot.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Quantity: {item.productSnapshot.quantity} ×
-                            {formatNaira(item.productSnapshot.price)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {formatNaira(
-                              currencyOperations.multiply(
-                                item.productSnapshot.price,
-                                item.productSnapshot.quantity
-                              )
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Shipping Address */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Shipping Address</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm">
-                    <p>
-                      {selectedOrder.shippingAddress?.deliveryType ===
-                      DeliveryType.Campus
-                        ? `Campus Delivery (${campusLocations.join(", ")})`
-                        : (selectedOrder.shippingAddress?.address ?? "Unknown")}
-                    </p>
-                    <p>
-                      Postal Code:{" "}
-                      {selectedOrder.shippingAddress?.postalCode || "Unknown"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes */}
-              {selectedOrder.notes && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{selectedOrder.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowOrderDetails(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

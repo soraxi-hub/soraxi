@@ -7,7 +7,7 @@ import { Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
-import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { CouponTypeEnum } from "@/enums";
 
 /**
  * CouponInput Component
@@ -62,7 +62,7 @@ export function CouponInput({
         setError(message);
         toast.error(message);
       },
-    })
+    }),
   );
 
   async function handleApply() {

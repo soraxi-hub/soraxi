@@ -1,20 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getProductModel } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
-import { getStoreModel } from "@/lib/db/models/store.model";
+import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
 import bcrypt from "bcryptjs";
 import { handleApiError } from "@/lib/utils/handle-api-error";
-import {
-  ProductActionEnum,
-  ProductStatusEnum,
-  ProductTypeEnum,
-} from "@/validators/product-validators";
-import { StoreStatusEnum } from "@/validators/store-validators";
-import { productName } from "@/validators/product-validators";
+import { ProductTypeEnum, StoreStatusEnum } from "@/enums";
 import mongoose from "mongoose";
-import { MIN_IMAGE_NUMBER } from "@/domain/products/product-upload";
-import { uploadProductImages } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import { ProductService } from "@/services/products/product.service";
 
 /**
  * API Route: Store Product Management
@@ -26,11 +20,11 @@ export async function POST(request: NextRequest) {
   try {
     // const body = await request.json();
     const body = await request.formData();
-    const Product = await getProductModel();
-    const Store = await getStoreModel();
+    const ProductModel = await getProductModel();
+    const StoreModel = await getStoreModel();
 
     // Authenticate store from token
-    const storeSession = getStoreDataFromToken(request);
+    const storeSession = await getStoreDataFromToken(request);
     if (!storeSession) {
       throw new AppError("Store authentication required", 401);
     }
@@ -52,7 +46,7 @@ export async function POST(request: NextRequest) {
     const subCategory = body.getAll("subCategory") as string[];
     const targetAudience = body.getAll("targetAudience") as string[];
 
-    // Extract uploaded image files
+    // Extract image files
     const imageFiles = body.getAll("images") as File[];
 
     // Validate store ownership
@@ -61,9 +55,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if store exists
-    const store = await Store.findById(storeSession.id).select(
-      "password status verification",
-    );
+    const store = await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
+      .where("_id", new mongoose.Types.ObjectId(storeSession.id))
+      .select("password", "status", "verification")
+      .executeOne();
     if (!store) {
       throw new AppError("Store not found", 404);
     }
@@ -83,10 +78,15 @@ export async function POST(request: NextRequest) {
 
     // Verify store password
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
-    if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
+    if (submitAction === "publish" && !isPasswordValid)
+      throw new AppError("Invalid credentials", 401);
 
     // Ensure store can not upload more than 25 products
-    const productCount = await Product.countDocuments({ storeId });
+    const productCount = await QueryBuilderFactory.queryBuilder<IProduct>(
+      ProductModel,
+    )
+      .where("storeId", new mongoose.Types.ObjectId(storeSession.id))
+      .count();
     if (productCount >= 25) {
       throw new AppError("Store has reached the maximum product limit", 400);
     }
@@ -94,237 +94,48 @@ export async function POST(request: NextRequest) {
     session = await mongoose.startSession();
     session.startTransaction();
 
-    // Helper function to get first error message
-    const getFirstError = (result: any) =>
-      result.error?.errors[0]?.message || "Validation failed";
+    const form = {
+      name,
+      storePassword,
+      description: description ?? undefined,
+      specifications: specifications ?? undefined,
+      price: price ?? undefined,
+      productQuantity: productQuantity ?? undefined,
+      category,
+      subCategory,
+      targetAudience,
+      productType: ProductTypeEnum.Product,
+    };
 
-    /**
-     * ======================
-     * DRAFT FLOW
-     * ======================
-     */
-    if (submitAction === ProductActionEnum.Draft) {
-      // Validate draft fields if they exist (partial validation)
-      const validationErrors: string[] = [];
+    const result = await ProductService.createProduct({
+      form,
+      imageFiles,
+      submittedDraftProductId,
+      storeId: storeSession.id,
+      action: submitAction,
+      session,
+    });
 
-      // Name must be provided.
-      const nameResult = productName.safeParse(name);
-      if (!nameResult.success) {
-        validationErrors.push(`Name: ${getFirstError(nameResult)}`);
-        throw new AppError(
-          `Draft validation failed: ${validationErrors.join("; ")}`,
-          400,
-        );
-      }
+    await session.commitTransaction();
 
-      // If there are validation errors, throw them
-      if (validationErrors.length > 0) {
-        throw new AppError(
-          `Draft validation failed: ${validationErrors.join("; ")}`,
-          400,
-        );
-      }
-
-      // After all checks, upload image files to cloudinary
-      const images = await uploadProductImages(imageFiles);
-
-      if (!images.success) {
-        throw new AppError(
-          images.error ?? "Server error: Unable to upload Product images",
-        );
-      }
-
-      // Using the "submittedDraftProductId", check for existing draft and update it.
-      if (submittedDraftProductId) {
-        // Find the existing draft first
-        const existingDraft = await Product.findById(
-          submittedDraftProductId,
-        ).session(session);
-
-        if (!existingDraft) {
-          throw new AppError("Draft product not found", 400);
-        }
-
-        // Merge previous image URLs with newly uploaded ones
-        const mergedImages = [
-          ...(existingDraft.images || []),
-          ...(images.result as string[]),
-        ];
-
-        // Update existing draft
-        await Product.findByIdAndUpdate(
-          new mongoose.Types.ObjectId(submittedDraftProductId as string),
-          {
-            ...body,
-            images: mergedImages,
-            status: ProductStatusEnum.Draft,
-            isVisible: false,
-            isVerifiedProduct: false,
-          },
-          { runValidators: true },
-        ).session(session);
-
-        await session.commitTransaction();
-
-        return NextResponse.json({
-          success: true,
-          message: "Draft updated successfully!",
-        });
-      }
-
-      // Create a new draft
-      // We create a new draft if no "submittedDraftProductId" was provided.
-      const draft = new Product({
-        storeId: storeSession.id,
-        productType: ProductTypeEnum.Product,
-        status: ProductStatusEnum.Draft,
-        name,
-        price: price,
-        productQuantity,
-        images: images.result as string[],
-        description,
-        specifications,
-        category,
-        subCategory,
-        targetAudience,
-        isVerifiedProduct: false,
-        isVisible: false, // Draft should not be visible in search/home
-      });
-
-      await draft.save({ session });
-
-      // Link draft to store
-      await Store.findByIdAndUpdate(storeId, {
-        $push: { physicalProducts: draft._id },
-      }).session(session);
-
-      await session.commitTransaction();
-
-      return NextResponse.json({
-        success: true,
-        message: "Draft created successfully!",
-        data: { productId: draft._id },
-      });
+    if (!result) {
+      const message =
+        submitAction === "draft"
+          ? "Error updating product."
+          : "Error uploading product.";
+      throw new AppError(message, 401);
     }
 
-    /**
-     * ======================
-     * PUBLISH FLOW
-     * ======================
-     */
-    if (submitAction === ProductActionEnum.Publish) {
-      // Validate publish (strict schema) - all fields required
-      const validationErrors: string[] = [];
-
-      // Validate all required fields
-      const requiredValidations = [
-        { field: "name", value: name, validator: productName },
-      ];
-
-      requiredValidations.forEach(({ field, value, validator }) => {
-        const result = validator.safeParse(value);
-        if (!result.success) {
-          validationErrors.push(`${field}: ${getFirstError(result)}`);
-        }
-      });
-
-      // Additional validation for images
-      if (!imageFiles || imageFiles.length < MIN_IMAGE_NUMBER) {
-        validationErrors.push(
-          `images: At least ${MIN_IMAGE_NUMBER} product images are required`,
-        );
-      }
-
-      // If there are validation errors, throw them
-      if (validationErrors.length > 0) {
-        throw new AppError(
-          `Publish validation failed: ${validationErrors.join("; ")}`,
-          400,
-        );
-      }
-
-      // After all checks, upload image files to cloudinary
-      const images = await uploadProductImages(imageFiles);
-
-      if (!images.success) {
-        throw new AppError(
-          images.error ?? "Server error: Unable to upload Product images",
-        );
-      }
-
-      if (submittedDraftProductId) {
-        // Find the existing draft first
-        const existingDraft = await Product.findById(
-          submittedDraftProductId,
-        ).session(session);
-
-        if (!existingDraft) {
-          throw new AppError("Draft product not found", 400);
-        }
-
-        // Merge previous image URLs with newly uploaded ones
-        const mergedImages = [
-          ...(existingDraft.images || []),
-          ...(images.result as string[]),
-        ];
-
-        // Upgrade existing draft → pending publish
-        await Product.findByIdAndUpdate(
-          submittedDraftProductId,
-          {
-            ...body,
-            images: mergedImages,
-            status: ProductStatusEnum.Pending,
-            isVisible: false, // hidden until admin approval
-            isVerifiedProduct: false,
-          },
-          { runValidators: true },
-        ).session(session);
-
-        await session.commitTransaction();
-
-        return NextResponse.json({
-          success: true,
-          message:
-            "Draft published successfully! It will be reviewed by our team.",
-        });
-      }
-
-      // Create new product in pending state
-      const product = new Product({
-        storeId: storeSession.id,
-        productType: ProductTypeEnum.Product,
-        status: ProductStatusEnum.Pending,
-        name,
-        price: price,
-        productQuantity,
-        images: images.result as string[],
-        description,
-        specifications,
-        category,
-        subCategory,
-        targetAudience,
-        isVerifiedProduct: false,
-        isVisible: false,
-      });
-
-      await product.save({ session });
-
-      // Link product to store
-      await Store.findByIdAndUpdate(storeId, {
-        $push: { physicalProducts: product._id },
-      }).session(session);
-
-      await session.commitTransaction();
-
-      return NextResponse.json({
-        success: true,
-        message:
-          "Product uploaded successfully! It will be reviewed by our team.",
-      });
-    }
-
-    throw new AppError("Invalid submit action", 400);
+    return NextResponse.json({
+      success: true,
+      message:
+        submitAction === "draft"
+          ? "Draft published successfully."
+          : "Product uploaded successfully.",
+      data: {
+        productId: (result._id as { toString: typeof toString }).toString(),
+      },
+    });
   } catch (error) {
     if (session) {
       await session.abortTransaction();

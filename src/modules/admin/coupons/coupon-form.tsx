@@ -28,8 +28,8 @@ import {
   CouponFormSchema,
   type CouponFormSchemaType,
   CouponSchemaWithIdType,
-  CouponTypeEnum,
 } from "@/validators/coupon-validations";
+import { CouponTypeEnum } from "@/enums";
 
 interface CouponFormProps {
   coupon?: CouponSchemaWithIdType | null;
@@ -49,7 +49,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
       onError: (error) => {
         toast.error(error.message || "Failed to create coupon");
       },
-    })
+    }),
   );
 
   const updateMutation = useMutation(
@@ -61,7 +61,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
       onError: (error) => {
         toast.error(error.message || "Failed to update coupon");
       },
-    })
+    }),
   );
 
   const form = useForm<CouponFormSchemaType>({
@@ -167,7 +167,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
                     value={field.value ?? 0}
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? Number(e.target.value) : 0
+                        e.target.value ? Number(e.target.value) : 0,
                       )
                     }
                     onBlur={field.onBlur}
@@ -198,7 +198,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
                     }
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? new Date(e.target.value) : undefined
+                        e.target.value ? new Date(e.target.value) : undefined,
                       )
                     }
                     onBlur={field.onBlur}
@@ -227,7 +227,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
                     }
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? new Date(e.target.value) : undefined
+                        e.target.value ? new Date(e.target.value) : undefined,
                       )
                     }
                     onBlur={field.onBlur}
@@ -257,7 +257,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
                       field.onChange(
                         e.target.value === ""
                           ? undefined
-                          : Number(e.target.value)
+                          : Number(e.target.value),
                       )
                     }
                     onBlur={field.onBlur}
@@ -286,7 +286,7 @@ export function CouponForm({ coupon, onSuccessAction }: CouponFormProps) {
                       field.onChange(
                         e.target.value === ""
                           ? undefined
-                          : Number(e.target.value)
+                          : Number(e.target.value),
                       )
                     }
                     onBlur={field.onBlur}
