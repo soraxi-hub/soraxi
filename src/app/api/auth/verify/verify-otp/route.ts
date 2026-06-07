@@ -5,9 +5,10 @@ import { getUserModel } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
-import { getOTPModel, OtpPurpose } from "@/lib/db/models/otp.model";
+import { getOTPModel } from "@/lib/db/models/otp.model";
 import { OTP } from "@/lib/utils/otp";
 import { PasswordService } from "@/lib/utils";
+import { OtpPurpose } from "@/enums";
 
 export async function POST(request: NextRequest) {
   try {

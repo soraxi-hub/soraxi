@@ -3,7 +3,7 @@ import {
   IShippingMethod,
   IPayoutAccount,
 } from "@/lib/db/models/store.model";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 
 export type StoreProps = Partial<
   Omit<IStore, "storeOwner"> & { storeOwner: string }

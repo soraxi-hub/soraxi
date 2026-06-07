@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 // import { Upload, ImageIcon } from "lucide-react";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import type { StoreProfileData } from "@/types/onboarding";
 // import Image from "next/image";
 import { useEffect } from "react";

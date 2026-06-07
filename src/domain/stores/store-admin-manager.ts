@@ -1,8 +1,5 @@
 import type { StoreDataProfileAdminView } from "@/modules/admin/stores/store-admin-dashboard";
-import {
-  StoreBusinessInfoEnum,
-  StoreStatusEnum,
-} from "@/validators/store-validators";
+import { StoreBusinessInfoEnum, StoreStatusEnum } from "@/enums";
 
 /**
  * Store Admin Manager Class
@@ -62,7 +59,7 @@ export class StoreAdminManager {
             label: "Reject Store",
             variant: "destructive",
             icon: "XCircle",
-          }
+          },
         );
         break;
       case StoreStatusEnum.Active:
@@ -177,7 +174,7 @@ export class StoreAdminManager {
     ];
 
     const passedChecks = checks.filter(
-      (check) => check.status === "passed"
+      (check) => check.status === "passed",
     ).length;
     const totalChecks = checks.length;
     const complianceScore = Math.round((passedChecks / totalChecks) * 100);
@@ -189,8 +186,8 @@ export class StoreAdminManager {
         complianceScore >= 80
           ? "high"
           : complianceScore >= 60
-          ? "medium"
-          : "low",
+            ? "medium"
+            : "low",
     };
   }
 
@@ -215,7 +212,7 @@ export class StoreAdminManager {
     const createdAt = new Date(this.storeData.createdAt);
     const now = new Date();
     return Math.floor(
-      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
     );
   }
 
@@ -227,7 +224,7 @@ export class StoreAdminManager {
 
   private getRecommendedAction(
     risk: RiskAssessment,
-    compliance: ComplianceStatus
+    compliance: ComplianceStatus,
   ): string {
     if (risk.level === "high") {
       return "Requires immediate review - High risk factors detected";
@@ -246,7 +243,7 @@ export class StoreAdminManager {
 
   private getActionPriority(
     risk: RiskAssessment,
-    compliance: ComplianceStatus
+    compliance: ComplianceStatus,
   ): "low" | "medium" | "high" {
     if (risk.level === "high") return "high";
     if (compliance.level === "low") return "medium";

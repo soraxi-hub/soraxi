@@ -67,7 +67,7 @@ export default function ShippingMethodForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentMethod, setCurrentMethod] = useState<ShippingMethod | null>(
-    null
+    null,
   );
   const trpc = useTRPC();
 
@@ -84,7 +84,7 @@ export default function ShippingMethodForm() {
     isLoading,
     refetch: refetchShippingMethods,
   } = useSuspenseQuery(
-    trpc.storeShipping.getStoreShippingMethods.queryOptions()
+    trpc.storeShipping.getStoreShippingMethods.queryOptions(),
   );
 
   const handleShippingMethodUpdate = useMutation(
@@ -109,11 +109,11 @@ export default function ShippingMethodForm() {
       onError: (error) => {
         console.error("Error updating shipping method:", error);
         toast.error(
-          error.message || "Error updating shipping method. Please try again."
+          error.message || "Error updating shipping method. Please try again.",
         );
         setIsSubmitting(false);
       },
-    })
+    }),
   );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -136,9 +136,7 @@ export default function ShippingMethodForm() {
     setCurrentMethod(method);
     form.reset({
       ...method,
-      conditions: method.conditions || {},
     });
-    setRegions(method.applicableRegions || []);
   };
 
   const cancelEdit = () => {
@@ -229,8 +227,6 @@ export default function ShippingMethodForm() {
                             ...method,
                             price: koboToNaira(method.price),
                             isActive: method.isActive ?? false,
-                            applicableRegions: method.applicableRegions || [],
-                            conditions: method.conditions || {},
                           })
                         }
                       >
@@ -333,42 +329,6 @@ export default function ShippingMethodForm() {
                   )}
                 />
 
-                {/* Regions Section */}
-                {/* <div className="space-y-2">
-                  <FormLabel>Applicable Regions</FormLabel>
-                  <div className="flex gap-2">
-                    <Input
-                      value={newRegion}
-                      onChange={(e) => setNewRegion(e.target.value)}
-                      placeholder="Add region (e.g., US, EU)"
-                    />
-                    <Button type="button" onClick={addRegion} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Region
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {regions.map((region, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center bg-muted px-3 py-1 rounded-sm"
-                    >
-                      <span>{region}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 p-1 h-auto"
-                        onClick={() => removeRegion(index)}
-                      >
-                        <Trash className="h-3 w-3 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                </div> */}
-
                 <FormField
                   control={form.control}
                   name="isActive"
@@ -386,100 +346,6 @@ export default function ShippingMethodForm() {
                   )}
                 />
               </div>
-
-              {/* Conditions Section */}
-              {/* <div className="space-y-6">
-                <h3 className="font-medium">Conditions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="conditions.minOrderValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Order Value</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="No minimum"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="conditions.maxOrderValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Maximum Order Value</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="No maximum"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="conditions.minWeight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Weight (kg)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="No minimum"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="conditions.maxWeight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Maximum Weight (kg)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="No maximum"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div> */}
 
               {/* Description */}
               <FormField
@@ -533,8 +399,8 @@ export default function ShippingMethodForm() {
                   {isSubmitting
                     ? "Saving..."
                     : isEditing
-                    ? "Update Method"
-                    : "Create Method"}
+                      ? "Update Method"
+                      : "Create Method"}
                 </Button>
 
                 {isEditing && (

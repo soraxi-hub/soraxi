@@ -1,8 +1,6 @@
 import { NextRequest } from "next/server";
-import {
-  CookieService,
-  TokenType,
-} from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { TokenType } from "@/enums";
 
 /**
  * Extracts and verifies user token data from the request cookies.

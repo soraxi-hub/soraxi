@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import { ProgressTracker } from "./ProgressTracker";
 import { toast } from "sonner";
 

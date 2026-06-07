@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { getProductById } from "@/lib/db/models/product.model";
+import { getProductModel, IProduct } from "@/lib/db/models/product.model";
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import mongoose from "mongoose";
+import { ProductFactory } from "@/domain/products/product-factory";
 
 export const storeProductRouter = createTRPCRouter({
   /**
@@ -10,11 +13,12 @@ export const storeProductRouter = createTRPCRouter({
   getStoreProductById: baseProcedure
     .input(
       z.object({
-        id: z.string(),
+        productId: z.string(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const { store } = ctx;
+      const { productId } = input;
 
       if (!store) {
         throw new TRPCError({
@@ -23,14 +27,26 @@ export const storeProductRouter = createTRPCRouter({
         });
       }
 
-      const product = await getProductById(input.id);
+      const ProductModel = await getProductModel();
 
-      if (!product) {
+      const productDoc = await QueryBuilderFactory.queryBuilder<IProduct>(
+        ProductModel,
+      )
+        .where("_id", new mongoose.Types.ObjectId(productId))
+        .executeOne();
+
+      if (!productDoc) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Product not found",
         });
       }
+
+      const product = ProductFactory.create({
+        ...productDoc,
+        _id: productDoc._id?.toString(),
+        storeId: productDoc.storeId.toString(),
+      }).toEditableProuct();
 
       if (product.storeId.toString() !== store.id) {
         // Ensure comparison is string to string
@@ -40,31 +56,9 @@ export const storeProductRouter = createTRPCRouter({
         });
       }
 
-      const transformedProduct = {
-        id: (product._id as { toString: typeof toString }).toString(),
-        name: product.name,
-        price: product.price,
-        sizes: product.sizes,
-        productQuantity: product.productQuantity,
-        images: product.images,
-        category: product.category,
-        subCategory: product.subCategory,
-        targetAudience: product.targetAudience,
-        description: product.description,
-        specifications: product.specifications,
-        status: product.status,
-        productType: product.productType,
-        createdAt: product.createdAt,
-        slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
-        isVisible: product.isVisible,
-        rating: product.rating,
-        firstApprovedAt: product.firstApprovedAt,
-      };
-
       return {
         success: true,
-        product: transformedProduct,
+        product,
       };
     }),
 });

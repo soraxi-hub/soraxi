@@ -1,116 +1,125 @@
-import { PasswordService } from "@/lib/utils";
+import { IUser } from "@/lib/db/models/user.model";
+import { IUserInfo, PublicToJSONUserType } from "./user-interface";
 
-export class User {
-  constructor(
-    protected email: string,
-    protected password: string,
-  ) {
-    this.email = email;
-    this.password = password;
-  }
+export type BaseUser = IUser;
 
-  getEmail(): string {
-    return this.email;
+export class User implements IUserInfo {
+  constructor(protected props: BaseUser) {}
+
+  get userId(): string | undefined {
+    return this.props._id?.toString();
   }
 
-  getPassword(): string {
-    return this.password;
+  get firstName(): string {
+    return this.props.firstName.trim();
   }
 
-  getUser() {}
-}
-
-export class PublicUser extends User {
-  constructor(
-    email: string,
-    password: string,
-    protected firstName: string,
-    protected lastName: string,
-    protected phoneNumber: string,
-    protected address: string,
-    protected cityOfResidence: string,
-    protected stateOfResidence: string,
-    protected postalCode: string,
-    protected isVerified: boolean,
-  ) {
-    super(email, password);
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.phoneNumber = phoneNumber;
-    this.address = address;
-    this.cityOfResidence = cityOfResidence;
-    this.stateOfResidence = stateOfResidence;
-    this.postalCode = postalCode;
-    this.isVerified = isVerified;
+  get lastName(): string {
+    return this.props.lastName.trim();
   }
 
-  getFirstName(): string {
-    return this.firstName;
+  get fullName(): string {
+    return `${this.firstName} ${this.lastName}`.trim();
   }
 
-  getLastName(): string {
-    return this.lastName;
+  get email(): string {
+    return this.props.email;
   }
 
-  getPhoneNumber(): string {
-    return this.phoneNumber;
-  }
-  getAddress(): string {
-    return this.address;
+  get password(): string {
+    return this.props.password;
   }
 
-  getCityOfResidence(): string {
-    return this.cityOfResidence;
-  }
-  getStateOfResidence(): string {
-    return this.stateOfResidence;
-  }
-  getPostalCode(): string {
-    return this.postalCode;
-  }
-  async hashPassword(): Promise<void> {
-    this.password = await PasswordService.hashPassword(this.password);
-  }
-  async validatePassword(password: string): Promise<boolean> {
-    return await PasswordService.validatePassword(this.password, password);
-  }
-}
-
-export class AuthUser extends User {
-  constructor(
-    protected id: string,
-    protected firstName: string,
-    protected lastName: string,
-    protected email: string,
-    protected password: string,
-    protected store?: string,
-  ) {
-    super(email, password);
-    this.id = id;
-    this.lastName = lastName;
-    this.firstName = firstName;
-    this.store = store;
+  get phoneNumber(): string {
+    return this.props.phoneNumber;
   }
 
-  async hashPassword(): Promise<void> {
-    this.password = await PasswordService.hashPassword(this.password);
+  get address(): string {
+    return this.props.address;
   }
-  async validatePassword(password: string): Promise<boolean> {
-    return await PasswordService.validatePassword(password, this.password);
+
+  get city(): string {
+    return this.props.cityOfResidence;
   }
-  getId(): string {
-    return this.id;
+
+  get state(): string {
+    return this.props.stateOfResidence;
   }
-  getFirstName(): string {
-    return this.firstName;
+
+  get postalCode(): string {
+    return this.props.postalCode;
   }
-  getLastName(): string {
-    return this.lastName;
+
+  get fullAddress(): string {
+    return [this.address, this.city, this.state].filter(Boolean).join(", ");
   }
-  getEmail(): string {
-    return this.email;
+
+  get isVerified(): boolean {
+    return this.props.isVerified ?? false;
   }
-  getStore(): string | undefined {
-    return this.store;
+
+  get followingStores(): string[] {
+    return this.props.followingStores.map((id) => id.toString()) || [];
+  }
+
+  get followingCount(): number {
+    return this.followingStores.length;
+  }
+
+  get ownedStores(): string[] {
+    return this.props.stores?.map((s) => s.storeId.toString()) || [];
+  }
+
+  get ownedStoresCount(): number {
+    return this.ownedStores.length;
+  }
+
+  get lastOtpRequestAt(): Date | undefined {
+    return this.props.lastOtpRequestAt;
+  }
+
+  get otpBlockedUntil(): Date | undefined {
+    return this.props.otpRequestBlockedUntil;
+  }
+
+  get isOtpBlocked(): boolean {
+    if (!this.props.otpRequestBlockedUntil) return false;
+    return new Date() < this.props.otpRequestBlockedUntil;
+  }
+
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
+
+  /**
+   * Convert domain object into plain JSON object
+   */
+  toJSON(): PublicToJSONUserType {
+    if (!this.userId) {
+      throw new Error("UserId Required");
+    }
+
+    return {
+      userId: this.userId,
+      firstName: this.firstName,
+      lastName: this.lastName,
+      fullName: this.fullName,
+      displayGreeting: `Greetings, ${this.firstName}!`,
+      email: this.email,
+      phoneNumber: this.phoneNumber,
+      address: this.address,
+      city: this.city,
+      state: this.state,
+      postalCode: this.postalCode,
+      fullAddress: this.fullAddress,
+      isVerified: this.isVerified,
+      lastOtpRequestAt: this.lastOtpRequestAt,
+      otpRequestBlockedUntil: this.otpBlockedUntil,
+      isOtpBlocked: this.isOtpBlocked,
+    };
   }
 }

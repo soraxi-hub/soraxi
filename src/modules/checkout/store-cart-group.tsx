@@ -17,7 +17,6 @@ import { ProductItem } from "./product-item";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { ShippingMethod } from "@/types";
-import { ProductTypeEnum } from "@/validators/product-validators";
 
 type CheckoutOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
@@ -37,16 +36,6 @@ export default function StoreCartGroup({
   selectedShippingMethod,
 }: StoreCartGroupProps) {
   /**
-   * Product Type Analysis
-   *
-   * Determine if this store group contains physical products that require shipping.
-   * This analysis drives the conditional display of shipping options.
-   */
-  const hasPhysicalProducts = storeGroup.products.some(
-    (product) => product.productType === ProductTypeEnum.Product
-  );
-
-  /**
    * Shipping Method Selection Handler
    *
    * Processes shipping method selection and triggers parent callback.
@@ -56,7 +45,7 @@ export default function StoreCartGroup({
    */
   const handleShippingMethodChange = (methodName: string) => {
     const selectedMethod = storeGroup.shippingMethods?.find(
-      (method) => method.name === methodName
+      (method) => method.name === methodName,
     );
 
     if (selectedMethod) {
@@ -72,9 +61,7 @@ export default function StoreCartGroup({
    * - Availability of shipping methods from the store
    */
   const shouldShowShippingOptions =
-    hasPhysicalProducts &&
-    storeGroup.shippingMethods &&
-    storeGroup.shippingMethods.length > 0;
+    storeGroup.shippingMethods && storeGroup.shippingMethods.length > 0;
 
   return (
     <Card className="overflow-hidden border-soraxi-green/30 transition-shadow hover:shadow-md">
@@ -188,54 +175,6 @@ export default function StoreCartGroup({
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </>
-        )}
-
-        {/* No Shipping Required Message */}
-        {hasPhysicalProducts &&
-          (!storeGroup.shippingMethods ||
-            storeGroup.shippingMethods.length === 0) && (
-            <>
-              <Separator className="my-6 border-soraxi-green/30" />
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 overflow-hidden">
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                  <p className="text-sm text-amber-800 font-medium truncate">
-                    Shipping methods not available for this store
-                  </p>
-                </div>
-                <p className="text-xs text-amber-700 mt-1 truncate">
-                  Please contact the store directly for shipping arrangements
-                </p>
-              </div>
-            </>
-          )}
-
-        {/* Digital Products Only Message */}
-        {!hasPhysicalProducts && (
-          <>
-            <Separator className="my-6 border-soraxi-green/30" />
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 overflow-hidden">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 text-blue-600 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p className="text-sm text-blue-800 font-medium truncate">
-                  Digital products - No shipping required
-                </p>
-              </div>
-              <p className="text-xs text-blue-700 mt-1 truncate">
-                These items will be available for download after payment
-              </p>
-            </div>
           </>
         )}
       </CardContent>

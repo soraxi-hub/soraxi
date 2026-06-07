@@ -1,23 +1,10 @@
 import { z } from "zod";
 import { passwordValidation } from "./user-signUp-info-validation";
-
-export enum StoreStatusEnum {
-  Active = "active",
-  Suspended = "suspended",
-  Pending = "pending",
-  Rejected = "rejected",
-}
-
-export enum StoreVerificationStatusEnum {
-  Email = "email",
-  Identity = "identity",
-  videoCall = "video_call",
-}
-
-export enum StoreBusinessInfoEnum {
-  Individual = "individual",
-  Company = "company",
-}
+import {
+  StoreBusinessInfoEnum,
+  StoreStatusEnum,
+  StoreVerificationStatusEnum,
+} from "@/enums";
 
 export const storeName = z
   .string()
@@ -26,7 +13,7 @@ export const storeName = z
   .max(50, "Store name must be less than 50 characters")
   .regex(
     /^[a-zA-Z0-9\s\-_'&.]+$/,
-    "Store name can only contain letters, numbers, spaces, hyphens, underscores, apostrophes, ampersands and periods"
+    "Store name can only contain letters, numbers, spaces, hyphens, underscores, apostrophes, ampersands and periods",
   );
 export const storeDescription = z
   .string()

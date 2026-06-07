@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If it gets to this point, then create the user because this is a new user
-    const user = UserFactory.createPublicUser(props);
+    const user = UserFactory.createAuthUser(props);
 
     // Always hash the password before saving the user to the Database
     await user.hashPassword();
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const subject = `Welcome to ${siteConfig.name} — Let’s Get You Started`;
-      const userName = `${user.getFirstName()} ${user.getLastName()}`;
+      const userName = `${user.firstName} ${user.lastName}`;
       const text = EmailTextTemplates.generateWelcomeEmailText(userName);
 
       // Render React Email template to HTML
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
       // Create and send email notification using factory
       const notification = NotificationFactory.create("email", {
-        recipient: user.getEmail(),
+        recipient: user.email,
         subject,
         emailType: "noreply",
         fromAddress: "noreply@soraxihub.com",

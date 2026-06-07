@@ -9,8 +9,8 @@ import {
  * Interface for User document
  * All monetary values (if any) are assumed to be stored in kobo to avoid floating-point errors.
  */
-export interface IUser extends Document {
-  _id: mongoose.Types.ObjectId;
+export interface IUser {
+  _id?: mongoose.Types.ObjectId;
   firstName: string;
   lastName: string;
   email: string;
@@ -31,10 +31,13 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
+// Mongoose-aware version — only used in DB layer
+export type IUserDocument = IUser & Document;
+
 /**
  * Mongoose schema for users
  */
-const UserSchema = new Schema<IUser>(
+const UserSchema = new Schema<IUserDocument>(
   {
     firstName: {
       type: String,
@@ -126,14 +129,14 @@ const UserSchema = new Schema<IUser>(
  *
  * @returns Mongoose User model
  */
-export async function getUserModel(): Promise<Model<IUser>> {
+export async function getUserModel(): Promise<Model<IUserDocument>> {
   // Connect to the database
   await connectToDatabase();
 
   // Use existing model if it exists, otherwise create a new one
   return (
-    (mongoose.models.User as Model<IUser>) ||
-    mongoose.model<IUser>("User", UserSchema)
+    (mongoose.models.User as Model<IUserDocument>) ||
+    mongoose.model<IUserDocument>("User", UserSchema)
   );
 }
 
@@ -145,8 +148,16 @@ export async function getUserModel(): Promise<Model<IUser>> {
  */
 export async function getUserByEmail(
   email: string,
+  lean: true,
+): Promise<IUser | null>;
+export async function getUserByEmail(
+  email: string,
+  lean?: false,
+): Promise<IUserDocument | null>;
+export async function getUserByEmail(
+  email: string,
   lean = false,
-): Promise<IUser | null> {
+): Promise<IUser | IUserDocument | null> {
   await connectToDatabase();
   const User = await getUserModel();
 
@@ -161,8 +172,16 @@ export async function getUserByEmail(
  */
 export async function getUserById(
   id: string,
+  lean: true,
+): Promise<IUser | null>;
+export async function getUserById(
+  id: string,
+  lean?: false,
+): Promise<IUserDocument | null>;
+export async function getUserById(
+  id: string,
   lean = false,
-): Promise<IUser | null> {
+): Promise<IUser | IUserDocument | null> {
   await connectToDatabase();
   const User = await getUserModel();
 

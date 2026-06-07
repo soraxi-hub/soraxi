@@ -15,7 +15,8 @@ export {
 } from "./order-confirmation-email";
 export { PasswordResetEmail } from "./password-reset-email";
 export { StoreOnboardingEmail } from "./store-onboarding-email";
-export { PaymentSettlementEmail } from "./payment-settlement-email";
+export { PayoutCompletedEmail } from "./payout-completed-email";
+export { PayoutFailedEmail } from "./payout-failed-email";
 export { PromotionalEmail } from "./promotional-email";
 export { OrderStatusEmail } from "./order-status-email";
 export { AdminNotificationEmail } from "./admin-notification-email";

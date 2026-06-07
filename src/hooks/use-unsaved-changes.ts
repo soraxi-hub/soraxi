@@ -6,7 +6,7 @@ interface UseUnsavedChangesOptions<T> {
   initialData: T;
   currentData: T;
   additionalDirtyCheck?: boolean;
-  onSaveBeforeLeave?: () => Promise<boolean>;
+  onSaveBeforeLeave?: () => Promise<void>;
 }
 
 interface UseUnsavedChangesReturn {
@@ -90,7 +90,7 @@ export function useUnsavedChanges<T extends Record<string, any>>({
         action();
       }
     },
-    [isDirty]
+    [isDirty],
   );
 
   // Handle dialog actions (save, leave, cancel)
@@ -119,25 +119,38 @@ export function useUnsavedChanges<T extends Record<string, any>>({
 
       if (action === "save" && onSaveBeforeLeave) {
         setIsSaving(true);
-        const success = await onSaveBeforeLeave();
+        await onSaveBeforeLeave();
+        // const success = await onSaveBeforeLeave();
         setIsSaving(false);
 
-        if (success) {
-          setManualDirtyReset(true);
-          setShowDialog(false);
+        setManualDirtyReset(true);
+        setShowDialog(false);
 
-          // Execute pending action after successful save
-          setTimeout(() => {
-            if (pendingAction) {
-              pendingAction();
-            }
-            setPendingAction(null);
-            setManualDirtyReset(false);
-          }, 0);
-        }
+        // Execute pending action after successful save
+        setTimeout(() => {
+          if (pendingAction) {
+            pendingAction();
+          }
+          setPendingAction(null);
+          setManualDirtyReset(false);
+        }, 0);
+
+        // if (success) {
+        //   setManualDirtyReset(true);
+        //   setShowDialog(false);
+
+        //   // Execute pending action after successful save
+        //   setTimeout(() => {
+        //     if (pendingAction) {
+        //       pendingAction();
+        //     }
+        //     setPendingAction(null);
+        //     setManualDirtyReset(false);
+        //   }, 0);
+        // }
       }
     },
-    [pendingAction, onSaveBeforeLeave]
+    [pendingAction, onSaveBeforeLeave],
   );
 
   // Reset dirty state manually (useful after successful form submission)

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { ProductDetailPage } from "@/modules/products/product-detail/product-detail-page";
 import { caller } from "@/trpc/server";
 import { cache } from "react";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 import { siteConfig } from "@/config/site";
 import { Metadata } from "next";
 
@@ -29,17 +29,12 @@ export async function generateMetadata({
     product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
     `Buy ${product.name} online`;
 
-  const productImages = (
-    product.images && product.images.length > 0
-      ? product.images
-      : ["/og-soraxi.png"]
-  ) // fallback if no images
-    .map((url) => ({
-      url,
-      width: 1200,
-      height: 630,
-      alt: product.name,
-    }));
+  const productImages = product.images.map((url) => ({
+    url,
+    width: 1200,
+    height: 630,
+    alt: product.name,
+  }));
 
   return {
     title: product.name,
@@ -55,7 +50,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: product.name,
       description: plainDescription,
-      images: product.images?.length ? product.images : ["/og-soraxi.png"],
+      images: product.images,
     },
   };
 }

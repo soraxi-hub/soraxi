@@ -4,7 +4,7 @@ import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { AppError } from "@/lib/errors/app-error";
 import mongoose from "mongoose";
 import { koboToNaira } from "@/lib/utils/naira";
-import { StoreBusinessInfoEnum } from "@/validators/store-validators";
+import { StoreBusinessInfoEnum } from "@/enums";
 
 /**
  * API Route: Get Store Onboarding Details

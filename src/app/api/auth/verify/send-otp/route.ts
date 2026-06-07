@@ -9,7 +9,7 @@ import { OTPVerificationEmail } from "@/domain/notification";
 import React from "react";
 import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
 import { OTP } from "@/lib/utils/otp";
-import { OtpPurpose } from "@/lib/db/models/otp.model";
+import { OtpPurpose } from "@/enums";
 
 export async function POST(request: NextRequest) {
   try {

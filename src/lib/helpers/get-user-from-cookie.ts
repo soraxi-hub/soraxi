@@ -1,10 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import {
-  CookieService,
-  TokenType,
-} from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { TokenType } from "@/enums";
 
 /**
  * Safely extracts user token data from the "user" cookie.

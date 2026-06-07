@@ -1,10 +1,6 @@
 import { z } from "zod";
-import type { Document } from "mongoose";
-
-export enum CouponTypeEnum {
-  Percentage = "percentage",
-  Fixed = "fixed",
-}
+import mongoose from "mongoose";
+import { CouponTypeEnum } from "@/enums";
 
 /**
  * Zod schema for Coupon
@@ -100,4 +96,6 @@ export type CouponType = z.infer<typeof CouponSchema>;
  * Mongoose document interface for Coupon
  * Extends the Zod type with Mongoose Document methods
  */
-export interface ICoupon extends CouponType, Document {}
+export interface ICoupon extends CouponType {
+  _id: mongoose.Types.ObjectId;
+}

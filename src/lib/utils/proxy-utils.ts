@@ -1,4 +1,4 @@
-import { TokenType } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { TokenType } from "@/enums";
 import { NextRequest, NextResponse } from "next/server";
 
 /**

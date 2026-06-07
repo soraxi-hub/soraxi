@@ -3,25 +3,17 @@ import {
   getUserByEmail,
   getUserModel,
   IUser,
+  IUserDocument,
+  // IUser,
 } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { User } from "@/types";
 import mongoose from "mongoose";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { StoreStatusEnum } from "@/validators/store-validators";
-import { getStoreModel } from "@/lib/db/models/store.model";
 import { editProfileValidation } from "@/validators/user-signUp-info-validation";
-
-type LeanedUser = Omit<IUser, "stores"> & {
-  stores?: {
-    storeId: {
-      _id: mongoose.Types.ObjectId;
-      name: string;
-      status: StoreStatusEnum;
-    };
-  }[];
-};
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import { UserFactory } from "@/domain/users/user-factory";
 
 /**
  * @module userRouter
@@ -58,19 +50,16 @@ export const userRouter = createTRPCRouter({
         });
 
       const User = await getUserModel();
-      await getStoreModel();
+      // const StoreModel = await getStoreModel();
 
-      const user = await User.findById(userTokenData.id)
-        .populate({
-          path: "stores.storeId",
-          select: "_id name status",
-        })
-        .select(
-          "_id firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode isVerified stores",
-        )
-        .lean<LeanedUser>();
+      const userDoc = await QueryBuilderFactory.queryBuilder<
+        IUser,
+        IUserDocument
+      >(User)
+        .where("_id", new mongoose.Types.ObjectId(userTokenData.id))
+        .executeOne();
 
-      if (!user) {
+      if (!userDoc) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `User with id ${userTokenData.id} not found.`,
@@ -78,25 +67,16 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      const serializedUser = {
-        _id: (user._id as unknown as mongoose.Types.ObjectId).toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        address: user.address,
-        cityOfResidence: user.cityOfResidence,
-        stateOfResidence: user.stateOfResidence,
-        postalCode: user.postalCode,
-        isVerified: user.isVerified,
-        stores: user.stores?.map((store) => ({
-          storeId: store.storeId._id.toString(),
-          name: store.storeId.name,
-          status: store.storeId.status,
-        })),
-      };
+      // coming up later
+      // const storeIds = (user.stores ?? []).map((s) => s.storeId);
 
-      return serializedUser;
+      // const stores = await StoreModel.find({
+      //   _id: { $in: storeIds },
+      // }).lean<IStore>();
+
+      const user = UserFactory.createBaseUser(userDoc).toJSON();
+
+      return user;
     } catch (error) {
       console.error("Error fetching user by ID:", error);
       throw handleTRPCError(error, "Error fetching user by ID");

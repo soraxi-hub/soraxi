@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { CouponTypeEnum } from "@/enums";
 import { CouponQueryService } from "@/services/server-queries/coupon-query.service";
 import { koboToNaira } from "@/lib/utils/naira";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";

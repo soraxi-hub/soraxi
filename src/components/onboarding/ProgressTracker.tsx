@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Circle } from "lucide-react";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 
 /**
  * Progress Tracker Component
@@ -40,8 +40,8 @@ export function ProgressTracker() {
               step.isActive
                 ? "bg-soraxi-green/10 border border-soraxi-green/20"
                 : step.isCompleted
-                ? "bg-muted/50"
-                : "bg-transparent"
+                  ? "bg-muted/50"
+                  : "bg-transparent"
             }`}
           >
             {/* Step Icon */}
@@ -68,8 +68,8 @@ export function ProgressTracker() {
                   step.isActive
                     ? "text-soraxi-green"
                     : step.isCompleted
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                      ? "text-foreground"
+                      : "text-muted-foreground"
                 }`}
               >
                 {step.title}

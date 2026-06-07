@@ -5,7 +5,7 @@ import {
   StoreBusinessInfoEnum,
   StoreStatusEnum,
   StoreVerificationStatusEnum,
-} from "@/validators/store-validators";
+} from "@/enums";
 
 /**
  * Shipping Method Schema Subdocument Interface
@@ -17,19 +17,13 @@ export interface IShippingMethod {
   estimatedDeliveryDays: number; // Estimated number of days for delivery after order placement (e.g., "3-5 days")
   isActive?: boolean;
   description: string;
-  applicableRegions?: string[];
-  conditions?: {
-    minOrderValue?: number;
-    maxOrderValue?: number;
-    minWeight?: number;
-    maxWeight?: number;
-  };
 }
 
 /**
  * Payout Account Subdocument Interface
  */
 export interface IPayoutAccount {
+  _id?: mongoose.Types.ObjectId;
   payoutMethod: "Bank Transfer";
   bankDetails: {
     bankName: string;
@@ -43,8 +37,8 @@ export interface IPayoutAccount {
 /**
  * Store Document Interface
  */
-export interface IStore extends Document {
-  _id: mongoose.Schema.Types.ObjectId;
+export interface IStore {
+  _id: mongoose.Types.ObjectId;
   name: string;
   password: string;
   storeOwner: mongoose.Types.ObjectId;
@@ -103,6 +97,8 @@ export interface IStore extends Document {
   updatedAt: Date;
 }
 
+export type IStoreDocument = IStore & Document;
+
 /**
  * Define Store Schema
  */
@@ -119,13 +115,6 @@ const ShippingMethodSchema = new Schema<IShippingMethod>({
   estimatedDeliveryDays: Number,
   isActive: { type: Boolean, default: true },
   description: String,
-  applicableRegions: [String],
-  conditions: {
-    minOrderValue: Number,
-    maxOrderValue: Number,
-    minWeight: Number,
-    maxWeight: Number,
-  },
 });
 
 const PayoutAccountSchema = new Schema<IPayoutAccount>({
@@ -158,7 +147,7 @@ const PayoutAccountSchema = new Schema<IPayoutAccount>({
   },
 });
 
-const StoreSchema = new Schema<IStore>(
+const StoreSchema = new Schema<IStoreDocument>(
   {
     name: {
       type: String,
@@ -249,7 +238,6 @@ const StoreSchema = new Schema<IStore>(
     // Financials
     walletId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Wallet",
       required: false,
     },
 
@@ -293,10 +281,10 @@ StoreSchema.index({ walletId: 1 });
 /**
  * Get the Store model
  */
-export async function getStoreModel(): Promise<Model<IStore>> {
+export async function getStoreModel(): Promise<Model<IStoreDocument>> {
   await connectToDatabase();
   return (
-    (mongoose.models.Store as Model<IStore>) ||
-    mongoose.model<IStore>("Store", StoreSchema)
+    (mongoose.models.Store as Model<IStoreDocument>) ||
+    mongoose.model<IStoreDocument>("Store", StoreSchema)
   );
 }

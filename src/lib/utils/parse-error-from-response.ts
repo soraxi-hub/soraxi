@@ -2,6 +2,7 @@ export interface ParsedApiError {
   message: string;
   code?: string;
   cause?: string;
+  errors?: any;
 }
 
 /**
@@ -10,7 +11,7 @@ export interface ParsedApiError {
  * @returns A ParsedApiError with message, code, and cause
  */
 export async function parseErrorFromResponse(
-  response: Response
+  response: Response,
 ): Promise<ParsedApiError> {
   try {
     const data = await response.json();
@@ -20,6 +21,7 @@ export async function parseErrorFromResponse(
       message: data?.error?.message || "An unknown error occurred.",
       code: data?.error?.code,
       cause: data?.error?.cause,
+      errors: data?.error?.errors,
     };
   } catch {
     return {

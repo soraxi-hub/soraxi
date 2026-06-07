@@ -12,7 +12,7 @@ import {
   AUDIT_MODULES,
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { getStoreEmailTemplates } from "@/services/notifications/utils/utils";
 import { NotificationFactory } from "@/domain/notification";

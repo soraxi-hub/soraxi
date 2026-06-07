@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OO Design Principles
 
-## Getting Started
+This document summarizes the core object-oriented design principles introduced in _Head First Design Patterns_ (2nd Edition, 2020). These principles serve as the foundation for the patterns discussed throughout the book and provide a guide for building flexible, maintainable, and extensible software.
 
-First, run the development server:
+## Chapter 1: Welcome to Design Patterns
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Identify the aspects of your application that vary and separate them from what stays the same.**
+  - **Explanation:** Take the parts that vary and encapsulate them, so that later you can alter or extend the parts that vary without affecting those that don't.
+- **Program to an interface, not an implementation.**
+  - **Explanation:** This means that the declared type of the variables should be a supertype, usually an abstract class or interface, so that the objects assigned to those variables can be of any concrete implementation of the supertype.
+- **Favor composition over inheritance.**
+  - **Explanation:** Instead of inheriting behavior from a superclass, objects get their behavior by being composed with the right behavior object. This allows for more flexibility, such as changing behavior at runtime.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Chapter 2: The Observer Pattern
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Strive for loosely coupled designs between objects that interact.**
+  - **Explanation:** Loosely coupled designs allow us to build flexible OO systems that can handle change because they minimize the interdependency between objects.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Chapter 3: The Decorator Pattern
 
-## Learn More
+- **Classes should be open for extension, but closed for modification.**
+  - **Explanation:** This is known as the **Open-Closed Principle**. The goal is to allow classes to be easily extended to incorporate new behavior without modifying existing code.
 
-To learn more about Next.js, take a look at the following resources:
+## Chapter 4: The Factory Pattern
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Depend upon abstractions. Do not depend upon concrete classes.**
+  - **Explanation:** This principle, the **Dependency Inversion Principle**, suggests that high-level components should not depend on low-level components; rather, they should both depend on abstractions.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Chapter 7: The Adapter and Facade Patterns
 
-## Deploy on Vercel
+- **Principle of Least Knowledge: talk only to your immediate friends.**
+  - **Explanation:** This principle (also known as the Law of Demeter) suggests that we should be careful about the number of classes an object interacts with and how it comes to interact with them.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Chapter 8: The Template Method Pattern
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **The Hollywood Principle: Don’t call us, we’ll call you.**
+  - **Explanation:** This principle guides us to put decision-making in high-level modules that can decide how and when to call low-level modules.
+
+## Chapter 9: The Iterator and Composite Patterns
+
+- **A class should have only one reason to change.**
+  - **Explanation:** This is the **Single Responsibility Principle**. Every responsibility of a class is an area of potential change. More than one responsibility means more than one area of change.

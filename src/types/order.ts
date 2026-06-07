@@ -1,9 +1,13 @@
-import { DeliveryStatus, DeliveryType, StatusHistory } from "@/enums";
+import {
+  DeliveryStatus,
+  DeliveryType,
+  ProductTypeEnum,
+  StatusHistory,
+} from "@/enums";
 import {
   DiscountSchemaOptional,
   IDiscount,
 } from "@/validators/discount-validation";
-import { ProductTypeEnum } from "@/validators/product-validators";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -353,7 +357,7 @@ export const FormattedSubOrderSchema = z.object({
       status: z.nativeEnum(StatusHistory),
       timestamp: z.string().datetime(),
       notes: z.string().optional(),
-    })
+    }),
   ),
 });
 

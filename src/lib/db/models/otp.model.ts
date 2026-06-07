@@ -1,27 +1,12 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-
-/**
- * Enum for OTP purpose
- * Helps differentiate OTP usage (e.g., verification vs password reset)
- */
-export enum OtpPurpose {
-  VerifyEmail = "verify_email",
-  ResetPassword = "reset_password",
-  Login = "login",
-}
-
-export enum OtpEntityType {
-  User = "user",
-  Store = "store",
-  Admin = "admin",
-}
+import { OtpEntityType, OtpPurpose } from "@/enums";
 
 /**
  * Interface for OTP document
  * Represents a single OTP session (not permanent user data)
  */
-export interface IOTP extends Document {
+export interface IOTP {
   _id: mongoose.Types.ObjectId;
 
   entityId: mongoose.Types.ObjectId; // Generic reference ID
@@ -43,10 +28,12 @@ export interface IOTP extends Document {
   updatedAt: Date;
 }
 
+export type IOTPDocument = IOTP & Document;
+
 /**
  * Mongoose schema for OTP
  */
-const OTPSchema = new Schema<IOTP>(
+const OTPSchema = new Schema<IOTPDocument>(
   {
     entityId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -123,11 +110,11 @@ OTPSchema.index({ purpose: 1, entityType: 1, isUsed: 1 });
  * Get the OTP model
  * Prevents model redefinition in development
  */
-export async function getOTPModel(): Promise<Model<IOTP>> {
+export async function getOTPModel(): Promise<Model<IOTPDocument>> {
   await connectToDatabase();
 
   return (
-    (mongoose.models.OTP as Model<IOTP>) ||
-    mongoose.model<IOTP>("OTP", OTPSchema)
+    (mongoose.models.OTP as Model<IOTPDocument>) ||
+    mongoose.model<IOTPDocument>("OTP", OTPSchema)
   );
 }

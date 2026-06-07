@@ -12,14 +12,14 @@ import { TRPCError } from "@trpc/server";
  */
 export function handleTRPCError(
   error: unknown,
-  defaultMessage = "Unexpected server error"
+  defaultMessage = "Unexpected server error",
 ): TRPCError {
-  // ✅ If it's already a TRPCError, rethrow it as-is
+  // If it's already a TRPCError, rethrow it as-is
   if (error instanceof TRPCError) {
     return error;
   }
 
-  // ✅ Convert known Mongoose / MongoDB connection errors
+  // Convert known Mongoose / MongoDB connection errors
   if (
     error instanceof Error &&
     (error.name === "MongoNetworkError" ||
@@ -38,7 +38,7 @@ export function handleTRPCError(
     });
   }
 
-  // ✅ Handle common validation issues
+  // Handle common validation issues
   if (error instanceof Error && error.name === "ValidationError") {
     return new TRPCError({
       code: "BAD_REQUEST",
@@ -47,7 +47,7 @@ export function handleTRPCError(
     });
   }
 
-  // ✅ Handle duplicate key (MongoDB unique constraint violation)
+  // Handle duplicate key (MongoDB unique constraint violation)
   if ((error as any)?.code === 11000) {
     return new TRPCError({
       code: "CONFLICT",
@@ -56,7 +56,7 @@ export function handleTRPCError(
     });
   }
 
-  // ✅ Default fallback
+  // Default fallback
   return new TRPCError({
     code: "INTERNAL_SERVER_ERROR",
     message:

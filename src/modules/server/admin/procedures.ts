@@ -8,7 +8,7 @@ import {
   RawProductDocumentAdminManagement,
   type RawProductDocument,
 } from "@/modules/admin/product-formatter";
-import { ProductStatusEnum } from "@/validators/product-validators";
+import { ProductStatusEnum } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import {

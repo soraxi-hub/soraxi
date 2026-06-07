@@ -1,5 +1,11 @@
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { Store } from "@/domain/stores/store";
-import { getStoreModel, IStore } from "@/lib/db/models/store.model";
+import {
+  getStoreModel,
+  IStore,
+  IStoreDocument,
+} from "@/lib/db/models/store.model";
+import { AppError } from "@/lib/errors/app-error";
 import mongoose from "mongoose";
 
 export class StoreRepository {
@@ -57,5 +63,38 @@ export class StoreRepository {
       .select("_id")
       .lean<IStore>();
     return store !== null;
+  }
+
+  static async findStoreById(id: string) {
+    const StoreModel = await getStoreModel();
+
+    return await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
+      .where("_id", new mongoose.Types.ObjectId(id))
+      .select("password")
+      .executeOne();
+  }
+
+  static async linkVendorWalletToStore(
+    vendorWalletId: string,
+    storeId: string,
+    session: mongoose.ClientSession | null,
+  ): Promise<void> {
+    const StoreModel = await getStoreModel();
+
+    const store = await QueryBuilderFactory.queryBuilder<
+      IStore,
+      IStoreDocument
+    >(StoreModel)
+      .where("_id", new mongoose.Types.ObjectId(storeId))
+      .withLean(false)
+      .executeOne();
+
+    if (!store) throw new AppError("Store not found", 400);
+
+    store.walletId = new mongoose.Types.ObjectId(
+      vendorWalletId,
+    ) as unknown as mongoose.Schema.Types.ObjectId;
+
+    await store.save({ session });
   }
 }

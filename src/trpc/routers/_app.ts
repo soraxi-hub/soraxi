@@ -14,10 +14,8 @@ import { storeProfileRouter } from "@/modules/server/store/profile/procedures";
 import { storeShippingRouter } from "@/modules/server/store/shipping/procedures";
 import { adminStoreRouter } from "@/modules/server/admin/store/procedures";
 import { adminOrdersRouter } from "@/modules/server/admin/orders/procedures";
-import { deliveryConfirmationRouter } from "@/modules/server/admin/delivery-confirmation/procedure";
 import { storeWalletRouter } from "@/modules/server/store/wallet-management/fetch-wallet/procedures";
-import { storeWalletTransactionsRouter } from "@/modules/server/store/wallet-management/store-wallet-transactions/procedures";
-import { withdrawalRouter } from "@/modules/server/withdrawal-router/procedure";
+import { vendorPayoutRouter } from "@/modules/server/store/payout/store-payouts/procedures";
 import { productReviewRouter } from "@/modules/server/reviews/products/procedures";
 import { orderStatusRouter } from "@/modules/server/store/store-orders/order-status-management/procedures";
 import { adminManagementRouter } from "@/modules/server/admin/admin-management/procedures";
@@ -28,9 +26,12 @@ import { publicStoreRouter } from "@/modules/server/public-store/public-store-pr
 import { adminCouponRouter } from "@/modules/server/admin/coupon/procedures";
 import { couponRouter } from "@/modules/server/coupon/procedures";
 import { flutterwavePaymentVerificationRouter } from "@/modules/server/flutterwave/payment-verification/procedures";
-import { storeFundReleaseRouter } from "@/modules/server/store/fund-release/procedures";
-import { adminFundReleaseRouter } from "@/modules/server/admin/admin-fund-release/procedures";
 import { requestRouter } from "@/modules/server/demand-listings/procedures";
+import { adminDisputeRouter } from "@/modules/server/admin/disputes/procedures";
+import { customerDisputeRouter } from "@/modules/server/user/disputes/procedures";
+import { vendorDisputeRouter } from "@/modules/server/store/disputes/vendor-dispute.procedures";
+import { platformWalletRouter } from "@/modules/server/admin/platform-wallet/procedures";
+import { adminPayoutRouter } from "@/modules/server/admin/payouts/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -46,24 +47,25 @@ export const appRouter = createTRPCRouter({
   admin: adminProductRouter,
   demandListing: requestRouter,
   adminStore: adminStoreRouter,
-  withdrawal: withdrawalRouter,
   adminAuditLog: auditLogRouter,
   publicStore: publicStoreRouter,
+  withdrawal: vendorPayoutRouter,
   adminCoupon: adminCouponRouter,
   adminOrders: adminOrdersRouter,
   storeWallet: storeWalletRouter,
   orderStatus: orderStatusRouter,
   storeOrders: storeOrdersRouter,
+  adminPayout: adminPayoutRouter,
   flutterwave: flutterwaveRouter,
   storeProfile: storeProfileRouter,
+  adminDispute: adminDisputeRouter,
   storeProducts: storeProductRouter,
   storeShipping: storeShippingRouter,
+  vendorDispute: vendorDisputeRouter,
   productReview: productReviewRouter,
+  platformWallet: platformWalletRouter,
   adminManagement: adminManagementRouter,
-  storeFundRelease: storeFundReleaseRouter,
-  adminFundRelease: adminFundReleaseRouter,
-  adminDeliveryConfirmation: deliveryConfirmationRouter,
-  storeWalletTransactions: storeWalletTransactionsRouter,
+  customerDispute: customerDisputeRouter,
   flutterwavePaymentVerification: flutterwavePaymentVerificationRouter,
 });
 // export type definition of API

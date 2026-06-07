@@ -1,18 +1,17 @@
 import mongoose, { Model } from "mongoose";
-import { type ICoupon } from "@/validators/coupon-validations";
-import type {
-  CouponRedemptionType,
-  ICouponRedemption,
-} from "@/validators/coupon-redemption-validation";
-import { getCouponModel } from "@/lib/db/models/coupon.model";
-import { getCouponRedemptionModel } from "@/lib/db/models/coupon-redemption.model";
+import type { CouponRedemptionType } from "@/validators/coupon-redemption-validation";
+import { getCouponModel, ICouponDocument } from "@/lib/db/models/coupon.model";
+import {
+  getCouponRedemptionModel,
+  ICouponRedemptionDocument,
+} from "@/lib/db/models/coupon-redemption.model";
 import type { CouponType } from "@/validators/coupon-validations";
 import type { Types } from "mongoose";
 import { formatNaira } from "@/lib/utils/naira";
 import { DiscountCalculator } from "@/lib/utils/discount-calculator";
 
 /**
- * 🧾 Utility type: LeanDocumentWithId
+ * Utility type: LeanDocumentWithId
  *
  * Extends a given data type `T` (typically a Zod-inferred schema type)
  * with the MongoDB `_id` field. This is especially useful when working
@@ -36,8 +35,8 @@ export type LeanDocumentWithId<T> = T & { _id: Types.ObjectId };
  * environments that hot-reload Mongoose models.
  */
 export class CouponService {
-  private Coupon!: Model<ICoupon>;
-  private Redemption!: Model<ICouponRedemption>;
+  private Coupon!: Model<ICouponDocument>;
+  private Redemption!: Model<ICouponRedemptionDocument>;
 
   /**
    * Private constructor — forces the use of `CouponService.init()`
@@ -150,14 +149,14 @@ export class CouponService {
     // 6️⃣ Minimum order total. Both order Total and Min Order value are in kobo
     if (coupon.minOrderValue && orderTotal < coupon.minOrderValue) {
       throw new Error(
-        `Order total must be at least ${formatNaira(coupon.minOrderValue)}`
+        `Order total must be at least ${formatNaira(coupon.minOrderValue)}`,
       );
     }
 
     // validate coupon usage by user
     const isUsedByUser = await this.validateCouponUsageByUser(
       coupon.code,
-      userId
+      userId,
     );
     if (isUsedByUser) {
       throw new Error(`You have already used this coupon`);
@@ -208,7 +207,7 @@ export class CouponService {
    */
   async validateCouponUsageByUser(
     couponId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
     const couponRedemption = await this.Redemption.findOne({
       couponId,
@@ -252,14 +251,14 @@ export class CouponService {
    *
    */
   async getCouponByCode(
-    code: string
+    code: string,
   ): Promise<LeanDocumentWithId<CouponType> | null> {
     if (!mongoose.Types.ObjectId.isValid(code)) {
       throw new Error(`Invalid code.`);
     }
 
     const coupon = await this.Coupon.findById(
-      code
+      code,
     ).lean<LeanDocumentWithId<CouponType> | null>();
 
     return coupon;

@@ -15,6 +15,7 @@ export function handleApiError(error: unknown) {
           message: error.message,
           code: error.code || "APP_ERROR",
           cause: error.cause || null,
+          errors: error.meta || null,
         },
       },
       { status: error.statusCode },

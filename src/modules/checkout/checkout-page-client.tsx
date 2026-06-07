@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,22 +11,16 @@ import { ProfileErrorFallback } from "@/modules/checkout/profile-error-fallback"
 import StoreCartGroup from "@/modules/checkout/store-cart-group";
 import OrderSummary from "@/modules/checkout/order-summary";
 
-import { PaymentService } from "@/domain/checkout/payment-service";
-import { AppRouter } from "@/trpc/routers/_app";
-import { inferProcedureOutput } from "@trpc/server";
 import {
   AppliedCouponType,
   useCheckoutService,
-} from "@/hooks/use-checkout-service";
-
-export type CartOutput = inferProcedureOutput<
-  AppRouter["checkout"]["getGroupedCart"]
->;
-export type UserOutput = inferProcedureOutput<AppRouter["user"]["getById"]>;
+} from "@/hooks/use-checkout-hook";
+import { GroupedCartItem } from "@/domain/cart/cart-interface";
+import { PublicToJSONUserType } from "@/domain/users/user-interface";
 
 export type CheckoutData = {
-  cartData: CartOutput;
-  userData: UserOutput;
+  cartData: GroupedCartItem;
+  userData: PublicToJSONUserType;
 };
 
 interface CheckoutPageClientProps {
@@ -35,60 +29,42 @@ interface CheckoutPageClientProps {
 
 export function CheckoutPageClient({ initialState }: CheckoutPageClientProps) {
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCouponType | null>(
-    null
+    null,
   );
 
   const {
     error,
     setError,
+    onPlaceOrder,
+    isProcessing,
     isValidating,
+    deliveryType,
+    setDeliveryType,
     setIsValidating,
-    paymentMutation,
     validationErrors,
     totalShippingCost,
     isCheckoutComplete,
     selectedShippingMethods,
-    validateAndPreparePayment,
     handleShippingMethodChange,
   } = useCheckoutService(
     initialState.cartData,
     initialState.userData,
-    appliedCoupon
+    appliedCoupon,
   );
-
-  const paymentService = useMemo(() => new PaymentService(), []);
-
-  const [deliveryType, setDeliveryType] = useState<DeliveryType>(
-    DeliveryType.Campus
-  );
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDeliveryTypeChange = (val: DeliveryType) => {
     setDeliveryType(val);
     toast.success(
-      `Status updated to: ${val === DeliveryType.Campus ? "Within Campus" : "Outside Campus"}`
+      `Status updated to: ${val === DeliveryType.Campus ? "Within Campus" : "Outside Campus"}`,
     );
   };
 
   const handlePlaceOrder = async () => {
     try {
-      setError(null);
-
-      // Step 1: Validate + prepare payment data
-      const paymentData = await validateAndPreparePayment(deliveryType);
-      if (!paymentData) return;
-
-      // Step 2: Process payment
-      setIsProcessing(true);
-      await paymentService.processPayment(paymentData, paymentMutation);
+      await onPlaceOrder();
     } catch (err: any) {
-      console.error("Payment processing error:", err);
-      setError(
-        err.message ||
-          "An error occurred while processing your payment. Please try again."
-      );
+      setError(err.message || "Failed to initialize payment");
     } finally {
-      setIsProcessing(false);
       setIsValidating(false);
     }
   };

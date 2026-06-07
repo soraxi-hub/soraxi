@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "seed:financial": "tsx scripts/financial-seed.ts",
+    "teardown:financial": "tsx scripts/financial-teardown.ts",
     "start:create:superAdmin": "tsx scripts/create-super-admin.ts",
     "start:backfill-target-audience": "tsx scripts/back-fill-target-audience.ts",
     "lint": "next lint",

@@ -4,20 +4,21 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "../products/product-detail/product-card";
 import { ShoppingCartIcon } from "lucide-react";
+import { PublicToJSON } from "@/domain/products/product-interface";
 
-interface Product {
-  id: string;
-  name: string;
-  price?: number;
-  images?: string[];
-  category?: string[];
-  rating?: number;
-  slug: string;
-  isVerifiedProduct?: boolean;
-}
+// interface Product {
+//   id: string;
+//   name: string;
+//   price?: number;
+//   images?: string[];
+//   category?: string[];
+//   rating?: number;
+//   slug: string;
+//   isVerifiedProduct?: boolean;
+// }
 
 interface ProductGridProps {
-  products: Product[];
+  products: PublicToJSON[];
   loading?: boolean;
 }
 
@@ -56,7 +57,7 @@ export function ProductGrid({ products, loading }: ProductGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map((product) => (
-        <Link key={product.id} href={`/products/${product.slug}`}>
+        <Link key={product.productId} href={`/products/${product.slug}`}>
           <ProductCard product={product} />
         </Link>
       ))}

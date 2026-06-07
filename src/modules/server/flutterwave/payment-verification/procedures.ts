@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import mongoose from "mongoose";
-import { PaymentStatus } from "@/enums";
+import { PaymentGateway, PaymentStatus } from "@/enums";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { FlutterwavePayment } from "@/domain/payments/flutterwave/payment";
 import { OrderFactory } from "@/domain/orders/order-factory";
-import { CartService } from "@/domain/cart/cart";
+import { CartService } from "@/services/cart/cart.service";
+import { PaymentGatewayFactory } from "@/domain/payment/payment.factory";
 
 export const flutterwavePaymentVerificationRouter = createTRPCRouter({
   verifyPayment: baseProcedure
@@ -20,13 +20,15 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
         .refine(
           (data) =>
             data.withTransactionId ? !!data.transaction_id : !!data.tx_ref,
-          { message: "Missing required transaction identifier" }
-        )
+          { message: "Missing required transaction identifier" },
+        ),
     )
     .query(async ({ input }) => {
       const { tx_ref, withTransactionId, transaction_id } = input;
       const statusArr = ["successful", "completed", "success"];
-      const flutterwaveService = new FlutterwavePayment();
+      const flutterwaveService = PaymentGatewayFactory.getGateway(
+        PaymentGateway.Flutterwave,
+      );
       const processOrder = await OrderFactory.getProcessOrderInstance();
       let session: mongoose.ClientSession | null = null;
       await connectToDatabase();
@@ -38,7 +40,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
           }
 
           const verifiedTransaction =
-            await flutterwaveService.verifyTransaction(transaction_id);
+            await flutterwaveService.verifyPayment(transaction_id);
 
           if (!verifiedTransaction) {
             return { ok: false, error: "Could not retrieve transaction data" };
@@ -119,7 +121,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
 
             // Step 4: Clear user's cart
             if (result.userId) {
-              CartService.clearUserCart(result.userId);
+              CartService.clearCart(result.userId);
             }
 
             await session.commitTransaction();
@@ -154,7 +156,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           error,
-          "There was an error when trying to verify flutterwave Payment."
+          "There was an error when trying to verify flutterwave Payment.",
         );
       } finally {
         // Always end the session

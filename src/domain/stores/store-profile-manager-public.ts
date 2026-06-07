@@ -1,6 +1,6 @@
 import { AppRouter } from "@/trpc/routers/_app";
 import { inferProcedureOutput } from "@trpc/server";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 
 type StoreProfileData = inferProcedureOutput<

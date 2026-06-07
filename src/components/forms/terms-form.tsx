@@ -23,7 +23,7 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 // import { useToast } from "@/hooks/use-toast"
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -123,7 +123,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
 
       // Success - show confirmation and redirect
       toast.success(
-        `Your store has been submitted for review. You'll be notified once it's approved.`
+        `Your store has been submitted for review. You'll be notified once it's approved.`,
       );
 
       // Redirect to dashboard or confirmation page

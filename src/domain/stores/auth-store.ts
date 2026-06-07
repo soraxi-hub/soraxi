@@ -1,6 +1,6 @@
 import { PasswordService } from "@/lib/utils";
 import { Store } from "./store";
-import { StoreBusinessInfoEnum } from "@/validators/store-validators";
+import { StoreBusinessInfoEnum } from "@/enums";
 import { IStore } from "@/lib/db/models/store.model";
 
 export class AuthenticatedStore extends Store {

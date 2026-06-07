@@ -14,26 +14,15 @@ import {
 } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 import { siteConfig } from "@/config/site";
+import { IPopulatedCartInfo } from "@/domain/cart/cart-interface";
 
 /**
  * Props interface for CartItem component
  */
 interface CartItemProps {
-  item: {
-    id: string;
-    productId: string;
-    name: string;
-    slug: string;
-    image: string;
-    price: number;
-    quantity: number;
-    size?: string;
-    inStock: boolean;
-    maxQuantity: number;
-  };
+  item: IPopulatedCartInfo["items"][number];
   onUpdateQuantityAction: (id: string, quantity: number) => void;
   onRemoveItemAction: (id: string) => void;
-  onMoveToWishlistAction: (id: string) => void;
 }
 
 /**
@@ -53,11 +42,12 @@ export function CartItem({
   item,
   onUpdateQuantityAction,
   onRemoveItemAction,
-}: // onMoveToWishlistAction,
-CartItemProps) {
+}: CartItemProps) {
   // Local state for quantity input and loading states
   const [quantity, setQuantity] = useState(item.quantity);
   const [isUpdating, setIsUpdating] = useState(false);
+  const { price, productId, name, image, slug, inStock, productQuantity } =
+    item.product;
 
   /**
    * Handle quantity changes with validation and loading states
@@ -66,13 +56,13 @@ CartItemProps) {
    */
   const handleQuantityChange = async (newQuantity: number) => {
     // Validate quantity bounds
-    if (newQuantity < 1 || newQuantity > item.maxQuantity) return;
+    if (newQuantity < 1 || newQuantity > productQuantity) return;
 
     setIsUpdating(true);
     setQuantity(newQuantity);
 
     try {
-      await onUpdateQuantityAction(item.productId, newQuantity);
+      onUpdateQuantityAction(productId, newQuantity);
     } catch (error) {
       // Rollback on error
       setQuantity(item.quantity);
@@ -88,27 +78,27 @@ CartItemProps) {
    */
   const handleInputChange = (value: string) => {
     const newQuantity = Number.parseInt(value) || 1;
-    if (newQuantity >= 1 && newQuantity <= item.maxQuantity) {
+    if (newQuantity >= 1 && newQuantity <= productQuantity) {
       handleQuantityChange(newQuantity);
     }
   };
 
   // Calculate item subtotal
-  const subtotal = item.price * quantity;
+  const subtotal = price * quantity;
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 py-6 border-b">
       {/* Product Image with Stock Overlay */}
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border">
-        <Link href={`/products/${item.slug}`}>
+        <Link href={`/products/${slug}`}>
           <Image
-            src={item.image || siteConfig.placeHolderImg}
-            alt={item.name}
+            src={image || siteConfig.placeHolderImg}
+            alt={name}
             fill
             className="object-cover hover:scale-105 transition-transform"
           />
         </Link>
-        {!item.inStock && (
+        {!inStock && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Badge variant="destructive" className="text-xs">
               Out of Stock
@@ -123,9 +113,9 @@ CartItemProps) {
         <div className="space-y-1 min-w-0">
           <div className="flex justify-between items-start gap-2">
             <div className="min-w-0 flex-1">
-              <Link href={`/products/${item.slug}`}>
+              <Link href={`/products/${slug}`}>
                 <h3 className="font-medium hover:text-primary transition-colors line-clamp-2 truncate">
-                  {item.name}
+                  {name}
                 </h3>
               </Link>
             </div>
@@ -136,17 +126,8 @@ CartItemProps) {
             </div>
           </div>
 
-          {/* Product Variants */}
-          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground truncate">
-            {item.size && (
-              <span className="truncate max-w-[120px] sm:max-w-[160px]">
-                Size: {item.size}
-              </span>
-            )}
-          </div>
-
           <p className="text-sm text-muted-foreground truncate max-w-[160px] sm:max-w-[200px]">
-            {formatNaira(item.price)} each
+            {formatNaira(price)} each
           </p>
         </div>
 
@@ -159,7 +140,7 @@ CartItemProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => handleQuantityChange(quantity - 1)}
-                disabled={quantity <= 1 || isUpdating || !item.inStock}
+                disabled={quantity <= 1 || isUpdating || !inStock}
                 className="h-8 w-8 p-0"
               >
                 <Minus className="h-3 w-3" />
@@ -171,17 +152,15 @@ CartItemProps) {
                 onChange={(e) => handleInputChange(e.target.value)}
                 className="h-8 w-16 text-center border-0 focus-visible:ring-0"
                 min={1}
-                max={item.maxQuantity}
-                disabled={isUpdating || !item.inStock}
+                max={productQuantity}
+                disabled={isUpdating || !inStock}
               />
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleQuantityChange(quantity + 1)}
-                disabled={
-                  quantity >= item.maxQuantity || isUpdating || !item.inStock
-                }
+                disabled={quantity >= productQuantity || isUpdating || !inStock}
                 className="h-8 w-8 p-0"
               >
                 <Plus className="h-3 w-3" />
@@ -189,9 +168,9 @@ CartItemProps) {
             </div>
 
             {/* Low Stock Warning */}
-            {item.maxQuantity <= 20 && (
+            {productQuantity <= 20 && (
               <p className="text-xs text-orange-600 hidden sm:inline truncate">
-                Only {item.maxQuantity} left
+                Only {productQuantity} left
               </p>
             )}
           </div>
@@ -211,7 +190,7 @@ CartItemProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemoveItemAction(item.id)}
+              onClick={() => onRemoveItemAction(productId)}
               className="text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-4 w-4 mr-1" />
@@ -221,7 +200,7 @@ CartItemProps) {
         </div>
 
         {/* Out of Stock Warning */}
-        {!item.inStock && (
+        {!inStock && (
           <p className="text-sm text-destructive mt-2 truncate">
             This item is currently out of stock
           </p>

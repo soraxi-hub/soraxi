@@ -1,48 +1,67 @@
-import { IUser } from "@/lib/db/models/user.model";
-import { AuthUser, PublicUser } from "./user";
-import { ProfileUser, ProfileUserType } from "./profile-user";
+import { AuthUserDecorator } from "./decorators/auth-user.decorator";
+import { ProfileUserDecorator } from "./decorators/profile-user-decorator";
+import { BaseUser, User } from "./user";
+import {
+  AuthUserContext,
+  IUserInfo,
+  ProfileUserContext,
+} from "./user-interface";
 
 export class UserFactory {
-  static createPublicUser(props: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-    address: string;
-    cityOfResidence: string;
-    stateOfResidence: string;
-    postalCode: string;
-    isVerified: boolean;
-  }): PublicUser {
-    return new PublicUser(
-      props.email,
-      props.password,
-      props.firstName,
-      props.lastName,
-      props.phoneNumber,
-      props.address,
-      props.cityOfResidence,
-      props.stateOfResidence,
-      props.postalCode,
-      props.isVerified,
-    );
+  /**
+   * Creates a base User object.
+   * Useful for internal data processing.
+   */
+  static createBaseUser(props: BaseUser): User {
+    return new User(props);
   }
 
-  static createLoginUser(dbUser: IUser): AuthUser {
-    return new AuthUser(
-      dbUser._id.toString(),
-      dbUser.firstName,
-      dbUser.lastName,
-      dbUser.email,
-      dbUser.password,
-      dbUser.stores && dbUser.stores.length > 0 && dbUser.stores[0].storeId
-        ? dbUser.stores[0].storeId.toString()
-        : undefined,
-    );
+  /**
+   * Creates a user decorated with Authentication capabilities.
+   * Use this for login, registration, and security checks.
+   */
+  static createAuthUser(props: AuthUserContext): AuthUserDecorator {
+    const baseUser = new User({
+      ...props,
+      _id: props._id,
+      address: "",
+      cityOfResidence: "",
+      stateOfResidence: "",
+      postalCode: "",
+      followingStores: [],
+      phoneNumber: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isVerified: false,
+    });
+    return new AuthUserDecorator(baseUser);
   }
 
-  static createProfileUser(user: ProfileUserType) {
-    return new ProfileUser(user);
+  /**
+   * Creates a user decorated for Profile/UI views.
+   * Use this for dashboard screens and public profiles.
+   */
+  static createProfileUser(
+    userProps: ProfileUserContext,
+  ): ProfileUserDecorator {
+    const baseUser = new User({
+      ...userProps,
+      _id: userProps._id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      password: "",
+      followingStores: [],
+    });
+    return new ProfileUserDecorator(baseUser);
+  }
+
+  /**
+   * Creates a "Full" User that has both Auth and Profile features.
+   */
+  static createFullUser(props: BaseUser): IUserInfo {
+    let user: IUserInfo = new User(props);
+    user = new ProfileUserDecorator(user);
+    user = new AuthUserDecorator(user);
+    return user;
   }
 }

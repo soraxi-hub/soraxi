@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Plus, Trash2, ArrowLeft, Truck, Clock } from "lucide-react";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import type { ShippingMethodData } from "@/types/onboarding";
 
 /**
@@ -148,7 +148,7 @@ export function ShippingMethodsForm({
           minWeight: method.conditions?.minWeight || undefined,
           maxWeight: method.conditions?.maxWeight || undefined,
         },
-      })
+      }),
     );
 
     updateData("shipping", shippingData);
@@ -302,7 +302,7 @@ export function ShippingMethodsForm({
                       min="1"
                       {...register(
                         `shippingMethods.${index}.estimatedDeliveryDays`,
-                        { valueAsNumber: true }
+                        { valueAsNumber: true },
                       )}
                       placeholder="3"
                       className={

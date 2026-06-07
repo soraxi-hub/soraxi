@@ -1,7 +1,4 @@
-import {
-  StoreStatusEnum,
-  StoreVerificationStatusEnum,
-} from "@/validators/store-validators";
+import { StoreStatusEnum, StoreVerificationStatusEnum } from "@/enums";
 import { Store, StoreProps } from "./store";
 import { AuthenticatedStore } from "./auth-store";
 import { IStore } from "@/lib/db/models/store.model";

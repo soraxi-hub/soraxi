@@ -8,6 +8,7 @@ import {
   HelpCircleIcon,
   BuildingIcon,
   BadgeInfoIcon,
+  // AlertTriangleIcon,
 } from "lucide-react";
 
 export const userSidebarItems = (user: UserTokenPayload) => [
@@ -16,6 +17,7 @@ export const userSidebarItems = (user: UserTokenPayload) => [
     items: [
       { title: "Profile", url: "/profile", icon: UserIcon },
       { title: "Order History", url: "/orders", icon: PackageIcon },
+      // { title: "My Disputes", url: "/disputes", icon: AlertTriangleIcon },
       { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
       { title: "My Requests", url: "/my-requests", icon: BadgeInfoIcon },
     ],

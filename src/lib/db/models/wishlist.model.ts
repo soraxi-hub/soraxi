@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { ProductTypeEnum } from "@/enums";
 
 /**
  * Represents a single item in a user's wishlist.
@@ -14,18 +14,21 @@ export interface IWishlistItem {
  * Wishlist document interface
  * Each user has a unique wishlist containing various product types.
  */
-export interface IWishlist extends Document {
+export interface IWishlist {
+  _id?: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   products: IWishlistItem[];
   createdAt: Date;
   updatedAt: Date;
 }
 
+export type IWishlistDocument = IWishlist & Document;
+
 /**
  * Mongoose schema for user wishlists
  * Stores product references (polymorphic: physical or digital) in subdocuments.
  */
-const WishlistSchema = new Schema<IWishlist>(
+const WishlistSchema = new Schema<IWishlistDocument>(
   {
     userId: {
       type: Schema.Types.ObjectId,
@@ -51,7 +54,7 @@ const WishlistSchema = new Schema<IWishlist>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /**
@@ -60,12 +63,12 @@ const WishlistSchema = new Schema<IWishlist>(
  *
  * @returns Mongoose Wishlist model
  */
-export async function getWishlistModel(): Promise<Model<IWishlist>> {
+export async function getWishlistModel(): Promise<Model<IWishlistDocument>> {
   await connectToDatabase();
 
   return (
-    (mongoose.models.Wishlist as Model<IWishlist>) ||
-    mongoose.model<IWishlist>("Wishlist", WishlistSchema)
+    (mongoose.models.Wishlist as Model<IWishlistDocument>) ||
+    mongoose.model<IWishlistDocument>("Wishlist", WishlistSchema)
   );
 }
 
@@ -77,18 +80,17 @@ export async function getWishlistModel(): Promise<Model<IWishlist>> {
  * @returns Wishlist document or plain object
  */
 export async function getWishlistByUserId(
-  userId: string
-): Promise<IWishlist | null> {
+  userId: string,
+): Promise<IWishlistDocument | null> {
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
 
-  const wishlist = await Wishlist.findOne<IWishlist>({
+  const wishlist = await Wishlist.findOne<IWishlistDocument>({
     userId: userId,
   }).populate({
     path: "products.productId",
     select: "name price sizes images productType slug category rating",
   });
-  // .lean();
 
   return wishlist;
 }
@@ -102,7 +104,15 @@ export async function getWishlistByUserId(
  */
 export async function getWishlistById(
   id: string,
-  lean = false
+  lean: false,
+): Promise<IWishlistDocument | null>;
+export async function getWishlistById(
+  id: string,
+  lean: true,
+): Promise<IWishlist | null>;
+export async function getWishlistById(
+  id: string,
+  lean = false,
 ): Promise<IWishlist | null> {
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
@@ -116,7 +126,7 @@ export async function addItemToWishlist(
   product: {
     productId: mongoose.Types.ObjectId;
     productType: ProductTypeEnum;
-  }
+  },
 ): Promise<IWishlist> {
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
@@ -129,7 +139,7 @@ export async function addItemToWishlist(
     const alreadyInWishlist = wishlist.products.some(
       (item) =>
         item.productId.toString() === product.productId.toString() &&
-        item.productType === product.productType
+        item.productType === product.productType,
     );
     if (!alreadyInWishlist) {
       wishlist.products.push(product);
@@ -142,7 +152,7 @@ export async function addItemToWishlist(
 // Remove from wishlist
 export async function removeItemFromWishlist(
   userId: string,
-  productId: string
+  productId: string,
 ): Promise<IWishlist | null> {
   await connectToDatabase();
   const Wishlist = await getWishlistModel();
@@ -154,6 +164,6 @@ export async function removeItemFromWishlist(
         products: { productId: new mongoose.Types.ObjectId(productId) },
       },
     },
-    { new: true }
+    { new: true },
   );
 }

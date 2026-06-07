@@ -9,6 +9,17 @@ export enum PaymentStatus {
   Cancelled = "cancelled",
 }
 
+export enum CouponTypeEnum {
+  Percentage = "percentage",
+  Fixed = "fixed",
+}
+
+export enum TokenType {
+  User = "userToken",
+  Store = "storeToken",
+  Admin = "adminToken",
+}
+
 /**
  * Enum representing the supported payment gateways.
  */
@@ -118,7 +129,7 @@ export const deliveryStatusLabels: Record<DeliveryStatus, string> = {
 export type DeliveryStatusLabel = (typeof deliveryStatusLabels)[DeliveryStatus];
 
 export const deliveryStatusLabel = (
-  val: DeliveryStatus
+  val: DeliveryStatus,
 ): DeliveryStatusLabel => {
   switch (val) {
     case DeliveryStatus.OrderPlaced:
@@ -143,3 +154,69 @@ export const deliveryStatusLabel = (
       return "Unknown Status";
   }
 };
+
+/**
+ * Enum for OTP purpose
+ * Helps differentiate OTP usage (e.g., verification vs password reset)
+ */
+export enum OtpPurpose {
+  VerifyEmail = "verify_email",
+  ResetPassword = "reset_password",
+  Login = "login",
+}
+
+export enum OtpEntityType {
+  User = "user",
+  Store = "store",
+  Admin = "admin",
+}
+
+/**
+ * Enum for Product Status
+ */
+export enum ProductStatusEnum {
+  Draft = "draft",
+  Pending = "pending",
+  Approved = "approved",
+  Rejected = "rejected",
+  Archived = "archived",
+}
+
+export enum ProductActionEnum {
+  Draft = "draft",
+  Publish = "publish",
+}
+
+export enum ProductTypeEnum {
+  Product = "Product", // Keep it like this for proper DB reference to the Product Schema
+}
+
+/**
+ * Status of a request post.
+ * - Open: Request is active and still looking for responses
+ * - Fulfilled: User has found what they were looking for
+ * - Expired: Request is no longer valid (auto or manual expiry)
+ */
+export enum RequestStatus {
+  Open = "open",
+  Fulfilled = "fulfilled",
+  Expired = "expired",
+}
+
+export enum StoreStatusEnum {
+  Active = "active",
+  Suspended = "suspended",
+  Pending = "pending",
+  Rejected = "rejected",
+}
+
+export enum StoreVerificationStatusEnum {
+  Email = "email",
+  Identity = "identity",
+  videoCall = "video_call",
+}
+
+export enum StoreBusinessInfoEnum {
+  Individual = "individual",
+  Company = "company",
+}

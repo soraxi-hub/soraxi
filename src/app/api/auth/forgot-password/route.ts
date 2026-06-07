@@ -10,7 +10,7 @@ import {
 } from "@/domain/notification";
 import React from "react";
 import { OTP } from "@/lib/utils/otp";
-import { OtpPurpose } from "@/lib/db/models/otp.model";
+import { OtpPurpose } from "@/enums";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();

@@ -28,7 +28,7 @@ import AlertUI from "@/modules/shared/alert";
 import { StoreDashboardSkeleton } from "@/modules/skeletons/store-dashboard-skeleton";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import Link from "next/link";
-import { StoreStatusEnum } from "@/validators/store-validators";
+import { StoreStatusEnum } from "@/enums";
 import { cn } from "@/lib/utils";
 
 /**
@@ -104,7 +104,7 @@ export default function StoreDashboardPage({
                     "bg-soraxi-warning",
                   (storeData.status === StoreStatusEnum.Rejected ||
                     storeData.status === StoreStatusEnum.Suspended) &&
-                    "bg-soraxi-error"
+                    "bg-soraxi-error",
                 )}
               >
                 {storeData.status.charAt(0).toUpperCase() +

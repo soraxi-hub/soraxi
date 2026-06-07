@@ -11,11 +11,15 @@ import { TRPCError } from "@trpc/server";
 
 import { getCartModel, type ICart } from "@/lib/db/models/cart.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
+import {
+  getProductModel,
+  Size,
+  type IProduct,
+} from "@/lib/db/models/product.model";
 
 import { currencyOperations } from "@/lib/utils/naira";
-import { StoreStatusEnum } from "@/validators/store-validators";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { StoreStatusEnum } from "@/enums";
+import { ProductTypeEnum } from "@/enums";
 import type { CartProduct } from "@/types";
 
 /**
@@ -75,7 +79,7 @@ export class CheckoutQueryService {
       {
         product: CartProduct;
         quantity: number;
-        selectedSize?: { size: string; price: number; quantity: number };
+        selectedSize?: Size;
         productType: ProductTypeEnum;
         storeId: string;
       }[]
@@ -104,7 +108,7 @@ export class CheckoutQueryService {
 
       totalPrice = currencyOperations.add(
         totalPrice,
-        currencyOperations.multiply(itemPrice, item.quantity)
+        currencyOperations.multiply(itemPrice, item.quantity),
       );
 
       totalQuantity += item.quantity;
@@ -121,20 +125,13 @@ export class CheckoutQueryService {
           estimatedDeliveryDays?: number;
           isActive?: boolean;
           description?: string;
-          applicableRegions?: string[];
-          conditions?: {
-            minOrderValue?: number;
-            maxOrderValue?: number;
-            minWeight?: number;
-            maxWeight?: number;
-          };
         }[];
       }
     > = {};
 
     for (const storeId of Object.keys(groupedByStore)) {
       const store = await Store.findById(storeId).select(
-        "name shippingMethods"
+        "name shippingMethods",
       );
 
       if (store) {
@@ -208,7 +205,7 @@ export class CheckoutQueryService {
       // Product deleted from catalog
       if (!product) {
         validationErrors.push(
-          "A product in your cart no longer exists in the catalog."
+          "A product in your cart no longer exists in the catalog.",
         );
         continue;
       }
@@ -222,19 +219,19 @@ export class CheckoutQueryService {
       // Size-based validation
       if (item.selectedSize) {
         const size = product.sizes?.find(
-          (s: { size: string }) => s.size === item.selectedSize!.size
+          (s: { size: string }) => s.size === item.selectedSize!.size,
         );
 
         if (!size) {
           validationErrors.push(
-            `Size ${item.selectedSize.size} is no longer available for ${product.name}.`
+            `Size ${item.selectedSize.size} is no longer available for ${product.name}.`,
           );
           continue;
         }
 
         if (size.quantity < item.quantity) {
           validationErrors.push(
-            `Insufficient stock for ${product.name} (Size: ${item.selectedSize.size}).`
+            `Insufficient stock for ${product.name} (Size: ${item.selectedSize.size}).`,
           );
         }
       } else {
@@ -269,7 +266,7 @@ export class CheckoutQueryService {
 
       if (store.status !== StoreStatusEnum.Active) {
         validationErrors.push(
-          `The store "${store.name}" is not active and cannot accept new orders.`
+          `The store "${store.name}" is not active and cannot accept new orders.`,
         );
       }
     }

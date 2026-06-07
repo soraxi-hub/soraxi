@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { ProductTypeEnum } from "@/validators/product-validators";
+import { ProductTypeEnum } from "@/enums";
 
 // type PaystackInitResponse = {
 //   status: boolean;
@@ -42,7 +42,7 @@ const paystackInputSchema = z.object({
                   size: z.string(),
                   price: z.number(),
                   quantity: z.number(),
-                })
+                }),
               )
               .optional(),
             images: z.array(z.string()),
@@ -58,7 +58,7 @@ const paystackInputSchema = z.object({
             .optional(),
           productType: z.nativeEnum(ProductTypeEnum),
           storeID: z.string(),
-        })
+        }),
       ),
       // shippingMethods: z.array(
       //   z.object({
@@ -68,7 +68,7 @@ const paystackInputSchema = z.object({
       //     estimatedDeliveryDays: z.number().optional(),
       //   })
       // ),
-    })
+    }),
   ),
   customer: z.object({
     email: z.string().email(),

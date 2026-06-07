@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft } from "lucide-react";
-import { useStoreOnboarding } from "@/contexts/StoreOnboardingContext";
+import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import type { BusinessInfoData } from "@/types/onboarding";
 
 /**
@@ -42,7 +42,7 @@ const businessInfoSchema = z
       message:
         "Business name and registration number are required for companies",
       path: ["businessName"],
-    }
+    },
   );
 
 type BusinessInfoFormData = z.infer<typeof businessInfoSchema>;

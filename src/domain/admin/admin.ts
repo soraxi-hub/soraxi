@@ -7,10 +7,12 @@ import type { Role } from "@/modules/admin/security/roles";
  * - Makes the class flexible (can accept lean objects or partials)
  * - Ensures storeOwner-like normalization (string instead of ObjectId)
  */
-export type AdminProps = Partial<IAdmin>;
+export type BaseAdminProps = Omit<IAdmin, "_id"> & {
+  _id?: string;
+};
 
 export class Admin {
-  constructor(protected props: AdminProps) {}
+  constructor(protected props: BaseAdminProps) {}
 
   // -------------------------
   // BASIC INFO
@@ -20,14 +22,14 @@ export class Admin {
   }
 
   get name(): string {
-    return this.props.name?.trim() || "Unnamed Admin";
+    return this.props.name.trim();
   }
 
   get email(): string {
-    return this.props.email || "No Email";
+    return this.props.email;
   }
 
-  get password(): string | undefined {
+  get password(): string {
     return this.props.password;
   }
 
@@ -72,7 +74,7 @@ export class Admin {
   }
 }
 export class AuthenticatedAdmin extends Admin {
-  constructor(admin: IAdmin) {
+  constructor(admin: BaseAdminProps) {
     super(admin);
   }
 

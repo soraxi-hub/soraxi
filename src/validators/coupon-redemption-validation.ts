@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Document } from "mongoose";
 import { Types } from "mongoose";
 
 /**
@@ -25,7 +24,7 @@ export const CouponRedemptionSchema = z.object({
 export type CouponRedemptionType = z.infer<typeof CouponRedemptionSchema>;
 
 /** Mongoose document interface for coupon redemptions */
-export interface ICouponRedemption extends Document {
+export interface ICouponRedemption {
   /** Reference to the redeemed coupon (MongoDB ObjectId) */
   couponId: string;
 

@@ -6,8 +6,8 @@ import type { Role } from "@/modules/admin/security/roles";
  * Interface for Admin document
  * Represents platform administrators with role-based access.
  */
-export interface IAdmin extends Document {
-  _id: mongoose.Schema.Types.ObjectId;
+export interface IAdmin {
+  _id: mongoose.Types.ObjectId;
   name: string;
   email: string;
   password: string;
@@ -18,11 +18,13 @@ export interface IAdmin extends Document {
   updatedAt: Date;
 }
 
+export type IAdminDocument = IAdmin & Document;
+
 /**
  * Mongoose schema for Admins
  * Includes role-based access and basic account info.
  */
-const AdminSchema = new Schema<IAdmin>(
+const AdminSchema = new Schema<IAdminDocument>(
   {
     name: {
       type: String,
@@ -66,7 +68,7 @@ const AdminSchema = new Schema<IAdmin>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /**
@@ -75,12 +77,12 @@ const AdminSchema = new Schema<IAdmin>(
  *
  * @returns Mongoose Admin model
  */
-export async function getAdminModel(): Promise<Model<IAdmin>> {
+export async function getAdminModel(): Promise<Model<IAdminDocument>> {
   await connectToDatabase();
 
   return (
-    (mongoose.models.Admin as Model<IAdmin>) ||
-    mongoose.model<IAdmin>("Admin", AdminSchema)
+    (mongoose.models.Admin as Model<IAdminDocument>) ||
+    mongoose.model<IAdminDocument>("Admin", AdminSchema)
   );
 }
 
@@ -91,8 +93,16 @@ export async function getAdminModel(): Promise<Model<IAdmin>> {
  * @returns IAdmin document or plain object
  */
 export async function getAdminByEmail(
+  id: string,
+  lean: true,
+): Promise<IAdmin | null>;
+export async function getAdminByEmail(
+  id: string,
+  lean?: false,
+): Promise<IAdminDocument | null>;
+export async function getAdminByEmail(
   email: string,
-  lean = false
+  lean = false,
 ): Promise<IAdmin | null> {
   await connectToDatabase();
   const Admin = await getAdminModel();
@@ -110,7 +120,15 @@ export async function getAdminByEmail(
  */
 export async function getAdminById(
   id: string,
-  lean = false
+  lean: true,
+): Promise<IAdmin | null>;
+export async function getAdminById(
+  id: string,
+  lean?: false,
+): Promise<IAdminDocument | null>;
+export async function getAdminById(
+  id: string,
+  lean = false,
 ): Promise<IAdmin | null> {
   await connectToDatabase();
   const Admin = await getAdminModel();

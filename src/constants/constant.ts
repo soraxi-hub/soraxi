@@ -100,9 +100,19 @@ export const categories = [
  * getCategoryName("electronics-gadgets");
  * // => "Electronics & Gadgets"
  */
-export const getCategoryName = (slug: string) => {
+export const getCategoryName = (slug: string): string | undefined => {
   const foundCat = categories.find((cat) => cat.slug === slug);
   return foundCat?.name;
+};
+
+export const getSubCategoryName = (
+  catSlug: string,
+  subCatSlug: string,
+): string | undefined => {
+  const foundSubCat = categories
+    .find((cat) => cat.slug === catSlug)
+    ?.subcategories.find((sub) => sub.slug === subCatSlug);
+  return foundSubCat?.name;
 };
 
 // Helper function to get subcategories for a category

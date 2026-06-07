@@ -6,8 +6,9 @@
  * Distributes discounts proportionally based on each store's order amount.
  */
 
-import { CouponType, CouponTypeEnum } from "@/validators/coupon-validations";
+import { CouponType } from "@/validators/coupon-validations";
 import { currencyOperations } from "./naira";
+import { CouponTypeEnum } from "@/enums";
 
 interface CouponParams {
   type: CouponType["type"];
@@ -35,7 +36,7 @@ export class DiscountCalculator {
     if (coupon.type === CouponTypeEnum.Percentage) {
       const discount = currencyOperations.roundDownPercentage(
         orderTotal,
-        coupon.value
+        coupon.value,
       );
       return Math.min(orderTotal, discount);
     }
@@ -54,7 +55,7 @@ export class DiscountCalculator {
    */
   static distributeDiscountProportionally(
     totalDiscount: number,
-    storeAmounts: number[]
+    storeAmounts: number[],
   ): ProportionalDiscountBreakdown {
     if (storeAmounts.length === 0 || totalDiscount === 0) {
       return { distribution: [], verificationTotal: 0 };
@@ -99,7 +100,7 @@ export class DiscountCalculator {
    */
   static verifyDistribution(
     distribution: number[],
-    expectedTotal: number
+    expectedTotal: number,
   ): boolean {
     const total = distribution.reduce((sum, d) => sum + d, 0);
     return total === expectedTotal;

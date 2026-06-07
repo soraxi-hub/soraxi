@@ -29,7 +29,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ProductCard } from "@/modules/products/product-detail/product-card";
+// import { ProductCard } from "@/modules/products/product-detail/product-card";
 import { StoreProfileManagerPrivate } from "@/domain/stores/store-profile-manager-private";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -543,12 +543,12 @@ export default function EnhancedStoreProfile() {
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {store.products.map((product) => (
                     <Link key={product._id} href={`/products/${product.slug}`}>
-                      <ProductCard
+                      {/* <ProductCard
                         product={{
                           ...product,
                           id: product._id,
                         }}
-                      />
+                      /> */}
                     </Link>
                   ))}
                 </div>

@@ -2,6 +2,6 @@ import { getAdminByEmail as getAdminUsingAdminEmail } from "@/lib/db/models/admi
 
 export class AdminRepository {
   static async getAdminByEmail(email: string) {
-    return await getAdminUsingAdminEmail(email);
+    return await getAdminUsingAdminEmail(email, true);
   }
 }

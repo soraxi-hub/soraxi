@@ -1,6 +1,6 @@
 import "server-only";
 import { randomInt } from "node:crypto";
-import { getOTPModel, OtpEntityType, OtpPurpose } from "../db/models/otp.model";
+import { getOTPModel } from "../db/models/otp.model";
 import { getUserModel } from "../db/models/user.model";
 import { Types } from "mongoose";
 import { PasswordService } from "../utils";
@@ -8,7 +8,7 @@ import { DateFormatter } from "./date-formatter";
 import { v4 as uuidv4 } from "uuid";
 import { randomBytes } from "crypto";
 import { getStoreModel } from "../db/models/store.model";
-import { Schema } from "mongoose";
+import { OtpEntityType, OtpPurpose } from "@/enums";
 
 export class OTP {
   public OTP_CONFIG = {
@@ -366,7 +366,7 @@ export class OTP {
       resetToken: string;
       expiry: number;
       storeEmail: string;
-      storeId: Schema.Types.ObjectId;
+      storeId: Types.ObjectId;
       otpId: Types.ObjectId;
     } | null;
     message: string;

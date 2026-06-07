@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-// import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WalletOverview } from "@/modules/store/wallet/WalletOverview";
-import { TransactionHistory } from "@/modules/store/wallet/TransactionHistory";
-import { WithdrawalRequest } from "@/modules/store/wallet/WithdrawalRequest";
-import {
-  Wallet,
-  TrendingUp,
-  // ArrowLeft
-} from "lucide-react";
+import { WalletOverview } from "@/modules/store/wallet/wallet-overview";
+import { WithdrawalRequest } from "@/modules/store/wallet/withdrawal-request";
+import { Wallet, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import WithdrawalHistory from "@/modules/store/wallet/transaction-history";
 
 /**
  * Store Wallet Management Page
@@ -67,14 +62,6 @@ export default function StoreWalletPage({ storeId }: { storeId: string }) {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              {/* <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button> */}
               <div>
                 <h1 className="text-3xl font-bold text-foreground flex items-center">
                   {/* <Wallet className="w-8 h-8 mr-3 text-green-600" /> */}
@@ -119,14 +106,14 @@ export default function StoreWalletPage({ storeId }: { storeId: string }) {
 
           {/* Transaction History Tab */}
           <TabsContent value="transactions" className="space-y-6">
-            <TransactionHistory storeId={storeId} />
+            <WithdrawalHistory storeId={storeId} />
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Withdrawal Dialog */}
       <Dialog open={showWithdrawal} onOpenChange={setShowWithdrawal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl p-0 max-h-[90vh] overflow-y-auto">
           <WithdrawalRequest
             availableBalance={walletBalance}
             onWithdrawalSuccessAction={handleWithdrawalSuccess}

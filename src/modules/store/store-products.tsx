@@ -28,7 +28,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
-import { ProductStatusEnum } from "@/validators/product-validators";
+import { ProductStatusEnum } from "@/enums";
 import { ReOrderDialog } from "./components/drag-n-drop/dialog-container";
 import { ProductsTable } from "./components/products-table";
 

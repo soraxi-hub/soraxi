@@ -1,8 +1,7 @@
-import { IAdmin } from "@/lib/db/models/admin.model";
-import { AuthenticatedAdmin } from "./admin";
+import { AuthenticatedAdmin, BaseAdminProps } from "./admin";
 
 export class AdminFactory {
-  static createAuthenticatedAdmin(admin: IAdmin): AuthenticatedAdmin {
+  static createAuthenticatedAdmin(admin: BaseAdminProps): AuthenticatedAdmin {
     return new AuthenticatedAdmin(admin);
   }
 }

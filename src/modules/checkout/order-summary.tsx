@@ -7,44 +7,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { currencyOperations, formatNaira } from "@/lib/utils/naira";
-import {
-  Loader2,
-  MapPin,
-  AlertTriangle,
-  LockIcon,
-  PhoneIcon,
-  UserIcon,
-} from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { InfoIcon } from "lucide-react";
-
-import type { inferProcedureOutput } from "@trpc/server";
-import type { AppRouter } from "@/trpc/routers/_app";
+import { Loader2, LockIcon } from "lucide-react";
 import { DeliveryType } from "@/enums";
 import { CouponInput } from "./coupon-input";
 import { toast } from "sonner";
-import { CouponTypeEnum } from "@/validators/coupon-validations";
+import { CouponTypeEnum } from "@/enums";
+import { PublicToJSONUserType } from "@/domain/users/user-interface";
+import { ShippingInformationSection } from "./shipping-information-section";
 
 export const campusLocations = [
   "Main Gate",
@@ -55,9 +28,6 @@ export const campusLocations = [
 /**
  * Type definitions for checkout data structures
  */
-
-type User = inferProcedureOutput<AppRouter["user"]["getById"]>;
-
 type Coupon = {
   code: string;
   discount: number;
@@ -72,7 +42,7 @@ interface OrderSummaryProps {
   totalItems: number;
   onPlaceOrderAction: () => void;
   setAppliedCoupon: (val: Coupon) => void;
-  userData: User;
+  userData: PublicToJSONUserType;
   isComplete: boolean;
   isValidating: boolean;
   isProcessing: boolean;
@@ -103,7 +73,7 @@ export default function OrderSummary({
    */
   const discountedSubtotal = currencyOperations.subtract(
     subtotal,
-    discount || 0
+    discount || 0,
   );
   const total = currencyOperations.add(discountedSubtotal, shippingCost);
 
@@ -120,155 +90,17 @@ export default function OrderSummary({
       ? "Processing Payment..."
       : `Place Order • ${formatNaira(total)}`;
 
-  /**
-   * Shipping Information Completeness Check
-   *
-   * Verify that all required shipping information is available
-   * to prevent order placement with incomplete data.
-   */
-  const hasCompleteShippingInfo =
-    userData?.firstName &&
-    userData?.lastName &&
-    userData?.address &&
-    userData?.phoneNumber &&
-    userData?.cityOfResidence &&
-    userData?.stateOfResidence;
-
   return (
     <Card className="sticky top-6 border-soraxi-green/30 shadow-lg">
       {/* Shipping Information Section */}
-      <Accordion type="single" collapsible defaultValue="shipping-info">
-        <AccordionItem value="shipping-info" className="border-none">
-          <AccordionTrigger className="group px-6 py-4 hover:no-underline hover:bg-muted/30 rounded-t-lg transition-colors">
-            <div className="flex items-center space-x-3">
-              <MapPin className="h-5 w-5 text-soraxi-green flex-shrink-0" />
-              <CardTitle className="text-base font-semibold text-foreground">
-                Shipping Information
-              </CardTitle>
-              {!hasCompleteShippingInfo && (
-                <Badge variant="destructive" className="ml-2">
-                  Incomplete
-                </Badge>
-              )}
-            </div>
-          </AccordionTrigger>
-
-          <AccordionContent>
-            <CardContent className="px-6 py-4 bg-muted/20">
-              <div className="space-y-4">
-                {hasCompleteShippingInfo ? (
-                  <>
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium">
-                          Where should we deliver?
-                        </label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <InfoIcon className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                          </PopoverTrigger>
-                          <PopoverContent className="max-w-xs text-sm dark:bg-muted">
-                            <p>
-                              Choose where you’d like your order delivered.{" "}
-                              <br />
-                              <strong>Campus/Within Campus:</strong> Delivered
-                              to a location within your school campus. (e.g.,
-                              Main Gate, Unical E-Library) <br />
-                              {/* <strong>Off-Campus/Outside Campus:</strong>{" "}
-                              Delivered outside the campus (e.g., your home
-                              address). */}
-                            </p>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      <Select
-                        defaultValue={deliveryType}
-                        value={deliveryType}
-                        onValueChange={(value: DeliveryType) =>
-                          handleDeliveryTypeChangeAction(value)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Choose where you’d like your order delivered" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="campus">Within Campus</SelectItem>
-                          {/* <SelectItem value="off-campus">
-                            Outside Campus
-                          </SelectItem> */}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {/* Customer Name */}
-                    <div className="flex items-center space-x-3">
-                      <UserIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <span className="font-medium text-foreground">
-                        {userData.firstName} {userData.lastName}
-                      </span>
-                    </div>
-
-                    {/* Phone Number */}
-                    <div className="flex items-center space-x-3">
-                      <PhoneIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <span className="text-foreground">
-                        {userData.phoneNumber}
-                      </span>
-                    </div>
-
-                    {/* Shipping Address */}
-                    <div className="flex items-start space-x-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        {deliveryType === "off-campus" ? (
-                          <>
-                            <p className="text-foreground leading-relaxed">
-                              {userData.address}
-                            </p>
-                            <p className="text-muted-foreground text-sm">
-                              {userData.cityOfResidence},{" "}
-                              {userData.stateOfResidence}
-                              {userData.postalCode && ` ${userData.postalCode}`}
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            {/* <p className="text-foreground leading-relaxed font-medium">
-                              Choose a campus delivery spot:
-                            </p> */}
-                            <ul className="text-muted-foreground text-sm list-disc ml-5">
-                              {campusLocations.map((location) => (
-                                <li key={location}>{location}</li>
-                              ))}
-                            </ul>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  /* Incomplete Shipping Information Warning */
-                  <div className="flex items-start space-x-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">
-                        Incomplete Shipping Information
-                      </p>
-                      <p className="text-xs text-amber-700 mt-1">
-                        Please update your profile with complete shipping
-                        details before placing your order.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      <ShippingInformationSection
+        userData={userData}
+        deliveryType={deliveryType}
+        handleDeliveryTypeChangeAction={handleDeliveryTypeChangeAction}
+      />
 
       {/* Order Summary Section */}
-      <CardHeader className="pt-4 pb-2">
+      <CardHeader className="pt-0 pb-2">
         <CardTitle className="flex items-center justify-between">
           <span>Order Summary</span>
           <Badge variant="secondary" className="text-xs">
@@ -298,10 +130,7 @@ export default function OrderSummary({
           <span className="text-muted-foreground">Shipping</span>
           <span className="font-medium">
             {shippingCost === 0
-              ? // <Badge variant="secondary" className="text-xs font-normal">
-                //   Free
-                // </Badge>
-                formatNaira(shippingCost)
+              ? formatNaira(shippingCost)
               : formatNaira(shippingCost)}
           </span>
         </div>
@@ -324,16 +153,6 @@ export default function OrderSummary({
             </div>
           </div>
         )}
-
-        {!hasCompleteShippingInfo && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-start space-x-2">
-              <p className="text-sm text-red-800">
-                Complete shipping information is required to place your order.
-              </p>
-            </div>
-          </div>
-        )}
       </CardContent>
 
       {/* Place Order Button */}
@@ -351,7 +170,7 @@ export default function OrderSummary({
           className="w-full bg-soraxi-green text-white hover:bg-soraxi-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           size="lg"
           onClick={onPlaceOrderAction}
-          disabled={!isComplete || isLoading || !hasCompleteShippingInfo}
+          disabled={!isComplete || isLoading}
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {buttonText}

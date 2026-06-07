@@ -1,4 +1,3 @@
-import { AuthUser } from "@/domain/users/user";
 import { UserFactory } from "@/domain/users/user-factory";
 import { AppError } from "@/lib/errors/app-error";
 import { UserRepository } from "@/repositories/user-repo";
@@ -19,16 +18,18 @@ export class AuthService {
   static async userLogin(
     email: string,
     password: string,
-  ): Promise<{ authUser: AuthUser; tokenPayload: UserTokenPayload }> {
+  ): Promise<{ tokenPayload: UserTokenPayload }> {
     const user = await UserRepository.findUserByEmail(email);
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    const authUser = UserFactory.createLoginUser(user);
+    const authUser = UserFactory.createAuthUser(user);
 
     const isValidPassword = await authUser.validatePassword(password);
+
+    console.log("user", authUser);
 
     if (!isValidPassword) {
       throw new AppError("Invalid Credentials", 401);
@@ -36,7 +37,7 @@ export class AuthService {
 
     const tokenPayload = CookieService.generateUserToken(authUser);
 
-    return { authUser, tokenPayload };
+    return { tokenPayload };
   }
 
   static async storeLogin(
@@ -91,7 +92,10 @@ export class AuthService {
       throw new AppError("Invalid credentials", 401);
     }
 
-    const authAdmin = AdminFactory.createAuthenticatedAdmin(admin);
+    const authAdmin = AdminFactory.createAuthenticatedAdmin({
+      ...admin,
+      _id: admin._id.toString(),
+    });
 
     // Check active status
     if (authAdmin.isInactive) {
@@ -109,8 +113,8 @@ export class AuthService {
     }
 
     // Update last login
-    admin.lastLogin = new Date();
-    await admin.save();
+    // admin.lastLogin = new Date();
+    // await admin.save();
 
     // Prepare token payload (keep it serializable)
     const tokenPayload = CookieService.generateAdminToken(admin);

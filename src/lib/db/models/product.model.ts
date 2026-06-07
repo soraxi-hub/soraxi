@@ -1,25 +1,25 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import slugify from "slugify";
-import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
-import {
-  ProductStatusEnum,
-  ProductTypeEnum,
-} from "@/validators/product-validators";
+import { nairaToKobo } from "@/lib/utils/naira";
+import { ProductStatusEnum, ProductTypeEnum } from "@/enums";
+
+export interface Size {
+  size: string;
+  price: number;
+  quantity: number;
+}
 
 /**
  * Interface for Product document
  */
-export interface IProduct extends Document {
+export interface IProduct {
+  _id?: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
   productType: ProductTypeEnum;
   name: string;
   price?: number;
-  sizes?: {
-    size: string;
-    price: number;
-    quantity: number;
-  }[];
+  sizes?: Size[];
   productQuantity?: number;
   images?: string[];
   description?: string;
@@ -38,7 +38,9 @@ export interface IProduct extends Document {
   firstApprovedAt?: Date;
 }
 
-const ProductSchema = new Schema<IProduct>(
+export type IProductDocument = IProduct & Document;
+
+const ProductSchema = new Schema<IProductDocument>(
   {
     storeId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -58,14 +60,14 @@ const ProductSchema = new Schema<IProduct>(
     },
     price: {
       type: Number,
-      required: function () {
+      required: function (this: IProductDocument) {
         return (
           this.status !== ProductStatusEnum.Draft &&
           (!this.sizes || this.sizes.length === 0)
         );
       },
       set: (price: number) => nairaToKobo(price),
-      get: (price: number) => koboToNaira(price),
+      // get: (price: number) => koboToNaira(price),
     },
     sizes: [
       {
@@ -76,7 +78,7 @@ const ProductSchema = new Schema<IProduct>(
     ],
     productQuantity: {
       type: Number,
-      required: function () {
+      required: function (this: IProductDocument) {
         return this.status !== ProductStatusEnum.Draft;
       },
     },
@@ -86,26 +88,26 @@ const ProductSchema = new Schema<IProduct>(
     },
     description: {
       type: String,
-      required: function () {
+      required: function (this: IProductDocument) {
         return this.status !== ProductStatusEnum.Draft;
       },
     },
     specifications: {
       type: String,
-      required: function () {
+      required: function (this: IProductDocument) {
         return this.status !== ProductStatusEnum.Draft;
       },
     },
     category: {
       type: [String],
-      required: function () {
+      required: function (this: IProductDocument) {
         return this.status !== ProductStatusEnum.Draft;
       },
       index: true,
     },
     subCategory: {
       type: [String],
-      required: function () {
+      required: function (this: IProductDocument) {
         return this.status !== ProductStatusEnum.Draft;
       },
       index: true,
@@ -191,11 +193,11 @@ ProductSchema.pre("save", async function (next) {
   next();
 });
 
-export async function getProductModel(): Promise<Model<IProduct>> {
+export async function getProductModel(): Promise<Model<IProductDocument>> {
   await connectToDatabase();
   return (
-    (mongoose.models.Product as Model<IProduct>) ||
-    mongoose.model<IProduct>("Product", ProductSchema)
+    (mongoose.models.Product as Model<IProductDocument>) ||
+    mongoose.model<IProductDocument>("Product", ProductSchema)
   );
 }
 
@@ -216,7 +218,7 @@ export async function getProducts(
     ratings?: number[];
     cursor?: string;
   } = {},
-): Promise<IProduct[]> {
+): Promise<IProductDocument[]> {
   const Product = await getProductModel();
 
   const query: { [key: string]: any } = {};
@@ -263,7 +265,7 @@ export async function getProducts(
     // You can add more sort cases if needed
   }
 
-  let productQuery = Product.find<IProduct>(query).sort(sortQuery);
+  let productQuery = Product.find<IProductDocument>(query).sort(sortQuery);
 
   if (options.skip !== undefined)
     productQuery = productQuery.skip(options.skip);

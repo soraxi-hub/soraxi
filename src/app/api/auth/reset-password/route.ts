@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import {
-  getOTPModel,
-  OtpEntityType,
-  OtpPurpose,
-} from "@/lib/db/models/otp.model";
+import { getOTPModel } from "@/lib/db/models/otp.model";
 import { PasswordService } from "@/lib/utils";
 import { OTP } from "@/lib/utils/otp";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { OtpEntityType, OtpPurpose } from "@/enums";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();

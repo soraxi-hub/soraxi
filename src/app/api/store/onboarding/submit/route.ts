@@ -7,7 +7,7 @@ import {
   StoreBusinessInfoEnum,
   StoreStatusEnum,
   StoreVerificationStatusEnum,
-} from "@/validators/store-validators";
+} from "@/enums";
 import {
   AdminNotificationEmail,
   NotificationFactory,
@@ -206,8 +206,6 @@ export async function POST(request: NextRequest) {
         estimatedDeliveryDays: method.estimatedDeliveryDays,
         isActive: true,
         description: method.description,
-        applicableRegions: method.applicableRegions || [],
-        conditions: method.conditions || {},
       })),
 
       // Terms agreement date

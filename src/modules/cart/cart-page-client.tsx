@@ -2,45 +2,35 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { useCartStore } from "@/modules/store/cart-store";
 import { CartItem } from "@/modules/cart/cart-item";
 import { CartSummary } from "@/modules/cart/cart-summary";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-
-/**
- * Type definitions for cart items and order summary
- *
- * These types ensure consistency between server and client components
- * and provide proper TypeScript validation.
- */
-interface CartItemType {
-  id: string;
-  productId: string;
-  name: string;
-  slug: string;
-  image: string;
-  price: number;
-  quantity: number;
-  size?: string;
-  inStock: boolean;
-  maxQuantity: number;
-}
+import { IPopulatedCartInfo } from "@/domain/cart/cart-interface";
+import { useAuth } from "@/hooks/use-auth-hook";
+import { useCart } from "@/hooks/use-cart-hook";
+import { EmptyCart } from "./empty-cart";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { ShoppingBag } from "lucide-react";
 
 interface OrderSummary {
   subtotal: number;
-  // shipping: number;
-  // tax: number;
-  // discount: number;
   total: number;
   itemCount: number;
 }
 
 interface CartPageClientProps {
   /** Pre-loaded cart items from server-side rendering */
-  initialCartItems: CartItemType[];
+  initialCartItems: IPopulatedCartInfo["items"];
   /** Pre-calculated order summary from server */
   initialOrderSummary: OrderSummary;
 }
@@ -66,89 +56,16 @@ export function CartPageClient({
   initialCartItems,
   initialOrderSummary,
 }: CartPageClientProps) {
-  // Initialize client state with server-provided data
-  const [cartItems, setCartItems] = useState<CartItemType[]>(initialCartItems);
+  const { userId } = useAuth();
+  const { updateQuantity, removeItem, recalculateOrderSummary } =
+    useCart(userId);
+  const [cartItems, setCartItems] =
+    useState<IPopulatedCartInfo["items"]>(initialCartItems);
   const [orderSummary, setOrderSummary] =
     useState<OrderSummary>(initialOrderSummary);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-
-  // tRPC and React Query setup
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
   const router = useRouter();
-
-  // Zustand store for global cart state management
-  const { updateQuantity, removeItem } = useCartStore();
-
-  /**
-   * Utility function to recalculate order totals
-   *
-   * Keeps the client-side totals in sync when cart items change.
-   * This provides immediate feedback while server updates are in progress.
-   *
-   * @param items - Current cart items array
-   * @returns Calculated order summary
-   */
-  const recalculateOrderSummary = (items: CartItemType[]): OrderSummary => {
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-    // const shipping = subtotal >= 50000 ? 0 : 5000;
-    // const tax = Math.round(subtotal * 0.075);
-    // const discount = 0;
-    // const total = subtotal + shipping + tax - discount;
-    const total = subtotal;
-
-    return {
-      subtotal,
-      // shipping,
-      // tax,
-      // discount,
-      total,
-      itemCount: items.length,
-    };
-  };
-
-  /**
-   * Server mutation for updating cart item quantities
-   *
-   * Uses tRPC for type-safe server communication.
-   * Includes error handling and cache invalidation.
-   */
-  const updateQuantityMutation = useMutation({
-    ...trpc.cart.updateQuantity.mutationOptions(),
-    onError: (error) => {
-      console.error("Failed to update quantity on server:", error);
-      toast.error("Failed to update cart. Please try again.");
-    },
-    onSuccess: () => {
-      // Invalidate relevant queries to ensure data consistency
-      queryClient.invalidateQueries({
-        queryKey: trpc.cart.getByUserId.queryKey(),
-      });
-    },
-  });
-
-  /**
-   * Server mutation for removing cart items
-   *
-   * Handles item removal with proper error handling and optimistic updates.
-   */
-  const removeItemMutation = useMutation({
-    ...trpc.cart.updateQuantity.mutationOptions(),
-    onError: (error) => {
-      console.error("Failed to remove item from server:", error);
-      toast.error("Failed to remove item. Please try again.");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: trpc.cart.getByUserId.queryKey(),
-      });
-      router.refresh();
-    },
-  });
 
   /**
    * Server mutation for adding idempotency key to cart
@@ -167,6 +84,14 @@ export function CartPageClient({
     },
   });
 
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <EmptyCart />
+      </div>
+    );
+  }
+
   /**
    * Handle cart item quantity updates
    *
@@ -183,11 +108,10 @@ export function CartPageClient({
   const handleUpdateQuantity = async (
     productId: string,
     newQuantity: number,
-    size?: string
   ) => {
     // Find the item being updated
     const itemIndex = cartItems.findIndex(
-      (item) => item.productId === productId && item.size === size
+      (item) => item.product.productId === productId,
     );
 
     if (itemIndex === -1) {
@@ -198,8 +122,10 @@ export function CartPageClient({
     const currentItem = cartItems[itemIndex];
 
     // Validate quantity bounds
-    if (newQuantity < 1 || newQuantity > currentItem.maxQuantity) {
-      toast.error(`Quantity must be between 1 and ${currentItem.maxQuantity}`);
+    if (newQuantity < 1 || newQuantity > currentItem.product.productQuantity) {
+      toast.error(
+        `Quantity must be between 1 and ${currentItem.product.productQuantity}`,
+      );
       return;
     }
 
@@ -213,25 +139,12 @@ export function CartPageClient({
     setCartItems(updatedItems);
     setOrderSummary(recalculateOrderSummary(updatedItems));
 
-    // Update Zustand store for global state consistency
-    updateQuantity(productId, newQuantity, size);
-
     try {
-      // Sync with server
-      await updateQuantityMutation.mutateAsync({
-        productId,
-        quantity: newQuantity,
-        size,
-      });
-
-      toast.success("Cart updated successfully");
+      await updateQuantity(productId, newQuantity);
     } catch (error) {
       // Rollback optimistic update on error
       setCartItems(originalItems);
       setOrderSummary(originalSummary);
-
-      // Note: You may want to implement Zustand store rollback here
-      // depending on your store's architecture
       console.error("Failed to update cart:", error);
     }
   };
@@ -248,10 +161,10 @@ export function CartPageClient({
    * @param productId - Product identifier
    * @param size - Optional size variant
    */
-  const handleRemoveItem = async (productId: string, size?: string) => {
+  const handleRemoveItem = async (productId: string) => {
     // Find item to remove
     const itemToRemove = cartItems.find(
-      (item) => item.productId === productId && item.size === size
+      (item) => item.product.productId === productId,
     );
 
     if (!itemToRemove) {
@@ -265,23 +178,15 @@ export function CartPageClient({
 
     // Optimistic UI update
     const updatedItems = cartItems.filter(
-      (item) => !(item.productId === productId && item.size === size)
+      (item) => !(item.product.productId === productId),
     );
     setCartItems(updatedItems);
     setOrderSummary(recalculateOrderSummary(updatedItems));
 
     // Update Zustand store
-    removeItem(productId, size);
 
     try {
-      // Server synchronization (set quantity to 0 to remove)
-      await removeItemMutation.mutateAsync({
-        productId,
-        quantity: 0,
-        size,
-      });
-
-      toast.success("Item removed from cart");
+      await removeItem(productId);
     } catch (error) {
       // Rollback on error
       setCartItems(originalItems);
@@ -289,23 +194,6 @@ export function CartPageClient({
 
       console.error("Failed to remove item:", error);
     }
-  };
-
-  /**
-   * Handle wishlist functionality
-   *
-   * Placeholder for future wishlist implementation.
-   * Currently shows a mock success message.
-   *
-   * @param productId - Product identifier
-   */
-  const handleMoveToWishlist = (productId: string) => {
-    console.log("Moved to wishlist (feature coming soon)", productId);
-    toast.success("Moved to wishlist (feature coming soon)");
-    // Future implementation:
-    // 1. Add to wishlist
-    // 2. Remove from cart
-    // 3. Update UI accordingly
   };
 
   /**
@@ -325,7 +213,7 @@ export function CartPageClient({
       }
 
       // Check for out-of-stock items
-      const outOfStockItems = cartItems.filter((item) => !item.inStock);
+      const outOfStockItems = cartItems.filter((item) => !item.product.inStock);
       if (outOfStockItems.length > 0) {
         toast.error("Some items in your cart are out of stock");
         return;
@@ -346,42 +234,63 @@ export function CartPageClient({
   };
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
-      {/* Cart Items Section */}
-      <div className="lg:col-span-2">
-        <Card>
-          <CardContent>
-            {cartItems.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
-                onUpdateQuantityAction={(productId, quantity) =>
-                  handleUpdateQuantity(productId, quantity, item.size)
-                }
-                onRemoveItemAction={() =>
-                  handleRemoveItem(item.productId, item.size)
-                }
-                onMoveToWishlistAction={() =>
-                  handleMoveToWishlist(item.productId)
-                }
-              />
-            ))}
-          </CardContent>
-        </Card>
+    <div className="container mx-auto px-4 py-4">
+      {/* Page Header with Breadcrumb */}
+      <div className="flex items-center justify-between mb-8">
+        <Breadcrumb className="hidden md:inline-flex">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Shopping Cart</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5" />
+          <h1 className="text-2xl font-bold">Shopping Cart</h1>
+          <span className="text-muted-foreground">
+            ({cartItems.length} item
+            {cartItems.length > 1 ? "s" : ""})
+          </span>
+        </div>
       </div>
 
-      {/* Order Summary Section */}
-      <div className="lg:col-span-1 sticky top-8">
-        <CartSummary
-          subtotal={orderSummary.subtotal}
-          // shipping={orderSummary.shipping}
-          // tax={orderSummary.tax}
-          // discount={orderSummary.discount}
-          total={orderSummary.total}
-          itemCount={orderSummary.itemCount}
-          onCheckoutAction={handleCheckout}
-          isCheckingOut={isCheckingOut}
-        />
+      {/* Pass pre-loaded data to client component */}
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+        {/* Cart Items Section */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardContent>
+              {cartItems.map((item) => (
+                <CartItem
+                  key={item.product.productId}
+                  item={item}
+                  onUpdateQuantityAction={(productId, quantity) =>
+                    handleUpdateQuantity(productId, quantity)
+                  }
+                  onRemoveItemAction={() =>
+                    handleRemoveItem(item.product.productId)
+                  }
+                />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Order Summary Section */}
+        <div className="lg:col-span-1 sticky top-8">
+          <CartSummary
+            subtotal={orderSummary.subtotal}
+            total={orderSummary.total}
+            itemCount={orderSummary.itemCount}
+            onCheckoutAction={handleCheckout}
+            isCheckingOut={isCheckingOut}
+          />
+        </div>
       </div>
     </div>
   );

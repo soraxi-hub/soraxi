@@ -159,7 +159,10 @@ export function HomePage() {
                   className={`grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}
                 >
                   {allProducts.map((product) => (
-                    <Link key={product.id} href={`/products/${product.slug}`}>
+                    <Link
+                      key={product.productId}
+                      href={`/products/${product.slug}`}
+                    >
                       <ProductCard product={product} />
                     </Link>
                   ))}

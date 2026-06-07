@@ -1,12 +1,11 @@
 import {
-  UserIcon,
   PackageIcon,
   MapPinIcon,
   CreditCardIcon,
   MailIcon,
   BriefcaseIcon,
   WalletIcon,
-  RefreshCwIcon,
+  // AlertTriangleIcon,
 } from "lucide-react";
 
 export const storeSidebarItems = (storeId: string) => [
@@ -28,11 +27,11 @@ export const storeSidebarItems = (storeId: string) => [
         url: `/store/${storeId}/orders`,
         icon: CreditCardIcon,
       },
-      {
-        title: "My Escrow",
-        url: `/store/${storeId}/escrow`,
-        icon: RefreshCwIcon,
-      },
+      // {
+      //   title: "Disputes",
+      //   url: `/store/${storeId}/disputes`,
+      //   icon: AlertTriangleIcon,
+      // },
       {
         title: "Wallet",
         url: `/store/${storeId}/wallet`,
@@ -43,11 +42,11 @@ export const storeSidebarItems = (storeId: string) => [
   {
     label: "Store Settings",
     items: [
-      {
-        title: "Store Profile",
-        url: `/store/${storeId}/profile`,
-        icon: UserIcon,
-      },
+      // {
+      //   title: "Store Profile",
+      //   url: `/store/${storeId}/profile`,
+      //   icon: UserIcon,
+      // },
       {
         title: "Shipping",
         url: `/store/${storeId}/shipping`,

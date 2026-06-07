@@ -5,10 +5,10 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import {
+  ProductStatusEnum,
   StoreBusinessInfoEnum,
   StoreStatusEnum,
-} from "@/validators/store-validators";
-import { ProductStatusEnum } from "@/validators/product-validators";
+} from "@/enums";
 
 export const storeRouter = createTRPCRouter({
   getById: baseProcedure

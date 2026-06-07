@@ -3,7 +3,8 @@ import * as jose from "jose";
 import { AppError } from "@/lib/errors/app-error";
 import { IStore } from "@/lib/db/models/store.model";
 import { IAdmin } from "@/lib/db/models/admin.model";
-import { AuthUser } from "@/domain/users/user";
+import { AuthUserDecorator } from "@/domain/users/decorators/auth-user.decorator";
+import { TokenType } from "@/enums";
 
 export interface UserTokenPayload {
   id: string;
@@ -33,12 +34,6 @@ type CookieOptionsParams = {
   maxAge: number;
   sameSite?: "lax" | "strict";
 };
-
-export enum TokenType {
-  User = "userToken",
-  Store = "storeToken",
-  Admin = "adminToken",
-}
 
 export class CookieService {
   // -------------------------
@@ -170,13 +165,13 @@ export class CookieService {
     );
   }
 
-  static generateUserToken(user: AuthUser): UserTokenPayload {
+  static generateUserToken(user: AuthUserDecorator): UserTokenPayload {
     return {
-      id: user.getId(),
-      firstName: user.getFirstName(),
-      lastName: user.getLastName(),
-      email: user.getEmail(),
-      store: user.getStore(),
+      id: user.userId!,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      store: user.ownedStores[0],
     };
   }
 

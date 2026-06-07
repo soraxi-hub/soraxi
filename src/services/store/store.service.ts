@@ -4,7 +4,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { PasswordService } from "@/lib/utils";
 import { StoreRepository } from "@/repositories/store-repo";
 import { UserRepository } from "@/repositories/user-repo";
-import { WalletRepository } from "@/repositories/wallet-repo";
+import { VendorWalletService } from "../vendor-wallet/vendor-wallet.service";
 import mongoose from "mongoose";
 
 export class StoreService {
@@ -47,7 +47,16 @@ export class StoreService {
       const savedStore = await StoreRepository.saveStoreToDB(store, session);
 
       // Side Effects: Create Wallet
-      await WalletRepository.createWalletForStore(
+      const vendorWallet = await VendorWalletService.createVendorWallet(
+        savedStore._id.toString(),
+        session,
+      );
+
+      if (!vendorWallet._id)
+        throw new AppError("[STORESERVICE]: Vendor wallet Id required", 400);
+
+      await StoreRepository.linkVendorWalletToStore(
+        vendorWallet._id.toString(),
         savedStore._id.toString(),
         session,
       );

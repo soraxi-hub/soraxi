@@ -37,7 +37,13 @@ export const paymentRouter = createTRPCRouter({
     const payoutAccounts = store.payoutAccounts || [];
 
     const formattedPayoutAccounts = payoutAccounts.map((acc) => {
+      if (!acc._id) {
+        throw new Error(
+          "[paymentRouter @ getStorePayoutAccounts]: PayoutAccount schema ID is required",
+        );
+      }
       return {
+        id: acc._id.toString(),
         payoutMethod: acc.payoutMethod,
         bankDetails: {
           bankName: acc.bankDetails.bankName,
@@ -48,8 +54,6 @@ export const paymentRouter = createTRPCRouter({
         },
       };
     });
-
-    // console.log("formattedPayoutAccounts", formattedPayoutAccounts);
 
     return formattedPayoutAccounts;
   }),
@@ -74,9 +78,8 @@ export const paymentRouter = createTRPCRouter({
     };
 
     const response = await fetch(
-      // "https://api.flutterwave.com/v3/banks/NG?include_provider_type=1",
       "https://api.flutterwave.com/v3/banks/NG",
-      options
+      options,
     );
 
     const banks = (await response.json()) as {
@@ -93,8 +96,6 @@ export const paymentRouter = createTRPCRouter({
       };
     });
 
-    // console.log("formattedBanks", formattedBanks);
-
     return formattedBanks;
   }),
 
@@ -103,7 +104,9 @@ export const paymentRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const { accountNumber, bankCode } = input;
 
-      if (!process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION) {
+      if (
+        !process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION
+      ) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
@@ -126,7 +129,7 @@ export const paymentRouter = createTRPCRouter({
 
       const response = await fetch(
         "https://api.flutterwave.com/v3/accounts/resolve",
-        options
+        options,
       );
 
       const result = (await response.json()) as {
@@ -153,7 +156,7 @@ export const paymentRouter = createTRPCRouter({
           bankCode: z.number(),
           bankId: z.number(),
         }),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const { storeId, payoutMethod, bankDetails } = input;
@@ -181,7 +184,7 @@ export const paymentRouter = createTRPCRouter({
           account.bankDetails.accountNumber === bankDetails.accountNumber &&
           account.bankDetails.bankName === bankDetails.bankName &&
           account.bankDetails.accountHolderName ===
-            bankDetails.accountHolderName
+            bankDetails.accountHolderName,
       );
 
       if (existingPayoutAccount) {
