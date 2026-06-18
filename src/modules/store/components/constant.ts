@@ -5,7 +5,7 @@ import {
   MailIcon,
   BriefcaseIcon,
   WalletIcon,
-  // AlertTriangleIcon,
+  UserIcon,
 } from "lucide-react";
 
 export const storeSidebarItems = (storeId: string) => [
@@ -42,11 +42,11 @@ export const storeSidebarItems = (storeId: string) => [
   {
     label: "Store Settings",
     items: [
-      // {
-      //   title: "Store Profile",
-      //   url: `/store/${storeId}/profile`,
-      //   icon: UserIcon,
-      // },
+      {
+        title: "Store Profile",
+        url: `/store/${storeId}/profile`,
+        icon: UserIcon,
+      },
       {
         title: "Shipping",
         url: `/store/${storeId}/shipping`,

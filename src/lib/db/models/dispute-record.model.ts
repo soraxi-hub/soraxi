@@ -206,12 +206,13 @@ export async function getDisputeRecordModel(): Promise<
  */
 export async function createDisputeRecord(
   data: Omit<IDisputeRecord, "createdAt" | "updatedAt">,
+  session: mongoose.ClientSession,
 ): Promise<IDisputeRecordDocument> {
   await connectToDatabase();
   const DisputeRecord = await getDisputeRecordModel();
 
   const record = new DisputeRecord(data);
-  return await record.save();
+  return await record.save({ session });
 }
 
 /**
@@ -392,6 +393,7 @@ export async function resolveDisputeRecord(
   outcome: DisputeOutcome,
   resolvedBy: DisputeResolvedBy,
   penaltyAmount = 0,
+  session: mongoose.ClientSession,
   resolutionNotes?: string,
 ): Promise<IDisputeRecord | null> {
   await connectToDatabase();
@@ -414,6 +416,6 @@ export async function resolveDisputeRecord(
         ...(resolutionNotes && { resolutionNotes }),
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }

@@ -13,29 +13,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const { page, answers, userAgent, sessionId } = body as {
-      page: FeedBackProps[`feedBackPage`];
-      answers: FeedBackProps[`answers`];
-      userAgent: FeedBackProps[`userAgent`];
-      sessionId: FeedBackProps[`sessionId`];
+      page: FeedBackProps["feedBackPage"];
+      answers: FeedBackProps["answers"];
+      userAgent: FeedBackProps["userAgent"];
+      sessionId: FeedBackProps["sessionId"];
     };
-
-    console.log(`page`, page);
 
     // Validate required fields
     if (!page || !answers || !Array.isArray(answers)) {
-      throw new AppError("Missing required fields", 400);
+      throw new AppError("BAD_REQUEST", "Missing required fields");
     }
 
     // Validate page type
     if (!FeedBackRepo.isValidFeedBackPage(page)) {
-      throw new AppError("Invalid page type", 400);
+      throw new AppError("BAD_REQUEST", "Invalid page type");
     }
 
     // Validate answers format
     const validAnswers = FeedBackRepo.validateAnswers(answers);
 
     if (validAnswers.length === 0) {
-      throw new AppError("No valid answers provided", 400);
+      throw new AppError("BAD_REQUEST", "No valid answers provided");
     }
 
     await connectToDatabase();
@@ -57,10 +55,10 @@ export async function POST(request: NextRequest) {
       {
         message: "Feedback submitted successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error submitting feedback:", error);
-    handleApiError(error);
+    return handleApiError(error);
   }
 }

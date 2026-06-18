@@ -25,12 +25,13 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { truncateText } from "@/lib/utils";
 import { StoreProfileManagerPublic } from "@/domain/stores/store-profile-manager-public";
-// import { ProductCard } from "../products/product-detail/product-card";
+import { ProductCard } from "../products/product-detail/product-card";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { StoreFactory } from "@/domain/stores/store-factory";
 
 interface PublicStoreProfileProps {
   storeId: string;
@@ -42,25 +43,28 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
   // const [isFollowing, setIsFollowing] = useState(false);
 
   const trpc = useTRPC();
-  const { data: store } = useSuspenseQuery(
+  const { data } = useSuspenseQuery(
     trpc.publicStore.getStoreProfilePublic.queryOptions({ storeId }),
   );
 
+  const { storeDoc, populatedProducts } = data;
+
+  const baseStore = StoreFactory.store({
+    ...storeDoc,
+    storeOwner: storeDoc.storeOwner.toString(),
+  });
+
+  const store = new StoreProfileManagerPublic(baseStore, populatedProducts);
+
   const { storeStats, StoreStatusEnum } = useMemo(() => {
-    const manager = new StoreProfileManagerPublic();
-
-    if (store) {
-      manager.setStoreData(store);
-    }
-
     return {
-      storeStats: manager.getStoreStats(),
-      StoreStatusEnum: manager.getStoreStatus(),
+      storeStats: store.StoreStats,
+      StoreStatusEnum: store.statusInfo,
     };
-  }, [store]);
+  }, []);
 
   const handleShareStore = () => {
-    const storeUrl = `${window.location.origin}/brand/${store._id}`;
+    const storeUrl = `${window.location.origin}/brand/${store.storeData.storeId}`;
     navigator.clipboard.writeText(storeUrl);
     setIsCopied(true);
     toast.success("Store link copied to clipboard!");
@@ -86,7 +90,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2 group justify-between">
                         <h1 className="text-2xl lg:text-3xl font-bold truncate">
-                          {store.name}
+                          {store.storeData.storeName}
                         </h1>
 
                         {/* Actions Buttons*/}
@@ -122,10 +126,10 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
 
                       <div className="flex flex-wrap items-center gap-3 mb-4 overflow-hidden text-ellipsis">
                         <Badge variant="outline" className="text-sm max-w-xs">
-                          ID: {truncateText(store.uniqueId, 20)}
+                          ID: {truncateText(store.storeData.uniqueId, 20)}
                         </Badge>
                         <Badge
-                          className={`${StoreStatusEnum.statusColor} text-white`}
+                          className={`${StoreStatusEnum.color} text-white`}
                         >
                           {StoreStatusEnum.status === "active" && (
                             <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -136,7 +140,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                           {StoreStatusEnum.status === "suspended" && (
                             <AlertCircle className="h-3 w-3 mr-1" />
                           )}
-                          {StoreStatusEnum.statusText}
+                          {StoreStatusEnum.displayText}
                         </Badge>
                       </div>
 
@@ -236,15 +240,10 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {store.products.map((product) => (
                           <Link
-                            key={product._id}
+                            key={product.productId}
                             href={`/products/${product.slug}`}
                           >
-                            {/* <ProductCard
-                              product={{
-                                ...product,
-                                id: product._id,
-                              }}
-                            /> */}
+                            <ProductCard product={product} />
                           </Link>
                         ))}
                       </div>
@@ -262,17 +261,17 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <CardTitle className="text-xl">
-                              About {store.name}
+                              About {store.storeData.storeName}
                             </CardTitle>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {store.description ? (
+                          {store.storeData.description ? (
                             <div className="prose prose-neutral dark:prose-invert max-w-none">
                               <p className="text-muted-foreground leading-relaxed text-md">
-                                {store.description}
+                                {store.storeData.description}
                               </p>
                             </div>
                           ) : (
@@ -311,7 +310,7 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                       Established
                     </div>
                     <div className="font-medium">
-                      {store.stats.establishedDate}
+                      {storeStats.establishedDate}
                     </div>
                   </div>
                 </div>
@@ -336,11 +335,11 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                       Products
                     </div>
                     <div className="font-medium">
-                      {store.stats.productsCount.toLocaleString()}
+                      {storeStats.productsCount}
                     </div>
                   </div>
                 </div>
-                {store.ratings.reviewCount >= 0 && (
+                {store.storeData.reviewCount >= 0 && (
                   <>
                     <Separator />
                     <div className="flex items-center gap-3">
@@ -350,9 +349,9 @@ export function PublicStoreProfile({ storeId }: PublicStoreProfileProps) {
                           Rating
                         </div>
                         <div className="font-medium flex items-center gap-1">
-                          {store.ratings.averageRating.toFixed(1)}
+                          {store.storeData.averageRating.toFixed(1)}
                           <span className="text-sm text-muted-foreground">
-                            ({store.ratings.reviewCount} reviews)
+                            ({store.storeData.reviewCount} reviews)
                           </span>
                         </div>
                       </div>

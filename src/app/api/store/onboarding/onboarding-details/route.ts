@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 import mongoose from "mongoose";
 import { koboToNaira } from "@/lib/utils/naira";
 import { StoreBusinessInfoEnum } from "@/enums";
@@ -17,7 +18,7 @@ export async function GET(_request: NextRequest) {
     const storeData = await getStoreFromCookie();
 
     if (!storeData) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new AppError("UNAUTHORIZED", "Unauthorized");
     }
 
     const Store = await getStoreModel();
@@ -28,15 +29,11 @@ export async function GET(_request: NextRequest) {
       .lean()) as IStore | null;
 
     if (!store) {
-      throw new AppError(
-        "Store not found",
-        400,
-        "NOT_FOUND",
-        "Store not found",
-      );
+      throw new AppError("NOT_FOUND", "Store not found", {
+        storeId: storeData.id,
+      });
     }
 
-    // Determine progress
     const progressSteps = {
       profile: !!(store.name && store.description),
       "business-info": !!(
@@ -90,9 +87,6 @@ export async function GET(_request: NextRequest) {
     });
   } catch (error) {
     console.error("Error getting store status:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

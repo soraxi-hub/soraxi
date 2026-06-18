@@ -16,8 +16,8 @@ export class ProductImageUploadService {
       !process.env.CLOUDINARY_API_SECRET
     ) {
       throw new AppError(
+        "INTERNAL_SERVER_ERROR",
         "Server configuration error: Missing Cloudinary environment variables",
-        500,
       );
     }
 
@@ -42,7 +42,7 @@ export class ProductImageUploadService {
    */
   private static async uploadSingleImage(
     file: File,
-    folder: "products" | "disputes",
+    folder: "products" | "disputes" | "storeWaitlist",
   ): Promise<string> {
     // Convert Web API File into binary bytes
     const bytes = await file.arrayBuffer();
@@ -64,7 +64,11 @@ export class ProductImageUploadService {
            */
           if (error || !result) {
             reject(
-              error || new AppError("Failed to upload product images", 500),
+              error ||
+                new AppError(
+                  "UNSUPPORTED_MEDIA_TYPE",
+                  "Failed to upload product images",
+                ),
             );
 
             return;
@@ -99,7 +103,7 @@ export class ProductImageUploadService {
    */
   static async uploadImages(
     files: File[],
-    folder: "products" | "disputes" = "products",
+    folder: "products" | "disputes" | "storeWaitlist" = "products",
   ): Promise<string[]> {
     this.configureCloudinary();
 

@@ -14,6 +14,7 @@
     "email:dev": "email dev --dir src/services/notifications/templates --port 4000"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@dnd-kit/react": "^0.4.0",
     "@hookform/resolvers": "^5.0.1",
     "@mdx-js/loader": "^3.1.1",

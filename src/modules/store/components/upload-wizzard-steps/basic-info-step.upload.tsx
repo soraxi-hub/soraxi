@@ -3,7 +3,14 @@
 import React from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-import { AlertCircle, CheckCircle, Loader2, SaveIcon } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronLeft,
+  Loader2,
+  SaveIcon,
+  Sparkles,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,7 +26,7 @@ import {
   quillFormats,
   quillModules,
   type BasicInfoStepProps,
-} from "../../../../types/upload-wizard.types";
+} from "@/types/upload-wizard.types";
 
 /**
  * Basic Info Step Component
@@ -37,9 +44,12 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   errors,
   onFormDataChange,
   onNext,
+  onPrevious,
   isLoading,
   isLoadingDraft,
   onSaveDraft,
+  onGenerateDescription,
+  isGeneratingDescription,
 }) => {
   // ============================================================================
   // VALIDATION ICON HELPER
@@ -54,6 +64,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     }
     return null;
   };
+
+  const anyLoading = isLoading || isLoadingDraft || isGeneratingDescription;
 
   // ============================================================================
   // RENDER
@@ -76,7 +88,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-xl">
-            Step 1 of 5: Basic Information
+            Step 3 of 5: Basic Information
           </CardTitle>
           <CardDescription>
             Add product name, description, and specifications
@@ -97,7 +109,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               value={formData.name}
               onChange={(e) => onFormDataChange("name", e.target.value)}
               placeholder="Enter a descriptive product name"
-              disabled={isLoading}
+              disabled={anyLoading}
               className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
             />
             {errors.name && (
@@ -108,35 +120,6 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             )}
             <p className="text-xs text-gray-500">
               {formData.name.length}/100 characters
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Product Description Field */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Label className="text-sm font-medium">Product Description</Label>
-              {getValidationIcon("description")}
-            </div>
-            <div className="overflow-hidden rounded-md border border-gray-200">
-              <ReactQuill
-                value={formData.description}
-                onChange={(value) => onFormDataChange("description", value)}
-                modules={quillModules}
-                formats={quillFormats}
-                className="h-56 bg-white text-black"
-                readOnly={isLoading}
-              />
-            </div>
-            {errors.description && (
-              <p className="text-sm text-red-500 flex items-center mt-2">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {errors.description}
-              </p>
-            )}
-            <p className="text-xs text-gray-500">
-              Use rich formatting to make your description stand out
             </p>
           </div>
 
@@ -157,7 +140,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 modules={quillModules}
                 formats={quillFormats}
                 className="h-56 bg-white text-black"
-                readOnly={isLoading}
+                readOnly={anyLoading}
               />
             </div>
             {errors.specifications && (
@@ -170,31 +153,102 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               List key specifications, features, and technical details
             </p>
           </div>
+
+          <Separator />
+
+          {/* Product Description Field */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label className="text-sm font-medium">Product Description</Label>
+              {getValidationIcon("description")}
+            </div>
+            <div className="overflow-hidden rounded-md border border-gray-200">
+              <ReactQuill
+                value={formData.description}
+                onChange={(value) => onFormDataChange("description", value)}
+                modules={quillModules}
+                formats={quillFormats}
+                className="h-56 bg-white text-black"
+                readOnly={anyLoading}
+              />
+            </div>
+            {errors.description && (
+              <p className="text-sm text-red-500 flex items-center mt-2">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {errors.description}
+              </p>
+            )}
+
+            {/* Description actions */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4 sm:items-center">
+              <p className="text-xs text-gray-500">
+                Use rich formatting to make your description stand out, or let
+                AI draft one for you.
+              </p>
+
+              {/*
+               * CHANGED: was onClick={() => console.log("Do something")}
+               * Now calls the prop that wires back up to the wizard hook.
+               *
+               * Button label changes between "Generate" and "Regenerate"
+               * depending on whether a description already exists.
+               */}
+              <Button
+                onClick={onGenerateDescription}
+                disabled={anyLoading}
+                variant="outline"
+                className="shrink-0"
+              >
+                {isGeneratingDescription ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4 text-[#14a800]" />
+                    {formData.description
+                      ? "Regenerate description"
+                      : "Generate description with AI"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Navigation & Action Buttons */}
+      {/* Navigation & Action Buttons — unchanged from original */}
       <div className="flex flex-col gap-3 pt-4">
-        {/* Main Actions - Desktop Layout */}
+        {/* Desktop Layout */}
         <div className="hidden md:flex justify-between gap-3">
-          <Button onClick={onSaveDraft} disabled={isLoading} variant="outline">
-            {isLoadingDraft ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving Draft...
-              </>
-            ) : (
-              <>
-                <SaveIcon className="mr-2 h-4 w-4" />
-                Save as Draft
-              </>
-            )}
+          <Button onClick={onPrevious} disabled={anyLoading} variant="outline">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Previous
           </Button>
 
           <div className="flex gap-3">
             <Button
+              onClick={onSaveDraft}
+              disabled={isLoading || isGeneratingDescription}
+              variant="outline"
+            >
+              {isLoadingDraft ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving Draft…
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  Save as Draft
+                </>
+              )}
+            </Button>
+
+            <Button
               onClick={onNext}
-              disabled={isLoading}
+              disabled={anyLoading}
               className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
             >
               Next Step
@@ -205,15 +259,28 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         {/* Mobile Layout */}
         <div className="flex md:hidden flex-col gap-2">
           <Button
+            onClick={onNext}
+            disabled={anyLoading}
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+          >
+            Next Step
+          </Button>
+
+          <Button onClick={onPrevious} disabled={anyLoading} variant="outline">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Previous
+          </Button>
+
+          <Button
             onClick={onSaveDraft}
-            disabled={isLoading}
+            disabled={isLoading || isGeneratingDescription}
             variant="outline"
             className="w-full"
           >
             {isLoadingDraft ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving Draft...
+                Saving Draft…
               </>
             ) : (
               <>
@@ -221,14 +288,6 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 Save as Draft
               </>
             )}
-          </Button>
-
-          <Button
-            onClick={onNext}
-            disabled={isLoading}
-            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-          >
-            Next Step
           </Button>
         </div>
       </div>

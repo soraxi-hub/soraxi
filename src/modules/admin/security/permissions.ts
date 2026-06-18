@@ -37,6 +37,10 @@ export const PERMISSIONS = {
   // Disputes
   RESOLVE_DISPUTES: "resolve_dispuptes",
 
+  // Store creation waitlist
+  VIEW_WAITLIST: "view_waitlist",
+  MANAGE_WAITLIST: "manage_waitlist",
+
   // Coupons permissions
   VIEW_COUPONS: "view_coupons",
   VIEW_COUPON_REDEMPTIONS: "view_coupon_redemptions",

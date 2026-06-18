@@ -115,7 +115,7 @@ export async function initialisePlatformWallet(): Promise<IPlatformWallet> {
  */
 export async function creditPlatformCommission(
   commissionInKobo: number,
-  session?: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IPlatformWallet | null> {
   await connectToDatabase();
   const PlatformWallet = await getPlatformWalletModel();
@@ -142,6 +142,7 @@ export async function creditPlatformCommission(
  */
 export async function creditPlatformPenalty(
   penaltyInKobo: number,
+  session: mongoose.ClientSession,
 ): Promise<IPlatformWallet | null> {
   await connectToDatabase();
   const PlatformWallet = await getPlatformWalletModel();
@@ -154,6 +155,6 @@ export async function creditPlatformPenalty(
         "balances.total": penaltyInKobo,
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }

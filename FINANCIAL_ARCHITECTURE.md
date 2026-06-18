@@ -1,202 +1,327 @@
-# Financial Architecture Documentation
+# Soraxi Financial System — Architecture Documentation
 
-> **Platform:** Soraxi Marketplace  
-> **Last Updated:** May 2026  
-> **Audience:** Internal developers and new team members  
+> **Platform:** Soraxi Marketplace
+> **Last Updated:** June 2026
+> **Audience:** Internal developers and new team members
 > **Status:** Living document — update as the system evolves
 
 ---
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Business Context](#business-context)
-3. [Core Principles](#core-principles)
-4. [Core Components](#core-components)
-5. [Data Models](#data-models)
-6. [Commission Structure](#commission-structure)
-7. [Fund Flow Logic](#fund-flow-logic)
-8. [Dispute Policy](#dispute-policy)
-9. [Payout System](#payout-system)
-10. [Open Items & Future Considerations](#open-items--future-considerations)
+1. [Overview](#1-overview)
+2. [Business Context](#2-business-context)
+3. [Core Principles](#3-core-principles)
+4. [Core Components](#4-core-components)
+5. [Double-Entry Accounting System](#5-double-entry-accounting-system)
+6. [Chart of Accounts](#6-chart-of-accounts)
+7. [Data Models](#7-data-models)
+8. [Commission Structure](#8-commission-structure)
+9. [Payout Fee Structure](#9-payout-fee-structure)
+10. [Fund Flow Logic](#10-fund-flow-logic)
+11. [Fund Flow Diagram](#11-fund-flow-diagram)
+12. [Dispute Policy](#12-dispute-policy)
+13. [Payout System](#13-payout-system)
+14. [Reconciliation](#14-reconciliation)
+15. [Open Items & Future Considerations](#15-open-items--future-considerations)
 
 ---
 
-## Overview
+## 1. Overview
 
 Soraxi is a marketplace for students and vendors within Nigerian tertiary institutions. The financial system manages the complete lifecycle of money from the moment a student makes a payment to the moment a vendor receives their earnings in their bank account.
 
-The system is built on the following stack:
-- **Backend/Frontend:** Next.js
-- **Database:** MongoDB
-- **Payment Gateway:** Flutterwave
+**Stack:**
 
-All monetary values are stored and processed in **Kobo** (1 Naira = 100 Kobo) to avoid floating-point precision errors.
+- **Backend/Frontend:** Next.js (App Router)
+- **Database:** MongoDB via Mongoose
+- **Payment Gateway:** Flutterwave
+- **Deployment:** Vercel
+
+All monetary values are stored and processed in **Kobo** (1 Naira = 100 Kobo) to avoid floating-point precision errors. Amounts are always positive integers — fractional Kobo values are never valid.
 
 ---
 
-## Business Context
+## 2. Business Context
 
 ### Revenue Model
-- **Primary:** Commission per vendor sale (tiered percentage + flat fee structure)
+
+- **Primary:** Commission per vendor sale (tiered percentage + flat fee — see §8)
+- **Secondary:** Penalty revenue from upheld disputes
 - **Planned:** Subscription model for vendors (future)
 
 ### Fund Flow Direction
-Students pay the platform first. The platform holds the funds, deducts its commission, and disburses the remainder to the vendor after order confirmation.
+
+Students pay the platform first. The platform holds the funds in escrow, deducts its commission, and disburses the remainder to the vendor after order confirmation.
 
 ### Order Structure
+
 - A single **Order** can contain multiple **Suborders**, each belonging to a different vendor/store
 - Financial operations always occur at the **suborder level**, never at the main order level
 - This ensures vendor A's payout is never blocked by vendor B's activity
 
 ### Fulfillment Model
+
 The platform operates a hybrid fulfillment model:
+
 - **Vendor-fulfilled:** Vendor manages and delivers the order independently and updates the order status
-- **Platform-fulfilled:** Platform manages delivery on the vendor's behalf and updates the order status
+- **Platform-fulfilled:** Platform manages delivery on the vendor's behalf
 
 ---
 
-## Core Principles
+## 3. Core Principles
 
-These principles govern every design decision in the financial system:
+These principles govern every design decision in the financial system.
 
-1. **Ledger as Source of Truth** — No balance is changed directly. Every balance change is the result of an immutable ledger entry. Balances can always be recalculated from the ledger.
+1. **Double-Entry Ledger as Source of Truth** — Every financial event is recorded as a balanced journal entry. Every journal entry has two or more ledger lines where the sum of credits always equals the sum of debits. No balance is changed without a corresponding balanced entry in the ledger.
 
-2. **Suborder-Level Granularity** — All financial operations (settlement, disputes, freezing, payouts) are scoped to the suborder, not the order.
+2. **Wallets are Cached Views** — Wallet documents (vendor, platform) are fast-read caches that mirror the ledger. The ledger is always authoritative. Wallet discrepancies are detected by the reconciliation system.
 
-3. **Kobo-First Arithmetic** — All amounts are stored and calculated in Kobo to eliminate floating-point errors.
+3. **Single Write Path** — `JournalEntryWriter` is the only class permitted to write `JournalEntry` and `LedgerLine` documents. No service, route, or repository writes to these collections directly. This guarantees the double-entry invariant is enforced on every write.
 
-4. **Explicit State Transitions** — Every financial state (pending, available, disputed) has a defined entry and exit condition. No implicit transitions.
+4. **Suborder-Level Granularity** — All financial operations (settlement, disputes, freezing, payouts) are scoped to the suborder, not the order.
 
-5. **Student-First Protection** — In ambiguous or unresolved scenarios, the default outcome protects the student.
+5. **Kobo-First Arithmetic** — All amounts are stored and calculated in Kobo. The `assertValidKoboAmount` guard in `JournalEntryWriter` throws on any non-positive-integer amount before a write is attempted.
 
-6. **Vendor Transparency** — Vendors always have visibility into their wallet state, including frozen funds and the reason for any hold.
+6. **Explicit State Transitions** — Every financial state (pending, available, disputed) has a defined entry and exit condition. No implicit transitions.
 
----
+7. **Student-First Protection** — In ambiguous or unresolved scenarios (e.g. auto-resolution), the default outcome protects the student.
 
-## Core Components
+8. **Session-Guarded Writes** — Every write that touches more than one document uses a MongoDB `ClientSession` (transaction). Journal entry + ledger lines are always written atomically.
 
-The financial system is made up of five core components. Every other design decision is an extension or interaction of these five.
-
-### 1. The Ledger
-The single source of truth for all money movement on the platform. Every financial event is recorded here as an immutable entry. Nothing changes a balance directly — every balance change is the result of a ledger entry.
-
-### 2. The Vendor Wallet
-Tracks a vendor's running balance on the platform across four states: available, pending, disputed, and debt. It is not a real bank account — it is a calculated state maintained for fast balance reads.
-
-### 3. The Platform Wallet
-A singleton document that tracks the platform's accumulated revenue from commissions and penalties.
-
-### 4. The Transaction Record
-The bridge between Flutterwave and the internal system. Links an external payment reference to the internal suborder breakdowns, commission calculations, and fund allocations it triggered.
-
-### 5. The Payout System
-Responsible for moving money from the platform to a vendor's real bank account via Flutterwave's Transfer API. Every payout attempt is fully logged.
+9. **Immutability** — Journal entries and ledger lines are never updated or deleted after creation. Reversals are recorded as new entries, not modifications.
 
 ---
 
-## Data Models
+## 4. Core Components
 
-### Ledger Entry
-```javascript
+### 1. The Journal Entry
+
+The atomic unit of a financial event. Groups two or more ledger lines that together represent one balanced event. Immutable after creation.
+
+### 2. The Ledger Line
+
+One side of a journal entry. Records which account is affected, in which direction, and by how much. The sum of all credit lines within a journal entry must equal the sum of all debit lines. Immutable after creation.
+
+### 3. The JournalEntryWriter
+
+The sole authorised writer of journal entries and ledger lines. Enforces the double-entry invariant before every DB write. All financial event recording flows through this class.
+
+### 4. The Vendor Wallet
+
+Tracks a vendor's running balance across four states: available, pending, disputed, and debt. Not a real bank account — a cached state maintained for fast balance reads. Reconciled against the ledger periodically.
+
+### 5. The Platform Wallet
+
+A singleton document tracking the platform's accumulated revenue from commissions and penalties. Also a cache — the ledger is authoritative.
+
+### 6. The Transaction Record
+
+The bridge between Flutterwave and the internal system. Links an external payment reference to the internal suborder breakdowns and commission calculations.
+
+### 7. The Payout System
+
+Moves money from the platform to a vendor's real bank account via Flutterwave's Transfer API. Every payout attempt — initiated, completed, or failed — is fully logged with journal entries.
+
+---
+
+## 5. Double-Entry Accounting System
+
+### How It Works
+
+Every financial event produces one `JournalEntry` document and two or more `LedgerLine` documents, all written atomically in the same MongoDB transaction.
+
+```
+JournalEntry          LedgerLine (DEBIT)
+    │                      │
+    └──── journalId ───────┤
+                           │
+                      LedgerLine (CREDIT)
+```
+
+The `JournalEntryWriter` service:
+
+1. Validates all amounts are positive Kobo integers
+2. Constructs the ledger lines for the event
+3. Asserts `sum(credits) === sum(debits)` — throws before any DB write if this fails
+4. Writes the `JournalEntry` header document first
+5. Bulk-inserts all `LedgerLine` documents in the same session
+
+### Journal Entry Map
+
+The canonical definition of which accounts move for each financial event:
+
+| Event                              | Debit                                                  | Credit                                                       |
+| ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
+| **PAYMENT_RECEIVED**               | `PLATFORM_ESCROW` (gross)                              | `CUSTOMER_REFUND_PAYABLE` (gross)                            |
+| **ORDER_SETTLED**                  | `CUSTOMER_REFUND_PAYABLE` (gross)                      | `VENDOR_PENDING` × n vendors + `PLATFORM_REVENUE_COMMISSION` |
+| **FUNDS_RELEASED**                 | `VENDOR_AVAILABLE` (settle)                            | `VENDOR_PENDING` (settle)                                    |
+| **DISPUTE_OPENED**                 | `VENDOR_DISPUTED` (settle)                             | `VENDOR_AVAILABLE` (settle)                                  |
+| **DISPUTE_REJECTED**               | `VENDOR_AVAILABLE` (settle)                            | `VENDOR_DISPUTED` (settle)                                   |
+| **DISPUTE_UPHELD** (pair 1)        | `VENDOR_DISPUTED` (settle)                             | `CUSTOMER_REFUND_PAYABLE` (settle)                           |
+| **DISPUTE_UPHELD** (pair 2)        | `VENDOR_AVAILABLE` (penalty)                           | `PLATFORM_REVENUE_PENALTIES` (penalty)                       |
+| **DISPUTE_AUTO_RESOLVED**          | `VENDOR_DISPUTED` (settle)                             | `CUSTOMER_REFUND_PAYABLE` (settle)                           |
+| **DEBT_RECOVERY** (pair 1)         | `DEBT_RECOVERY_CLEARING` (amount)                      | `VENDOR_AVAILABLE` (amount)                                  |
+| **DEBT_RECOVERY** (pair 2)         | `PLATFORM_REVENUE_PENALTIES` (amount)                  | `DEBT_RECOVERY_CLEARING` (amount)                            |
+| **PAYOUT_PROCESSING_FEE**          | `VENDOR_AVAILABLE` (fee)                               | `PLATFORM_REVENUE_COMMISSION` (fee)                          |
+| **PAYOUT_INITIATED**               | `PAYOUT_PROCESSING` (net)                              | `VENDOR_AVAILABLE` (net)                                     |
+| **PAYOUT_COMPLETED**               | `PLATFORM_ESCROW` (net) + `GATEWAY_FEES_EXPENSE` (fee) | `PAYOUT_PROCESSING` (net + fee)                              |
+| **PAYOUT_FAILED**                  | `VENDOR_AVAILABLE` (net)                               | `PAYOUT_PROCESSING` (net)                                    |
+| **PAYOUT_PROCESSING_FEE_REVERSAL** | `PLATFORM_REVENUE_COMMISSION` (fee)                    | `VENDOR_AVAILABLE` (fee)                                     |
+| **GATEWAY_FEE**                    | `GATEWAY_FEES_EXPENSE` (fee)                           | `PLATFORM_ESCROW` (fee)                                      |
+| **GATEWAY_FEE_REVERSAL**           | `PLATFORM_ESCROW` (fee)                                | `GATEWAY_FEES_EXPENSE` (fee)                                 |
+
+> **DISPUTE_UPHELD** produces four lines sharing one `journalId` (two balanced pairs). `DEBT_RECOVERY` also produces four lines sharing one `journalId`. In both cases the invariant check verifies total credits === total debits across all lines before any write.
+
+### Writer Methods
+
+| Method                             | Event                                                    |
+| ---------------------------------- | -------------------------------------------------------- |
+| `writePaymentReceived`             | Student payment enters escrow                            |
+| `writeOrderSettlement`             | Escrow split to vendors + platform on order confirmation |
+| `writeFundsReleased`               | Pending → available on delivery confirmation             |
+| `writeDisputeOpened`               | Available → disputed on dispute open                     |
+| `writeDisputeRejected`             | Disputed → available on rejection                        |
+| `writeDisputeUpheld`               | Refund + penalty on upheld dispute                       |
+| `writeDisputeAutoResolved`         | Refund only on system auto-resolution (no penalty)       |
+| `writeDebtRecovery`                | Debt withheld from payout via clearing account           |
+| `writePayoutProcessingFee`         | Soraxi processing fee deducted from payout               |
+| `writePayoutInitiated`             | Net amount enters PAYOUT_PROCESSING                      |
+| `writePayoutCompleted`             | Processing account closed, escrow reduced                |
+| `writePayoutFailed`                | Processing account reversed to vendor available          |
+| `writePayoutProcessingFeeReversal` | Processing fee returned on payout failure                |
+| `writeGatewayFee`                  | Flutterwave fee recorded as platform expense             |
+| `writeGatewayFeeReversal`          | Gateway fee reversed on payout failure                   |
+
+---
+
+## 6. Chart of Accounts
+
+These are the logical accounts in Soraxi's double-entry system. Every ledger line references exactly one account type.
+
+| Account                       | Type      | Description                                                        |
+| ----------------------------- | --------- | ------------------------------------------------------------------ |
+| `PLATFORM_ESCROW`             | Asset     | Money held on behalf of customers/vendors for in-flight orders     |
+| `VENDOR_PENDING`              | Liability | Vendor funds awaiting order confirmation                           |
+| `VENDOR_AVAILABLE`            | Liability | Vendor funds cleared and ready to withdraw                         |
+| `VENDOR_DISPUTED`             | Liability | Vendor funds frozen due to an open dispute                         |
+| `PLATFORM_REVENUE_COMMISSION` | Revenue   | Commission income earned from sales                                |
+| `PLATFORM_REVENUE_PENALTIES`  | Revenue   | Penalty income earned from upheld disputes + debt recovery         |
+| `CUSTOMER_REFUND_PAYABLE`     | Liability | Amount owed back to a customer after a refund                      |
+| `PAYOUT_PROCESSING`           | Asset     | Funds in-flight to a vendor's bank account via Flutterwave         |
+| `GATEWAY_FEES_EXPENSE`        | Expense   | Flutterwave transfer fees recorded as a platform expense           |
+| `DEBT_RECOVERY_CLEARING`      | Clearing  | Intermediate account used when recovering vendor debt from payouts |
+
+---
+
+## 7. Data Models
+
+### JournalEntry
+
+```typescript
 {
   _id: ObjectId,
-  type: String,           // "CREDIT" or "DEBIT"
-  category: String,       // See categories below
-  amount: Number,         // Always in Kobo
-  entityType: String,     // "VENDOR", "PLATFORM", "STUDENT"
-  entityId: ObjectId,     // Reference to the affected entity
-  referenceType: String,  // "SUBORDER", "DISPUTE", "PAYOUT", "PENALTY"
-  referenceId: ObjectId,  // _id of the triggering document
-  description: String,
-  createdAt: Date,        // Set once, never updated
-  metadata: Object        // Extra context e.g. Flutterwave reference
+  category: LedgerEntryCategory,    // The financial event type
+  referenceType: LedgerReferenceType, // "SUBORDER", "DISPUTE", "PAYOUT", "PENALTY"
+  referenceId: ObjectId,             // _id of the triggering document
+  description: string,
+  metadata?: Record<string, unknown>,
+  createdAt: Date                    // Immutable — no updatedAt
 }
 ```
 
-**Ledger Entry Categories:**
+**Indexes:** `{ referenceId, referenceType }` compound, `category`
 
-| Category | Description |
-|----------|-------------|
-| `PAYMENT_RECEIVED` | Student payment collected by platform |
-| `COMMISSION_DEDUCTED` | Platform commission taken from suborder |
-| `VENDOR_SETTLEMENT` | Vendor's net amount credited to wallet |
-| `FUNDS_HELD` | Funds frozen due to open dispute |
-| `FUNDS_RELEASED` | Frozen or pending funds released to available |
-| `REFUND_ISSUED` | Funds returned to student |
-| `PENALTY_APPLIED` | Penalty deducted from vendor wallet |
-| `PAYOUT_INITIATED` | Vendor withdrawal request processed |
-| `PAYOUT_COMPLETED` | Withdrawal successfully sent to bank |
-| `PAYOUT_FAILED` | Withdrawal attempt failed |
+---
+
+### LedgerLine
+
+```typescript
+{
+  _id: ObjectId,
+  journalId: ObjectId,           // Foreign key to JournalEntry
+  type: "credit" | "debit",
+  accountType: LedgerAccountType, // Which account in the chart of accounts
+  entityId?: ObjectId,           // Only for VENDOR_* and CUSTOMER_* lines
+  entityType?: "vendor" | "customer", // Only when entityId is set
+  amount: number,                // In Kobo — always a positive integer ≥ 1
+  createdAt: Date                // Immutable — no updatedAt
+}
+```
+
+**Indexes:** `journalId`, `accountType`, `entityId` (sparse), `{ entityId, accountType, createdAt }` compound
 
 ---
 
 ### Vendor Wallet
-```javascript
+
+```typescript
 {
   _id: ObjectId,
   vendorId: ObjectId,
   balances: {
-    available: Number,  // Funds vendor can withdraw right now (Kobo)
-    pending: Number,    // Funds awaiting order confirmation (Kobo)
-    disputed: Number,   // Funds frozen due to open disputes (Kobo)
-    total: Number       // available + pending + disputed (Kobo)
+    available: number,  // Funds vendor can withdraw right now (Kobo)
+    pending: number,    // Funds awaiting order confirmation (Kobo)
+    disputed: number,   // Funds frozen due to open disputes (Kobo)
+    total: number       // available + pending + disputed (Kobo)
   },
   debt: {
-    amount: Number,             // Amount owed to platform (Kobo)
-    recoveryType: String,       // "PERCENTAGE_DEDUCTION" or "FULL_BLOCK"
-    recoveryPercentage: Number  // Only applicable if PERCENTAGE_DEDUCTION
+    amount: number,              // Amount owed to platform (Kobo)
+    recoveryType: string,        // "PERCENTAGE_DEDUCTION" or "FULL_BLOCK"
+    recoveryPercentage: number   // Only applicable if PERCENTAGE_DEDUCTION
   },
-  currency: String,   // "NGN"
-  updatedAt: Date,
-  createdAt: Date
+  currency: "NGN",
+  createdAt: Date,
+  updatedAt: Date
 }
 ```
 
-> **Note:** Balances are maintained as a running state updated alongside ledger entries. The ledger remains the source of truth for auditing; the wallet provides fast balance reads without expensive aggregation queries.
+> **Note:** Balances are maintained as a running state updated alongside journal entries. The ledger is always authoritative — wallet discrepancies are detected by `reconcileVendorWallet`.
 
 ---
 
 ### Platform Wallet
-```javascript
+
+```typescript
 {
   _id: ObjectId,
   balances: {
-    commission: Number,  // Revenue from commissions (Kobo)
-    penalties: Number,   // Revenue from vendor penalties (Kobo)
-    total: Number        // commission + penalties (Kobo)
+    commission: number,  // Revenue from commissions + payout processing fees (Kobo)
+    penalties: number,   // Revenue from vendor penalties + debt recovery (Kobo)
+    total: number        // commission + penalties (Kobo)
   },
-  currency: String,     // "NGN"
-  updatedAt: Date,
-  createdAt: Date
+  currency: "NGN",
+  createdAt: Date,
+  updatedAt: Date
 }
 ```
 
-> **Note:** This is a singleton document. There is only ever one platform wallet.
+> **Note:** Singleton document — there is only ever one platform wallet. Does not store gateway fees or operational expenses; those are tracked via ledger only (`GATEWAY_FEES_EXPENSE` account).
 
 ---
 
 ### Transaction Record
-```javascript
+
+```typescript
 {
   _id: ObjectId,
-  studentId: ObjectId,
+  customerId: ObjectId,
   orderId: ObjectId,
-  flutterwaveReference: String,
-  flutterwaveStatus: String,    // "pending", "successful", "failed"
-  totalAmount: Number,          // Total amount paid by student (Kobo)
+  flutterwaveReference: string,
+  flutterwaveStatus: string,     // "pending" | "successful" | "failed"
+  totalAmount: number,           // Total amount paid by student (Kobo)
   suborderBreakdowns: [
     {
       suborderId: ObjectId,
       vendorId: ObjectId,
-      grossAmount: Number,      // What student paid for this suborder (Kobo)
-      commission: Number,       // Platform's cut (Kobo)
-      settleAmount: Number,     // Vendor's net amount (Kobo)
+      grossAmount: number,       // What student paid for this suborder (Kobo)
+      commission: number,        // Platform's cut (Kobo)
+      settleAmount: number,      // Vendor's net amount (Kobo)
       commissionDetails: {
-        percentageFee: Number,
-        flatFeeApplied: Number
+        percentageFee: number,
+        flatFeeApplied: number
       },
-      status: String            // See suborder statuses below
+      status: SuborderFinancialStatus
     }
   ],
   createdAt: Date,
@@ -206,32 +331,42 @@ Responsible for moving money from the platform to a vendor's real bank account v
 
 **Suborder Financial Statuses:**
 
-| Status | Meaning |
-|--------|---------|
-| `PENDING` | Payment received, awaiting order confirmation |
-| `HELD` | Funds frozen due to open dispute |
-| `SETTLED` | Funds released to vendor's available balance |
-| `DISPUTED` | Active dispute in progress |
-| `REFUNDED` | Student has been refunded |
+| Status     | Meaning                                       |
+| ---------- | --------------------------------------------- |
+| `PENDING`  | Payment received, awaiting order confirmation |
+| `DISPUTED` | Active dispute in progress                    |
+| `SETTLED`  | Funds released to vendor's available balance  |
+| `REFUNDED` | Student has been refunded                     |
 
 ---
 
 ### Payout Record
-```javascript
+
+```typescript
 {
   _id: ObjectId,
   vendorId: ObjectId,
-  amount: Number,               // Amount requested (Kobo)
-  bankDetails: {
-    bankCode: String,
-    accountNumber: String,
-    accountName: String
+  amountBreakdown: {
+    requestedAmount: number,            // Full amount requested by vendor (Kobo)
+    debtRecoveryDeductionAmount: number, // Amount withheld for debt recovery (Kobo)
+    debtBeforeRecovery?: number,
+    debtAfterRecovery?: number,
+    debtRecoveryPercentage?: number,
+    fixedProcessingFee: number,
+    percentageProcessingFee: number,
+    processingFee: number,              // fixedFee + percentageFee (Kobo)
+    gatewayFee?: number,                // Flutterwave transfer fee (Kobo)
+    netAmount: number                   // Final transfer amount to vendor (Kobo)
   },
-  flutterwaveTransferId: String,
-  flutterwaveStatus: String,    // "pending", "successful", "failed"
-  status: String,               // "INITIATED", "PROCESSING", "COMPLETED", "FAILED"
-  ledgerEntryId: ObjectId,
-  failureReason: String,        // Populated if payout fails
+  bankDetails: {                        // Snapshot at time of request
+    bankCode: string,
+    accountNumber: string,
+    accountName: string
+  },
+  flutterwaveTransferId?: string,
+  flutterwaveStatus?: string,
+  status: "INITIATED" | "PROCESSING" | "COMPLETED" | "FAILED",
+  failureReason?: string,
   createdAt: Date,
   updatedAt: Date
 }
@@ -240,28 +375,29 @@ Responsible for moving money from the platform to a vendor's real bank account v
 ---
 
 ### Dispute Record
-```javascript
+
+```typescript
 {
   _id: ObjectId,
   suborderId: ObjectId,
   orderId: ObjectId,
-  studentId: ObjectId,
+  customerId: ObjectId,
   vendorId: ObjectId,
-  reason: String,               // Student's written description
-  evidence: [String],           // Array of image URLs
-  status: String,               // "OPEN", "AWAITING_EVIDENCE", "RESOLVED", "AUTO_RESOLVED"
-  outcome: String,              // "UPHELD", "REJECTED", "INCONCLUSIVE" — null until resolved
-  frozenAmount: Number,         // Amount frozen (Kobo)
-  penaltyAmount: Number,        // Penalty applied if upheld — 0 otherwise (Kobo)
+  reason: string,                       // Student's written description
+  evidence: string[],                   // Array of Cloudinary image URLs
+  status: "OPEN" | "AWAITING_EVIDENCE" | "RESOLVED" | "AUTO_RESOLVED",
+  outcome?: "UPHELD" | "REJECTED" | "INCONCLUSIVE",
+  frozenAmount: number,                 // settle amount frozen at dispute open (Kobo)
+  penaltyAmount: number,                // 0 unless upheld
   openedAt: Date,
-  warningIssuedAt: Date,        // When day 4 alert was sent to platform team
-  resolvedAt: Date,
-  deadline: Date,               // openedAt + 5 business days
-  resolvedBy: String,           // "PLATFORM_TEAM" or "SYSTEM"
-  resolutionNotes: String,
-  additionalEvidenceRequestedAt: Date,
-  additionalEvidenceDeadline: Date,   // additionalEvidenceRequestedAt + 48 hours
-  additionalEvidence: [String],
+  deadline: Date,                       // openedAt + 5 business days
+  warningIssuedAt?: Date,               // When day 4 alert was sent to team
+  resolvedAt?: Date,
+  resolvedBy?: "PLATFORM_TEAM" | "SYSTEM",
+  resolutionNotes?: string,
+  additionalEvidenceRequestedAt?: Date,
+  additionalEvidenceDeadline?: Date,    // + 48 hours
+  additionalEvidence?: string[],
   createdAt: Date,
   updatedAt: Date
 }
@@ -269,41 +405,115 @@ Responsible for moving money from the platform to a vendor's real bank account v
 
 ---
 
-## Commission Structure
+## 8. Commission Structure
 
 Commission is calculated per suborder using a tiered structure. All values are in Kobo.
 
-| Transaction Range | Commission |
-|-------------------|------------|
-| ₦1 – ₦2,499 | 5% + ₦100 flat fee |
-| ₦2,500 – ₦4,999 | 5% only |
-| ₦5,000 and above | 5% + ₦200 flat fee |
+| Transaction Range | Commission         |
+| ----------------- | ------------------ |
+| ₦1 – ₦2,499       | 5% + ₦100 flat fee |
+| ₦2,500 – ₦4,999   | 5% only            |
+| ₦5,000 and above  | 5% + ₦200 flat fee |
 
-The `calculateCommission(amountInKobo)` utility function handles this logic and returns:
+The `calculateCommission(amountInKobo)` utility returns:
+
 - `commission` — total amount deducted
 - `settleAmount` — vendor's net amount after deduction
 - `details.percentageFee` — the raw 5% portion
 - `details.flatFeeApplied` — the flat fee applied (0, ₦100, or ₦200 in Kobo)
 
-> **Location:** `utils/commission.ts`
+> **Location:** `lib/utils/calculate-commission.ts`
 
 ---
 
-## Fund Flow Logic
+## 9. Payout Fee Structure
+
+Three separate deductions apply when a vendor requests a payout, applied in this order:
+
+### Step 1 — Debt Recovery (if applicable)
+
+```
+calculateDebtRecoveryDeduction(requestedAmount, outstandingDebt, recoveryType)
+→ recoveryDeduction
+→ afterDebtAmount = requestedAmount - recoveryDeduction
+```
+
+Debt recovery is withheld first, before fees are calculated.
+
+### Step 2 — Processing Fee (Soraxi revenue)
+
+```
+calculateWithdrawalFees(afterDebtAmount)
+→ fixedFee + percentageFee = totalFee
+→ afterProcessingFeeAmount = afterDebtAmount - totalFee
+```
+
+Processing fee is Soraxi's own revenue for handling the withdrawal.
+
+### Step 3 — Gateway Fee (Flutterwave expense)
+
+| Transfer Amount  | Fee  |
+| ---------------- | ---- |
+| ≤ ₦5,000         | ₦10  |
+| ₦5,001 – ₦50,000 | ₦25  |
+| > ₦50,000        | ₦50  |
+| + VAT            | 7.5% |
+
+```
+calculateGatewayFee(afterProcessingFeeAmount)
+→ gatewayFee
+```
+
+The gateway fee is a **platform expense** — it is NOT deducted from the vendor's transfer. The platform pays it separately. It is recorded in the ledger as `GATEWAY_FEES_EXPENSE`.
+
+### Concrete Example
+
+```
+Requested:        ₦100,000
+Debt Recovery:  −  ₦10,000   → recoveryDeduction
+Processing Fee: −   ₦1,000   → platform revenue
+Net Transfer:      ₦89,000   → sent to Flutterwave
+Gateway Fee:    −     ₦53.75 → platform expense (not from vendor)
+
+Vendor wallet deducted: ₦100,000 (full requested amount)
+Platform earns:         ₦11,000 (₦10,000 debt recovery + ₦1,000 processing fee)
+Platform pays:              ₦53.75 gateway fee
+```
+
+### How This Maps to Journal Entries
+
+```
+writeDebtRecovery(₦10,000)          → VENDOR_AVAILABLE out, PLATFORM_REVENUE_PENALTIES in
+writePayoutProcessingFee(₦1,000)    → VENDOR_AVAILABLE out, PLATFORM_REVENUE_COMMISSION in
+writePayoutInitiated(₦89,000)       → VENDOR_AVAILABLE out, PAYOUT_PROCESSING in
+writeGatewayFee(₦53.75)             → GATEWAY_FEES_EXPENSE out, PLATFORM_ESCROW out
+
+Total VENDOR_AVAILABLE reduction: ₦10,000 + ₦1,000 + ₦89,000 = ₦100,000 ✓
+```
+
+> `deductVendorAvailableForPayout(storeId, requestedAmount)` mirrors this total across the wallet cache.
+
+---
+
+## 10. Fund Flow Logic
 
 ### Stage 1: Student Payment Confirmed
-*Triggered by Flutterwave webhook on successful payment*
 
-1. Create **Transaction Record** with Flutterwave reference
-2. Calculate suborder breakdown for every vendor using `calculateCommission`
-3. For each suborder, create **Ledger Entries:**
-   - `PAYMENT_RECEIVED` — platform holds gross amount
-   - `COMMISSION_DEDUCTED` — platform wallet commission balance credited
-   - `VENDOR_SETTLEMENT` — vendor wallet pending balance credited
+_Triggered by Flutterwave webhook on successful payment_
+
+1. Create **Transaction Record** with Flutterwave reference and per-vendor suborder breakdowns
+2. Write **PAYMENT_RECEIVED** journal entry (one per order):
+   - `DEBIT PLATFORM_ESCROW` (gross order amount)
+   - `CREDIT CUSTOMER_REFUND_PAYABLE` (gross order amount)
+3. Write **ORDER_SETTLED** journal entry (one per order, spanning all vendors):
+   - `DEBIT CUSTOMER_REFUND_PAYABLE` (gross order amount)
+   - `CREDIT VENDOR_PENDING` × n (one line per vendor, settle amount each)
+   - `CREDIT PLATFORM_REVENUE_COMMISSION` (total commission)
 4. Update each **Vendor Wallet** — add settle amount to `pending`
 5. Update **Platform Wallet** — add commission to `commission` balance
 
-**Vendor wallet state:**
+**Vendor wallet state after Stage 1:**
+
 ```
 available: 0
 pending:   settleAmount  ← awaiting confirmation
@@ -313,17 +523,17 @@ disputed:  0
 ---
 
 ### Stage 2: Order Confirmed
-*Triggered by student confirmation or auto-confirm after 3 days*
 
-> Auto-confirm only fires if order status is "out for delivery" or "awaiting confirmation"
+_Triggered by student confirmation or auto-confirm after 3 days_
 
-1. Create **Ledger Entry:** `FUNDS_RELEASED`
+1. Write **FUNDS_RELEASED** journal entry (one per suborder):
+   - `DEBIT VENDOR_AVAILABLE` (settle amount)
+   - `CREDIT VENDOR_PENDING` (settle amount)
 2. Update **Transaction Record** suborder status → `SETTLED`
-3. Update **Vendor Wallet:**
-   - Subtract from `pending`
-   - Add to `available`
+3. Update **Vendor Wallet** — subtract from `pending`, add to `available`
 
-**Vendor wallet state:**
+**Vendor wallet state after Stage 2:**
+
 ```
 available: settleAmount  ← ready for withdrawal
 pending:   0
@@ -333,18 +543,21 @@ disputed:  0
 ---
 
 ### Stage 3: Dispute Opened
-*Triggered when student raises a dispute on a suborder*
 
-> Requires detailed written description and photo evidence
+_Triggered when student raises a dispute on a delivered suborder_
 
-1. Create **Dispute Record** with `status: "OPEN"` and deadline set to +5 business days
-2. Create **Ledger Entry:** `FUNDS_HELD`
-3. Update **Transaction Record** suborder status → `DISPUTED`
-4. Update **Vendor Wallet:**
-   - Subtract from `pending`
-   - Add to `disputed`
+> Requires detailed written description and at least one photo evidence. Can only be raised on suborders with delivery status `Delivered`.
 
-**Vendor wallet state:**
+1. Upload evidence to Cloudinary (before session — network calls don't belong in transactions)
+2. Create **Dispute Record** with `status: OPEN` and deadline = +5 business days
+3. Write **DISPUTE_OPENED** journal entry:
+   - `DEBIT VENDOR_DISPUTED` (settle amount)
+   - `CREDIT VENDOR_AVAILABLE` (settle amount)
+4. Update **Transaction Record** suborder status → `DISPUTED`
+5. Update **Vendor Wallet** — subtract from `available`, add to `disputed`
+
+**Vendor wallet state after Stage 3:**
+
 ```
 available: 0
 pending:   0
@@ -354,41 +567,48 @@ disputed:  settleAmount  ← frozen, visible to vendor
 ---
 
 ### Stage 4A: Dispute Upheld
-*Triggered when platform team rules in favour of the student*
 
-1. Create **Ledger Entries:**
-   - `REFUND_ISSUED` — student refunded
-   - `PENALTY_APPLIED` — penalty deducted from vendor
+_Triggered when platform team rules in favour of the student_
+
+1. Write **DISPUTE_UPHELD** journal entry (four lines, two balanced pairs):
+   - `DEBIT VENDOR_DISPUTED` (settle amount)
+   - `CREDIT CUSTOMER_REFUND_PAYABLE` (settle amount)
+   - `DEBIT VENDOR_AVAILABLE` (penalty amount)
+   - `CREDIT PLATFORM_REVENUE_PENALTIES` (penalty amount)
 2. Update **Vendor Wallet:**
    - Subtract frozen amount from `disputed`
-   - Subtract penalty from `available` (wallet may go negative)
-   - If negative, set `debt` fields:
-     - Below threshold → `recoveryType: "PERCENTAGE_DEDUCTION"`
-     - Above threshold → `recoveryType: "FULL_BLOCK"`
+   - Subtract penalty from `available` (may go negative → creates debt)
+   - If negative: below threshold → `recoveryType: PERCENTAGE_DEDUCTION`; above threshold → `recoveryType: FULL_BLOCK`
 3. Update **Platform Wallet** — add penalty to `penalties` balance
-4. Update **Dispute Record** → `status: "RESOLVED"`, `outcome: "UPHELD"`
+4. Update **Dispute Record** → `status: RESOLVED`, `outcome: UPHELD`
 5. Update **Transaction Record** suborder status → `REFUNDED`
 
 ---
 
 ### Stage 4B: Dispute Rejected
-*Triggered when platform team rules in favour of the vendor*
 
-1. Create **Ledger Entry:** `FUNDS_RELEASED`
-2. Update **Vendor Wallet:**
-   - Subtract from `disputed`
-   - Add to `available`
-3. Update **Dispute Record** → `status: "RESOLVED"`, `outcome: "REJECTED"`
+_Triggered when platform team rules in favour of the vendor_
+
+1. Write **DISPUTE_REJECTED** journal entry:
+   - `DEBIT VENDOR_AVAILABLE` (settle amount)
+   - `CREDIT VENDOR_DISPUTED` (settle amount)
+2. Update **Vendor Wallet** — subtract from `disputed`, add to `available`
+3. Update **Dispute Record** → `status: RESOLVED`, `outcome: REJECTED`
 4. Update **Transaction Record** suborder status → `SETTLED`
 
 ---
 
 ### Stage 4C: Dispute Auto-Resolved
-*Triggered by background job at day 5 if dispute remains unresolved*
 
-Same financial flow as Stage 4A (Upheld), **except:**
-- No penalty is applied to the vendor
-- Dispute Record → `status: "AUTO_RESOLVED"`, `resolvedBy: "SYSTEM"`
+_Triggered by background job if dispute remains unresolved at day 5_
+
+Same financial flow as Stage 4A **except:**
+
+- No penalty is applied to the vendor — the platform team failed to resolve in time, not the vendor
+- Journal entry used: `writeDisputeAutoResolved` (pair 1 of DISPUTE_UPHELD only):
+  - `DEBIT VENDOR_DISPUTED` (settle amount)
+  - `CREDIT CUSTOMER_REFUND_PAYABLE` (settle amount)
+- **Dispute Record** → `status: AUTO_RESOLVED`, `resolvedBy: SYSTEM`
 - Vendor account flagged for review
 
 > **Background job:** Sends a 24-hour warning alert to the platform team at day 4 before auto-resolution fires at day 5.
@@ -396,159 +616,281 @@ Same financial flow as Stage 4A (Upheld), **except:**
 ---
 
 ### Stage 4D: Dispute Inconclusive
-*Triggered when platform team cannot make a clear judgment call*
 
-1. Update **Dispute Record** → `status: "AWAITING_EVIDENCE"`
+_Triggered when the platform team cannot make a clear judgment_
+
+1. Update **Dispute Record** → `status: AWAITING_EVIDENCE`
 2. Set `additionalEvidenceDeadline` to +48 hours
-3. Funds remain frozen — no wallet changes
+3. No journal entries — funds remain frozen in `VENDOR_DISPUTED`, no wallet changes
 
 **After 48 hours:**
-- Student provides stronger evidence → case re-evaluated → flow goes to 4A or 4B
-- Student fails to respond → funds released to vendor → flow goes to 4B
+
+- Student provides stronger evidence → case re-evaluated → flows to 4A or 4B
+- Student fails to respond → `DisputeEvidenceExpiryService` fires:
+  - Same financial flow as Stage 4B (rejected)
+  - `resolvedBy: SYSTEM`
 
 ---
 
 ### Stage 5: Vendor Requests Payout
-*Triggered when vendor initiates a withdrawal*
 
-1. Check **Vendor Wallet** debt status:
-   - `FULL_BLOCK` → reject payout, notify vendor
-   - `PERCENTAGE_DEDUCTION` → deduct debt recovery portion first, process remainder
-2. Create **Payout Record** → `status: "INITIATED"`
-3. Create **Ledger Entry:** `PAYOUT_INITIATED` — debit available balance
-4. Update **Vendor Wallet** — subtract payout amount from `available`
-5. Initiate transfer via **Flutterwave Transfer API**
+_Triggered when vendor initiates a withdrawal_
+
+1. Validate store, password, and bank account
+2. Fetch vendor wallet — reject if `FULL_BLOCK` debt or insufficient balance
+3. Calculate fee breakdown (see §9)
+4. Create **Payout Record** → `status: INITIATED`
+5. If `recoveryDeduction > 0`: write **DEBT_RECOVERY** journal entry, reduce wallet debt cache
+6. If `processingFee > 0`: write **PAYOUT_PROCESSING_FEE** journal entry
+7. Write **PAYOUT_INITIATED** journal entry — net amount enters `PAYOUT_PROCESSING`
+8. If `gatewayFee > 0`: write **GATEWAY_FEE** journal entry
+9. Update **Vendor Wallet** — deduct full `requestedAmount` from `available`
+10. Background job picks up `INITIATED` payouts and calls Flutterwave Transfer API
 
 ---
 
 ### Stage 6: Payout Outcome
-*Triggered by Flutterwave webhook*
 
-**If successful:**
-1. Update **Payout Record** → `status: "COMPLETED"`
-2. Create **Ledger Entry:** `PAYOUT_COMPLETED`
+_Triggered by Flutterwave transfer webhook_
 
-**If failed:**
-1. Update **Payout Record** → `status: "FAILED"`, populate `failureReason`
-2. Create **Ledger Entry:** `PAYOUT_FAILED`
-3. Reverse wallet deduction — add amount back to `available`
-4. Notify vendor of failure and reason
+**If SUCCESSFUL:**
+
+1. Update **Payout Record** → `status: COMPLETED`
+2. Write **PAYOUT_COMPLETED** journal entry:
+   - `DEBIT PLATFORM_ESCROW` (net amount — funds leave the platform)
+   - `DEBIT GATEWAY_FEES_EXPENSE` (gateway fee, if applicable)
+   - `CREDIT PAYOUT_PROCESSING` (net + gateway fee — processing account closed)
+
+**If FAILED** (webhook) **or API call failed** (processing service):
+
+1. Update **Payout Record** → `status: FAILED`, populate `failureReason`
+2. Write **PAYOUT_FAILED** journal entry:
+   - `DEBIT VENDOR_AVAILABLE` (net amount)
+   - `CREDIT PAYOUT_PROCESSING` (net amount)
+3. If `processingFee > 0`: write **PAYOUT_PROCESSING_FEE_REVERSAL** journal entry
+4. If `gatewayFee > 0`: write **GATEWAY_FEE_REVERSAL** journal entry
+5. Update **Vendor Wallet** — restore full `requestedAmount` to `available`
+6. Notify vendor of failure and reason
+
+> **Note on gateway fee reversal at webhook failure:** Whether Flutterwave actually charged the fee on a transfer that reached them but failed in processing varies by their policy. The reversal is recorded conservatively. Adjust if Flutterwave confirms they charge on failed transfers.
 
 ---
 
-## Complete Fund Flow Diagram
+## 11. Fund Flow Diagram
 
 ```
 Student Pays
     │
     ▼
-[PAYMENT_RECEIVED] ──────────────────────────► Platform holds full amount
-[COMMISSION_DEDUCTED] ───────────────────────► Platform wallet credited
-[VENDOR_SETTLEMENT] ─────────────────────────► Vendor wallet: pending credited
+writePaymentReceived
+  DEBIT  PLATFORM_ESCROW           ← funds enter escrow
+  CREDIT CUSTOMER_REFUND_PAYABLE   ← platform liability created
     │
     ▼
-Order Confirmed (Student or Auto-Confirm)
-    │
-    ├──── Dispute Opened ◄────────────────────── Student raises dispute
-    │         │
-    │         ▼
-    │     [FUNDS_HELD] ───────────────────────► Vendor wallet: pending → disputed
-    │         │
-    │         ▼
-    │     Resolution
-    │         │
-    │         ├── Upheld ──────────────────────► [REFUND_ISSUED] + [PENALTY_APPLIED]
-    │         ├── Rejected ────────────────────► [FUNDS_RELEASED] disputed → available
-    │         ├── Auto-Resolved ───────────────► [REFUND_ISSUED] (no penalty)
-    │         └── Inconclusive ───────────────► Await evidence → Upheld or Rejected
+writeOrderSettlement
+  DEBIT  CUSTOMER_REFUND_PAYABLE   ← liability settled
+  CREDIT VENDOR_PENDING (×n)       ← each vendor's settle amount
+  CREDIT PLATFORM_REVENUE_COMMISSION
     │
     ▼
-[FUNDS_RELEASED] ────────────────────────────► Vendor wallet: pending → available
+Order Confirmed (Student or Auto-Confirm at 3 days)
+    │
+    ▼
+writeFundsReleased
+  DEBIT  VENDOR_AVAILABLE          ← funds become withdrawable
+  CREDIT VENDOR_PENDING
+    │
+    ├──── Dispute Opened
+    │         │
+    │         ▼
+    │     writeDisputeOpened
+    │       DEBIT  VENDOR_DISPUTED
+    │       CREDIT VENDOR_AVAILABLE
+    │         │
+    │         ▼
+    │     Platform Team Reviews (5 business days)
+    │         │
+    │         ├── Upheld ──── writeDisputeUpheld
+    │         │                 DEBIT  VENDOR_DISPUTED
+    │         │                 CREDIT CUSTOMER_REFUND_PAYABLE
+    │         │                 DEBIT  VENDOR_AVAILABLE (penalty)
+    │         │                 CREDIT PLATFORM_REVENUE_PENALTIES
+    │         │
+    │         ├── Rejected ── writeDisputeRejected
+    │         │                 DEBIT  VENDOR_AVAILABLE
+    │         │                 CREDIT VENDOR_DISPUTED
+    │         │
+    │         ├── Auto-Resolved (day 5, no penalty)
+    │         │               writeDisputeAutoResolved
+    │         │                 DEBIT  VENDOR_DISPUTED
+    │         │                 CREDIT CUSTOMER_REFUND_PAYABLE
+    │         │
+    │         └── Inconclusive → 48hr evidence window
+    │                             → Upheld or Rejected
     │
     ▼
 Vendor Requests Payout
     │
-    ▼
-[PAYOUT_INITIATED] ──────────────────────────► Available balance debited
+    ├── writeDebtRecovery (if debt outstanding)
+    │     DEBIT  DEBT_RECOVERY_CLEARING / CREDIT VENDOR_AVAILABLE
+    │     DEBIT  PLATFORM_REVENUE_PENALTIES / CREDIT DEBT_RECOVERY_CLEARING
+    │
+    ├── writePayoutProcessingFee (if fee > 0)
+    │     DEBIT  VENDOR_AVAILABLE / CREDIT PLATFORM_REVENUE_COMMISSION
+    │
+    ├── writePayoutInitiated
+    │     DEBIT  PAYOUT_PROCESSING / CREDIT VENDOR_AVAILABLE
+    │
+    └── writeGatewayFee (if fee > 0)
+          DEBIT  GATEWAY_FEES_EXPENSE / CREDIT PLATFORM_ESCROW
     │
     ▼
 Flutterwave Transfer API
     │
-    ├── [PAYOUT_COMPLETED] ──────────────────► Transfer confirmed
-    └── [PAYOUT_FAILED] ────────────────────► Balance reversed, vendor notified
+    ├── SUCCESSFUL → writePayoutCompleted
+    │                  DEBIT  PLATFORM_ESCROW + GATEWAY_FEES_EXPENSE
+    │                  CREDIT PAYOUT_PROCESSING
+    │
+    └── FAILED → writePayoutFailed + fee reversals + wallet restoration
 ```
 
 ---
 
-## Dispute Policy
+## 12. Dispute Policy
 
-### Trigger & Evidence
-- Raised by student with **detailed written description and photo evidence**
-- Applicable dispute reasons:
-  - Late delivery (objective — policy-led resolution)
-  - Wrong or substandard products (subjective — human-led resolution)
+### Eligibility
+
+- Can only be raised on suborders with delivery status `Delivered`
+- Requires a written reason of at least 20 characters and at least one photo
+- One active dispute per suborder at a time (enforced by partial unique index and application guard)
+
+### Applicable Reasons
+
+- **Late delivery** — objective, policy-led resolution
+- **Wrong or substandard products** — subjective, human-led resolution
 
 ### Fund Handling During Dispute
-- Only the **disputed suborder's settle amount** is frozen
+
+- Only the **disputed suborder's settle amount** is frozen — in `VENDOR_DISPUTED`
 - All other vendor wallet funds remain fully accessible
 - Vendor has full visibility into frozen funds and the reason
 
 ### Resolution Timeline
 
-| Day | Event |
-|-----|-------|
-| Day 0 | Dispute opened |
+| Day   | Event                                       |
+| ----- | ------------------------------------------- |
+| Day 0 | Dispute opened                              |
 | Day 4 | 24-hour warning alert sent to platform team |
-| Day 5 | Auto-resolution fires if unresolved |
+| Day 5 | Auto-resolution fires if unresolved         |
 
 ### Resolution Outcomes
 
-| Outcome | Financial Result |
-|---------|-----------------|
-| Upheld | Student refunded + vendor penalized |
-| Rejected | Frozen funds released to vendor |
-| Auto-Resolved | Student refunded, no vendor penalty |
-| Inconclusive | Additional evidence requested (48hr window) |
+| Outcome          | Journal Entry Used         | Financial Result                 |
+| ---------------- | -------------------------- | -------------------------------- |
+| Upheld           | `writeDisputeUpheld`       | Refund issued + vendor penalised |
+| Rejected         | `writeDisputeRejected`     | Frozen funds returned to vendor  |
+| Auto-Resolved    | `writeDisputeAutoResolved` | Refund issued, no penalty        |
+| Evidence Expired | `writeDisputeRejected`     | Frozen funds returned to vendor  |
 
 ### Penalty & Debt Recovery
 
-- Penalty is deducted from the vendor's wallet balance
-- If insufficient balance, wallet goes negative (debt)
-- Debt recovery is automatic:
-  - **Small debt** (below defined threshold): fixed percentage deducted from future payouts
-  - **Large debt** (above threshold): all payouts blocked until debt is cleared
+- Penalty is deducted from the vendor's `available` balance
+- If insufficient, wallet goes negative (debt recorded on wallet document)
+- Debt recovery is automatic on future payouts:
+  - **Below threshold:** fixed percentage deducted per payout (`PERCENTAGE_DEDUCTION`)
+  - **Above threshold:** all payouts blocked until debt cleared (`FULL_BLOCK`)
+- Penalty revenue and recovered debt are both credited to `PLATFORM_REVENUE_PENALTIES`
 - Vendor is notified of debt status and recovery method
-- Penalty revenue is credited to the platform wallet
 
 ---
 
-## Payout System
+## 13. Payout System
 
-- Vendors can request payouts of their `available` balance at any time
-- Payouts are processed via **Flutterwave's Transfer API**
-- Payout is blocked or partially withheld if vendor has outstanding debt
-- Failed payouts are automatically reversed — vendor's available balance is restored
-- Every payout attempt (successful or failed) is fully logged in the Payout Record and Ledger
+### Eligibility
+
+- Vendor must have an active store status
+- Vendor must have sufficient `available` balance
+- Vendor must not have a `FULL_BLOCK` debt recovery type
+- Vendor must provide correct store password to authorise the withdrawal
+
+### Processing
+
+- Payouts with `status: INITIATED` are picked up by a daily background job (`PayoutProcessingService`)
+- The job calls Flutterwave's Transfer API for each initiated payout (oldest first — FIFO)
+- Failed API calls are reversed immediately by the processing service
+- Successful API calls move the payout to `PROCESSING` — the webhook handles the final outcome
+
+### Failure Handling
+
+- **API call fails (never reached Flutterwave):** `PayoutProcessingService.reversePayout` — all journal entries reversed, wallet restored
+- **Transfer fails at Flutterwave (webhook):** `PayoutWebhookHandler.handleFailure` — same reversal pattern
+
+In both failure cases, `requestedAmount` is restored to `VENDOR_AVAILABLE` and all fee journal entries are reversed.
 
 ---
 
-## Open Items & Future Considerations
+## 14. Reconciliation
 
-### Defined — Pending Implementation
-| Item | Decision |
-|------|----------|
-| Negative wallet recovery threshold | Threshold value in Kobo to be defined by business |
-| Penalty amount structure | Fixed fine, percentage, or strike-based system to be defined |
-| Payout scheduling | Manual on-demand vs. automated scheduled disbursements |
+### Global Balance Check (`checkGlobalBalance`)
+
+Verifies that the sum of all CREDIT ledger lines equals the sum of all DEBIT ledger lines across the entire system. A non-zero delta indicates a data integrity problem — either a write bypassed `JournalEntryWriter`, or a ledger line was modified after creation (which should be impossible given the immutable schema).
+
+Can be scoped to a date range to avoid full-collection scans:
+
+```typescript
+const result = await checkGlobalBalance(dateFrom, dateTo);
+// { totalCredits, totalDebits, isBalanced, delta }
+```
+
+### Vendor Wallet Reconciliation (`reconcileVendorWallet`)
+
+Reconstructs expected wallet balances for a vendor by aggregating their ledger lines and compares against the stored `VendorWallet` document. Detects drift between the wallet cache and the ledger.
+
+```typescript
+const result = await reconcileVendorWallet(vendorId);
+// { stored, derived, isBalanced, discrepancies }
+```
+
+**Account → wallet bucket mapping:**
+
+| accountType        | type   | Effect        |
+| ------------------ | ------ | ------------- |
+| `VENDOR_PENDING`   | CREDIT | `pending` ↑   |
+| `VENDOR_PENDING`   | DEBIT  | `pending` ↓   |
+| `VENDOR_AVAILABLE` | CREDIT | `available` ↑ |
+| `VENDOR_AVAILABLE` | DEBIT  | `available` ↓ |
+| `VENDOR_DISPUTED`  | CREDIT | `disputed` ↑  |
+| `VENDOR_DISPUTED`  | DEBIT  | `disputed` ↓  |
+
+`total` is derived as `available + pending + disputed`.
+
+### When to Run
+
+- `checkGlobalBalance` — daily Cron job, scoped to the previous 24 hours
+- `reconcileVendorWallet` — on-demand from admin routes, or triggered when a wallet discrepancy is suspected
+
+---
+
+## 15. Open Items & Future Considerations
+
+### Defined — Pending Business Decision
+
+| Item                               | Notes                                                                               |
+| ---------------------------------- | ----------------------------------------------------------------------------------- |
+| Negative wallet recovery threshold | Kobo value that determines PERCENTAGE_DEDUCTION vs FULL_BLOCK                       |
+| Penalty amount structure           | Fixed fine, percentage of order value, or strike-based system                       |
+| Payout scheduling                  | Manual on-demand vs automated scheduled disbursements (e.g. weekly NET-7)           |
+| Platform revenue withdrawal        | Procedure for withdrawing accumulated platform wallet balance — not yet implemented |
 
 ### Planned Future Features
-| Feature | Notes |
-|---------|-------|
-| Subscription model | Additional revenue stream for vendors — financial system to be extended |
-| Digital products | Instant delivery removes confirmation gap — simpler fund release logic |
-| Automated payout scheduling | Scheduled disbursements on fixed cycles (e.g. weekly NET-7) |
-| CBN compliance review | As transaction volume grows, platform may need to assess payment service licensing |
+
+| Feature                     | Notes                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| Subscription model          | Additional revenue stream for vendors — financial system to be extended            |
+| Digital products            | Instant delivery removes confirmation gap — simpler fund release logic             |
+| Automated payout scheduling | Scheduled disbursements on fixed cycles                                            |
+| CBN compliance review       | As transaction volume grows, platform may need to assess payment service licensing |
 
 ---
 
-*This document should be updated whenever a financial policy, data model, or fund flow logic changes. Never let implementation diverge silently from this document.*
+_This document must be updated whenever a financial policy, data model, journal entry map, or fund flow stage changes. Never let implementation diverge silently from this document._

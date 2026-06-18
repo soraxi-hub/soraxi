@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: PageProps): Promise<
     }
 > {
   const { storeId } = await params;
-  const store = await getProduct(storeId);
+  const { storeDoc: store } = await getProduct(storeId);
 
   if (!store) return {};
 

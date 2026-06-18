@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import {
-  AlertCircle,
-  CheckCircle,
-  ChevronLeft,
-  Loader2,
-  SaveIcon,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, SaveIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -46,7 +40,6 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
   errors,
   onFormDataChange,
   onNext,
-  onPrevious,
   isLoading,
   isLoadingDraft,
   onSaveDraft,
@@ -131,7 +124,7 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-xl">
-            Step 3 of 5: Category & Audience
+            Step 1 of 5: Category & Audience
           </CardTitle>
           <CardDescription>
             Select category, subcategory, and target audience
@@ -323,34 +316,21 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
       <div className="flex flex-col gap-3 pt-4">
         {/* Main Actions - Desktop Layout */}
         <div className="hidden md:flex justify-between gap-3">
-          <Button
-            onClick={onPrevious}
-            disabled={isLoading || isLoadingDraft}
-            variant="outline"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Previous
+          <Button onClick={onSaveDraft} disabled={isLoading} variant="outline">
+            {isLoadingDraft ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving Draft...
+              </>
+            ) : (
+              <>
+                <SaveIcon className="mr-2 h-4 w-4" />
+                Save as Draft
+              </>
+            )}
           </Button>
 
           <div className="flex gap-3">
-            <Button
-              onClick={onSaveDraft}
-              disabled={isLoading}
-              variant="outline"
-            >
-              {isLoadingDraft ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving Draft...
-                </>
-              ) : (
-                <>
-                  <SaveIcon className="mr-2 h-4 w-4" />
-                  Save as Draft
-                </>
-              )}
-            </Button>
-
             <Button
               onClick={onNext}
               disabled={isLoading}
@@ -363,23 +343,6 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
 
         {/* Mobile Layout */}
         <div className="flex md:hidden flex-col gap-2">
-          <Button
-            onClick={onNext}
-            disabled={isLoading}
-            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-          >
-            Next Step
-          </Button>
-
-          <Button
-            onClick={onPrevious}
-            disabled={isLoading || isLoadingDraft}
-            variant="outline"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Previous
-          </Button>
-
           <Button
             onClick={onSaveDraft}
             disabled={isLoading}
@@ -397,6 +360,14 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
                 Save as Draft
               </>
             )}
+          </Button>
+
+          <Button
+            onClick={onNext}
+            disabled={isLoading}
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+          >
+            Next Step
           </Button>
         </div>
       </div>

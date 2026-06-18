@@ -1,4 +1,5 @@
 import { PlatformWallet } from "@/domain/platform-wallet/models/platform-wallet";
+import mongoose from "mongoose";
 
 export interface IPlatformWalletRepository {
   /**
@@ -18,12 +19,18 @@ export interface IPlatformWalletRepository {
    * @param amountKobo - Amount in kobo to add.
    * @returns Updated domain model.
    */
-  creditCommission(amountKobo: number): Promise<PlatformWallet>;
+  creditCommission(
+    amountKobo: number,
+    session: mongoose.ClientSession,
+  ): Promise<PlatformWallet>;
 
   /**
    * Credits penalty revenue to the wallet.
    * @param amountKobo - Amount in kobo to add.
    * @returns Updated domain model.
    */
-  creditPenalty(amountKobo: number): Promise<PlatformWallet>;
+  creditPenalty(
+    amountKobo: number,
+    session: mongoose.ClientSession,
+  ): Promise<PlatformWallet>;
 }

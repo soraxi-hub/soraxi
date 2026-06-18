@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     if (!process.env.JWT_SECRET_KEY) {
       console.error("Missing required environment variables");
       throw new AppError(
+        "INTERNAL_SERVER_ERROR",
         "Server configuration error: Missing required JWT environment variables",
-        500,
       );
     }
 
@@ -34,15 +34,23 @@ export async function POST(request: NextRequest) {
     // Check authentication - user must be logged in to create a store
     const userData = await getUserDataFromToken(request);
     if (!userData) {
-      throw new AppError("Unauthorized - Please sign in first", 401);
+      throw new AppError("UNAUTHORIZED", "Please sign in");
     }
 
     const body = await request.json();
-    const { storeName, storeEmail, password } = body;
+    const { storeName, storeEmail, password, token } = body;
+
+    // Validate required fields
+    if (!token) {
+      throw new AppError("BAD_REQUEST", "Invitation token is required");
+    }
 
     // Validate required fields
     if (!storeName || !storeEmail || !password) {
-      throw new AppError("Store name, email, and password are required", 400);
+      throw new AppError(
+        "BAD_REQUEST",
+        "Store name, email, and password are required",
+      );
     }
 
     const storeNameRes = storeNameSchema.safeParse(storeName);
@@ -50,9 +58,9 @@ export async function POST(request: NextRequest) {
     // Validate store name format
     if (!storeNameRes.success) {
       throw new AppError(
-        storeNameRes.error.errors[0].message ||
+        "BAD_REQUEST",
+        storeNameRes.error.errors[0].message ??
           `Store name can only contain letters, numbers, spaces, hyphens, and underscores`,
-        400,
       );
     }
 
@@ -61,9 +69,9 @@ export async function POST(request: NextRequest) {
     // Validate email format
     if (!storeEmailRes.success) {
       throw new AppError(
-        storeEmailRes.error.errors[0].message ||
+        "BAD_REQUEST",
+        storeEmailRes.error.errors[0].message ??
           "Please enter a valid email address",
-        400,
       );
     }
 
@@ -72,9 +80,9 @@ export async function POST(request: NextRequest) {
     // Validate password strength
     if (!storePasswordres.success) {
       throw new AppError(
-        storePasswordres.error.errors[0].message ||
+        "BAD_REQUEST",
+        storePasswordres.error.errors[0].message ??
           "Password must contain at least one uppercase letter, one lowercase letter, and one number",
-        400,
       );
     }
 
@@ -83,6 +91,7 @@ export async function POST(request: NextRequest) {
       storeEmail,
       password,
       ownerId: userData.id,
+      token,
     });
 
     // Build token payload

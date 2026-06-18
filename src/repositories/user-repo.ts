@@ -1,20 +1,9 @@
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { AuthUserDecorator } from "@/domain/users/decorators/auth-user.decorator";
-// import { StoreStatusEnum } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getUserModel, IUser, IUserDocument } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
 import mongoose from "mongoose";
-
-// type LeanedUser = Omit<IUser<IStore>, "stores"> & {
-//   stores?: {
-//     storeId: {
-//       _id: mongoose.Types.ObjectId;
-//       name: string;
-//       status: StoreStatusEnum;
-//     };
-//   }[];
-// };
 
 export class UserRepository {
   // Methods for user data access would go here
@@ -88,8 +77,6 @@ export class UserRepository {
       })
       .executeOne();
 
-    //LeanedUser
-
     return user;
   }
 
@@ -131,7 +118,11 @@ export class UserRepository {
     );
 
     if (!updatedUser) {
-      throw new AppError("User not found while updating store array", 400);
+      throw new AppError(
+        "NOT_FOUND",
+        "User not found while updating store array",
+        { userId },
+      );
     }
   }
 }

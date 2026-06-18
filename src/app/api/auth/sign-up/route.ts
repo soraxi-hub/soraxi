@@ -54,24 +54,19 @@ export async function POST(request: NextRequest) {
     };
     await connectToDatabase();
 
-    // Check if the user already exist
     const emailAlreadyExist = await UserRepository.isExistingUser(email);
     if (emailAlreadyExist) {
-      throw new AppError("Email already exist", 401);
+      throw new AppError("CONFLICT", "Email already exist");
     }
 
     const phoneNumberAlreadyExist =
       await UserRepository.isExistingPhoneNumber(phoneNumber);
     if (phoneNumberAlreadyExist) {
-      throw new AppError("Phone Number already exist", 401);
+      throw new AppError("CONFLICT", "Phone Number already exist");
     }
 
-    // If it gets to this point, then create the user because this is a new user
     const user = UserFactory.createAuthUser(props);
-
-    // Always hash the password before saving the user to the Database
     await user.hashPassword();
-
     await UserRepository.saveUser(user);
 
     try {
@@ -79,14 +74,12 @@ export async function POST(request: NextRequest) {
       const userName = `${user.firstName} ${user.lastName}`;
       const text = EmailTextTemplates.generateWelcomeEmailText(userName);
 
-      // Render React Email template to HTML
       const html = await renderTemplate(
         React.createElement(WelcomeEmail, {
           userName,
         }),
       );
 
-      // Create and send email notification using factory
       const notification = NotificationFactory.create("email", {
         recipient: user.email,
         subject,

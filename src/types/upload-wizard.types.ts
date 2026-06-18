@@ -106,9 +106,12 @@ export interface BasicInfoStepProps {
     value: string | number,
   ) => void;
   onNext: () => void;
+  onPrevious: () => void;
   onSaveDraft: () => void;
   isLoadingDraft: boolean;
   isLoading?: boolean;
+  onGenerateDescription: () => Promise<void>;
+  isGeneratingDescription: boolean;
 }
 
 /**
@@ -139,7 +142,6 @@ export interface CategoryAudienceStepProps {
     value: string | number | string[],
   ) => void;
   onNext: () => void;
-  onPrevious: () => void;
   onSaveDraft: () => void;
   isLoadingDraft: boolean;
   isLoading?: boolean;

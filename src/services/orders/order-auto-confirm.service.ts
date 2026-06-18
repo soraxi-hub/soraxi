@@ -5,15 +5,9 @@ import {
   getTransactionRecordByOrderId,
   updateSuborderFinancialStatus,
 } from "@/lib/db/models/transaction-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
 import { releaseVendorPendingToAvailable } from "@/lib/db/models/vendor-wallet.model";
-import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
-  SuborderFinancialStatus,
-} from "@/enums/financial.enums";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
+import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 
 // Number of days before auto-confirm fires
@@ -221,22 +215,18 @@ export class OrderAutoConfirmService {
 
       const now = new Date();
 
-      // --- FUNDS_RELEASED ledger entry ---
-      await createLedgerEntry({
-        type: LedgerEntryType.CREDIT,
-        category: LedgerEntryCategory.FUNDS_RELEASED,
-        amount: breakdown.settleAmount,
-        entityType: LedgerEntityType.VENDOR,
-        entityId: breakdown.vendorId,
-        referenceType: LedgerReferenceType.SUBORDER,
-        referenceId: breakdown.suborderId,
-        description: `Funds auto-released for suborder ${subOrderId} — 3-day confirmation window expired`,
-        metadata: {
-          triggeredBy: "AUTO_CONFIRM",
-          autoConfirmedAt: now.toISOString(),
-          orderId,
-        },
-        // NOTE: Pass session once helpers support it
+      // --- FUNDS_RELEASED journal entry ---
+      // Records the movement of vendor funds from VENDOR_PENDING to
+      // VENDOR_AVAILABLE now that the 3-day confirmation window has elapsed.
+      // Offsets: DEBIT VENDOR_AVAILABLE / CREDIT VENDOR_PENDING
+      const writer = await JournalEntryWriter.init();
+
+      await writer.writeFundsReleased({
+        vendorId: breakdown.vendorId,
+        settleAmount: breakdown.settleAmount,
+        suborderId: breakdown.suborderId,
+        triggeredBy: "AUTO_CONFIRMATION",
+        session,
       });
 
       // --- Update Transaction Record: suborder status → SETTLED ---
@@ -244,14 +234,15 @@ export class OrderAutoConfirmService {
         orderId,
         subOrderId,
         SuborderFinancialStatus.SETTLED,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
-      // --- Update Vendor Wallet: pending → available ---
+      // --- Update Vendor Wallet cache: pending → available ---
+      // Mirrors the VENDOR_PENDING → VENDOR_AVAILABLE movement above.
       await releaseVendorPendingToAvailable(
         breakdown.vendorId.toString(),
         breakdown.settleAmount,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
       // --- Update the order document: mark suborder as auto-confirmed ---

@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
     // Authenticate store from token
     const storeSession = await getStoreDataFromToken(request);
     if (!storeSession) {
-      throw new AppError("Store authentication required", 401);
+      throw new AppError("UNAUTHORIZED", "Store authentication required", {
+        storeId: storeSession,
+      });
     }
 
     // Extract scalar fields
@@ -51,7 +53,10 @@ export async function POST(request: NextRequest) {
 
     // Validate store ownership
     if (storeId !== storeSession.id) {
-      throw new AppError("Unauthorized store access", 403);
+      throw new AppError("FORBIDDEN", "Unauthorized store access", {
+        storeId: storeSession.id,
+        requestedStoreId: storeId,
+      });
     }
 
     // Check if store exists
@@ -60,26 +65,34 @@ export async function POST(request: NextRequest) {
       .select("password", "status", "verification")
       .executeOne();
     if (!store) {
-      throw new AppError("Store not found", 404);
+      throw new AppError("NOT_FOUND", "Store not found", {
+        storeId: storeSession.id,
+      });
     }
 
     // Block suspended stores
     if (store.status === StoreStatusEnum.Suspended) {
       throw new AppError(
+        "FORBIDDEN",
         "Store Suspended. You can not perform this action",
-        403,
+        { storeId: storeSession.id, status: store.status },
       );
     }
 
     // Ensure store is active
     if (store.status !== StoreStatusEnum.Active) {
-      throw new AppError("Store is not verified or active.", 403);
+      throw new AppError("FORBIDDEN", "Store is not verified or active.", {
+        storeId: storeSession.id,
+        status: store.status,
+      });
     }
 
     // Verify store password
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
     if (submitAction === "publish" && !isPasswordValid)
-      throw new AppError("Invalid credentials", 401);
+      throw new AppError("UNAUTHORIZED", "Invalid credentials", {
+        storeId: storeSession.id,
+      });
 
     // Ensure store can not upload more than 25 products
     const productCount = await QueryBuilderFactory.queryBuilder<IProduct>(
@@ -88,7 +101,11 @@ export async function POST(request: NextRequest) {
       .where("storeId", new mongoose.Types.ObjectId(storeSession.id))
       .count();
     if (productCount >= 25) {
-      throw new AppError("Store has reached the maximum product limit", 400);
+      throw new AppError(
+        "BAD_REQUEST",
+        "Store has reached the maximum product limit",
+        { storeId: storeSession.id, productCount, limit: 25 },
+      );
     }
 
     session = await mongoose.startSession();
@@ -123,7 +140,10 @@ export async function POST(request: NextRequest) {
         submitAction === "draft"
           ? "Error updating product."
           : "Error uploading product.";
-      throw new AppError(message, 401);
+      throw new AppError("INTERNAL_SERVER_ERROR", message, {
+        storeId: storeSession.id,
+        action: submitAction,
+      });
     }
 
     return NextResponse.json({

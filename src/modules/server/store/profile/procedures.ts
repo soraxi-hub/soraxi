@@ -2,22 +2,12 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
-import type mongoose from "mongoose";
-import { getProductModel, type IProduct } from "@/lib/db/models/product.model";
-import { koboToNaira } from "@/lib/utils/naira";
 import { storeName, storeDescription } from "@/validators/store-validators";
-
-type Product = Pick<
-  IProduct,
-  | "name"
-  | "images"
-  | "price"
-  | "sizes"
-  | "slug"
-  | "isVerifiedProduct"
-  | "productType"
-  | "category"
-> & { _id: mongoose.Types.ObjectId };
+import { StoreRepository } from "@/repositories/store-repo";
+import { StoreFactory } from "@/domain/stores/store-factory";
+import { StoreStatusEnum } from "@/enums";
+import { ProductRepository } from "@/repositories/product-repo";
+import { Product } from "@/domain/products/product";
 
 export const storeProfileRouter = createTRPCRouter({
   // Fetch Store Profile Data. This is used for private store profiles.
@@ -31,59 +21,33 @@ export const storeProfileRouter = createTRPCRouter({
       });
     }
 
-    const Store = await getStoreModel();
-    await getProductModel();
-    const storeData = await Store.findById(store.id)
-      .select(
-        "-password -storeOwner -recipientCode -walletId -suspensionReason -shippingMethods -payoutAccounts -updatedAt -forgotpasswordToken -forgotpasswordTokenExpiry",
-      )
-      .populate({
-        path: "physicalProducts",
-        model: "Product",
-        match: { isVerifiedProduct: true },
-        select:
-          "_id name images price sizes slug isVerifiedProduct category productType",
-      })
-      .lean();
+    // 1. Fetch base store (domain entity)
+    const storeDoc = await StoreRepository.findStoreById(store.id);
 
-    if (!storeData) {
+    if (!storeDoc)
+      throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
+
+    const baseStore = StoreFactory.store({
+      ...storeDoc,
+      storeOwner: storeDoc.storeOwner.toString(),
+    });
+
+    if (baseStore.status !== StoreStatusEnum.Active) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Store not found.",
+        message: "Store is not available.",
       });
     }
 
-    const formattedStoreData = {
-      _id: storeData._id.toString(),
-      name: storeData.name,
-      storeEmail: storeData.storeEmail,
-      uniqueId: storeData.uniqueId,
-      followers: storeData.followers.map((follower: mongoose.Types.ObjectId) =>
-        follower.toString(),
-      ),
-      products: (
-        (storeData.physicalProducts as unknown as Product[]) || []
-      ).map((product: Product) => ({
-        _id: product._id.toString(),
-        name: product.name,
-        images: product.images,
-        price: koboToNaira(product.price || 0),
-        sizes: product.sizes,
-        slug: product.slug,
-        category: product.category,
-        isVerifiedProduct: product.isVerifiedProduct,
-        productType: product.productType,
-      })),
-      description: storeData.description,
-      verification: storeData.verification,
-      businessInfo: storeData.businessInfo,
-      ratings: storeData.ratings,
-      status: storeData.status,
-      agreedToTermsAt: storeData.agreedToTermsAt,
-      createdAt: storeData.createdAt,
-    };
+    // 2. Fetch product IDs and then populated products
+    const productIds = baseStore.products; // string[]
+    const productDocs = await ProductRepository.findByIds(productIds);
 
-    return formattedStoreData;
+    const populatedProducts = productDocs.map((doc) =>
+      new Product(doc).toJSON(),
+    );
+
+    return { storeDoc, populatedProducts };
   }),
 
   handleStoreNameUpdate: baseProcedure

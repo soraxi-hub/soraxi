@@ -5,15 +5,9 @@ import {
   markPayoutCompleted,
   markPayoutFailed,
 } from "@/lib/db/models/payout-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
 import { reverseVendorPayoutDeduction } from "@/lib/db/models/vendor-wallet.model";
-import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
-  PayoutStatus,
-} from "@/enums/financial.enums";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
+import { PayoutStatus } from "@/enums/financial.enums";
 import {
   FlutterwaveTransferWebhookStatus,
   type IFlutterwaveTransferWebhookData,
@@ -140,28 +134,24 @@ export class PayoutWebhookHandler {
     try {
       // --- Update Payout Record → COMPLETED ---
       await markPayoutCompleted(reference, session);
-      // NOTE: Pass session once helpers support it
 
-      // --- PAYOUT_COMPLETED ledger entry ---
-      await createLedgerEntry(
-        {
-          type: LedgerEntryType.DEBIT,
-          category: LedgerEntryCategory.PAYOUT_COMPLETED,
-          amount: payoutRecord!.amountBreakdown.netAmount,
-          entityType: LedgerEntityType.VENDOR,
-          entityId: payoutRecord!.vendorId,
-          referenceType: LedgerReferenceType.PAYOUT,
-          referenceId: payoutRecord!._id as mongoose.Types.ObjectId,
-          description: `Payout of ₦${koboToNaira(payoutRecord!.amountBreakdown.netAmount).toLocaleString()} successfully transferred to ${payoutRecord!.bankDetails.accountName} (${payoutRecord!.bankDetails.accountNumber})`,
-          metadata: {
-            flutterwaveReference: reference,
-            accountNumber: payoutRecord!.bankDetails.accountNumber,
-            accountName: payoutRecord!.bankDetails.accountName,
-            bankCode: payoutRecord!.bankDetails.bankCode,
-          },
-        },
+      // --- PAYOUT_COMPLETED journal entry ---
+      // Closes the PAYOUT_PROCESSING account now that the transfer is confirmed.
+      // The gateway fee stored on the payout record is passed so the entry can
+      // record the expense and balance correctly.
+      //
+      //   DEBIT   PLATFORM_ESCROW       netAmount          (funds leave the platform)
+      //   DEBIT   GATEWAY_FEES_EXPENSE  gatewayFee         (if applicable)
+      //   CREDIT  PAYOUT_PROCESSING     netAmount + fee    (processing account closed)
+      const writer = await JournalEntryWriter.init();
+
+      await writer.writePayoutCompleted({
+        vendorId: payoutRecord!.vendorId,
+        netAmount: payoutRecord!.amountBreakdown.netAmount,
+        gatewayFee: payoutRecord!.amountBreakdown.gatewayFee ?? 0,
+        payoutId: payoutRecord!._id as mongoose.Types.ObjectId,
         session,
-      );
+      });
 
       await session.commitTransaction();
 
@@ -213,70 +203,63 @@ export class PayoutWebhookHandler {
     try {
       // --- Update Payout Record → FAILED ---
       await markPayoutFailed(reference, failureReason, session);
-      // NOTE: Pass session once helpers support it
 
-      // --- PAYOUT_FAILED ledger entry ---
-      await createLedgerEntry(
-        {
-          type: LedgerEntryType.CREDIT,
-          category: LedgerEntryCategory.PAYOUT_FAILED,
-          amount: payoutRecord!.amountBreakdown.requestedAmount,
-          entityType: LedgerEntityType.VENDOR,
-          entityId: payoutRecord!.vendorId,
-          referenceType: LedgerReferenceType.PAYOUT,
-          referenceId: payoutRecord!._id as mongoose.Types.ObjectId,
-          description: `Payout of ₦${koboToNaira(payoutRecord!.amountBreakdown.requestedAmount).toLocaleString()} failed after reaching Flutterwave — amount reversed to available balance`,
-          metadata: {
-            flutterwaveReference: reference,
-            failureReason,
-            accountNumber: payoutRecord!.bankDetails.accountNumber,
-            accountName: payoutRecord!.bankDetails.accountName,
-          },
-        },
+      const payoutObjectId = payoutRecord!._id as mongoose.Types.ObjectId;
+      const writer = await JournalEntryWriter.init();
+
+      // --- PAYOUT_FAILED journal entry ---
+      // Reverses the PAYOUT_PROCESSING debit from writePayoutInitiated —
+      // the net amount returns to VENDOR_AVAILABLE.
+      //
+      //   DEBIT   VENDOR_AVAILABLE    netAmount
+      //   CREDIT  PAYOUT_PROCESSING   netAmount
+      await writer.writePayoutFailed({
+        vendorId: payoutRecord!.vendorId,
+        requestedAmount: payoutRecord!.amountBreakdown.netAmount,
+        payoutId: payoutObjectId,
         session,
-      );
+      });
 
-      // 3. Reverse processing fee (platform revenue rollback)
+      // --- Reverse processing fee ---
+      // Returns the fee revenue to the vendor since the payout did not complete.
+      //
+      //   DEBIT   PLATFORM_REVENUE_COMMISSION   processingFee
+      //   CREDIT  VENDOR_AVAILABLE              processingFee
       if (payoutRecord!.amountBreakdown.processingFee > 0) {
-        await createLedgerEntry(
-          {
-            type: LedgerEntryType.DEBIT,
-            category: LedgerEntryCategory.COMMISSION_DEDUCTED,
-            amount: payoutRecord!.amountBreakdown.processingFee,
-            entityType: LedgerEntityType.PLATFORM,
-            entityId: payoutRecord!.vendorId,
-            referenceType: LedgerReferenceType.PAYOUT,
-            referenceId: payoutRecord!._id as mongoose.Types.ObjectId,
-            description: "Reversal of processing fee due to payout failure",
-            metadata: { failureReason, reversal: true },
-          },
+        await writer.writePayoutProcessingFeeReversal({
+          vendorId: payoutRecord!.vendorId,
+          processingFee: payoutRecord!.amountBreakdown.processingFee,
+          payoutId: payoutObjectId,
           session,
-        );
+        });
       }
 
-      // 4. Reverse gateway fee (platform expense rollback)
-      if (payoutRecord!.amountBreakdown.gatewayFee) {
-        await createLedgerEntry(
-          {
-            type: LedgerEntryType.CREDIT,
-            category: LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
-            amount: payoutRecord!.amountBreakdown.gatewayFee,
-            entityType: LedgerEntityType.PLATFORM,
-            entityId: payoutRecord!.vendorId,
-            referenceType: LedgerReferenceType.PAYOUT,
-            referenceId: payoutRecord!._id as mongoose.Types.ObjectId,
-            description: "Reversal of gateway fee due to payout failure",
-            metadata: { failureReason, reversal: true },
-          },
+      // --- Reverse gateway fee ---
+      // The transfer reached Flutterwave but failed in processing. Whether
+      // Flutterwave actually charged the fee varies by their policy — this
+      // entry reverses the expense to keep the ledger conservative. Adjust
+      // if Flutterwave confirms the fee was charged on failed transfers.
+      //
+      //   DEBIT   PLATFORM_ESCROW        gatewayFee
+      //   CREDIT  GATEWAY_FEES_EXPENSE   gatewayFee
+      if (
+        payoutRecord!.amountBreakdown.gatewayFee &&
+        payoutRecord!.amountBreakdown.gatewayFee > 0
+      ) {
+        await writer.writeGatewayFeeReversal({
+          feeAmount: payoutRecord!.amountBreakdown.gatewayFee,
+          payoutId: payoutObjectId,
           session,
-        );
+        });
       }
 
-      // --- Reverse wallet deduction — restore amount to available balance ---
-      // The amount deducted in Stage 5 is returned since the transfer failed
+      // --- Update vendor wallet cache ---
+      // Restores the full requested amount that was deducted in Stage 5.
+      // requestedAmount = netAmount + processingFee (+ debtRecovery if any),
+      // mirroring the total VENDOR_AVAILABLE reduction across all journal entries.
       await reverseVendorPayoutDeduction(
         payoutRecord!.vendorId.toString(),
-        payoutRecord!.amountBreakdown.netAmount,
+        payoutRecord!.amountBreakdown.requestedAmount,
         session,
       );
 

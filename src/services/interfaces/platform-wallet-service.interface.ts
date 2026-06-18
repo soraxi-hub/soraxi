@@ -1,4 +1,5 @@
 import { IPlatformWallet } from "@/domain/platform-wallet/interfaces/platform-wallet.interface";
+import mongoose from "mongoose";
 
 export interface IPlatformWalletService {
   /**
@@ -14,6 +15,7 @@ export interface IPlatformWalletService {
    */
   creditCommission(
     amountKobo: number,
+    session: mongoose.ClientSession,
   ): Promise<ReturnType<IPlatformWallet["toJSON"]>>;
 
   /**
@@ -23,5 +25,6 @@ export interface IPlatformWalletService {
    */
   creditPenalty(
     amountKobo: number,
+    session: mongoose.ClientSession,
   ): Promise<ReturnType<IPlatformWallet["toJSON"]>>;
 }

@@ -77,7 +77,7 @@ export default function StoreOnboardingLandingPage() {
             asChild
             className="bg-soraxi-green hover:bg-soraxi-green-hover text-white border border-soraxi-green"
           >
-            <Link href={`/store/create`}>Create Your Store Now</Link>
+            <Link href={`/store/waitlist`}>Create Your Store Now</Link>
           </Button>
         </div>
       </section>
@@ -311,7 +311,7 @@ export default function StoreOnboardingLandingPage() {
             asChild
             className="bg-soraxi-green hover:bg-soraxi-green-hover text-white border border-soraxi-green"
           >
-            <Link href={`/store/create`}>Get Started Now</Link>
+            <Link href={`/store/waitlist`}>Get Started Now</Link>
           </Button>
         </div>
       </section>

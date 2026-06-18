@@ -9,6 +9,7 @@ import {
   BarChart3,
   Ticket,
   AlertTriangle,
+  List,
 } from "lucide-react";
 import { PERMISSIONS } from "./security/permissions";
 
@@ -38,6 +39,12 @@ export const adminNavigationItems = [
         url: "/admin/stores",
         icon: Store,
         permissions: [PERMISSIONS.VIEW_STORES],
+      },
+      {
+        title: "Wait list",
+        url: "/admin/waitlist",
+        icon: List,
+        permissions: [PERMISSIONS.VIEW_WAITLIST],
       },
     ],
   },

@@ -35,6 +35,36 @@ export interface IPayoutAccount {
 }
 
 /**
+ * Represents the verification status and details of a store.
+ */
+export interface StoreVerification {
+  isVerified: boolean;
+  method: StoreVerificationStatusEnum;
+  verifiedAt?: Date;
+  notes?: string;
+}
+
+/**
+ * Contains business registration information for a store.
+ */
+export interface StoreBusinessInfo {
+  businessName?: string;
+  registrationNumber?: string; // e.g., company registration number like CAC for Nigerians
+  taxId?: string;
+  type: StoreBusinessInfoEnum;
+  documentUrls?: string[];
+}
+
+/**
+ * Holds rating and review metrics for a store.
+ */
+export interface StoreRatings {
+  averageRating: number;
+  reviewCount: number;
+  complaintCount: number;
+}
+
+/**
  * Store Document Interface
  */
 export interface IStore {
@@ -49,28 +79,13 @@ export interface IStore {
   description?: string;
 
   // Verification
-  verification?: {
-    isVerified: boolean;
-    method: StoreVerificationStatusEnum;
-    verifiedAt?: Date;
-    notes?: string;
-  };
+  verification?: StoreVerification;
 
   // Business Registration Info
-  businessInfo?: {
-    businessName?: string;
-    registrationNumber?: string; // e.g., company registration number like CAC for Nigerians
-    taxId?: string;
-    type: StoreBusinessInfoEnum;
-    documentUrls?: string[];
-  };
+  businessInfo?: StoreBusinessInfo;
 
   // Ratings
-  ratings?: {
-    averageRating: number;
-    reviewCount: number;
-    complaintCount: number;
-  };
+  ratings?: StoreRatings;
 
   // Store Status & Moderation
   status: StoreStatusEnum;

@@ -489,4 +489,53 @@ Please note that suspensions are typically temporary. Our support team will expl
 Best regards,
 The ${siteConfig.name} Team`;
   },
+
+  generateVendorInviteText(businessName: string, inviteUrl: string): string {
+    return `Hello ${businessName},
+
+Great news! Your application to become a vendor on ${siteConfig.name} has been approved.
+
+Click the link below to complete your onboarding and start selling:
+${inviteUrl}
+
+This link will expire in 7 days. If you need a new one, please contact support.
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
+
+  generateWaitlistRejectionText(businessName: string, reason: string): string {
+    return `Hello ${businessName},
+
+Thank you for your interest in becoming a vendor on ${siteConfig.name}.
+
+After careful review, we regret to inform you that your application has not been approved at this time.
+
+Reason: ${reason}
+
+You may reapply in the future if your circumstances change.
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
+
+  generateWaitlistConfirmationText(
+    businessName: string,
+    referenceId: string,
+  ): string {
+    return `Hello ${businessName},
+
+Thank you for applying to become a vendor on ${siteConfig.name}!
+
+We have successfully received your application. Your reference ID is: ${referenceId}
+
+Please keep this reference ID safe. You will need it to check your application status.
+
+Our team will review your application and get back to you within 5–7 business days.
+
+In the meantime, you can check your application status using the reference ID above and your email address.
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
 };

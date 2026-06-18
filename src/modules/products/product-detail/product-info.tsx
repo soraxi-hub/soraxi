@@ -6,7 +6,7 @@ import { Star, Shield, RotateCcw } from "lucide-react";
 import { useProductInfo } from "@/hooks/use-product-info";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
-// import Link from "next/link";
+import Link from "next/link";
 
 type Output = inferProcedureOutput<AppRouter["home"]["getPublicProductBySlug"]>;
 type Product = Output["product"];
@@ -79,14 +79,14 @@ export function ProductInfo({ product }: ProductInfoProps) {
                 : "Out of stock"}
             </span>
           </div>
-          {/* <div>
+          <div>
             <Link
               className="hover:underline hover:text-soraxi-green-hover text-sm"
               href={`/brand/${product.storeId}`}
             >
               Visit Store
             </Link>
-          </div> */}
+          </div>
         </div>
       )}
 

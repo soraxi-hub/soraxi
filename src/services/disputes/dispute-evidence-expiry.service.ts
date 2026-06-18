@@ -8,14 +8,10 @@ import {
   getTransactionRecordByOrderId,
   updateSuborderFinancialStatus,
 } from "@/lib/db/models/transaction-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
 import { releaseVendorDisputedToAvailable } from "@/lib/db/models/vendor-wallet.model";
 import { resolveDisputeRecord } from "@/lib/db/models/dispute-record.model";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
   SuborderFinancialStatus,
   DisputeStatus,
   DisputeOutcome,
@@ -165,35 +161,27 @@ export class DisputeEvidenceExpiryService {
       session = await mongoose.startSession();
       session.startTransaction();
 
-      const now = new Date();
+      // --- DISPUTE_REJECTED journal entry ---
+      // Student did not submit additional evidence within the 48-hour window —
+      // frozen funds are returned to the vendor's available balance.
+      //
+      //   DEBIT   VENDOR_AVAILABLE   frozenAmount
+      //   CREDIT  VENDOR_DISPUTED    frozenAmount
+      const writer = await JournalEntryWriter.init();
 
-      // --- FUNDS_RELEASED ledger entry ---
-      // Student failed to respond — funds are released back to vendor
-      await createLedgerEntry({
-        type: LedgerEntryType.CREDIT,
-        category: LedgerEntryCategory.FUNDS_RELEASED,
-        amount: dispute.frozenAmount,
-        entityType: LedgerEntityType.VENDOR,
-        entityId: dispute.vendorId,
-        referenceType: LedgerReferenceType.DISPUTE,
-        referenceId: dispute._id as mongoose.Types.ObjectId,
-        description: `Funds released to vendor — student failed to submit evidence within 48 hours for suborder ${dispute.suborderId}`,
-        metadata: {
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
-          disputeId,
-          evidenceDeadline: dispute.additionalEvidenceDeadline?.toISOString(),
-          resolvedAt: now.toISOString(),
-          reason: "STUDENT_EVIDENCE_DEADLINE_EXPIRED",
-        },
-        // NOTE: Pass session once helpers support it
+      await writer.writeDisputeRejected({
+        vendorId: dispute.vendorId,
+        settleAmount: dispute.frozenAmount,
+        disputeId: dispute._id as mongoose.Types.ObjectId,
+        session,
       });
 
-      // --- Update Vendor Wallet: disputed → available ---
+      // --- Update Vendor Wallet cache: disputed → available ---
+      // Mirrors the VENDOR_DISPUTED → VENDOR_AVAILABLE movement above.
       await releaseVendorDisputedToAvailable(
         dispute.vendorId.toString(),
         dispute.frozenAmount,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
       // --- Update Dispute Record: RESOLVED, outcome: REJECTED ---
@@ -202,8 +190,8 @@ export class DisputeEvidenceExpiryService {
         DisputeOutcome.REJECTED,
         DisputeResolvedBy.SYSTEM,
         0, // No penalty
+        session,
         "Auto-rejected by system — student did not submit additional evidence within the 48-hour window.",
-        // NOTE: Pass session once helpers support it
       );
 
       // --- Update Transaction Record: suborder status → SETTLED ---
@@ -211,7 +199,7 @@ export class DisputeEvidenceExpiryService {
         dispute.orderId.toString(),
         dispute.suborderId.toString(),
         SuborderFinancialStatus.SETTLED,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
       await session.commitTransaction();

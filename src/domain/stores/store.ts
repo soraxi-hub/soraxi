@@ -4,35 +4,37 @@ import {
   IPayoutAccount,
 } from "@/lib/db/models/store.model";
 import { StoreStatusEnum } from "@/enums";
+import { StoreInterface } from "./store-interface";
+import { AppError } from "@/lib/errors/app-error";
 
-export type StoreProps = Partial<
-  Omit<IStore, "storeOwner"> & { storeOwner: string }
->;
+export type StoreProps = Omit<IStore, "storeOwner"> & { storeOwner: string };
 
-export class Store {
+export class Store implements StoreInterface {
   constructor(protected props: StoreProps) {}
 
   // -------------------------
   // BASIC INFO
   // -------------------------
-  get storeId(): string | undefined {
-    return this.props._id?.toString();
+  get storeId(): string {
+    if (!this.props._id) throw new AppError("BAD_REQUEST", "Store ID required");
+
+    return this.props._id.toString();
   }
 
   get storeName(): string {
-    return this.props.name?.trim() || "UnNamed Store";
+    return this.props.name.trim();
   }
 
   get email(): string {
-    return this.props.storeEmail || "No Email";
+    return this.props.storeEmail;
   }
 
-  get uniqueId(): string | undefined {
+  get uniqueId(): string {
     return this.props.uniqueId;
   }
 
   get ownerId(): string | undefined {
-    return this.props.storeOwner?.toString();
+    return this.props.storeOwner.toString();
   }
 
   get password(): string | undefined {
@@ -43,23 +45,23 @@ export class Store {
   // RELATIONS
   // -------------------------
   get followers(): string[] {
-    return this.props.followers?.map((id) => id.toString()) || [];
+    return this.props.followers.map((id) => id.toString()) ?? [];
   }
 
   get products(): string[] {
-    return this.props.physicalProducts?.map((id) => id.toString()) || [];
+    return this.props.physicalProducts.map((id) => id.toString()) ?? [];
   }
 
   get followersCount(): number {
-    return this.followers.length;
+    return this.followers.length ?? 0;
   }
 
   get productsCount(): number {
-    return this.products.length;
+    return this.products.length ?? 0;
   }
 
-  get description(): string | undefined {
-    return this.props.description;
+  get description(): string {
+    return this.props.description ?? "";
   }
 
   // -------------------------
@@ -191,6 +193,10 @@ export class Store {
   // -------------------------
   get createdAt(): Date | undefined {
     return this.props.createdAt;
+  }
+
+  get updatedAt(): Date | undefined {
+    return this.props.updatedAt;
   }
 
   // -------------------------

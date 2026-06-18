@@ -11,19 +11,17 @@ import {
   createDisputeRecord,
   getActiveDisputeBySuborderId,
 } from "@/lib/db/models/dispute-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
 import { freezeVendorFunds } from "@/lib/db/models/vendor-wallet.model";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
   SuborderFinancialStatus,
   DisputeStatus,
 } from "@/enums/financial.enums";
 import { DeliveryStatus } from "@/enums";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { DateFormatter } from "@/lib/utils/date-formatter";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 const DISPUTE_RESOLUTION_BUSINESS_DAYS = 5;
 
@@ -49,26 +47,14 @@ export async function POST(req: NextRequest) {
   let session: mongoose.ClientSession | null = null;
 
   try {
-    // ----------------------------------------------------------------
     // STEP 1: Authenticate the student
-    // ----------------------------------------------------------------
-
-    // NOTE: Replace this with however you access the session in your
-    // Next.js App Router routes e.g. auth(), getServerSession(), etc.
     const authSession = await getUserDataFromToken(req);
     if (!authSession) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      throw new AppError("UNAUTHORIZED", "Unauthorized");
     }
-
     const customerId = authSession.id;
 
-    // ----------------------------------------------------------------
     // STEP 2: Parse and validate FormData inputs
-    // ----------------------------------------------------------------
-
     const formData = await req.formData();
 
     const mainOrderId = formData.get("mainOrderId") as string | null;
@@ -77,12 +63,10 @@ export async function POST(req: NextRequest) {
     const evidenceFiles = formData.getAll("evidence") as File[];
 
     if (!mainOrderId || !subOrderId || !reason) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "mainOrderId, subOrderId, and reason are required.",
-        },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "mainOrderId, subOrderId, and reason are required.",
+        { mainOrderId, subOrderId, reason },
       );
     }
 
@@ -90,33 +74,29 @@ export async function POST(req: NextRequest) {
       !mongoose.Types.ObjectId.isValid(mainOrderId) ||
       !mongoose.Types.ObjectId.isValid(subOrderId)
     ) {
-      return NextResponse.json(
-        { success: false, error: "Invalid mainOrderId or subOrderId format." },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "Invalid mainOrderId or subOrderId format.",
+        { mainOrderId, subOrderId },
       );
     }
 
     if (reason.trim().length < 20) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Please provide a detailed reason (at least 20 characters).",
-        },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "Please provide a detailed reason (at least 20 characters).",
+        { reasonLength: reason.trim().length },
       );
     }
 
     if (!evidenceFiles.length) {
-      return NextResponse.json(
-        { success: false, error: "At least one evidence image is required." },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "At least one evidence image is required.",
       );
     }
 
-    // ----------------------------------------------------------------
     // STEP 3: Run all guards before touching any financial data
-    // ----------------------------------------------------------------
-
     await connectToDatabase();
     const Order = await getOrderModel();
 
@@ -127,73 +107,54 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      return NextResponse.json(
-        { success: false, error: "Order not found." },
-        { status: 404 },
-      );
+      throw new AppError("NOT_FOUND", "Order not found.", { mainOrderId });
     }
 
-    // Guard 2: Suborder must exist within the order
+    // Guard 2: Suborder must exist
     const subOrder = order.subOrders.find(
       (sub) => sub._id?.toString() === subOrderId,
     );
 
     if (!subOrder) {
-      return NextResponse.json(
-        { success: false, error: "Suborder not found within this order." },
-        { status: 404 },
-      );
+      throw new AppError("NOT_FOUND", "Suborder not found within this order.", {
+        mainOrderId,
+        subOrderId,
+      });
     }
 
-    // Guard 3: Suborder must be in a deliverable state to be disputed
-    // A student cannot dispute an order that was never marked as delivered. Not even out for delivery.
-    // The `disputeableDeliveryStatuses` should not include the "out for delevery" else,
-    // the vendor wallet will be in an incorrect state.
+    // Guard 3: Suborder must be delivered
     const disputeableDeliveryStatuses = [DeliveryStatus.Delivered];
-
     if (!disputeableDeliveryStatuses.includes(subOrder.deliveryStatus)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "A dispute can only be raised for suborders that are delivered.",
-        },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "A dispute can only be raised for suborders that are delivered.",
+        { deliveryStatus: subOrder.deliveryStatus },
       );
     }
 
-    // Guard 4: Transaction record must exist for this order
+    // Guard 4: Transaction record exists
     const transactionRecord = await getTransactionRecordByOrderId(mainOrderId);
-
     if (!transactionRecord) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Transaction record not found for this order.",
-        },
-        { status: 404 },
+      throw new AppError(
+        "NOT_FOUND",
+        "Transaction record not found for this order.",
+        { mainOrderId },
       );
     }
 
-    // Guard 5: A financial breakdown must exist for this specific suborder
+    // Guard 5: Financial breakdown exists
     const breakdown = transactionRecord.suborderBreakdowns.find(
       (b) => b.suborderId.toString() === subOrderId,
     );
-
     if (!breakdown) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "No financial breakdown found for this suborder.",
-        },
-        { status: 404 },
+      throw new AppError(
+        "NOT_FOUND",
+        "No financial breakdown found for this suborder.",
+        { subOrderId },
       );
     }
 
-    // Guard 6: Suborder must be in PENDING financial status
-    // SETTLED → funds already released, cannot dispute
-    // DISPUTED → already has an open dispute
-    // REFUNDED → already resolved in student's favour
+    // Guard 6: Financial status must be PENDING
     if (breakdown.status !== SuborderFinancialStatus.PENDING) {
       const statusMessages: Record<string, string> = {
         [SuborderFinancialStatus.SETTLED]:
@@ -204,55 +165,38 @@ export async function POST(req: NextRequest) {
           "This suborder has already been refunded.",
       };
 
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            statusMessages[breakdown.status] ??
-            "This suborder cannot be disputed in its current state.",
-        },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        statusMessages[breakdown.status] ??
+          "This suborder cannot be disputed in its current state.",
+        { currentStatus: breakdown.status },
       );
     }
 
-    // Guard 7: Double-check at the dispute record level — no active dispute
-    // should already exist for this suborder (partial unique index backs this up)
+    // Guard 7: No existing active dispute
     const existingDispute = await getActiveDisputeBySuborderId(subOrderId);
-
     if (existingDispute) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "A dispute is already open for this suborder.",
-        },
-        { status: 409 },
+      throw new AppError(
+        "CONFLICT",
+        "A dispute is already open for this suborder.",
+        { subOrderId, existingDisputeId: existingDispute._id },
       );
     }
 
-    // ----------------------------------------------------------------
     // STEP 4: Upload evidence images to Cloudinary
-    // Done BEFORE the DB session — Cloudinary is a network call and
-    // cannot be part of a MongoDB transaction. If the DB writes fail,
-    // the uploaded images are orphaned but harmless. If the upload
-    // fails, nothing financial has been touched yet.
-    // ----------------------------------------------------------------
-
     const evidenceUrls = await ProductImageUploadService.uploadImages(
       evidenceFiles,
       "disputes",
     );
 
     if (!evidenceUrls.length) {
-      return NextResponse.json(
-        { success: false, error: "Evidence upload failed. Please try again." },
-        { status: 500 },
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "Evidence upload failed. Please try again.",
       );
     }
 
-    // ----------------------------------------------------------------
     // STEP 5: Run all financial writes atomically within a session
-    // ----------------------------------------------------------------
-
     await connectToDatabase();
     session = await mongoose.startSession();
     session.startTransaction();
@@ -265,56 +209,43 @@ export async function POST(req: NextRequest) {
         [0, 6],
       );
 
-      // --- Create the Dispute Record ---
-      const disputeRecord = await createDisputeRecord({
-        suborderId: new mongoose.Types.ObjectId(subOrderId),
-        orderId: new mongoose.Types.ObjectId(mainOrderId),
-        customerId: new mongoose.Types.ObjectId(customerId),
-        vendorId: breakdown.vendorId,
-        reason: reason.trim(),
-        evidence: evidenceUrls,
-        status: DisputeStatus.OPEN,
-        frozenAmount: breakdown.settleAmount,
-        penaltyAmount: 0,
-        openedAt: now,
-        deadline,
-        // NOTE: Pass session once helpers support it
-      });
-
-      // --- FUNDS_HELD ledger entry ---
-      // Records the movement of this suborder's settle amount
-      // from the vendor's pending balance into their disputed balance
-      await createLedgerEntry({
-        type: LedgerEntryType.DEBIT,
-        category: LedgerEntryCategory.FUNDS_HELD,
-        amount: breakdown.settleAmount,
-        entityType: LedgerEntityType.VENDOR,
-        entityId: breakdown.vendorId,
-        referenceType: LedgerReferenceType.DISPUTE,
-        referenceId: disputeRecord._id as mongoose.Types.ObjectId,
-        description: `Funds frozen for open dispute on suborder ${subOrderId}`,
-        metadata: {
-          orderId: mainOrderId,
-          subOrderId,
+      const disputeRecord = await createDisputeRecord(
+        {
+          suborderId: new mongoose.Types.ObjectId(subOrderId),
+          orderId: new mongoose.Types.ObjectId(mainOrderId),
+          customerId: new mongoose.Types.ObjectId(customerId),
+          vendorId: breakdown.vendorId,
+          reason: reason.trim(),
+          evidence: evidenceUrls,
+          status: DisputeStatus.OPEN,
           frozenAmount: breakdown.settleAmount,
-          deadline: deadline.toISOString(),
+          penaltyAmount: 0,
+          openedAt: now,
+          deadline,
         },
-        // NOTE: Pass session once helpers support it
+        session,
+      );
+
+      const writer = await JournalEntryWriter.init();
+
+      await writer.writeDisputeOpened({
+        vendorId: breakdown.vendorId,
+        settleAmount: breakdown.settleAmount,
+        disputeId: disputeRecord._id as mongoose.Types.ObjectId,
+        session,
       });
 
-      // --- Update Transaction Record: suborder status → DISPUTED ---
       await updateSuborderFinancialStatus(
         mainOrderId,
         subOrderId,
         SuborderFinancialStatus.DISPUTED,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
-      // --- Update Vendor Wallet: pending → disputed ---
       await freezeVendorFunds(
         breakdown.vendorId.toString(),
         breakdown.settleAmount,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
       await session.commitTransaction();
@@ -340,15 +271,8 @@ export async function POST(req: NextRequest) {
     } finally {
       session.endSession();
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("[POST /api/disputes/open] Error:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "An unexpected error occurred while opening the dispute.",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

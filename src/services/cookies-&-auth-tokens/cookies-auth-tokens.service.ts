@@ -42,8 +42,8 @@ export class CookieService {
   private static get jwtSecretKey(): string {
     if (!process.env.JWT_SECRET_KEY) {
       throw new AppError(
+        "INTERNAL_SERVER_ERROR",
         "Server configuration error: Missing required JWT secret",
-        500,
       );
     }
 

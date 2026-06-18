@@ -32,6 +32,7 @@ import { customerDisputeRouter } from "@/modules/server/user/disputes/procedures
 import { vendorDisputeRouter } from "@/modules/server/store/disputes/vendor-dispute.procedures";
 import { platformWalletRouter } from "@/modules/server/admin/platform-wallet/procedures";
 import { adminPayoutRouter } from "@/modules/server/admin/payouts/procedures";
+import { waitlistRouter } from "@/modules/server/waitlist/procedure";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -44,6 +45,7 @@ export const appRouter = createTRPCRouter({
   wishlist: wishlistRouter,
   checkout: checkoutRouter,
   paystack: paystackRouter,
+  waitlist: waitlistRouter,
   admin: adminProductRouter,
   demandListing: requestRouter,
   adminStore: adminStoreRouter,

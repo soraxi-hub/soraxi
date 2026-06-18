@@ -24,7 +24,7 @@ export class VendorWalletService {
     const wallet = await VendorWalletRepository.findByVendorId(vendorId);
 
     if (!wallet) {
-      throw new AppError("Vendor wallet not found", 404);
+      throw new AppError("NOT_FOUND", "Vendor wallet not found");
     }
 
     return VendorWalletFactory.createWallet(wallet);

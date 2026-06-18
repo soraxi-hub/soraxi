@@ -22,7 +22,7 @@ export class AuthService {
     const user = await UserRepository.findUserByEmail(email);
 
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("NOT_FOUND", "User not found", { email });
     }
 
     const authUser = UserFactory.createAuthUser(user);
@@ -32,7 +32,7 @@ export class AuthService {
     console.log("user", authUser);
 
     if (!isValidPassword) {
-      throw new AppError("Invalid Credentials", 401);
+      throw new AppError("UNAUTHORIZED", "Invalid Credentials", { email });
     }
 
     const tokenPayload = CookieService.generateUserToken(authUser);
@@ -60,14 +60,14 @@ export class AuthService {
     const store = await StoreRepository.findStoreByEmail(storeEmail);
 
     if (!store) {
-      throw new AppError("Store not found", 404, "not_found", "StoreNotFound");
+      throw new AppError("NOT_FOUND", "Store not found", { storeEmail });
     }
 
     const authStore = StoreFactory.buildAuthenticatedStore(store);
     const isPasswordValid = await authStore.validatePassword(password);
 
     if (!isPasswordValid) {
-      throw new AppError("Invalid credentials", 401);
+      throw new AppError("UNAUTHORIZED", "Invalid credentials", { storeEmail });
     }
 
     const tokenPayload = CookieService.generateStoreToken(store);
@@ -89,7 +89,7 @@ export class AuthService {
     const admin = await AdminRepository.getAdminByEmail(email);
 
     if (!admin) {
-      throw new AppError("Invalid credentials", 401);
+      throw new AppError("UNAUTHORIZED", "Invalid credentials", { email });
     }
 
     const authAdmin = AdminFactory.createAuthenticatedAdmin({
@@ -100,8 +100,9 @@ export class AuthService {
     // Check active status
     if (authAdmin.isInactive) {
       throw new AppError(
+        "FORBIDDEN",
         "Your account has been deactivated. Please contact the system administrator.",
-        401,
+        { email },
       );
     }
 
@@ -109,7 +110,7 @@ export class AuthService {
     const isPasswordValid = await authAdmin.validatePassword(password);
 
     if (!isPasswordValid) {
-      throw new AppError("Invalid credentials", 401);
+      throw new AppError("UNAUTHORIZED", "Invalid credentials", { email });
     }
 
     // Update last login

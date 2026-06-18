@@ -8,8 +8,8 @@ import { AlertCircle } from "lucide-react";
 import type {
   EditProductFormData,
   ProductEditWizardProps,
-} from "../../../types/edit-wizard.types";
-import { EditWizardStep } from "../../../types/edit-wizard.types";
+} from "@/types/edit-wizard.types";
+import { EditWizardStep } from "@/types/edit-wizard.types";
 import {
   BasicInfoStep,
   PricingInventoryStep,
@@ -20,10 +20,11 @@ import {
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import { scrollToTop } from "@/lib/utils";
 import { slugify } from "@/constants/constant";
-import { ProductValidationErrors } from "../../../domain/products/decorators/validate-product-info";
+import { ProductValidationErrors } from "@/domain/products/decorators/validate-product-info";
 import { useWizardNavigation } from "@/hooks/use-wizard-navigation.edit";
 import { useStepValidation } from "@/hooks/use-step-validation.edit";
 import { useProductImages } from "@/hooks/use-product-images.edit";
+import { useGenerateDescription } from "@/hooks/use-generate-description";
 import { WizardProgressIndicator } from "./wizard-progress-indicator";
 
 /**
@@ -37,38 +38,6 @@ export function ProductEditWizard({
   initialProductData,
 }: ProductEditWizardProps) {
   const router = useRouter();
-
-  // Navigation and validation
-  const {
-    currentStep,
-    nextStep,
-    previousStep,
-    setCurrentStep,
-    getErrorStep,
-    stepProgress,
-  } = useWizardNavigation();
-
-  const {
-    errors,
-    validateStep,
-    validatePublish,
-    setErrors,
-    clearErrors,
-    clearFieldError,
-  } = useStepValidation();
-
-  // 1. Manage all image state here in the parent
-  const { imageFiles, imagePreviews, handleImageChange, removeImage } =
-    useProductImages({
-      existingImageCount: initialProductData.images?.length || 0,
-    });
-
-  // 2. Prepare the images object to pass down
-  const imagesState = {
-    existingUrls: initialProductData.images || [],
-    newFiles: imageFiles,
-    previewUrls: imagePreviews,
-  };
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -92,6 +61,49 @@ export function ProductEditWizard({
     firstApprovedAt: initialProductData.firstApprovedAt,
     productType: initialProductData.productType,
   });
+
+  // Navigation and validation
+  const {
+    currentStep,
+    nextStep,
+    previousStep,
+    setCurrentStep,
+    getErrorStep,
+    stepProgress,
+  } = useWizardNavigation();
+
+  const {
+    errors,
+    validateStep,
+    validatePublish,
+    setErrors,
+    clearErrors,
+    clearFieldError,
+  } = useStepValidation();
+
+  const { isGenerating: isGeneratingDescription, generateDescription } =
+    useGenerateDescription({
+      storeId,
+      formData,
+      onDescriptionGenerated: (description) => {
+        // Reuse the existing handleFormDataChange — it updates formData
+        // and clears the description error in one call.
+        handleFieldChange("description", description);
+      },
+    });
+
+  // 1. Manage all image state here in the parent
+  const { imageFiles, imagePreviews, handleImageChange, removeImage } =
+    useProductImages({
+      existingImageCount: initialProductData.images?.length || 0,
+    });
+
+  // 2. Prepare the images object to pass down
+  const imagesState = {
+    existingUrls: initialProductData.images || [],
+    newFiles: imageFiles,
+    previewUrls: imagePreviews,
+  };
 
   /**
    * Handle field changes
@@ -268,12 +280,17 @@ export function ProductEditWizard({
    */
   const renderStepContent = () => {
     switch (currentStep) {
-      case EditWizardStep.BasicInfo:
+      case EditWizardStep.CategoryAudience:
         return (
-          <BasicInfoStep
+          <CategoryAudienceStep
             formData={formData}
             errors={errors}
-            onFieldChange={handleFieldChange}
+            onFieldChange={(field, value) => {
+              setFormData((prev) => ({
+                ...prev,
+                [field]: value,
+              }));
+            }}
             onNext={handleNextStep}
           />
         );
@@ -287,19 +304,16 @@ export function ProductEditWizard({
             onPrevious={handlePreviousStep}
           />
         );
-      case EditWizardStep.CategoryAudience:
+      case EditWizardStep.BasicInfo:
         return (
-          <CategoryAudienceStep
+          <BasicInfoStep
             formData={formData}
             errors={errors}
-            onFieldChange={(field, value) => {
-              setFormData((prev) => ({
-                ...prev,
-                [field]: value,
-              }));
-            }}
+            onFieldChange={handleFieldChange}
             onNext={handleNextStep}
             onPrevious={handlePreviousStep}
+            onGenerateDescription={generateDescription}
+            isGeneratingDescription={isGeneratingDescription}
           />
         );
       case EditWizardStep.ProductImages:

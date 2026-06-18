@@ -9,20 +9,29 @@ import {
 import React from "react";
 import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
 import { generateUniqueId } from "@/lib/utils";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 export async function POST(req: Request) {
   const { name, email, subject, message } = await req.json();
   const ticketId = `TKT-${generateUniqueId(12)}`;
 
-  if (!name || !email || !subject || !message) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
-
   try {
+    if (!name || !email || !subject || !message) {
+      throw new AppError("BAD_REQUEST", "Missing fields", {
+        fields: {
+          name: !!name,
+          email: !!email,
+          subject: !!subject,
+          message: !!message,
+        },
+      });
+    }
+
     if (!process.env.SORAXI_SUPPORT_EMAIL) {
-      console.error("Missing required environment variables");
-      throw new Error(
-        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables"
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables",
       );
     }
 
@@ -41,7 +50,7 @@ export async function POST(req: Request) {
         },
         actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/support/${ticketId}`,
         actionLabel: "View Support Ticket",
-      })
+      }),
     );
 
     const adminText = EmailTextTemplates.generateAdminSupportNotificationText({
@@ -59,12 +68,6 @@ export async function POST(req: Request) {
       fromAddress: "support@soraxihub.com",
       html: adminHtml,
       text: adminText,
-      // metadata: {
-      //   ticketId,
-      //   customerName: name,
-      //   customerEmail: email,
-      //   notificationType: "support_request",
-      // },
     });
 
     await adminNotification.send();
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
         subject: subject,
         message: message,
         ticketId: ticketId,
-      })
+      }),
     );
 
     const userText = EmailTextTemplates.generateUserSupportConfirmationText({
@@ -89,6 +92,7 @@ export async function POST(req: Request) {
       supportEmail: process.env.SORAXI_SUPPORT_EMAIL!,
       siteName: siteConfig.name,
     });
+
     const userNotification = NotificationFactory.create("email", {
       recipient: email,
       subject: `We've received your support request (Ticket: ${ticketId}) – ${siteConfig.name}`,
@@ -96,12 +100,6 @@ export async function POST(req: Request) {
       fromAddress: "noreply@soraxihub.com",
       html: userHtml,
       text: userText,
-      // metadata: {
-      //   ticketId,
-      //   customerName: name,
-      //   customerEmail: email,
-      //   notificationType: "support_confirmation",
-      // },
     });
 
     await userNotification.send();
@@ -111,11 +109,8 @@ export async function POST(req: Request) {
       ticketId,
       message: "Support request submitted successfully",
     });
-  } catch (err: any) {
-    console.error("Support form submission error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to submit support request" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("Support form submission error:", error);
+    return handleApiError(error);
   }
 }

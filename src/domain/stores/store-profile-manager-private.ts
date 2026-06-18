@@ -1,13 +1,9 @@
-import { AppRouter } from "@/trpc/routers/_app";
-import { inferProcedureOutput } from "@trpc/server";
 import { z } from "zod";
 import { storeDescription, storeName } from "@/validators/store-validators";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import { StoreStatusEnum } from "@/enums";
-
-type StoreProfileData = inferProcedureOutput<
-  AppRouter["storeProfile"]["getStoreProfilePrivate"]
->;
+import { Store } from "./store";
+import { PublicToJSON } from "../products/product-interface";
 
 // Validation schemas
 export const StoreNameSchema = z.object({
@@ -28,7 +24,6 @@ export type StoreProfileInput = z.infer<typeof StoreProfileSchema>;
 export interface StoreUpdateResult {
   success: boolean;
   message: string;
-  data?: Partial<StoreProfileData>;
 }
 
 /**
@@ -37,25 +32,20 @@ export interface StoreUpdateResult {
  * This store profile manager is mainly used it the "soraxihub.com/store/[storeId]" page.
  */
 export class StoreProfileManagerPrivate {
-  private storeData: StoreProfileData | null = null;
   private isDirty = false;
   private pendingChanges: Partial<StoreProfileInput> = {};
+  private readonly populatedProducts: PublicToJSON[] = [];
+  private store: Store;
 
-  constructor(initialData?: StoreProfileData) {
-    if (initialData) {
-      this.setStoreData(initialData);
-    }
-  }
-
-  // Data management
-  setStoreData(data: StoreProfileData): void {
-    this.storeData = data;
+  constructor(store: Store, populatedProducts: PublicToJSON[]) {
+    this.store = store;
+    this.populatedProducts = populatedProducts;
     this.isDirty = false;
     this.pendingChanges = {};
   }
 
-  getStoreData(): StoreProfileData | null {
-    return this.storeData;
+  get storeData(): Store {
+    return this.store;
   }
 
   // Validation methods
@@ -141,80 +131,75 @@ export class StoreProfileManagerPrivate {
     return { current, max, percentage };
   }
 
-  getStoreStats(): {
+  get StoreStats(): {
     followersCount: number;
     productsCount: number;
     establishedDate: string;
     storeAge: string;
   } {
-    if (!this.storeData) {
-      return {
-        followersCount: 0,
-        productsCount: 0,
-        establishedDate: "",
-        storeAge: "",
-      };
-    }
-
-    const createdDate = new Date(this.storeData.createdAt);
+    const createdDate = new Date(this.store.createdAt ?? new Date());
 
     return {
-      followersCount: this.storeData.followers.length,
-      productsCount: this.storeData.products.length,
+      followersCount: this.store.followersCount,
+      productsCount: this.store.productsCount,
       establishedDate: createdDate.toLocaleDateString(),
-      storeAge: DateFormatter.accountAge(this.storeData.createdAt),
+      storeAge: DateFormatter.accountAge(this.store.createdAt ?? new Date()),
     };
   }
 
   // Status helpers
-  getStoreStatus(): {
+  get statusInfo(): {
     status: StoreStatusEnum | "unknown";
-    statusColor: string;
-    statusText: string;
+    color: string;
+    displayText: string;
   } {
-    if (!this.storeData) {
-      return { status: "unknown", statusColor: "gray", statusText: "Unknown" };
-    }
+    const status = this.store.status;
 
-    const status = this.storeData.status as StoreStatusEnum;
     switch (status) {
       case StoreStatusEnum.Active:
         return {
           status,
-          statusColor: "bg-soraxi-success",
-          statusText: "Active",
+          color: "bg-soraxi-success",
+          displayText: "Active",
         };
       case StoreStatusEnum.Pending:
         return {
           status,
-          statusColor: "bg-soraxi-warning",
-          statusText: "Pending Review",
+          color: "bg-soraxi-warning",
+          displayText: "Pending Review",
         };
       case StoreStatusEnum.Suspended:
         return {
           status,
-          statusColor: "bg-soraxi-error",
-          statusText: "Suspended",
+          color: "bg-soraxi-error",
+          displayText: "Suspended",
         };
       default:
         return {
           status,
-          statusColor: "bg-soraxi-warning",
-          statusText: "Unknown",
+          color: "bg-soraxi-warning",
+          displayText: "Unknown",
         };
     }
   }
 
-  // Preview methods
-  getPreviewData(): StoreProfileData | null {
-    if (!this.storeData) return null;
-
-    return {
-      ...this.storeData,
-      ...this.pendingChanges,
-    } as StoreProfileData;
+  get products() {
+    return this.populatedProducts;
   }
-}
 
-// Singleton instance for global use
-export const storeProfileManagerPrivate = new StoreProfileManagerPrivate();
+  // Preview methods
+  get previewData() {
+    return {
+      ...this.store,
+      ...this.pendingChanges,
+    };
+  }
+
+  // getPreviewData(): StoreProfileData | null {
+
+  //   return {
+  //     ...this.store,
+  //     ...this.pendingChanges,
+  //   } as StoreProfileData;
+  // }
+}

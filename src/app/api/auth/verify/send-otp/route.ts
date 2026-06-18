@@ -19,10 +19,9 @@ export async function POST(request: NextRequest) {
 
     if (!userData) {
       throw new AppError(
-        "Unauthorized",
-        401,
+        "UNAUTHORIZED",
         "You must be logged in to perform this action",
-        "user not logged in",
+        { reason: "user not logged in" },
       );
     }
 
@@ -32,12 +31,13 @@ export async function POST(request: NextRequest) {
     );
 
     if (!data.success || data.data === null) {
-      throw new AppError(data.message, 429, "", data.message);
+      throw new AppError("TOO_MANY_REQUESTS", data.message, {
+        details: data.message,
+      });
     }
 
     const { userName, otpCode, userEmail } = data.data;
 
-    // Render OTP verification email template
     const html = await renderTemplate(
       React.createElement(OTPVerificationEmail, {
         userName: userName,
@@ -46,10 +46,8 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    // Create plain text version for fallback
     const text = EmailTextTemplates.generateOTPText(data.data);
 
-    // Send email using NotificationFactory
     const notification = NotificationFactory.create("email", {
       recipient: userEmail,
       subject: `Complete your sign up – Verify your email for ${siteConfig.name}`,

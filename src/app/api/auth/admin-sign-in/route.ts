@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import { AuthService } from "@/services/auth.service";
+import { AppError } from "@/lib/errors/app-error";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 },
-      );
+      throw new AppError("BAD_REQUEST", "Email and password are required");
     }
 
     // Connect to database

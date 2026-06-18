@@ -15,7 +15,7 @@ import {
   getTransactionRecordByOrderId,
   updateSuborderFinancialStatus,
 } from "@/lib/db/models/transaction-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
   applyDisputeUpheldDeductions,
   getVendorWalletByVendorId,
@@ -24,10 +24,6 @@ import {
 import { creditPlatformPenalty } from "@/lib/db/models/platform-wallet.model";
 import { calculatePenalty } from "@/lib/utils/calculate-penalty.util ";
 import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
   SuborderFinancialStatus,
   DisputeStatus,
   DisputeOutcome,
@@ -195,75 +191,42 @@ export const adminDisputeRouter = createTRPCRouter({
       session.startTransaction();
 
       try {
-        const now = new Date();
+        // --- DISPUTE_UPHELD journal entry ---
+        // Produces four balanced ledger lines in one atomic entry:
+        //
+        //   Pair 1 — Refund:
+        //     DEBIT   VENDOR_DISPUTED             frozenAmount
+        //     CREDIT  CUSTOMER_REFUND_PAYABLE     frozenAmount
+        //
+        //   Pair 2 — Penalty:
+        //     DEBIT   VENDOR_AVAILABLE            penaltyAmount
+        //     CREDIT  PLATFORM_REVENUE_PENALTIES  penaltyAmount
+        const writer = await JournalEntryWriter.init();
 
-        const sharedDisputeRef = {
-          referenceType: LedgerReferenceType.DISPUTE,
-          referenceId: new mongoose.Types.ObjectId(input.disputeId),
-        };
-
-        // --- REFUND_ISSUED ledger entry ---
-        // The frozen amount is removed from the vendor's disputed balance
-        // and credited back to the student
-        await createLedgerEntry({
-          type: LedgerEntryType.DEBIT,
-          category: LedgerEntryCategory.REFUND_ISSUED,
-          amount: dispute.frozenAmount,
-          entityType: LedgerEntityType.CUSTOMER,
-          entityId: dispute.customerId,
-          ...sharedDisputeRef,
-          description: `Refund issued to student for upheld dispute on suborder ${dispute.suborderId}`,
-          metadata: {
-            orderId: dispute.orderId.toString(),
-            suborderId: dispute.suborderId.toString(),
-            disputeId: input.disputeId,
-            refundedAt: now.toISOString(),
-          },
-          // NOTE: Pass session once helpers support it
+        await writer.writeDisputeUpheld({
+          vendorId: dispute.vendorId,
+          settleAmount: dispute.frozenAmount,
+          penaltyAmount,
+          disputeId: new mongoose.Types.ObjectId(input.disputeId),
+          session,
         });
 
-        // --- PENALTY_APPLIED ledger entry ---
-        // The penalty is debited from the vendor's wallet
-        await createLedgerEntry({
-          type: LedgerEntryType.DEBIT,
-          category: LedgerEntryCategory.PENALTY_APPLIED,
-          amount: penaltyAmount,
-          entityType: LedgerEntityType.VENDOR,
-          entityId: dispute.vendorId,
-          referenceType: LedgerReferenceType.PENALTY,
-          referenceId: new mongoose.Types.ObjectId(input.disputeId),
-          description: `Penalty applied to vendor for upheld dispute on suborder ${dispute.suborderId}`,
-          metadata: {
-            grossAmount: breakdown.grossAmount,
-            penaltyAmount,
-            isCapped: penaltyAmount === 500_000,
-            wouldGoNegative,
-            debtAmount,
-            debtRecoveryType,
-            disputeId: input.disputeId,
-          },
-          // NOTE: Pass session once helpers support it
-        });
-
-        // --- Update Vendor Wallet ---
-        // Removes frozen amount from disputed balance
-        // Deducts penalty from available balance (may go negative)
-        // Sets debt fields if wallet goes negative
+        // --- Update Vendor Wallet cache ---
+        // Removes frozen amount from disputed balance, deducts penalty from
+        // available balance (may go negative and create a debt record).
         await applyDisputeUpheldDeductions(
           dispute.vendorId.toString(),
           dispute.frozenAmount,
           penaltyAmount,
           debtRecoveryType,
           wouldGoNegative ? DEBT_RECOVERY_PERCENTAGE : 0,
-          // NOTE: Pass session once helpers support it
+          session,
         );
 
-        // --- Update Platform Wallet ---
-        // Credits the penalty amount as platform penalty revenue
-        await creditPlatformPenalty(
-          penaltyAmount,
-          // NOTE: Pass session once helpers support it
-        );
+        // --- Update Platform Wallet cache ---
+        // Credits the penalty as platform penalty revenue.
+        // Mirrors the PLATFORM_REVENUE_PENALTIES CREDIT in writeDisputeUpheld.
+        await creditPlatformPenalty(penaltyAmount, session);
 
         // --- Update Dispute Record ---
         await resolveDisputeRecord(
@@ -271,8 +234,8 @@ export const adminDisputeRouter = createTRPCRouter({
           DisputeOutcome.UPHELD,
           DisputeResolvedBy.PLATFORM_TEAM,
           penaltyAmount,
+          session,
           input.resolutionNotes,
-          // NOTE: Pass session once helpers support it
         );
 
         // --- Update Transaction Record: suborder status → REFUNDED ---
@@ -280,7 +243,7 @@ export const adminDisputeRouter = createTRPCRouter({
           dispute.orderId.toString(),
           dispute.suborderId.toString(),
           SuborderFinancialStatus.REFUNDED,
-          // NOTE: Pass session once helpers support it
+          session,
         );
 
         await session.commitTransaction();
@@ -414,34 +377,26 @@ export const adminDisputeRouter = createTRPCRouter({
       session.startTransaction();
 
       try {
-        const now = new Date();
+        // --- DISPUTE_REJECTED journal entry ---
+        // Returns frozen funds from vendor's disputed balance to available.
+        //
+        //   DEBIT   VENDOR_AVAILABLE   frozenAmount
+        //   CREDIT  VENDOR_DISPUTED    frozenAmount
+        const writer = await JournalEntryWriter.init();
 
-        // --- FUNDS_RELEASED ledger entry ---
-        // The frozen amount is moved from the vendor's disputed balance
-        // back into their available balance
-        await createLedgerEntry({
-          type: LedgerEntryType.CREDIT,
-          category: LedgerEntryCategory.FUNDS_RELEASED,
-          amount: dispute.frozenAmount,
-          entityType: LedgerEntityType.VENDOR,
-          entityId: dispute.vendorId,
-          referenceType: LedgerReferenceType.DISPUTE,
-          referenceId: new mongoose.Types.ObjectId(input.disputeId),
-          description: `Funds released to vendor after rejected dispute on suborder ${dispute.suborderId}`,
-          metadata: {
-            orderId: dispute.orderId.toString(),
-            suborderId: dispute.suborderId.toString(),
-            disputeId: input.disputeId,
-            releasedAt: now.toISOString(),
-          },
-          // NOTE: Pass session once helpers support it
+        await writer.writeDisputeRejected({
+          vendorId: dispute.vendorId,
+          settleAmount: dispute.frozenAmount,
+          disputeId: new mongoose.Types.ObjectId(input.disputeId),
+          session,
         });
 
-        // --- Update Vendor Wallet: disputed → available ---
+        // --- Update Vendor Wallet cache: disputed → available ---
+        // Mirrors the VENDOR_DISPUTED → VENDOR_AVAILABLE movement above.
         await releaseVendorDisputedToAvailable(
           dispute.vendorId.toString(),
           dispute.frozenAmount,
-          // NOTE: Pass session once helpers support it
+          session,
         );
 
         // --- Update Dispute Record ---
@@ -450,8 +405,8 @@ export const adminDisputeRouter = createTRPCRouter({
           DisputeOutcome.REJECTED,
           DisputeResolvedBy.PLATFORM_TEAM,
           0, // No penalty on rejection
+          session,
           input.resolutionNotes,
-          // NOTE: Pass session once helpers support it
         );
 
         // --- Update Transaction Record: suborder status → SETTLED ---
@@ -459,7 +414,7 @@ export const adminDisputeRouter = createTRPCRouter({
           dispute.orderId.toString(),
           dispute.suborderId.toString(),
           SuborderFinancialStatus.SETTLED,
-          // NOTE: Pass session once helpers support it
+          session,
         );
 
         await session.commitTransaction();

@@ -12,19 +12,13 @@ import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
 import {
   getTransactionRecordByOrderId,
   updateSuborderFinancialStatus,
 } from "@/lib/db/models/transaction-record.model";
 import { releaseVendorPendingToAvailable } from "@/lib/db/models/vendor-wallet.model";
-import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
-  SuborderFinancialStatus,
-} from "@/enums/financial.enums";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
+import { SuborderFinancialStatus } from "@/enums/financial.enums";
 
 /**
  * Order Router with Type-Safe Procedures
@@ -320,26 +314,19 @@ export const orderRouter = createTRPCRouter({
           return { success: true, message: "Delivery Confirmed." };
         }
 
-        // --- FUNDS_RELEASED ledger entry ---
-        // Records the movement of funds from pending to available for this suborder
-        await createLedgerEntry(
-          {
-            type: LedgerEntryType.CREDIT,
-            category: LedgerEntryCategory.FUNDS_RELEASED,
-            amount: breakdown.settleAmount,
-            entityType: LedgerEntityType.VENDOR,
-            entityId: breakdown.vendorId,
-            referenceType: LedgerReferenceType.SUBORDER,
-            referenceId: breakdown.suborderId,
-            description: `Funds released for confirmed suborder ${subOrderId}`,
-            metadata: {
-              triggeredBy: "CUSTOMER_CONFIRMATION",
-              confirmedAt: now,
-              orderId: mainOrderId,
-            },
-          },
+        // --- FUNDS_RELEASED journal entry ---
+        // Records the movement of vendor funds from VENDOR_PENDING to
+        // VENDOR_AVAILABLE now that the customer has confirmed receipt.
+        // Offsets: DEBIT VENDOR_AVAILABLE / CREDIT VENDOR_PENDING
+        const writer = await JournalEntryWriter.init();
+
+        await writer.writeFundsReleased({
+          vendorId: breakdown.vendorId,
+          settleAmount: breakdown.settleAmount,
+          suborderId: breakdown.suborderId,
+          triggeredBy: "CUSTOMER_CONFIRMATION",
           session,
-        );
+        });
 
         // --- Update Transaction Record: suborder status → SETTLED ---
         await updateSuborderFinancialStatus(
@@ -349,7 +336,8 @@ export const orderRouter = createTRPCRouter({
           session,
         );
 
-        // --- Update Vendor Wallet: pending → available ---
+        // --- Update Vendor Wallet cache: pending → available ---
+        // Mirrors the VENDOR_PENDING → VENDOR_AVAILABLE movement above.
         await releaseVendorPendingToAvailable(
           breakdown.vendorId.toString(),
           breakdown.settleAmount,
