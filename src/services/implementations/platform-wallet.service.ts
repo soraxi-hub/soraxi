@@ -1,6 +1,7 @@
 import { IPlatformWalletService } from "../interfaces/platform-wallet-service.interface";
 import { IPlatformWalletRepository } from "@/repositories/interfaces/platform-wallet-repository.interface";
 import { AppError } from "@/lib/errors/app-error";
+import mongoose from "mongoose";
 
 /**
  * Service for platform wallet business logic.
@@ -14,20 +15,33 @@ export class PlatformWalletService implements IPlatformWalletService {
     return wallet.toJSON();
   }
 
-  async creditCommission(amountKobo: number) {
+  async creditCommission(amountKobo: number, session: mongoose.ClientSession) {
     if (amountKobo <= 0) {
-      throw new AppError("Commission amount must be greater than zero", 400);
+      throw new AppError(
+        "BAD_REQUEST",
+        "Commission amount must be greater than zero",
+        { amountKobo },
+      );
     }
-    const updatedWallet =
-      await this.walletRepository.creditCommission(amountKobo);
+    const updatedWallet = await this.walletRepository.creditCommission(
+      amountKobo,
+      session,
+    );
     return updatedWallet.toJSON();
   }
 
-  async creditPenalty(amountKobo: number) {
+  async creditPenalty(amountKobo: number, session: mongoose.ClientSession) {
     if (amountKobo <= 0) {
-      throw new AppError("Penalty amount must be greater than zero", 400);
+      throw new AppError(
+        "BAD_REQUEST",
+        "Penalty amount must be greater than zero",
+        { amountKobo },
+      );
     }
-    const updatedWallet = await this.walletRepository.creditPenalty(amountKobo);
+    const updatedWallet = await this.walletRepository.creditPenalty(
+      amountKobo,
+      session,
+    );
     return updatedWallet.toJSON();
   }
 }

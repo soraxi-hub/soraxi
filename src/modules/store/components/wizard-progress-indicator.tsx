@@ -17,9 +17,9 @@ interface WizardProgressIndicatorProps {
 
 const STEP_CONFIG = [
   {
-    title: "Basic Info",
-    description: "Product details",
-    icon: FileText,
+    title: "Category & Audience",
+    description: "Category & audience",
+    icon: Grid3X3,
   },
   {
     title: "Pricing & Inventory",
@@ -27,9 +27,9 @@ const STEP_CONFIG = [
     icon: DollarSign,
   },
   {
-    title: "Category & Audience",
-    description: "Category & audience",
-    icon: Grid3X3,
+    title: "Product Details",
+    description: "Product details",
+    icon: FileText,
   },
   {
     title: "Images",

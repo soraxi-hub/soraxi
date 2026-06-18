@@ -6,7 +6,6 @@ import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-ser
 import { ProductRepository } from "@/repositories/product-repo";
 import { ProductFormData } from "@/validators/product-validators";
 import { AppError } from "@/lib/errors/app-error";
-import { ProductValidationErrors } from "@/domain/products/decorators/validate-product-info";
 import {
   PublicToJSON,
   type GetPublicProductsInput,
@@ -95,7 +94,7 @@ export class ProductService {
     const existingProduct = await ProductRepository.findById(productId);
 
     if (!existingProduct) {
-      throw new AppError("Product not found", 401);
+      throw new AppError("NOT_FOUND", "Product not found", { productId });
     }
 
     const images = existingProduct.images ?? [];
@@ -235,13 +234,9 @@ export class ProductService {
     );
 
     if (!validation.isValid) {
-      throw new AppError<ProductValidationErrors>(
-        "Validation failed",
-        400,
-        "VALIDATION_ERROR",
-        undefined,
-        validation.errors,
-      );
+      throw new AppError("BAD_REQUEST", "Validation failed", {
+        errors: validation.errors,
+      });
     }
 
     /**

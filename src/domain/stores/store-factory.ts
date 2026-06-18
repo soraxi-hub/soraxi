@@ -8,6 +8,7 @@ export type BuildStoreInput = {
   storeEmail: string;
   password: string;
   ownerId: string;
+  token: string;
 };
 
 export class StoreFactory {
@@ -23,7 +24,7 @@ export class StoreFactory {
         isVerified: false,
         method: StoreVerificationStatusEnum.Email,
       },
-    });
+    } as StoreProps);
   }
 
   static buildAuthenticatedStore(store: IStore): AuthenticatedStore {

@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Direction of a ledger entry.
+ * Direction of a ledger entry / ledger line.
  */
 export enum LedgerEntryType {
   CREDIT = "credit",
@@ -18,7 +18,7 @@ export enum LedgerEntryType {
 }
 
 /**
- * Category of a ledger entry — describes the financial event that triggered it.
+ * Category of a journal entry — describes the financial event that triggered it.
  */
 export enum LedgerEntryCategory {
   PAYMENT_RECEIVED = "payment_received", // Customer payment collected by platform
@@ -36,7 +36,7 @@ export enum LedgerEntryCategory {
 }
 
 /**
- * Entity types that can be referenced in a ledger entry.
+ * Entity types that can be referenced in a ledger line or journal entry.
  */
 export enum LedgerEntityType {
   VENDOR = "vendor", // Represents the store a payment was made to
@@ -45,13 +45,55 @@ export enum LedgerEntityType {
 }
 
 /**
- * Document types that can trigger a ledger entry.
+ * Document types that can trigger a journal entry.
  */
 export enum LedgerReferenceType {
   SUBORDER = "suborder",
   DISPUTE = "dispute",
   PAYOUT = "payout",
   PENALTY = "penalty",
+}
+
+// ---------------------------------------------------------------------------
+// Chart of Accounts
+// ---------------------------------------------------------------------------
+
+/**
+ * Every account that can appear on either side of a journal entry.
+ *
+ * These are the logical accounts in Soraxi's double-entry chart of accounts.
+ * Each account maps to a specific financial state or revenue/expense bucket.
+ */
+export enum LedgerAccountType {
+  /** Money held on behalf of customers/vendors for in-flight orders. */
+  PLATFORM_ESCROW = "platform_escrow",
+
+  /** Vendor funds awaiting order confirmation. */
+  VENDOR_PENDING = "vendor_pending",
+
+  /** Vendor funds cleared and ready to withdraw. */
+  VENDOR_AVAILABLE = "vendor_available",
+
+  /** Vendor funds frozen due to an open dispute. */
+  VENDOR_DISPUTED = "vendor_disputed",
+
+  /** Commission income earned by the platform from sales. */
+  PLATFORM_REVENUE_COMMISSION = "platform_revenue_commission",
+
+  /** Penalty income earned by the platform from upheld disputes. */
+  PLATFORM_REVENUE_PENALTIES = "platform_revenue_penalties",
+
+  /** Amount owed back to a customer after a refund is issued. */
+  CUSTOMER_REFUND_PAYABLE = "customer_refund_payable",
+
+  /** Funds in-flight to a vendor's bank account via Flutterwave. */
+  PAYOUT_PROCESSING = "payout_processing",
+
+  /** Flutterwave transfer fees recorded as a platform expense. */
+  GATEWAY_FEES_EXPENSE = "gateway_fees_expense",
+
+  /** Intermediate clearing account used when recovering vendor debt from payouts. */
+  DEBT_RECOVERY_CLEARING = "debt_recovery_clearing",
 }
 
 // ---------------------------------------------------------------------------

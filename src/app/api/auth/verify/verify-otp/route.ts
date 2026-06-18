@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const userData = await getUserDataFromToken(request);
     if (!userData) {
-      throw new AppError("Unauthorized", 401, "UNAUTHORIZED", "Login required");
+      throw new AppError("UNAUTHORIZED", "Login required");
     }
 
     const { token } = await request.json();
@@ -29,10 +29,9 @@ export async function POST(request: NextRequest) {
     const user = await User.findById(userId).select("email isVerified");
 
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("NOT_FOUND", "User not found");
     }
 
-    // Get active OTP
     const otpDoc = await OTPModel.findOne({
       entityId: userId,
       identifier: user.email,
@@ -41,30 +40,28 @@ export async function POST(request: NextRequest) {
     });
 
     if (!otpDoc) {
-      throw new AppError("OTP not found or already used", 404);
+      throw new AppError("NOT_FOUND", "OTP not found or already used");
     }
 
-    // Check if OTP is expired
     if (otpUtils.isOTPExpired(otpDoc.expiresAt)) {
-      throw new AppError("OTP has expired", 400);
+      throw new AppError("BAD_REQUEST", "OTP has expired");
     }
 
-    // Check if blocked
     if (otpDoc.blockedUntil && new Date() < otpDoc.blockedUntil) {
-      throw new AppError("Too many failed attempts. Try again later", 429);
+      throw new AppError(
+        "TOO_MANY_REQUESTS",
+        "Too many failed attempts. Try again later",
+      );
     }
 
-    // Compare hashed OTP
     const isValid = await PasswordService.validatePassword(
       token.toString(),
       otpDoc.otpHash,
     );
 
     if (!isValid) {
-      console.log("isValid", isValid);
       otpDoc.attempts += 1;
 
-      // If exceeded max attempts → block
       if (otpDoc.attempts >= otpDoc.maxAttempts) {
         otpDoc.blockedUntil = new Date(
           Date.now() + otpUtils.OTP_CONFIG.ATTEMPT_RESET_MINUTES * 60 * 1000,
@@ -73,10 +70,9 @@ export async function POST(request: NextRequest) {
 
       await otpDoc.save();
 
-      throw new AppError("Invalid OTP", 401);
+      throw new AppError("UNAUTHORIZED", "Invalid OTP");
     }
 
-    // OTP is valid → mark as used
     otpDoc.isUsed = true;
     await otpDoc.save();
 
@@ -87,7 +83,6 @@ export async function POST(request: NextRequest) {
       user.otpRequestBlockedUntil = undefined;
     }
 
-    // Verify user
     user.isVerified = true;
     await user.save();
 

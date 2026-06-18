@@ -27,6 +27,8 @@ export const publicPaths = [
   "/requests",
   "/requests/:path*",
   "/brand/:path*",
+  "/store/waitlist",
+  "/store/waitlist/status",
 ];
 
 {

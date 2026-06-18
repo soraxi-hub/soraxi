@@ -19,7 +19,7 @@ import { slugify } from "@/constants/constant";
 import type { ProductFormData } from "@/validators/product-validators";
 import { ProductTypeEnum } from "@/enums";
 import { useProductImages } from "@/hooks/use-product-images.upload";
-import type { ProductUploadWizardProps } from "../../../types/upload-wizard.types";
+import type { ProductUploadWizardProps } from "@/types/upload-wizard.types";
 import {
   BasicInfoStep,
   PricingInventoryStep,
@@ -31,6 +31,7 @@ import { scrollToTop } from "@/lib/utils";
 import { useStepValidation } from "@/hooks/use-step-validation.upload";
 import { useWizardNavigation } from "@/hooks/use-wizard-navigation.upload";
 import { WizardProgressIndicator } from "./wizard-progress-indicator";
+import { useGenerateDescription } from "@/hooks/use-generate-description";
 
 /**
  * Initial form state for comparison
@@ -64,6 +65,7 @@ const initialFormData: ProductFormData = {
  * - Full TypeScript support
  */
 export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
+  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
   const router = useRouter();
   const {
     imageFiles,
@@ -78,14 +80,20 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
     useStepValidation();
   const { currentStep, nextStep, previousStep, stepProgress } =
     useWizardNavigation(0, 5);
+  const { isGenerating: isGeneratingDescription, generateDescription } =
+    useGenerateDescription({
+      storeId,
+      formData,
+      onDescriptionGenerated: (description) => {
+        // Reuse the existing handleFormDataChange — it updates formData
+        // and clears the description error in one call.
+        handleFormDataChange("description", description);
+      },
+    });
 
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
-
-  // Form data
-  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
-
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
@@ -296,7 +304,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
     switch (currentStep) {
       case 0:
         return (
-          <BasicInfoStep
+          <CategoryAudienceStep
             formData={formData}
             errors={errors}
             onFormDataChange={handleFormDataChange}
@@ -321,7 +329,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
         );
       case 2:
         return (
-          <CategoryAudienceStep
+          <BasicInfoStep
             formData={formData}
             errors={errors}
             onFormDataChange={handleFormDataChange}
@@ -330,6 +338,8 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             isLoading={isLoading}
             isLoadingDraft={isLoadingDraft}
             onSaveDraft={() => handlePublish("draft")}
+            onGenerateDescription={generateDescription}
+            isGeneratingDescription={isGeneratingDescription}
           />
         );
       case 3:

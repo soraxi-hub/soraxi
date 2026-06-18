@@ -195,13 +195,13 @@ export function useStepValidation(
 
       switch (step) {
         case 0:
-          result = validateBasicInfo(formData);
+          result = validateCategoryAudience(formData);
           break;
         case 1:
           result = validatePricingInventory(formData);
           break;
         case 2:
-          result = validateCategoryAudience(formData);
+          result = validateBasicInfo(formData);
           break;
         case 3:
           result = validateProductImages(imageFiles);

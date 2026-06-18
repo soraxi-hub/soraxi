@@ -14,8 +14,9 @@ export async function generateStoreMetadata(
     | "Edit Product"
     | "Escrow Management"
     | "Escrow Release Details"
-    | "Upload Product",
-  description: string
+    | "Upload Product"
+    | "Apply to Sell | Vendor Waitlist",
+  description: string,
 ): Promise<Metadata> {
   const store = await getStoreFromCookie();
 
@@ -30,7 +31,7 @@ export async function generateStoreMetadata(
   return {
     title: `${showStoreName(page, store.name)} ${page} ${showStoreNameAfterPage(
       page,
-      store.name
+      store.name,
     )}`,
     description,
     robots: {

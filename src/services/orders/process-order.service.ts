@@ -14,14 +14,10 @@ import React from "react";
 import { CouponRedemptionFailureEmail } from "@/services/notifications/templates/coupon-redemption-failure-email-admin";
 import { calculateCommission } from "@/lib/utils/calculate-commission";
 import { createTransactionRecord } from "@/lib/db/models/transaction-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
 import { creditVendorPendingBalance } from "@/lib/db/models/vendor-wallet.model";
 import { creditPlatformCommission } from "@/lib/db/models/platform-wallet.model";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
   FlutterwavePaymentStatus,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
@@ -42,9 +38,6 @@ type UpdateOrderRecordProps = {
 export class ProcessOrder {
   private Order!: Model<IOrderDocument>;
   private orderNotificationService = new OrderNotificationService();
-  private PLATFORM_ENTITY_ID = new mongoose.Types.ObjectId(
-    process.env.PLATFORM_ENTITY_ID,
-  );
 
   private constructor() {}
 
@@ -183,6 +176,15 @@ export class ProcessOrder {
     flutterwaveReference: string,
     session: mongoose.ClientSession | null,
   ): Promise<void> {
+    // Journal entry writes always involve multiple documents — a session is
+    // required to guarantee atomicity. Throw early rather than risk a
+    // partially-written ledger.
+    if (!session) {
+      throw new Error(
+        "processPaymentConfirmedFinancials requires a MongoDB ClientSession.",
+      );
+    }
+
     // ----------------------------------------------------------------
     // STEP 1: Build the suborder breakdowns using calculateCommission
     // ----------------------------------------------------------------
@@ -232,7 +234,7 @@ export class ProcessOrder {
     // STEP 2: Create the Transaction Record
     // One record per order linking Flutterwave to all suborder breakdowns
     // ----------------------------------------------------------------
-    const transactionRecord = await createTransactionRecord(
+    await createTransactionRecord(
       {
         customerId: order.userId,
         orderId: order._id,
@@ -243,82 +245,72 @@ export class ProcessOrder {
       },
       session,
     );
-    // NOTE: Pass session into createTransactionRecord once helpers support it
 
     // ----------------------------------------------------------------
-    // STEP 3: Per suborder — create ledger entries and update wallets
+    // STEP 3: Write journal entries via the double-entry writer
+    //
+    // Both entries are scoped to the order level — not per suborder —
+    // because each represents a single atomic financial event:
+    //
+    //   PAYMENT_RECEIVED: the full gross amount enters escrow in one movement.
+    //
+    //   ORDER_SETTLED: escrow is split across all vendors (one CREDIT line each)
+    //   and the platform commission, in one balanced journal entry.
+    //
+    // The writer enforces the double-entry invariant (credits === debits) and
+    // writes both the JournalEntry header and all LedgerLine documents
+    // atomically within the same session before any wallet state is touched.
+    // ----------------------------------------------------------------
+    const writer = await JournalEntryWriter.init();
+
+    // --- PAYMENT_RECEIVED ---
+    // The full order amount enters the platform's escrow account.
+    // Offsets: DEBIT PLATFORM_ESCROW / CREDIT CUSTOMER_REFUND_PAYABLE
+    await writer.writePaymentReceived({
+      totalAmount: order.totalAmount,
+      orderId: order._id,
+      flutterwaveReference,
+      session,
+    });
+
+    // --- ORDER_SETTLED ---
+    // Escrow is split: each vendor receives their net settle amount into
+    // VENDOR_PENDING, and the platform earns commission revenue.
+    // Offsets: DEBIT CUSTOMER_REFUND_PAYABLE / CREDIT VENDOR_PENDING (×n) + PLATFORM_REVENUE_COMMISSION
+    const totalCommission = suborderBreakdowns.reduce(
+      (sum, b) => sum + b.commission,
+      0,
+    );
+
+    await writer.writeOrderSettlement({
+      vendorSettlements: suborderBreakdowns.map((b) => ({
+        vendorId: b.vendorId,
+        settleAmount: b.settleAmount,
+        suborderId: b.suborderId,
+      })),
+      totalCommission,
+      totalAmount: order.totalAmount,
+      orderId: order._id,
+      session,
+    });
+
+    // ----------------------------------------------------------------
+    // STEP 4: Update wallet running-state caches
+    //
+    // The ledger is the source of truth — wallet documents are fast-read
+    // caches that mirror the ledger. These updates must happen after the
+    // journal entries are committed so the two never diverge mid-write.
     // ----------------------------------------------------------------
     for (const breakdown of suborderBreakdowns) {
-      const sharedRef = {
-        referenceType: LedgerReferenceType.SUBORDER,
-        referenceId: breakdown.suborderId,
-      };
-
-      // --- PAYMENT_RECEIVED ---
-      // Platform acknowledges receiving the full gross amount from the customer
-      await createLedgerEntry(
-        {
-          type: LedgerEntryType.CREDIT,
-          category: LedgerEntryCategory.PAYMENT_RECEIVED,
-          amount: breakdown.grossAmount,
-          entityType: LedgerEntityType.PLATFORM,
-          entityId: this.PLATFORM_ENTITY_ID,
-          ...sharedRef,
-          description: `Payment received for suborder ${breakdown.suborderId}`,
-          metadata: { flutterwaveReference, orderId: order._id },
-        },
-        session,
-      );
-
-      // --- COMMISSION_DEDUCTED ---
-      // Platform's cut is recorded as earned revenue
-      await createLedgerEntry(
-        {
-          type: LedgerEntryType.CREDIT,
-          category: LedgerEntryCategory.COMMISSION_DEDUCTED,
-          amount: breakdown.commission,
-          entityType: LedgerEntityType.PLATFORM,
-          entityId: this.PLATFORM_ENTITY_ID,
-          ...sharedRef,
-          description: `Commission deducted for suborder ${breakdown.suborderId}`,
-          metadata: {
-            percentageFee: breakdown.commissionDetails.percentageFee,
-            flatFeeApplied: breakdown.commissionDetails.flatFeeApplied,
-          },
-        },
-        session,
-      );
-
-      // --- VENDOR_SETTLEMENT ---
-      // Vendor's net settle amount is credited to their pending balance
-      await createLedgerEntry(
-        {
-          type: LedgerEntryType.CREDIT,
-          category: LedgerEntryCategory.VENDOR_SETTLEMENT,
-          amount: breakdown.settleAmount,
-          entityType: LedgerEntityType.VENDOR,
-          entityId: breakdown.vendorId,
-          ...sharedRef,
-          description: `Settlement pending for suborder ${breakdown.suborderId}`,
-          metadata: { transactionRecordId: transactionRecord._id },
-        },
-        session,
-      );
-
-      // --- Update Vendor Wallet: credit pending balance ---
+      // Credit the vendor's pending balance (mirrors VENDOR_PENDING CREDIT above)
       await creditVendorPendingBalance(
         breakdown.vendorId.toString(),
         breakdown.settleAmount,
         session,
-        // NOTE: Pass session once helpers support it
       );
 
-      // --- Update Platform Wallet: credit commission balance ---
-      await creditPlatformCommission(
-        breakdown.commission,
-        session,
-        // NOTE: Pass session once helpers support it
-      );
+      // Credit the platform's commission balance (mirrors PLATFORM_REVENUE_COMMISSION CREDIT above)
+      await creditPlatformCommission(breakdown.commission, session);
     }
   }
 

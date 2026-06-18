@@ -6,7 +6,7 @@ import type {
   EditWizardStep,
   StepValidationResult,
   UseStepValidationReturn,
-} from "../types/edit-wizard.types";
+} from "@/types/edit-wizard.types";
 import { EditWizardStep as EditStep } from "../types/edit-wizard.types";
 import { MAX_PRODUCT_IMAGES } from "@/constants/image.constants";
 

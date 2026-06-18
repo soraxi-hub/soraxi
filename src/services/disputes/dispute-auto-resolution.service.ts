@@ -9,13 +9,12 @@ import {
   getTransactionRecordByOrderId,
   updateSuborderFinancialStatus,
 } from "@/lib/db/models/transaction-record.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
-import { applyDisputeUpheldDeductions } from "@/lib/db/models/vendor-wallet.model";
 import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
+  applyDisputeUpheldDeductions,
+  getVendorWalletByVendorId,
+} from "@/lib/db/models/vendor-wallet.model";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
+import {
   SuborderFinancialStatus,
   DisputeOutcome,
   DisputeResolvedBy,
@@ -165,19 +164,17 @@ export class DisputeAutoResolutionService {
         };
       }
 
-      // Fetch vendor wallet to determine debt recovery strategy
-      // NOTE: Import and use getVendorWalletByVendorId here
-      // e.g: const vendorWallet = await getVendorWalletByVendorId(dispute.vendorId.toString());
-      const vendorWallet = await /* getVendorWalletByVendorId */ (async () =>
-        null)();
+      // Fetch vendor wallet to determine debt recovery strategy upfront.
+      // No penalty is applied in this path, but the vendor may already have
+      // a negative available balance from a prior upheld dispute — if so,
+      // the existing debt recovery strategy must be preserved.
+      const vendorWallet = await getVendorWalletByVendorId(
+        dispute.vendorId.toString(),
+      );
 
-      const currentAvailable = (vendorWallet as any)?.balances?.available ?? 0;
-
-      // No penalty — but we still need debt recovery strategy in case
-      // the vendor already has a negative available balance from a prior penalty
-      const projectedAvailable = currentAvailable; // No penalty deducted
-      const wouldGoNegative = projectedAvailable < 0;
-      const debtAmount = wouldGoNegative ? Math.abs(projectedAvailable) : 0;
+      const currentAvailable = vendorWallet?.balances.available ?? 0;
+      const wouldGoNegative = currentAvailable < 0;
+      const debtAmount = wouldGoNegative ? Math.abs(currentAvailable) : 0;
 
       const debtRecoveryType =
         debtAmount >= DEBT_RECOVERY_THRESHOLD_KOBO
@@ -190,53 +187,44 @@ export class DisputeAutoResolutionService {
 
       const now = new Date();
 
-      const sharedDisputeRef = {
-        referenceType: LedgerReferenceType.DISPUTE,
-        referenceId: dispute._id as mongoose.Types.ObjectId,
-      };
+      // --- DISPUTE_AUTO_RESOLVED journal entry ---
+      // Refunds the frozen amount to the customer with no penalty to the vendor.
+      // The platform team failed to resolve within the deadline — the vendor
+      // is not penalised for the team's inaction.
+      //
+      //   DEBIT   VENDOR_DISPUTED          frozenAmount
+      //   CREDIT  CUSTOMER_REFUND_PAYABLE  frozenAmount
+      const writer = await JournalEntryWriter.init();
 
-      // --- REFUND_ISSUED ledger entry ---
-      // Frozen amount is removed from vendor's disputed balance
-      // and credited back to the student — same as 4A
-      await createLedgerEntry({
-        type: LedgerEntryType.DEBIT,
-        category: LedgerEntryCategory.REFUND_ISSUED,
-        amount: dispute.frozenAmount,
-        entityType: LedgerEntityType.CUSTOMER,
-        entityId: dispute.customerId,
-        ...sharedDisputeRef,
-        description: `Auto-refund issued to student — dispute deadline passed for suborder ${dispute.suborderId}`,
-        metadata: {
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
-          disputeId,
-          autoResolvedAt: now.toISOString(),
-          reason: "TEAM_RESOLUTION_DEADLINE_EXCEEDED",
-        },
-        // NOTE: Pass session once helpers support it
+      await writer.writeDisputeAutoResolved({
+        vendorId: dispute.vendorId,
+        settleAmount: dispute.frozenAmount,
+        disputeId: dispute._id as mongoose.Types.ObjectId,
+        session,
       });
 
-      // --- Update Vendor Wallet ---
-      // Removes frozen amount from disputed balance — NO penalty deducted
-      // penaltyAmount is 0 because this is the platform team's failure
+      // --- Update Vendor Wallet cache ---
+      // Removes frozen amount from disputed balance — penalty is 0.
+      // debtRecoveryType is passed in case the vendor already had negative
+      // available balance from a prior penalty; it is not creating new debt here.
       await applyDisputeUpheldDeductions(
         dispute.vendorId.toString(),
         dispute.frozenAmount,
-        0, // ← No penalty — platform team failed to resolve in time
+        0, // No penalty — platform team's failure, not the vendor's
         debtRecoveryType,
-        0, // ← No recovery percentage needed since no new debt is being created
-        // NOTE: Pass session once helpers support it
+        0, // No new recovery percentage — no new debt is being created
+        session,
       );
 
       // --- Update Dispute Record ---
-      // AUTO_RESOLVED status distinguishes this from a team-resolved dispute
+      // AUTO_RESOLVED + SYSTEM distinguishes this from a team-resolved dispute
       await resolveDisputeRecord(
         disputeId,
         DisputeOutcome.UPHELD,
         DisputeResolvedBy.SYSTEM,
         0, // No penalty
+        session,
         "Auto-resolved by system — resolution deadline exceeded without team action.",
-        // NOTE: Pass session once helpers support it
       );
 
       // --- Update Transaction Record: suborder status → REFUNDED ---
@@ -244,7 +232,7 @@ export class DisputeAutoResolutionService {
         dispute.orderId.toString(),
         dispute.suborderId.toString(),
         SuborderFinancialStatus.REFUNDED,
-        // NOTE: Pass session once helpers support it
+        session,
       );
 
       // --- Flag vendor account for review ---

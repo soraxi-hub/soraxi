@@ -16,15 +16,12 @@ export async function PUT(
 ) {
   let session: mongoose.ClientSession | null = null;
   try {
-    // Check store authentication
     const storeSession = await getStoreDataFromToken(request);
     if (!storeSession) {
-      throw new AppError("Store authentication required", 401);
+      throw new AppError("UNAUTHORIZED", "Store authentication required");
     }
 
-    // const body = await request.json();
     const body = await request.formData();
-    // Extract scalar fields
     const storeId = body.get("storeId") as string;
     const name = body.get("name") as string;
     const price = Number(body.get("price"));
@@ -34,25 +31,22 @@ export async function PUT(
     const specifications = body.get("specifications") as string | null;
     const submitAction = body.get("submitAction") as "draft" | "publish";
 
-    // Extract array fields
     const category = body.getAll("category") as string[];
     const subCategory = body.getAll("subCategory") as string[];
     const targetAudience = body.getAll("targetAudience") as string[];
-    // const oldImageURLs = body.getAll("oldImageURLs") as string[];
-
-    // Extract uploaded image files
     const imageFiles = body.getAll("images") as File[];
 
-    // Validate store ownership
     if (storeId !== storeSession.id) {
-      throw new AppError("Unauthorized store access", 403);
+      throw new AppError("FORBIDDEN", "Unauthorized store access", {
+        storeId: storeSession.id,
+        requestedStoreId: storeId,
+      });
     }
 
     const { productId } = await params;
     const ProductModel = await getProductModel();
     const StoreModel = await getStoreModel();
 
-    // Find the product and verify ownership
     const product = await QueryBuilderFactory.queryBuilder<IProduct>(
       ProductModel,
     )
@@ -60,38 +54,51 @@ export async function PUT(
       .select("_id", "storeId")
       .executeOne();
     if (!product) {
-      throw new AppError("Product not found", 404);
+      throw new AppError("NOT_FOUND", "Product not found", { productId });
     }
 
     if (product.storeId.toString() !== storeSession.id) {
-      throw new AppError("Unauthorized access to product", 403);
+      throw new AppError("FORBIDDEN", "Unauthorized access to product", {
+        productId,
+        storeId: storeSession.id,
+        productStoreId: product.storeId,
+      });
     }
 
-    // Check if store exists
     const store = await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
       .where("_id", new mongoose.Types.ObjectId(storeSession.id))
       .select("password", "status", "verification")
       .executeOne();
     if (!store) {
-      throw new AppError("Store not found", 404);
+      throw new AppError("NOT_FOUND", "Store not found", {
+        storeId: storeSession.id,
+      });
     }
 
-    // Block suspended stores
     if (store.status === StoreStatusEnum.Suspended) {
       throw new AppError(
+        "FORBIDDEN",
         "Store Suspended. You can not perform this action",
-        403,
+        {
+          storeId: storeSession.id,
+          status: store.status,
+        },
       );
     }
 
-    // Ensure store is active
     if (store.status !== StoreStatusEnum.Active) {
-      throw new AppError("Store is not verified or active.", 403);
+      throw new AppError("FORBIDDEN", "Store is not verified or active.", {
+        storeId: storeSession.id,
+        status: store.status,
+      });
     }
 
-    // Verify store password
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
-    if (!isPasswordValid) throw new AppError("Invalid credentials", 401);
+    if (!isPasswordValid) {
+      throw new AppError("UNAUTHORIZED", "Invalid credentials", {
+        storeId: storeSession.id,
+      });
+    }
 
     session = await mongoose.startSession();
     session.startTransaction();
@@ -119,7 +126,11 @@ export async function PUT(
     });
 
     if (!result) {
-      throw new AppError("Error updating product", 401);
+      throw new AppError("INTERNAL_SERVER_ERROR", "Error updating product", {
+        storeId: storeSession.id,
+        productId,
+        action: submitAction,
+      });
     }
 
     await session.commitTransaction();

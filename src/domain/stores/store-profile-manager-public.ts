@@ -1,11 +1,7 @@
-import { AppRouter } from "@/trpc/routers/_app";
-import { inferProcedureOutput } from "@trpc/server";
 import { StoreStatusEnum } from "@/enums";
 import { DateFormatter } from "@/lib/utils/date-formatter";
-
-type StoreProfileData = inferProcedureOutput<
-  AppRouter["publicStore"]["getStoreProfilePublic"]
->;
+import { PublicToJSON } from "../products/product-interface";
+import { Store } from "./store";
 
 /**
  * Store Profile Manager Class for public page.
@@ -13,99 +9,71 @@ type StoreProfileData = inferProcedureOutput<
  * This store profile manager is mainly used it the "soraxihub.com/brand/[storeId or storeSlug]" page.
  */
 export class StoreProfileManagerPublic {
-  private storeData: StoreProfileData | null = null;
+  private readonly populatedProducts: PublicToJSON[] = [];
+  private store: Store;
 
-  constructor(initialData?: StoreProfileData) {
-    if (initialData) {
-      this.setStoreData(initialData);
-    }
+  constructor(store: Store, populatedProducts: PublicToJSON[]) {
+    this.store = store;
+    this.populatedProducts = populatedProducts;
   }
 
-  // Data management
-  setStoreData(data: StoreProfileData): void {
-    this.storeData = data;
+  get storeData(): Store {
+    return this.store;
   }
 
-  getStoreData(): StoreProfileData | null {
-    return this.storeData;
-  }
-
-  // Utility methods
-  getCharacterCount(text: string): {
-    current: number;
-    max: number;
-    percentage: number;
-  } {
-    const current = text.length;
-    const max = 1500; // Max for description
-    const percentage = (current / max) * 100;
-    return { current, max, percentage };
-  }
-
-  getStoreStats(): {
+  get StoreStats(): {
     followersCount: number;
     productsCount: number;
     establishedDate: string;
     storeAge: string;
   } {
-    if (!this.storeData) {
-      return {
-        followersCount: 0,
-        productsCount: 0,
-        establishedDate: "",
-        storeAge: "",
-      };
-    }
-
-    const createdDate = new Date(this.storeData.createdAt);
+    const createdDate = new Date(this.store.createdAt ?? new Date());
 
     return {
-      followersCount: this.storeData.stats.followersCount,
-      productsCount: this.storeData.products.length,
+      followersCount: this.store.followersCount,
+      productsCount: this.store.productsCount,
       establishedDate: createdDate.toLocaleDateString(),
-      storeAge: DateFormatter.accountAge(this.storeData.createdAt),
+      storeAge: DateFormatter.accountAge(this.store.createdAt ?? new Date()),
     };
   }
 
   // Status helpers
-  getStoreStatus(): {
+  get statusInfo(): {
     status: StoreStatusEnum | "unknown";
-    statusColor: string;
-    statusText: string;
+    color: string;
+    displayText: string;
   } {
-    if (!this.storeData) {
-      return { status: "unknown", statusColor: "gray", statusText: "Unknown" };
-    }
+    const status = this.store.status;
 
-    const status = this.storeData.status as StoreStatusEnum;
     switch (status) {
       case StoreStatusEnum.Active:
         return {
           status,
-          statusColor: "bg-soraxi-success",
-          statusText: "Active",
+          color: "bg-soraxi-success",
+          displayText: "Active",
         };
       case StoreStatusEnum.Pending:
         return {
           status,
-          statusColor: "bg-soraxi-warning",
-          statusText: "Pending Review",
+          color: "bg-soraxi-warning",
+          displayText: "Pending Review",
         };
       case StoreStatusEnum.Suspended:
         return {
           status,
-          statusColor: "bg-soraxi-error",
-          statusText: "Suspended",
+          color: "bg-soraxi-error",
+          displayText: "Suspended",
         };
       default:
         return {
           status,
-          statusColor: "bg-soraxi-warning",
-          statusText: "Unknown",
+          color: "bg-soraxi-warning",
+          displayText: "Unknown",
         };
     }
   }
-}
 
-// Singleton instance for global use
-export const storeProfileManagerPublic = new StoreProfileManagerPublic();
+  get products() {
+    return this.populatedProducts;
+  }
+}

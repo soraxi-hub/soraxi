@@ -63,7 +63,7 @@ export class ProductRepository {
       .executeOne();
 
     if (!product) {
-      throw new AppError("Product not found");
+      throw new AppError("NOT_FOUND", "Product not found", { productId });
     }
 
     // Update product fields for draft (only update provided fields)
@@ -99,6 +99,24 @@ export class ProductRepository {
       .where("_id", new mongoose.Types.ObjectId(productId))
       .select("_id", "images")
       .executeOne();
+  }
+
+  static async findByIds(ids: string[]) {
+    const ProductModel = await getProductModel();
+    const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+
+    const products = await ProductModel.find({
+      _id: { $in: objectIds },
+      isVerifiedProduct: true,
+    }).lean<IProduct[]>();
+
+    return products.map((p) => {
+      return {
+        ...p,
+        _id: p._id?.toString(),
+        storeId: p.storeId.toString(),
+      };
+    });
   }
 
   static async findManyByIds(productIds: Types.ObjectId[]) {

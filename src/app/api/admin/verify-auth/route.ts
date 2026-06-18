@@ -3,40 +3,34 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { getAdminPermissions } from "@/modules/admin/jwt-utils";
 import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import { type NextRequest, NextResponse } from "next/server";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 export async function GET(request: NextRequest) {
   try {
     const adminToken = request.cookies.get("adminToken")?.value;
 
     if (!adminToken) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
+      throw new AppError("UNAUTHORIZED", "Authentication required");
     }
-    // Connect to database to get the latest admin data
+
     await connectToDatabase();
 
     const tokenData = await CookieService.verifyAdminToken(adminToken);
 
     if (!tokenData) {
-      return NextResponse.json(
-        { error: "Invalid or expired token" },
-        { status: 401 },
-      );
+      throw new AppError("UNAUTHORIZED", "Invalid or expired token");
     }
 
-    // Get admin from database to ensure they're still active
     const admin = await getAdminById(tokenData.id, true);
 
     if (!admin || !admin.isActive) {
-      return NextResponse.json(
-        { error: "Admin account not found or inactive" },
-        { status: 403 },
-      );
+      throw new AppError("FORBIDDEN", "Admin account not found or inactive", {
+        adminId: tokenData.id,
+        isActive: admin?.isActive,
+      });
     }
 
-    // Get permissions based on roles
     const permissions = getAdminPermissions(tokenData.roles);
 
     return NextResponse.json({
@@ -50,9 +44,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error verifying admin auth:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

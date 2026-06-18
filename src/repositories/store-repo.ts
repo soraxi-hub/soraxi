@@ -6,7 +6,7 @@ import {
   IStoreDocument,
 } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
-import mongoose from "mongoose";
+import mongoose, { ClientSession } from "mongoose";
 
 export class StoreRepository {
   // Create a store in the database
@@ -70,7 +70,6 @@ export class StoreRepository {
 
     return await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
       .where("_id", new mongoose.Types.ObjectId(id))
-      .select("password")
       .executeOne();
   }
 
@@ -81,15 +80,18 @@ export class StoreRepository {
   ): Promise<void> {
     const StoreModel = await getStoreModel();
 
+    console.log("storeId", storeId);
+
     const store = await QueryBuilderFactory.queryBuilder<
       IStore,
       IStoreDocument
     >(StoreModel)
       .where("_id", new mongoose.Types.ObjectId(storeId))
+      .withMongoDBsession(session as ClientSession)
       .withLean(false)
       .executeOne();
 
-    if (!store) throw new AppError("Store not found", 400);
+    if (!store) throw new AppError("NOT_FOUND", "Store not found");
 
     store.walletId = new mongoose.Types.ObjectId(
       vendorWalletId,

@@ -307,7 +307,7 @@ export async function getPayoutRecordModel(): Promise<
  */
 export async function createPayoutRecord(
   data: Omit<IPayoutRecord, "createdAt" | "updatedAt">,
-  session: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IPayoutRecordDocument> {
   await connectToDatabase();
   const PayoutRecord = await getPayoutRecordModel();
@@ -378,7 +378,7 @@ export async function getPayoutRecordsByVendorId(
 export async function updatePayoutFlutterwaveTransferId(
   id: string,
   flutterwaveTransferId: string,
-  session: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IPayoutRecordDocument | null> {
   await connectToDatabase();
   const PayoutRecord = await getPayoutRecordModel();
@@ -404,7 +404,7 @@ export async function updatePayoutFlutterwaveTransferId(
  */
 export async function markPayoutCompleted(
   flutterwaveTransferId: string,
-  session: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IPayoutRecordDocument | null> {
   await connectToDatabase();
   const PayoutRecord = await getPayoutRecordModel();

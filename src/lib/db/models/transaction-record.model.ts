@@ -187,7 +187,7 @@ export async function getTransactionRecordModel(): Promise<
  */
 export async function createTransactionRecord(
   data: Omit<ITransactionRecord, "createdAt" | "updatedAt">,
-  session?: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<ITransactionRecordDocument> {
   await connectToDatabase();
   const TransactionRecord = await getTransactionRecordModel();
@@ -240,7 +240,7 @@ export async function getTransactionRecordByFlutterwaveReference(
 export async function updateTransactionFlutterwaveStatus(
   flutterwaveReference: string,
   status: FlutterwavePaymentStatus,
-  session?: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<ITransactionRecord | null> {
   await connectToDatabase();
   const TransactionRecord = await getTransactionRecordModel();
@@ -265,7 +265,7 @@ export async function updateSuborderFinancialStatus(
   orderId: string,
   suborderId: string,
   status: SuborderFinancialStatus,
-  session?: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<ITransactionRecord | null> {
   await connectToDatabase();
   const TransactionRecord = await getTransactionRecordModel();

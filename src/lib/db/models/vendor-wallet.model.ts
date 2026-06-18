@@ -124,7 +124,7 @@ export async function getVendorWalletModel(): Promise<
  */
 export async function createVendorWallet(
   vendorId: string,
-  session: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWalletDocument> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -160,7 +160,7 @@ export async function getVendorWalletByVendorId(
 export async function creditVendorPendingBalance(
   vendorId: string,
   amountInKobo: number,
-  session?: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -188,7 +188,7 @@ export async function creditVendorPendingBalance(
 export async function releaseVendorPendingToAvailable(
   vendorId: string,
   amountInKobo: number,
-  session?: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -216,6 +216,7 @@ export async function releaseVendorPendingToAvailable(
 export async function freezeVendorFunds(
   vendorId: string,
   amountInKobo: number,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -228,7 +229,7 @@ export async function freezeVendorFunds(
         "balances.disputed": amountInKobo,
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }
 
@@ -243,6 +244,7 @@ export async function freezeVendorFunds(
 export async function releaseVendorDisputedToAvailable(
   vendorId: string,
   amountInKobo: number,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -255,7 +257,7 @@ export async function releaseVendorDisputedToAvailable(
         "balances.available": amountInKobo,
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }
 
@@ -277,11 +279,12 @@ export async function applyDisputeUpheldDeductions(
   penaltyAmountInKobo: number,
   debtRecoveryType: DebtRecoveryType,
   recoveryPercentage = 0,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
 
-  const wallet = await VendorWallet.findOne({ vendorId });
+  const wallet = await VendorWallet.findOne({ vendorId }).session(session);
   if (!wallet) return null;
 
   const newAvailable = wallet.balances.available - penaltyAmountInKobo;
@@ -306,7 +309,7 @@ export async function applyDisputeUpheldDeductions(
         }),
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }
 
@@ -321,6 +324,7 @@ export async function applyDisputeUpheldDeductions(
 export async function deductVendorAvailableForPayout(
   vendorId: string,
   amountInKobo: number,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -333,7 +337,7 @@ export async function deductVendorAvailableForPayout(
         "balances.total": -amountInKobo,
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }
 
@@ -348,7 +352,7 @@ export async function deductVendorAvailableForPayout(
 export async function reverseVendorPayoutDeduction(
   vendorId: string,
   amountInKobo: number,
-  session: mongoose.ClientSession | null,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
@@ -376,11 +380,12 @@ export async function reverseVendorPayoutDeduction(
 export async function reduceVendorDebt(
   vendorId: string,
   recoveredAmountInKobo: number,
+  session: mongoose.ClientSession,
 ): Promise<IVendorWallet | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
 
-  const wallet = await VendorWallet.findOne({ vendorId });
+  const wallet = await VendorWallet.findOne({ vendorId }).session(session);
   if (!wallet) return null;
 
   const remainingDebt = wallet.debt.amount - recoveredAmountInKobo;
@@ -397,6 +402,6 @@ export async function reduceVendorDebt(
         }),
       },
     },
-    { new: true },
+    { new: true, session },
   );
 }

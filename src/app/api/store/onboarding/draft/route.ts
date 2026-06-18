@@ -5,8 +5,8 @@ import {
   IShippingMethod,
 } from "@/lib/db/models/store.model";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
-
-// import type { IShippingMethod, IPayoutAccount, IStore }  // adjust import as needed
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 
 type UpdateData = Partial<
   Pick<
@@ -27,52 +27,39 @@ type UpdateData = Partial<
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
     const userData = await getUserDataFromToken(request);
     if (!userData) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new AppError("UNAUTHORIZED", "Unauthorized");
     }
 
     const body = await request.json();
-    // const { storeId, data, progress } = body;
     const { storeId, data } = body;
 
-    // console.log("storeId", storeId);
-    // console.log("data", data);
-    // console.log("progress", progress);
-
     if (!storeId) {
-      return NextResponse.json(
-        { error: "Store ID is required" },
-        { status: 400 },
-      );
+      throw new AppError("BAD_REQUEST", "Store ID is required");
     }
 
-    // Get store model and find the store
     const Store = await getStoreModel();
     const store = await Store.findById(storeId);
 
     if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+      throw new AppError("NOT_FOUND", "Store not found", { storeId });
     }
 
-    // Verify store ownership
     if (store.storeOwner.toString() !== userData.id) {
-      return NextResponse.json(
-        { error: "Unauthorized - not store owner" },
-        { status: 403 },
-      );
+      throw new AppError("FORBIDDEN", "Unauthorized - not store owner", {
+        storeOwner: store.storeOwner,
+        userId: userData.id,
+      });
     }
 
     const updateData: UpdateData = {};
 
-    // Update profile data if provided
     if (data.profile) {
       updateData.name = data.profile.name;
       updateData.description = data.profile.description;
     }
 
-    // Update business info if provided
     if (data.businessInfo) {
       updateData.businessInfo = {
         type: data.businessInfo.type,
@@ -83,17 +70,14 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Update shipping methods if provided
     if (data.shipping && Array.isArray(data.shipping)) {
       updateData.shippingMethods = data.shipping as IShippingMethod[];
     }
 
-    // Update terms agreement if provided
     if (data.termsAgreed) {
       updateData.agreedToTermsAt = new Date();
     }
 
-    // Save the updated store data
     await Store.findByIdAndUpdate(storeId, updateData, { new: true });
 
     return NextResponse.json({
@@ -102,10 +86,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error saving onboarding draft:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -115,38 +96,31 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
+    // TODO: Implement proper authentication (currently commented out)
     // const session = await getServerSession(authOptions)
     // if (!session?.user?._id) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    //   throw new AppError("UNAUTHORIZED", "Unauthorized")
     // }
-
-    // TODO: Implement session retrieval logic
 
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId");
 
     if (!storeId) {
-      return NextResponse.json(
-        { error: "Store ID is required" },
-        { status: 400 },
-      );
+      throw new AppError("BAD_REQUEST", "Store ID is required");
     }
 
-    // Get store model and find the store
     const Store = await getStoreModel();
     const store = await Store.findById(storeId);
 
     if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+      throw new AppError("NOT_FOUND", "Store not found", { storeId });
     }
 
     // // Verify store ownership
     // if (store.storeOwner.toString() !== session.user._id) {
-    //   return NextResponse.json({ error: "Unauthorized - not store owner" }, { status: 403 })
+    //   throw new AppError("FORBIDDEN", "Unauthorized - not store owner")
     // }
 
-    // Construct onboarding data from store
     const onboardingData = {
       profile: {
         name: store.name || "",
@@ -175,9 +149,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error retrieving onboarding draft:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

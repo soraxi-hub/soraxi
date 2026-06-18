@@ -24,12 +24,12 @@ import {
   Eye,
   // Eye,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-// import { ProductCard } from "@/modules/products/product-detail/product-card";
+import { ProductCard } from "@/modules/products/product-detail/product-card";
 import { StoreProfileManagerPrivate } from "@/domain/stores/store-profile-manager-private";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { truncateText } from "@/lib/utils";
 import { storeDescription, storeName } from "@/validators/store-validators";
+import { StoreFactory } from "@/domain/stores/store-factory";
 
 // Form schemas
 const StoreNameFormSchema = z.object({
@@ -59,27 +60,26 @@ export default function EnhancedStoreProfile() {
   const [isCopied, setIsCopied] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [storeManager] = useState(() => new StoreProfileManagerPrivate());
 
   const trpc = useTRPC();
-  const {
-    data: store,
-    isLoading,
-    refetch: refetchData,
-  } = useQuery(trpc.storeProfile.getStoreProfilePrivate.queryOptions());
+  const { data, refetch: refetchData } = useSuspenseQuery(
+    trpc.storeProfile.getStoreProfilePrivate.queryOptions(),
+  );
 
-  // Initialize store manager with data
-  useEffect(() => {
-    if (store) {
-      storeManager.setStoreData(store);
-    }
-  }, [store, storeManager]);
+  const { storeDoc, populatedProducts } = data;
+
+  const baseStore = StoreFactory.store({
+    ...storeDoc,
+    storeOwner: storeDoc.storeOwner.toString(),
+  });
+
+  const store = new StoreProfileManagerPrivate(baseStore, populatedProducts);
 
   // Store name form
   const nameForm = useForm<z.infer<typeof StoreNameFormSchema>>({
     resolver: zodResolver(StoreNameFormSchema),
     defaultValues: {
-      name: store?.name || "",
+      name: store.storeData.storeName,
     },
   });
 
@@ -87,7 +87,7 @@ export default function EnhancedStoreProfile() {
   const descriptionForm = useForm<z.infer<typeof StoreDescriptionFormSchema>>({
     resolver: zodResolver(StoreDescriptionFormSchema),
     defaultValues: {
-      description: store?.description || "",
+      description: store.storeData.description,
     },
   });
 
@@ -98,7 +98,7 @@ export default function EnhancedStoreProfile() {
         toast.success(data.message || "Store name updated successfully");
         setIsEditingName(false);
         refetchData();
-        storeManager.clearPendingChanges();
+        store.clearPendingChanges();
       },
       onError: (error) => {
         toast.error(error.message || "Failed to update store name");
@@ -113,7 +113,7 @@ export default function EnhancedStoreProfile() {
         toast.success(data.message || "Store description updated successfully");
         setIsEditingDescription(false);
         refetchData();
-        storeManager.clearPendingChanges();
+        store.clearPendingChanges();
       },
       onError: (error) => {
         toast.error(error.message || "Failed to update store description");
@@ -122,9 +122,7 @@ export default function EnhancedStoreProfile() {
   );
 
   const handleShareStore = () => {
-    if (!store?.uniqueId) return;
-
-    const storeUrl = `${window.location.origin}/brand/${store._id}`;
+    const storeUrl = `${window.location.origin}/brand/${store.storeData.uniqueId}`;
     navigator.clipboard.writeText(storeUrl);
     setIsCopied(true);
     toast.success("Store link copied to clipboard!");
@@ -142,20 +140,12 @@ export default function EnhancedStoreProfile() {
     updateStoreDescription.mutate(data);
   };
 
-  const storeStats = storeManager.getStoreStats();
-  const StoreStatusEnum = storeManager.getStoreStatus();
-
-  if (isLoading || !store) {
-    return (
-      <div className="container mx-auto px-4 md:px-8 py-6">
-        <div className="space-y-6">
-          <div className="h-48 bg-muted animate-pulse rounded-lg" />
-          <div className="h-32 bg-muted animate-pulse rounded-lg" />
-          <div className="h-64 bg-muted animate-pulse rounded-lg" />
-        </div>
-      </div>
-    );
-  }
+  const { storeStats, StoreStatusEnum } = useMemo(() => {
+    return {
+      storeStats: store.StoreStats,
+      StoreStatusEnum: store.statusInfo,
+    };
+  }, []);
 
   return (
     <main className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
@@ -205,7 +195,9 @@ export default function EnhancedStoreProfile() {
                               size="sm"
                               onClick={() => {
                                 setIsEditingName(false);
-                                nameForm.reset({ name: store.name });
+                                nameForm.reset({
+                                  name: store.storeData.storeName,
+                                });
                               }}
                             >
                               <X className="h-4 w-4" />
@@ -215,7 +207,7 @@ export default function EnhancedStoreProfile() {
                       ) : (
                         <>
                           <h1 className="text-2xl lg:text-3xl font-bold truncate">
-                            {store.name}
+                            {store.storeData.storeName}
                           </h1>
                           <Button
                             variant="ghost"
@@ -231,11 +223,9 @@ export default function EnhancedStoreProfile() {
 
                     <div className="flex flex-wrap items-center gap-3 mb-4 overflow-hidden text-ellipsis">
                       <Badge variant="outline" className="text-sm max-w-xs">
-                        ID: {truncateText(store.uniqueId, 20)}
+                        ID: {truncateText(store.storeData.uniqueId, 20)}
                       </Badge>
-                      <Badge
-                        className={`${StoreStatusEnum.statusColor} text-white`}
-                      >
+                      <Badge className={`${StoreStatusEnum.color} text-white`}>
                         {StoreStatusEnum.status === "active" && (
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                         )}
@@ -245,7 +235,7 @@ export default function EnhancedStoreProfile() {
                         {StoreStatusEnum.status === "suspended" && (
                           <AlertCircle className="h-3 w-3 mr-1" />
                         )}
-                        {StoreStatusEnum.statusText}
+                        {StoreStatusEnum.displayText}
                       </Badge>
                     </div>
 
@@ -368,7 +358,7 @@ export default function EnhancedStoreProfile() {
                             onClick={() => {
                               setIsEditingDescription(false);
                               descriptionForm.reset({
-                                description: store.description,
+                                description: store.storeData.description,
                               });
                             }}
                           >
@@ -387,9 +377,9 @@ export default function EnhancedStoreProfile() {
                     </Form>
                   ) : (
                     <div className="space-y-4">
-                      {store.description ? (
+                      {store.storeData.description ? (
                         <>
-                          {store.description.length < 100 && (
+                          {store.storeData.description.length < 100 && (
                             <Alert>
                               <AlertCircle className="h-4 w-4" />
                               <AlertDescription>
@@ -401,7 +391,7 @@ export default function EnhancedStoreProfile() {
                           )}
                           <div className="prose dark:prose-invert max-w-none">
                             <p className="text-foreground leading-relaxed">
-                              {store.description}
+                              {store.storeData.description}
                             </p>
                           </div>
                         </>
@@ -463,9 +453,9 @@ export default function EnhancedStoreProfile() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Status</span>
                     <Badge
-                      className={`status-badge ${StoreStatusEnum.statusColor} text-white`}
+                      className={`status-badge ${StoreStatusEnum.color} text-white`}
                     >
-                      {StoreStatusEnum.statusText}
+                      {StoreStatusEnum.displayText}
                     </Badge>
                   </div>
                 </CardContent>
@@ -481,7 +471,9 @@ export default function EnhancedStoreProfile() {
                     variant="outline"
                     className="w-full justify-start gap-2 bg-transparent"
                   >
-                    <Link href={`/store/${store._id}/products/upload`}>
+                    <Link
+                      href={`/store/${store.storeData.storeId}/products/upload`}
+                    >
                       <Package className="h-4 w-4" />
                       Add Product
                     </Link>
@@ -491,7 +483,10 @@ export default function EnhancedStoreProfile() {
                     variant="outline"
                     className="w-full justify-start gap-2 bg-transparent"
                   >
-                    <Link href={`/brand/${store._id}`} target="_blank">
+                    <Link
+                      href={`/brand/${store.storeData.storeId}`}
+                      target="_blank"
+                    >
                       <Eye className="h-4 w-4" />
                       Preview Store
                     </Link>
@@ -533,7 +528,9 @@ export default function EnhancedStoreProfile() {
                     customers.
                   </p>
                   <Button asChild className="gap-2">
-                    <Link href={`/store/${store._id}/products/upload`}>
+                    <Link
+                      href={`/store/${store.storeData.storeId}/products/upload`}
+                    >
                       <Package className="h-4 w-4" />
                       Add Your First Product
                     </Link>
@@ -542,13 +539,11 @@ export default function EnhancedStoreProfile() {
               ) : (
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {store.products.map((product) => (
-                    <Link key={product._id} href={`/products/${product.slug}`}>
-                      {/* <ProductCard
-                        product={{
-                          ...product,
-                          id: product._id,
-                        }}
-                      /> */}
+                    <Link
+                      key={product.productId}
+                      href={`/products/${product.slug}`}
+                    >
+                      <ProductCard product={product} />
                     </Link>
                   ))}
                 </div>
@@ -572,7 +567,7 @@ export default function EnhancedStoreProfile() {
                   <div className="flex gap-2">
                     <Input
                       id="store-name"
-                      value={store.name}
+                      value={store.storeData.storeName}
                       disabled
                       className="bg-muted"
                     />
@@ -589,7 +584,7 @@ export default function EnhancedStoreProfile() {
                   <Label htmlFor="store-email">Store Email</Label>
                   <Input
                     id="store-email"
-                    value={store.storeEmail}
+                    value={store.storeData.email}
                     disabled
                     className="bg-muted"
                   />
@@ -598,7 +593,7 @@ export default function EnhancedStoreProfile() {
                   <Label htmlFor="store-id">Store ID</Label>
                   <Input
                     id="store-id"
-                    value={store.uniqueId}
+                    value={store.storeData.uniqueId}
                     disabled
                     className="bg-muted font-mono"
                   />
@@ -617,9 +612,9 @@ export default function EnhancedStoreProfile() {
                 <div className="flex justify-between items-center">
                   <span>Current Status</span>
                   <Badge
-                    className={`status-badge ${StoreStatusEnum.statusColor} text-white`}
+                    className={`status-badge ${StoreStatusEnum.color} text-white`}
                   >
-                    {StoreStatusEnum.statusText}
+                    {StoreStatusEnum.displayText}
                   </Badge>
                 </div>
                 <Separator />
@@ -627,17 +622,19 @@ export default function EnhancedStoreProfile() {
                   <span>Verification Status</span>
                   <Badge
                     variant={
-                      store.verification?.isVerified ? "outline" : "secondary"
+                      store.storeData.isVerified ? "outline" : "secondary"
                     }
                   >
-                    {store.verification?.isVerified ? "Verified" : "Pending"}
+                    {store.storeData.isVerified ? "Verified" : "Pending"}
                   </Badge>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span>Member Since</span>
                   <span className="text-sm text-muted-foreground">
-                    {new Date(store.createdAt).toLocaleDateString()}
+                    {new Date(
+                      store.storeData.createdAt ?? new Date(),
+                    ).toLocaleDateString()}
                   </span>
                 </div>
               </CardContent>

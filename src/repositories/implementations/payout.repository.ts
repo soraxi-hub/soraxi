@@ -19,10 +19,19 @@ export class PayoutRepository implements IPayoutRepository {
     payout: Payout,
     session: mongoose.ClientSession | null,
   ): Promise<Payout> {
+    if (!session) {
+      throw new AppError("BAD_REQUEST", "MongoDB session required", {
+        operation: "create",
+      });
+    }
     const input = PayoutFactory.toCreateInput(payout);
     const doc = await createPayoutRecord(input, session);
     if (!doc) {
-      throw new AppError("Failed to create payout record", 500);
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "Failed to create payout record",
+        { operation: "create" },
+      );
     }
     return PayoutFactory.fromPersistence(doc);
   }
@@ -70,13 +79,22 @@ export class PayoutRepository implements IPayoutRepository {
     flutterwaveTransferId: string,
     session: mongoose.ClientSession | null,
   ): Promise<void> {
+    if (!session) {
+      throw new AppError("BAD_REQUEST", "MongoDB session required", {
+        operation: "markProcessing",
+      });
+    }
     const doc = await updatePayoutFlutterwaveTransferId(
       id,
       flutterwaveTransferId,
       session,
     );
     if (!doc) {
-      throw new AppError(`Payout ${id} not found or could not be updated`, 404);
+      throw new AppError(
+        "NOT_FOUND",
+        `Payout ${id} not found or could not be updated`,
+        { id, flutterwaveTransferId },
+      );
     }
   }
 
@@ -87,8 +105,9 @@ export class PayoutRepository implements IPayoutRepository {
     const doc = await markPayoutCompleted(id, session);
     if (!doc) {
       throw new AppError(
+        "NOT_FOUND",
         `Payout ${id} not found or could not be marked completed`,
-        404,
+        { id },
       );
     }
     return PayoutFactory.fromPersistence(doc);
@@ -102,8 +121,9 @@ export class PayoutRepository implements IPayoutRepository {
     const doc = await markPayoutFailed(id, reason, session);
     if (!doc) {
       throw new AppError(
+        "NOT_FOUND",
         `Payout ${id} not found or could not be marked failed`,
-        404,
+        { id, reason },
       );
     }
     return PayoutFactory.fromPersistence(doc);

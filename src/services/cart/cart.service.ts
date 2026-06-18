@@ -54,7 +54,8 @@ export class CartService {
     try {
       const existingCartData = await CartRepository.getCartByUserId(userId);
 
-      if (!existingCartData) throw new AppError("Cart not found", 400);
+      if (!existingCartData)
+        throw new AppError("BAD_REQUEST", "Cart not found");
 
       const cart = CartFactory.createCart({
         ...existingCartData,
@@ -85,7 +86,8 @@ export class CartService {
     try {
       const existingCartData = await CartRepository.getCartByUserId(userId);
 
-      if (!existingCartData) throw new AppError("Cart not found", 400);
+      if (!existingCartData)
+        throw new AppError("BAD_REQUEST", "Cart not found");
 
       const cart = CartFactory.createCart({
         ...existingCartData,

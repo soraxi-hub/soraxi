@@ -71,9 +71,9 @@ export interface EditProductImages {
  * Step definitions for edit wizard
  */
 export enum EditWizardStep {
-  BasicInfo = 0,
+  CategoryAudience = 0,
   PricingInventory = 1,
-  CategoryAudience = 2,
+  BasicInfo = 2,
   ProductImages = 3,
   ReviewPublish = 4,
 }

@@ -10,7 +10,10 @@ export async function POST(request: NextRequest) {
     const { storeEmail, password } = body;
 
     if (!storeEmail || !password) {
-      throw new AppError("Store email and password are required", 400);
+      throw new AppError(
+        "BAD_REQUEST",
+        "Store email and password are required",
+      );
     }
 
     const { tokenData, store, onboarding } = await AuthService.storeLogin(
@@ -21,7 +24,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
-      tokenData, // optional, if frontend needs access to token info
+      tokenData,
       store: {
         id: store.storeId,
         name: store.storeName,
@@ -34,7 +37,6 @@ export async function POST(request: NextRequest) {
 
     const hostname = request.nextUrl.hostname;
 
-    // Set the token in an HTTP-only cookie
     await CookieService.setStoreAuth(response, tokenData, hostname);
 
     return response;

@@ -7,12 +7,6 @@ import {
 import { IPayoutRepository } from "@/repositories/interfaces/payout-repository.interface";
 import { Payout } from "@/domain/payout/models/payout";
 import { PayoutStatus, DebtRecoveryType } from "@/enums/financial.enums";
-import {
-  LedgerEntryType,
-  LedgerEntryCategory,
-  LedgerEntityType,
-  LedgerReferenceType,
-} from "@/enums/financial.enums";
 import { DEBT_RECOVERY_PERCENTAGE } from "@/constants/financial.constants";
 import { StoreStatusEnum } from "@/enums";
 import { AppError } from "@/lib/errors/app-error";
@@ -31,7 +25,7 @@ import {
   deductVendorAvailableForPayout,
   reduceVendorDebt,
 } from "@/lib/db/models/vendor-wallet.model";
-import { createLedgerEntry } from "@/lib/db/models/ledger-entry.model";
+import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { PayoutAmountBreakdown } from "@/domain/payout/value-objects/payout-amount-breakdown";
 import { PayoutBankDetails } from "@/domain/payout/value-objects/payout-bank-details";
@@ -62,16 +56,22 @@ export class PayoutService implements IPayoutService {
       .executeOne();
 
     if (!store) {
-      throw new AppError("Store not found", 404);
+      throw new AppError("NOT_FOUND", "Store not found", { storeId });
     }
 
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
     if (!isPasswordValid) {
-      throw new AppError("Incorrect store password", 401);
+      throw new AppError("UNAUTHORIZED", "Incorrect store password", {
+        storeId,
+      });
     }
 
     if (store.status !== StoreStatusEnum.Active) {
-      throw new AppError("Payouts are not available for inactive stores", 403);
+      throw new AppError(
+        "FORBIDDEN",
+        "Payouts are not available for inactive stores",
+        { storeId, storeStatus: store.status },
+      );
     }
 
     // -----------------------------------------------------------------
@@ -81,7 +81,10 @@ export class PayoutService implements IPayoutService {
       (acc) => acc._id?.toString() === accountId,
     );
     if (!selectedAccount) {
-      throw new AppError("Selected bank account not found", 404);
+      throw new AppError("NOT_FOUND", "Selected bank account not found", {
+        storeId,
+        accountId,
+      });
     }
 
     // -----------------------------------------------------------------
@@ -89,20 +92,26 @@ export class PayoutService implements IPayoutService {
     // -----------------------------------------------------------------
     const vendorWallet = await VendorWalletRepository.findByVendorId(storeId);
     if (!vendorWallet) {
-      throw new AppError("Vendor wallet not found", 404);
+      throw new AppError("NOT_FOUND", "Vendor wallet not found", { storeId });
     }
 
     if (vendorWallet.debt.recoveryType === DebtRecoveryType.FULL_BLOCK) {
       throw new AppError(
+        "FORBIDDEN",
         `Your account has an outstanding debt of ₦${koboToNaira(vendorWallet.debt.amount).toLocaleString()}. All payouts are blocked.`,
-        403,
+        { storeId, debtAmount: vendorWallet.debt.amount },
       );
     }
 
     if (vendorWallet.balances.available < amount) {
       throw new AppError(
+        "BAD_REQUEST",
         `Insufficient balance. Available: ₦${koboToNaira(vendorWallet.balances.available).toLocaleString()}, Requested: ₦${koboToNaira(amount).toLocaleString()}`,
-        400,
+        {
+          storeId,
+          available: vendorWallet.balances.available,
+          requested: amount,
+        },
       );
     }
 
@@ -156,18 +165,21 @@ export class PayoutService implements IPayoutService {
       accountName: bankDetailsSnapshot.accountName,
     });
 
-    // Generate new IDs
+    // Generate payout ID
     const payoutId = new mongoose.Types.ObjectId();
-    const ledgerEntryId = new mongoose.Types.ObjectId();
 
     // Create domain model with INITIATED status
+    // NOTE: ledgerEntryId is a legacy field from the single-entry system.
+    // In the double-entry system, multiple journal entries are linked to this
+    // payout via referenceId = payoutId — there is no single representative entry.
+    // The field is retained here to satisfy the domain model constructor signature.
     const payout = new Payout({
       id: payoutId.toString(),
       vendorId: storeId,
       amountBreakdown,
       bankDetails,
       status: PayoutStatus.INITIATED,
-      ledgerEntryId: ledgerEntryId.toString(),
+      ledgerEntryId: payoutId.toString(),
       flutterwaveTransferId: undefined,
       flutterwaveStatus: undefined,
       failureReason: undefined,
@@ -185,70 +197,75 @@ export class PayoutService implements IPayoutService {
       // 1. Save payout record
       const savedPayout = await this.payoutRepository.create(payout, session);
 
-      // 2. Ledger: Payout initiated
-      await createLedgerEntry({
-        type: LedgerEntryType.DEBIT,
-        category: LedgerEntryCategory.PAYOUT_INITIATED,
-        amount: amount,
-        entityType: LedgerEntityType.VENDOR,
-        entityId: new mongoose.Types.ObjectId(storeId),
-        referenceType: LedgerReferenceType.PAYOUT,
-        referenceId: new mongoose.Types.ObjectId(savedPayout.id),
-        description: `Payout initiated — ₦${koboToNaira(finalTransferAmount).toLocaleString()} to ${bankDetailsSnapshot.accountName}`,
-        metadata: {
-          requestedAmount: amount,
-          netPayoutAmount: finalTransferAmount,
-          recoveryDeduction,
-          processingFee: totalFee,
-          gatewayFee: gatewayFee.total,
-          payoutRecordId: savedPayout.id,
-        },
-      });
+      const vendorObjectId = new mongoose.Types.ObjectId(storeId);
+      const savedPayoutObjectId = new mongoose.Types.ObjectId(savedPayout.id);
+      const writer = await JournalEntryWriter.init();
 
-      // 3. Debt recovery ledger entry (if applicable)
+      // 2. Debt recovery journal entry (if applicable — must run before
+      //    writePayoutInitiated so the amount flowing into PAYOUT_PROCESSING
+      //    is already net of any debt recovery deduction)
+      //
+      //    DEBIT  DEBT_RECOVERY_CLEARING   recoveryDeduction
+      //    CREDIT VENDOR_AVAILABLE         recoveryDeduction
+      //    DEBIT  PLATFORM_REVENUE_PENALTIES recoveryDeduction
+      //    CREDIT DEBT_RECOVERY_CLEARING   recoveryDeduction
       if (recoveryDeduction > 0) {
-        await createLedgerEntry({
-          type: LedgerEntryType.CREDIT,
-          category: LedgerEntryCategory.DEBT_RECOVERED,
-          amount: recoveryDeduction,
-          entityType: LedgerEntityType.VENDOR,
-          entityId: new mongoose.Types.ObjectId(storeId),
-          referenceType: LedgerReferenceType.PAYOUT,
-          referenceId: new mongoose.Types.ObjectId(savedPayout.id),
-          description: "Debt recovered from payout",
-          metadata: { payoutRecordId: savedPayout.id },
+        await writer.writeDebtRecovery({
+          vendorId: vendorObjectId,
+          recoveredAmount: recoveryDeduction,
+          payoutId: savedPayoutObjectId,
+          session,
         });
 
-        await reduceVendorDebt(storeId, recoveryDeduction);
+        // Reduce the stored debt balance on the vendor wallet cache
+        await reduceVendorDebt(storeId, recoveryDeduction, session);
       }
 
-      // 4. Processing fee revenue (platform income)
-      await createLedgerEntry({
-        type: LedgerEntryType.CREDIT,
-        category: LedgerEntryCategory.COMMISSION_DEDUCTED,
-        amount: totalFee,
-        entityType: LedgerEntityType.PLATFORM,
-        entityId: new mongoose.Types.ObjectId(storeId),
-        referenceType: LedgerReferenceType.PAYOUT,
-        referenceId: new mongoose.Types.ObjectId(savedPayout.id),
-        description: "Processing fee earned from payout",
+      // 3. Processing fee journal entry — Soraxi's internal withdrawal fee
+      //    withheld from the vendor's available balance before the net amount
+      //    enters PAYOUT_PROCESSING.
+      //
+      //    DEBIT  VENDOR_AVAILABLE            totalFee
+      //    CREDIT PLATFORM_REVENUE_COMMISSION totalFee
+      if (totalFee > 0) {
+        await writer.writePayoutProcessingFee({
+          vendorId: vendorObjectId,
+          processingFee: totalFee,
+          payoutId: savedPayoutObjectId,
+          session,
+        });
+      }
+
+      // 4. Payout initiated — net amount (after debt recovery and processing
+      //    fees) moves from VENDOR_AVAILABLE into PAYOUT_PROCESSING.
+      //
+      //    DEBIT  PAYOUT_PROCESSING  afterProcessingFeeAmount
+      //    CREDIT VENDOR_AVAILABLE   afterProcessingFeeAmount
+      await writer.writePayoutInitiated({
+        vendorId: vendorObjectId,
+        netPayoutAmount: afterProcessingFeeAmount,
+        payoutId: savedPayoutObjectId,
+        session,
       });
 
-      // 5. Gateway fee expense (platform cost)
-      await createLedgerEntry({
-        type: LedgerEntryType.DEBIT,
-        category: LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
-        amount: gatewayFee.total,
-        entityType: LedgerEntityType.PLATFORM,
-        entityId: new mongoose.Types.ObjectId(storeId),
-        referenceType: LedgerReferenceType.PAYOUT,
-        referenceId: new mongoose.Types.ObjectId(savedPayout.id),
-        description: "Flutterwave transfer fee",
-        metadata: gatewayFee,
-      });
+      // 5. Gateway fee — Flutterwave's transfer charge recorded as a
+      //    platform expense at initiation time.
+      //
+      //    DEBIT  GATEWAY_FEES_EXPENSE  gatewayFee.total
+      //    CREDIT PLATFORM_ESCROW       gatewayFee.total
+      if (gatewayFee.total > 0) {
+        await writer.writeGatewayFee({
+          feeAmount: gatewayFee.total,
+          payoutId: savedPayoutObjectId,
+          session,
+        });
+      }
 
-      // 6. Deduct vendor wallet (full requested amount)
-      await deductVendorAvailableForPayout(storeId, amount);
+      // 6. Deduct vendor wallet cache (full requested amount).
+      //    recoveryDeduction + totalFee + afterProcessingFeeAmount = amount,
+      //    so this mirrors the total VENDOR_AVAILABLE reduction across all
+      //    journal entries above.
+      await deductVendorAvailableForPayout(storeId, amount, session);
 
       await session.commitTransaction();
 
@@ -296,7 +313,7 @@ export class PayoutService implements IPayoutService {
     // Retrieve existing payout
     const payout = await this.payoutRepository.findById(id);
     if (!payout) {
-      throw new AppError(`Payout ${id} not found`, 404);
+      throw new AppError("NOT_FOUND", `Payout ${id} not found`, { id });
     }
 
     // Domain transition
@@ -313,7 +330,7 @@ export class PayoutService implements IPayoutService {
   async completePayout(id: string, session: mongoose.ClientSession) {
     const payout = await this.payoutRepository.findById(id);
     if (!payout) {
-      throw new AppError(`Payout ${id} not found`, 404);
+      throw new AppError("NOT_FOUND", `Payout ${id} not found`, { id });
     }
 
     const completedPayout = payout.markCompleted();
@@ -332,7 +349,7 @@ export class PayoutService implements IPayoutService {
   ) {
     const payout = await this.payoutRepository.findById(id);
     if (!payout) {
-      throw new AppError(`Payout ${id} not found`, 404);
+      throw new AppError("NOT_FOUND", `Payout ${id} not found`, { id });
     }
 
     const failedPayout = payout.markFailed(reason);

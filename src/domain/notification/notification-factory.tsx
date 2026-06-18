@@ -6,19 +6,6 @@ import {
 import { SMSNotification } from "./sms-notification";
 import { PushNotification } from "./push-notification";
 
-// /**
-//  * Notification type union
-//  */
-// export type NotificationType = "email" | "sms" | "push";
-
-// /**
-//  * Factory options for creating notifications
-//  */
-// export interface NotificationFactoryOptions {
-//   type: NotificationType;
-//   options: EmailNotificationOptions | any;
-// }
-
 export type NotificationTypeMap = {
   email: EmailNotificationOptions;
   sms: { recipient: string; message: string };
@@ -60,15 +47,15 @@ export class NotificationFactory {
   static create(type: "email", options: EmailNotificationOptions): Notification;
   static create(
     type: "sms",
-    options: { recipient: string; message: string }
+    options: { recipient: string; message: string },
   ): Notification;
   static create(
     type: "push",
-    options: { recipient: string; title: string; message: string }
+    options: { recipient: string; title: string; message: string },
   ): Notification;
   static create<T extends keyof NotificationTypeMap>(
     type: T,
-    options: NotificationTypeMap[T]
+    options: NotificationTypeMap[T],
   ): Notification {
     switch (type) {
       case "email":
@@ -88,7 +75,7 @@ export class NotificationFactory {
         return new PushNotification(
           pushOptions.recipient,
           pushOptions.title,
-          pushOptions.message
+          pushOptions.message,
         );
       }
 

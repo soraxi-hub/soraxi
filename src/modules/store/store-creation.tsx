@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,10 +30,13 @@ type CreateStoreFormData = z.infer<typeof createStoreSchema>;
  */
 export function CreateStorePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resError, setResError] = useState<string | null>(null);
+
+  const token = searchParams.get("token");
 
   const {
     register,
@@ -62,6 +65,7 @@ export function CreateStorePage() {
           storeName: data.storeName,
           storeEmail: data.storeEmail,
           password: data.password,
+          token,
         }),
       });
 

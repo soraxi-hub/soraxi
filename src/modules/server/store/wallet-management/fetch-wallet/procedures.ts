@@ -41,7 +41,7 @@ export const storeWalletRouter = createTRPCRouter({
       // Convert application errors into TRPC errors
       if (error instanceof AppError) {
         throw new TRPCError({
-          code: error.statusCode === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+          code: error.code,
           message: error.message,
         });
       }

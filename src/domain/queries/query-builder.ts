@@ -1,4 +1,10 @@
-import { Model, FilterQuery, Document, PopulateOptions } from "mongoose";
+import {
+  Model,
+  FilterQuery,
+  Document,
+  PopulateOptions,
+  ClientSession,
+} from "mongoose";
 
 /**
  * A fluent, chainable query builder for Mongoose models.
@@ -35,6 +41,7 @@ export class QueryBuilder<
     populate: [],
     lean: true,
   };
+  private session?: ClientSession | null;
 
   /**
    * @param model - The Mongoose model to query against
@@ -197,6 +204,15 @@ export class QueryBuilder<
   }
 
   /**
+   * Attaches a Mongoose ClientSession to this query.
+   * Required for transactional consistency (e.g., reading uncommitted writes).
+   */
+  withMongoDBsession(session: ClientSession | null): this {
+    this.session = session;
+    return this;
+  }
+
+  /**
    * Assembles the Mongoose query from all accumulated options.
    * Called internally by the public execution methods.
    */
@@ -219,6 +235,10 @@ export class QueryBuilder<
 
     if (this.queryOptions.lean) {
       query = query.lean() as any;
+    }
+
+    if (this.session) {
+      query = query.session(this.session);
     }
 
     return query;

@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/models/vendor-wallet.model";
 
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import { AppError } from "@/lib/errors/app-error";
 
 export class VendorWalletRepository {
   /**
@@ -17,6 +18,11 @@ export class VendorWalletRepository {
     vendorId: string,
     session: mongoose.ClientSession | null,
   ): Promise<IVendorWallet> {
+    if (!session) {
+      throw new AppError("BAD_REQUEST", "MongoDB session required", {
+        operation: "createWallet",
+      });
+    }
     return createVendorWallet(vendorId, session);
   }
 

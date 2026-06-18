@@ -6,6 +6,11 @@ import { StoreRepository } from "@/repositories/store-repo";
 import { UserRepository } from "@/repositories/user-repo";
 import { VendorWalletService } from "../vendor-wallet/vendor-wallet.service";
 import mongoose from "mongoose";
+import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
+import { WaitlistService } from "@/services/waitlist-service";
+
+const vendorApplicationRepository = new VendorApplicationRepository();
+const waitlistService = new WaitlistService(vendorApplicationRepository);
 
 export class StoreService {
   static async createStore(data: BuildStoreInput) {
@@ -14,20 +19,29 @@ export class StoreService {
     // Check if user already has a store
     const existingUserStore = await UserRepository.hasStore(ownerId);
     if (existingUserStore)
-      throw new AppError("Cannot create multiple stores", 400);
+      throw new AppError(
+        "CONFLICT",
+        "Cannot create multiple stores",
+        { ownerId }, // useful metadata
+      );
 
     // Check if store email already exists
     const normalizedEmail = data.storeEmail.toLowerCase().trim();
     const existingStoreEmail =
       await StoreRepository.isExistingStoreEmail(normalizedEmail);
     if (existingStoreEmail)
-      throw new AppError("Store email already exists", 400);
+      throw new AppError("CONFLICT", "Store email already exists", {
+        storeEmail: normalizedEmail,
+      });
 
     // Check if store name already exists (case-insensitive)
     const existingStoreName = await StoreRepository.isExistingstoreName(
       data.storeName,
     );
-    if (existingStoreName) throw new AppError("Store name already exists", 400);
+    if (existingStoreName)
+      throw new AppError("CONFLICT", "Store name already exists", {
+        storeName: data.storeName,
+      });
 
     const uniqueId = await StoreService.generateUniqueStoreId(data.storeName);
     const hashedPassword = await PasswordService.hashPassword(data.password);
@@ -53,7 +67,11 @@ export class StoreService {
       );
 
       if (!vendorWallet._id)
-        throw new AppError("[STORESERVICE]: Vendor wallet Id required", 400);
+        throw new AppError(
+          "INTERNAL_SERVER_ERROR",
+          "[STORESERVICE]: Vendor wallet Id required",
+          { storeId: savedStore._id.toString() },
+        );
 
       await StoreRepository.linkVendorWalletToStore(
         vendorWallet._id.toString(),
@@ -67,6 +85,8 @@ export class StoreService {
         savedStore._id.toString(),
         session,
       );
+
+      await waitlistService.redeemInviteToken(data.token, session);
 
       await session.commitTransaction();
       session.endSession();

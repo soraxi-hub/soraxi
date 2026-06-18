@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertCircle, CheckCircle, ChevronLeft } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -25,14 +25,13 @@ import { targetAudience as targetAudienceConstant } from "@/constants/fields-con
 import type {
   EditProductFormData,
   ProductChanges,
-} from "../../../../types/edit-wizard.types";
+} from "@/types/edit-wizard.types";
 
 interface CategoryAudienceStepProps {
   formData: EditProductFormData;
   errors: Partial<Record<keyof EditProductFormData, string>>;
   onFieldChange: (field: keyof EditProductFormData, value: string[]) => void;
   onNext: () => Promise<void>;
-  onPrevious: () => Promise<void>;
   isLoading?: boolean;
   hasChanges?: ProductChanges;
 }
@@ -42,7 +41,6 @@ export function CategoryAudienceStep({
   errors,
   onFieldChange,
   onNext,
-  onPrevious,
   isLoading = false,
   hasChanges = {},
 }: CategoryAudienceStepProps) {
@@ -108,7 +106,7 @@ export function CategoryAudienceStep({
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-xl">
-            Step 3 of 5: Category & Audience
+            Step 1 of 5: Category & Audience
           </CardTitle>
           <CardDescription>
             Select category, subcategory, and target audience
@@ -318,18 +316,15 @@ export function CategoryAudienceStep({
       </Card>
 
       {/* Navigation – same style as upload step (Previous + Next) */}
-      <div className="flex justify-between gap-3 pt-4">
-        <Button onClick={onPrevious} disabled={isLoading} variant="outline">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Previous
-        </Button>
-        <Button
-          onClick={onNext}
-          disabled={isLoading}
-          className="bg-[#14a800] hover:bg-[#14a800]/90 text-white"
-        >
-          Next Step
-        </Button>
+      <div className="flex flex-col gap-3 pt-4">
+        <div className="flex justify-end">
+          <Button
+            onClick={onNext}
+            className="bg-[#14a800] hover:bg-[#14a800]/90 text-white"
+          >
+            Next Step
+          </Button>
+        </div>
       </div>
     </div>
   );

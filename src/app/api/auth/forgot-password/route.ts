@@ -21,17 +21,12 @@ export async function POST(request: NextRequest) {
 
   try {
     if (!process.env.NEXT_PUBLIC_APP_URL) {
-      console.error("Missing required environment variables");
-      return NextResponse.json(
-        {
-          error:
-            "Server configuration error: Missing required NEXT_PUBLIC_APP_URL environment variables",
-        },
-        { status: 500 },
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "Server configuration error: Missing required NEXT_PUBLIC_APP_URL environment variables",
       );
     }
 
-    // Establish database connection
     await connectToDatabase();
     const otpUtils = new OTP();
 
@@ -42,16 +37,16 @@ export async function POST(request: NextRequest) {
       );
 
       if (!data.success || data.data === null) {
-        throw new AppError(data.message, 429, "", data.message);
+        throw new AppError("BAD_REQUEST", data.message, {
+          details: data.message,
+        });
       }
 
-      // Generate reset token and URL
       const { resetToken, expiry: expiryMinutes } = data.data;
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}&ref=${ref}`;
 
       const subject = `${siteConfig.name} Password Reset Request`;
 
-      // Render React Email template to HTML
       const html = await renderTemplate(
         React.createElement(PasswordResetEmail, {
           resetUrl,
@@ -59,7 +54,6 @@ export async function POST(request: NextRequest) {
         }),
       );
 
-      // Create and send email notification using factory
       const notification = NotificationFactory.create("email", {
         recipient: email,
         subject,
@@ -79,16 +73,16 @@ export async function POST(request: NextRequest) {
       );
 
       if (!data.success || data.data === null) {
-        throw new AppError(data.message, 429, "", data.message);
+        throw new AppError("BAD_REQUEST", data.message, {
+          details: data.message,
+        });
       }
 
-      // Generate reset token and URL
       const { resetToken, expiry: expiryMinutes } = data.data;
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}&ref=${ref}`;
 
       const subject = `${siteConfig.name} Store Password Reset Request`;
 
-      // Render React Email template to HTML
       const html = await renderTemplate(
         React.createElement(PasswordResetEmail, {
           resetUrl,
@@ -96,7 +90,6 @@ export async function POST(request: NextRequest) {
         }),
       );
 
-      // Create and send email notification using factory
       const notification = NotificationFactory.create("email", {
         recipient: email,
         subject,

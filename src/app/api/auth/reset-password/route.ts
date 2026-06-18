@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    connectToDatabase();
+    await connectToDatabase();
     const otpUtils = new OTP();
 
     if (ref === "user") {
@@ -46,18 +46,20 @@ export async function POST(request: NextRequest) {
       }
 
       if (!matchedOTP) {
-        throw new AppError("Invalid or Expired token", 401);
+        throw new AppError("UNAUTHORIZED", "Invalid or Expired token");
       }
 
       const user = await User.findById(matchedOTP.entityId).select("password");
 
       if (!user) {
-        throw new AppError("Invalid or Expired token", 401);
+        throw new AppError("UNAUTHORIZED", "Invalid or Expired token");
       }
 
-      // Optional: brute-force protection
       if (otpUtils.hasExceededAttempts(matchedOTP.attempts, null)) {
-        throw new AppError("Too many attempts. Try again later.", 429);
+        throw new AppError(
+          "TOO_MANY_REQUESTS",
+          "Too many attempts. Try again later.",
+        );
       }
 
       const hashedPassword = await PasswordService.hashPassword(newPassword);
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!matchedOTP) {
-        throw new AppError("Invalid or Expired token", 401);
+        throw new AppError("UNAUTHORIZED", "Invalid or Expired token");
       }
 
       const store = await Store.findById(matchedOTP.entityId).select(
@@ -106,12 +108,14 @@ export async function POST(request: NextRequest) {
       );
 
       if (!store) {
-        throw new AppError("Invalid or Expired token", 401);
+        throw new AppError("UNAUTHORIZED", "Invalid or Expired token");
       }
 
-      // Optional: brute-force protection
       if (otpUtils.hasExceededAttempts(matchedOTP.attempts, null)) {
-        throw new AppError("Too many attempts. Try again later.", 429);
+        throw new AppError(
+          "TOO_MANY_REQUESTS",
+          "Too many attempts. Try again later.",
+        );
       }
 
       const hashedPassword = await PasswordService.hashPassword(newPassword);
@@ -126,7 +130,9 @@ export async function POST(request: NextRequest) {
         { status: 200 },
       );
     }
-  } catch (error: any) {
-    throw handleApiError(error);
+
+    throw new AppError("BAD_REQUEST", "Invalid ref parameter");
+  } catch (error) {
+    return handleApiError(error);
   }
 }

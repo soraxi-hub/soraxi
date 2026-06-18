@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { AppError } from "../errors/app-error";
 
 /**
  * @function handleTRPCError
@@ -17,6 +18,14 @@ export function handleTRPCError(
   // If it's already a TRPCError, rethrow it as-is
   if (error instanceof TRPCError) {
     return error;
+  }
+
+  if (error instanceof AppError) {
+    throw new TRPCError({
+      code: error.code,
+      message: error.message,
+      cause: error,
+    });
   }
 
   // Convert known Mongoose / MongoDB connection errors
