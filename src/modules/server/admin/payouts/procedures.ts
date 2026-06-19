@@ -1,4 +1,3 @@
-// admin-payouts.procedures.ts
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";

@@ -33,6 +33,7 @@ type UpdateOrderRecordProps = {
   session: mongoose.ClientSession | null;
   paymentMethod: string;
   customerInfo: CustomerInfo;
+  collectionFeeKobo: number;
 };
 
 export class ProcessOrder {
@@ -54,6 +55,7 @@ export class ProcessOrder {
     session,
     paymentMethod,
     customerInfo,
+    collectionFeeKobo,
   }: UpdateOrderRecordProps): Promise<{
     ok: boolean;
     error?: string;
@@ -144,6 +146,7 @@ export class ProcessOrder {
         order,
         idempotencyKey,
         session,
+        collectionFeeKobo,
       );
     } catch (error) {
       console.error(
@@ -175,6 +178,7 @@ export class ProcessOrder {
     order: IOrder,
     flutterwaveReference: string,
     session: mongoose.ClientSession | null,
+    collectionFeeKobo: number,
   ): Promise<void> {
     // Journal entry writes always involve multiple documents — a session is
     // required to guarantee atomicity. Throw early rather than risk a
@@ -294,6 +298,18 @@ export class ProcessOrder {
       session,
     });
 
+    // --- COLLECTION_FEE ---
+    // Flutterwave deducted their fee before settling our account.
+    // This reduces PLATFORM_ESCROW to reflect actual funds received,
+    // and records the cost as a gateway expense.
+    if (collectionFeeKobo > 0) {
+      await writer.writeCollectionFee({
+        feeAmount: collectionFeeKobo,
+        orderId: order._id,
+        session,
+      });
+    }
+
     // ----------------------------------------------------------------
     // STEP 4: Update wallet running-state caches
     //
@@ -308,10 +324,10 @@ export class ProcessOrder {
         breakdown.settleAmount,
         session,
       );
-
-      // Credit the platform's commission balance (mirrors PLATFORM_REVENUE_COMMISSION CREDIT above)
-      await creditPlatformCommission(breakdown.commission, session);
     }
+
+    // Credit the platform's commission balance (mirrors PLATFORM_REVENUE_COMMISSION CREDIT above)
+    await creditPlatformCommission(totalCommission, session);
   }
 
   async updateOrderRecordToFailureState({

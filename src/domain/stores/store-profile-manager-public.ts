@@ -31,7 +31,7 @@ export class StoreProfileManagerPublic {
 
     return {
       followersCount: this.store.followersCount,
-      productsCount: this.store.productsCount,
+      productsCount: this.verifiedProductsCount,
       establishedDate: createdDate.toLocaleDateString(),
       storeAge: DateFormatter.accountAge(this.store.createdAt ?? new Date()),
     };
@@ -75,5 +75,9 @@ export class StoreProfileManagerPublic {
 
   get products() {
     return this.populatedProducts;
+  }
+
+  get verifiedProductsCount(): number {
+    return this.products.length ?? 0;
   }
 }

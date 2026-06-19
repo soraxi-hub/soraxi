@@ -21,6 +21,7 @@ export interface FlutterwaveTransactionData {
   currency: string;
   charged_amount: number;
   app_fee: number;
+  amount_settled: number;
   merchant_fee: number;
   processor_response: string;
   auth_model?: string;
@@ -30,7 +31,6 @@ export interface FlutterwaveTransactionData {
   payment_type: "card" | "bank_transfer" | "ussd" | "account" | string;
   created_at: string;
   account_id?: number;
-
   // Payment method details
   card?: {
     first_6digits: string;
@@ -41,18 +41,15 @@ export interface FlutterwaveTransactionData {
     token?: string;
     expiry: string;
   };
-
   bank_transfer?: {
     account_number: string;
     bank_name: string;
     bank_code?: string;
   };
-
   ussd?: {
     code: string;
     bank: string;
   };
-
   // Meta data - most important for your app
   meta: {
     __CheckoutInitAddress?: string;
@@ -63,9 +60,6 @@ export interface FlutterwaveTransactionData {
     idempotencyKey: string; // Crucial for preventing duplicates
     [key: string]: any; // in case Flutterwave adds new fields
   };
-
-  amount_settled?: number;
-
   customer?: {
     id: number;
     name: string;

@@ -45,11 +45,11 @@ export class Store implements StoreInterface {
   // RELATIONS
   // -------------------------
   get followers(): string[] {
-    return this.props.followers.map((id) => id.toString()) ?? [];
+    return (this.props.followers ?? []).map((id) => id.toString());
   }
 
   get products(): string[] {
-    return this.props.physicalProducts.map((id) => id.toString()) ?? [];
+    return (this.props.physicalProducts ?? []).map((id) => id.toString());
   }
 
   get followersCount(): number {

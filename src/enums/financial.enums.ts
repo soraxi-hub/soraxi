@@ -120,7 +120,7 @@ export enum SuborderFinancialStatus {
   HELD = "held", // Funds frozen due to open dispute
   SETTLED = "settled", // Funds released to vendor's available balance
   DISPUTED = "disputed", // Active dispute in progress
-  REFUNDED = "refunded", // Student has been refunded
+  REFUNDED = "refunded", // customer has been refunded
 }
 
 // ---------------------------------------------------------------------------
