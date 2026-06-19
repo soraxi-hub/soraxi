@@ -9,6 +9,7 @@ import { CartService } from "@/services/cart/cart.service";
 import { PaymentGateway } from "@/enums";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { nairaToKobo } from "@/lib/utils/naira";
 
 export async function POST(request: Request) {
   const requestBody = await request.json();
@@ -83,6 +84,13 @@ export async function POST(request: Request) {
 
     // Process the order based on transactionData
     const transactionData = verifiedTransaction.data;
+
+    // Extract collection fee data from verified transaction
+    const appFeeNaira = transactionData.app_fee ?? 0;
+    const appFeeKobo = nairaToKobo(appFeeNaira);
+    const vatKobo = Math.round(appFeeKobo * 0.075);
+    const collectionFeeKobo = appFeeKobo + vatKobo;
+
     const { orderId, idempotencyKey } = transactionData.meta;
     const paymentMethod = transactionData.payment_type;
 
@@ -97,6 +105,7 @@ export async function POST(request: Request) {
       session,
       paymentMethod,
       customerInfo,
+      collectionFeeKobo,
     });
 
     if (!result.ok) {

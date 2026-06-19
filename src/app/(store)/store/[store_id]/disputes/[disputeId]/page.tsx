@@ -7,16 +7,14 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/errors/error-fallback";
 import { Separator } from "@/components/ui/separator";
 import { DisputeOutcome, DisputeStatus } from "@/enums/financial.enums";
+import { CaseOverviewCard } from "@/modules/store/disputes/case-overview-card";
+import { FinancialImpactCard } from "@/modules/store/disputes/financial-impact-card";
+import { DisputeTimeline } from "@/modules/store/disputes/dispute-time-line";
+import { EvidenceGallery } from "@/modules/store/disputes/evidence-gallery";
+import { ResolutionCard } from "@/modules/store/disputes/resolution-card";
+import { WhatHappensNextSection } from "@/modules/store/disputes/what-happens-next-section";
+import { VendorSupportSection } from "@/modules/store/disputes/vendor-support-section";
 import { DateFormatter } from "@/lib/utils/date-formatter";
-import {
-  CaseOverviewCard,
-  FinancialImpactCard,
-  DisputeTimeline,
-  EvidenceGallery,
-  ResolutionCard,
-  WhatHappensNextSection,
-  VendorSupportSection,
-} from "@/components/disputes/vendor";
 
 /**
  * Inner page content component

@@ -10,6 +10,7 @@ import {
   Ticket,
   AlertTriangle,
   List,
+  TrendingUp,
 } from "lucide-react";
 import { PERMISSIONS } from "./security/permissions";
 
@@ -90,6 +91,12 @@ export const adminNavigationItems = [
         url: "/admin/platform-wallet",
         icon: Wallet,
         permissions: [PERMISSIONS.VIEW_PLATFORM_WALLET],
+      },
+      {
+        title: "Analytics",
+        url: "/admin/platform-financials",
+        icon: TrendingUp,
+        permissions: [PERMISSIONS.VIEW_FINANCIAL_ANALYTICS],
       },
     ],
   },

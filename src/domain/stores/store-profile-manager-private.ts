@@ -141,7 +141,7 @@ export class StoreProfileManagerPrivate {
 
     return {
       followersCount: this.store.followersCount,
-      productsCount: this.store.productsCount,
+      productsCount: this.verifiedProductsCount,
       establishedDate: createdDate.toLocaleDateString(),
       storeAge: DateFormatter.accountAge(this.store.createdAt ?? new Date()),
     };
@@ -187,6 +187,10 @@ export class StoreProfileManagerPrivate {
     return this.populatedProducts;
   }
 
+  get verifiedProductsCount(): number {
+    return this.products.length ?? 0;
+  }
+
   // Preview methods
   get previewData() {
     return {
@@ -194,12 +198,4 @@ export class StoreProfileManagerPrivate {
       ...this.pendingChanges,
     };
   }
-
-  // getPreviewData(): StoreProfileData | null {
-
-  //   return {
-  //     ...this.store,
-  //     ...this.pendingChanges,
-  //   } as StoreProfileData;
-  // }
 }

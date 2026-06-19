@@ -33,6 +33,7 @@ export const PERMISSIONS = {
   PROCESS_REFUND: "process_refund",
   PROCESS_WITHDRAWAL: "process_withdrawal",
   VIEW_PLATFORM_WALLET: "view_platform_wallet",
+  VIEW_FINANCIAL_ANALYTICS: "view_financial_analytics",
 
   // Disputes
   RESOLVE_DISPUTES: "resolve_dispuptes",

@@ -33,6 +33,7 @@ import { vendorDisputeRouter } from "@/modules/server/store/disputes/vendor-disp
 import { platformWalletRouter } from "@/modules/server/admin/platform-wallet/procedures";
 import { adminPayoutRouter } from "@/modules/server/admin/payouts/procedures";
 import { waitlistRouter } from "@/modules/server/waitlist/procedure";
+import { adminFinancialMetricsRouter } from "@/modules/server/admin/financials/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -68,6 +69,7 @@ export const appRouter = createTRPCRouter({
   platformWallet: platformWalletRouter,
   adminManagement: adminManagementRouter,
   customerDispute: customerDisputeRouter,
+  adminFinancialMetrics: adminFinancialMetricsRouter,
   flutterwavePaymentVerification: flutterwavePaymentVerificationRouter,
 });
 // export type definition of API

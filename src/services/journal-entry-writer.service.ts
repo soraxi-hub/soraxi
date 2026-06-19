@@ -50,6 +50,14 @@ type PendingLedgerLine = Omit<ILedgerLine, "_id" | "createdAt" | "journalId">;
 // Param types for each composer method
 // ---------------------------------------------------------------------------
 
+export interface WriteCollectionFeeParams {
+  /** Total Flutterwave collection fee in Kobo (app_fee + VAT). */
+  feeAmount: number;
+  /** _id of the order this fee relates to. */
+  orderId: mongoose.Types.ObjectId;
+  session: mongoose.ClientSession;
+}
+
 export interface WritePaymentReceivedParams {
   /** Total gross amount paid by the customer, in Kobo. */
   totalAmount: number;
@@ -318,6 +326,37 @@ export class JournalEntryWriter {
   // -------------------------------------------------------------------------
   // Composer methods
   // -------------------------------------------------------------------------
+
+  async writeCollectionFee(params: WriteCollectionFeeParams): Promise<void> {
+    const { feeAmount, orderId, session } = params;
+
+    assertValidKoboAmount(feeAmount, "feeAmount");
+
+    const lines: PendingLedgerLine[] = [
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.GATEWAY_FEES_EXPENSE,
+        amount: feeAmount,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.PLATFORM_ESCROW,
+        amount: feeAmount,
+      },
+    ];
+
+    await this.commitEntry(
+      {
+        category: LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
+        referenceType: LedgerReferenceType.SUBORDER,
+        referenceId: orderId,
+        description: `Flutterwave collection fee of ${feeAmount} Kobo deducted from escrow for order ${orderId}`,
+        metadata: { orderId, feeAmount, feeType: "COLLECTION" },
+      },
+      lines,
+      session,
+    );
+  }
 
   /**
    * Record a confirmed customer payment entering the platform's escrow.

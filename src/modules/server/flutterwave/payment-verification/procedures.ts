@@ -7,6 +7,7 @@ import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/services/cart/cart.service";
 import { PaymentGatewayFactory } from "@/domain/payment/payment.factory";
+import { nairaToKobo } from "@/lib/utils/naira";
 
 export const flutterwavePaymentVerificationRouter = createTRPCRouter({
   verifyPayment: baseProcedure
@@ -96,6 +97,11 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             statusArr.includes(verifiedTransaction?.data?.status.toLowerCase())
           ) {
             const transactionData = verifiedTransaction.data;
+            // Extract collection fee data from verified transaction
+            const appFeeNaira = transactionData.app_fee ?? 0;
+            const appFeeKobo = nairaToKobo(appFeeNaira);
+            const vatKobo = Math.round(appFeeKobo * 0.075);
+            const collectionFeeKobo = appFeeKobo + vatKobo;
             const { orderId, idempotencyKey } = transactionData.meta;
             const paymentMethod = transactionData.payment_type;
 
@@ -112,6 +118,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
               session,
               paymentMethod,
               customerInfo,
+              collectionFeeKobo,
             });
 
             if (!result.ok) {
