@@ -15,7 +15,7 @@ import { siteConfig } from "@/config/site";
 export function UserOrders() {
   const trpc = useTRPC();
   const { data: orders } = useSuspenseQuery(
-    trpc.order.getByUserId.queryOptions()
+    trpc.order.getByUserId.queryOptions(),
   );
 
   return (
@@ -34,7 +34,7 @@ export function UserOrders() {
           {orders.length > 0 ? (
             orders.map((order) => (
               <div
-                key={order._id}
+                key={order.orderId}
                 className="py-6 px-4 md:px-6 bg-card dark:bg-muted/50 hover:bg-card/95 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
@@ -50,7 +50,7 @@ export function UserOrders() {
                       </time>
                     </p>
                     <p className="text-xl font-bold text-foreground">
-                      Total: {formatNaira(order.totalAmount)}
+                      Total: {order.formattedTotalAmount}
                     </p>
 
                     <div className="flex items-center justify-between gap-4 w-full">
@@ -66,7 +66,7 @@ export function UserOrders() {
                               order.paymentStatus === PaymentStatus.Pending &&
                                 "bg-yellow-100 text-yellow-800",
                               order.paymentStatus === PaymentStatus.Cancelled &&
-                                "text-soraxi-error bg-soraxi-error/30"
+                                "text-soraxi-error bg-soraxi-error/30",
                             )}
                           >
                             {capitalizeFirstLetter(order.paymentStatus)}
@@ -75,7 +75,7 @@ export function UserOrders() {
                       </div>
                       <Link
                         className="text-sm text-soraxi-green hover:text-soraxi-green-hover sm:hidden"
-                        href={`/orders/${order._id}`}
+                        href={`/orders/${order.orderId}`}
                       >
                         View Details
                       </Link>
@@ -85,7 +85,7 @@ export function UserOrders() {
                   <div className="hidden sm:inline-flex w-32">
                     <Link
                       className="text-sm text-soraxi-green hover:text-soraxi-green-hover"
-                      href={`/orders/${order._id}`}
+                      href={`/orders/${order.orderId}`}
                     >
                       View Details
                     </Link>
@@ -95,17 +95,13 @@ export function UserOrders() {
                 <div className="space-y-4 mt-4">
                   {order.subOrders.map((sub) => (
                     <div
-                      key={sub.store._id}
+                      key={sub.storeId}
                       className="border border-border rounded-lg p-4 bg-background/50 shadow-sm"
                     >
-                      <h3 className="text-base font-semibold text-foreground mb-3 truncate">
-                        Store: {sub.store.name}
-                      </h3>
-
                       <div className="divide-y divide-border">
                         {sub.products.map((product) => (
                           <div
-                            key={product._id}
+                            key={product.productId.toString()}
                             className="flex gap-4 items-center py-3 first:pt-0"
                           >
                             <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border border-border">

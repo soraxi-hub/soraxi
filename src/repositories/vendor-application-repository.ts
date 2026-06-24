@@ -17,7 +17,10 @@ export class VendorApplicationRepository {
       id: doc._id.toString(),
       referenceId: doc.referenceId,
       status: doc.status,
-
+      submittedBy: doc.submittedBy.toString(),
+      institution: doc.institution,
+      cityOfApplicant: doc.cityOfApplicant,
+      stateOfApplicant: doc.stateOfApplicant,
       businessName: doc.businessName,
       ownerName: doc.ownerName,
       email: doc.email,
@@ -160,7 +163,10 @@ export class VendorApplicationRepository {
       _id: new mongoose.Types.ObjectId(props.id),
       referenceId: props.referenceId,
       status: props.status,
-
+      submittedBy: props.submittedBy,
+      institution: props.institution,
+      cityOfApplicant: props.cityOfApplicant,
+      stateOfApplicant: props.stateOfApplicant,
       businessName: props.businessName,
       ownerName: props.ownerName,
       email: props.email.toLowerCase().trim(),

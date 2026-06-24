@@ -15,12 +15,16 @@ export interface VendorApplicationProps {
   id: string;
   referenceId: string;
   status: VendorApplicationStatus;
+  submittedBy: string;
+  stateOfApplicant: string;
+  cityOfApplicant: string;
 
   // Contact & business
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
+  institution: string;
 
   // Category
   categoryId: string;
@@ -53,10 +57,14 @@ export interface VendorApplicationProps {
 }
 
 export interface VendorApplicationCreateInput {
+  submittedBy: string;
+  stateOfApplicant: string;
+  cityOfApplicant: string;
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
+  institution: string;
   categoryId: string;
   subCategory?: string;
   productSamples: string[];

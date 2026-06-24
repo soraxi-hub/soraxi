@@ -29,8 +29,6 @@ export class AuthService {
 
     const isValidPassword = await authUser.validatePassword(password);
 
-    console.log("user", authUser);
-
     if (!isValidPassword) {
       throw new AppError("UNAUTHORIZED", "Invalid Credentials", { email });
     }

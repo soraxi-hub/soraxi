@@ -17,6 +17,7 @@ export { PasswordResetEmail } from "./password-reset-email";
 export { StoreOnboardingEmail } from "./store-onboarding-email";
 export { PayoutCompletedEmail } from "./payout-completed-email";
 export { VendorInviteEmail } from "./vendor-invite-email";
+export { VendorApplicationApprovedEmail } from "./vendor-approve-email";
 export { WaitlistRejectionEmail } from "./waitlist-rejection-email";
 export { WaitlistConfirmationEmail } from "./waitlist-confirmation-email";
 export { PayoutFailedEmail } from "./payout-failed-email";

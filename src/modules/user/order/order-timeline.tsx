@@ -6,13 +6,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { format } from "date-fns";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
-import { ScrollArea } from "../../../components/ui/scroll-area";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -46,7 +41,7 @@ export function OrderTimeline({ subOrder }: OrderTimelineProps) {
             <CardTitle
               className={cn(
                 "flex items-center gap-2",
-                isMobile && "justify-center text-xl"
+                isMobile && "justify-center text-xl",
               )}
             >
               <Calendar className="h-5 w-5" />
@@ -72,7 +67,7 @@ export function OrderTimeline({ subOrder }: OrderTimelineProps) {
                           <p className="text-sm text-muted-foreground">
                             {format(
                               new Date(statusItem.timestamp),
-                              "MMM dd, yyyy 'at' h:mm a"
+                              "MMM dd, yyyy 'at' h:mm a",
                             )}
                           </p>
                           {statusItem.notes && (

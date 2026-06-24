@@ -1,3 +1,4 @@
+import { OrderService } from "@/services/orders/order.service";
 import { ProcessOrder } from "@/services/orders/process-order.service";
 
 export class OrderFactory {
@@ -12,5 +13,9 @@ export class OrderFactory {
     }
 
     return OrderFactory.processOrderInstance;
+  }
+
+  static getOrderServiceInstance(): OrderService {
+    return new OrderService();
   }
 }

@@ -1,14 +1,3 @@
-/**
- * app/api/store/products/generate-description/route.ts
- *
- * API Route: AI Product Description Generation
- *
- * Thin handler — validates auth, delegates to ProductDescriptionService,
- * returns a typed JSON response.
- *
- * Pattern mirrors /api/store/products/route.ts.
- */
-
 import { type NextRequest, NextResponse } from "next/server";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
 import { AppError } from "@/lib/errors/app-error";

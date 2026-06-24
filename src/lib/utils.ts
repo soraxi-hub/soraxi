@@ -4,6 +4,7 @@ import { Package, Truck, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { DeliveryStatus } from "@/enums";
 import bcryptjs from "bcryptjs";
+import crypto from "crypto";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -241,4 +242,32 @@ export function scrollToTop() {
     top: 0,
     behavior: "smooth",
   });
+}
+
+/**
+ * Generates a temporary password from a given value (e.g. business or store name).
+ * The generated password always includes uppercase and lowercase letters,
+ * numbers, and a special character to satisfy the application's password policy.
+ */
+export function generateDefaultPassword(value: string): string {
+  const cleaned = value.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "");
+
+  let prefix =
+    cleaned.charAt(0).toUpperCase() + cleaned.slice(1, 7).toLowerCase();
+
+  // Ensure lowercase exists
+  if (!/[a-z]/.test(prefix)) {
+    prefix += "a";
+  }
+
+  // Ensure minimum length before suffix
+  while (prefix.length < 4) {
+    prefix += "x";
+  }
+
+  const randomDigits = crypto.randomInt(100, 999);
+  const specialChars = ["!", "@", "#", "$"];
+  const special = specialChars[crypto.randomInt(0, specialChars.length)];
+
+  return `${prefix}${randomDigits}${special}`;
 }

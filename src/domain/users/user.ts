@@ -30,6 +30,10 @@ export class User implements IUserInfo {
     return this.props.password;
   }
 
+  set password(value: string) {
+    this.props.password = value;
+  }
+
   get phoneNumber(): string {
     return this.props.phoneNumber;
   }

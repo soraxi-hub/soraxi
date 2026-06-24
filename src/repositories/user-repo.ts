@@ -8,8 +8,8 @@ import mongoose from "mongoose";
 export class UserRepository {
   // Methods for user data access would go here
   static async saveUser(user: AuthUserDecorator): Promise<void> {
-    const User = await getUserModel();
-    const newUser = new User({
+    const UserModel = await getUserModel();
+    const newUser = new UserModel({
       email: user.email,
       address: user.address,
       lastName: user.lastName,

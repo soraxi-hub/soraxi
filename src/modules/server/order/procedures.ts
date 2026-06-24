@@ -1,16 +1,9 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { getOrderById, getOrderModel } from "@/lib/db/models/order.model";
+import { getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import {
-  formatOrderDocument,
-  formatOrderDocuments,
-} from "@/lib/utils/order-formatter";
-import type { RawOrderDocument } from "@/types/order";
 import { DeliveryStatus, StatusHistory } from "@/enums";
-import { getStoreModel } from "@/lib/db/models/store.model";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import {
   getTransactionRecordByOrderId,
@@ -19,28 +12,20 @@ import {
 import { releaseVendorPendingToAvailable } from "@/lib/db/models/vendor-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
+import { OrderFactory } from "@/domain/orders/order-factory";
+
+const orderService = OrderFactory.getOrderServiceInstance();
 
 /**
  * Order Router with Type-Safe Procedures
  *
  * Provides fully typed tRPC procedures for order management operations.
- * All procedures include comprehensive error handling, input validation,
- * and proper data formatting for client consumption.
  */
 export const orderRouter = createTRPCRouter({
   /**
    * Get Orders by User ID Procedure
    *
-   * Retrieves all orders for a specific user with complete population
-   * of related documents (stores, products). Implements proper error
-   * handling and data formatting for consistent client-side consumption.
-   *
-   * Features:
-   * - Input validation with Zod schema
-   * - Comprehensive MongoDB population
-   * - Type-safe data transformation
-   * - Proper error handling with meaningful messages
-   * - Optimized query with selective field projection
+   * Retrieves all orders for a specific user.
    *
    * @param input.userId - The user ID to fetch orders for
    * @returns Array of formatted orders with populated data
@@ -56,54 +41,7 @@ export const orderRouter = createTRPCRouter({
         });
       }
 
-      // Ensure database connection
-      await connectToDatabase();
-      const Order = await getOrderModel();
-      await getStoreModel();
-
-      // Validate user ID format
-      if (!mongoose.Types.ObjectId.isValid(user.id)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid user ID format",
-        });
-      }
-
-      /**
-       * Execute Optimized Database Query
-       *
-       * Fetch orders with comprehensive population of related documents.
-       * Uses selective field projection to optimize performance while
-       * ensuring all necessary data is available for formatting.
-       */
-      const rawOrders = await Order.find({ userId: user.id })
-        .populate({
-          path: "subOrders.storeId",
-          model: "Store",
-          select: "_id name storeEmail logoUrl",
-        })
-        .select(
-          "_id userId stores totalAmount paymentStatus discount createdAt subOrders",
-        )
-        .sort({ createdAt: -1 })
-        .lean<RawOrderDocument[]>()
-        .exec();
-
-      // Handle case where no orders are found
-      if (!rawOrders || rawOrders.length === 0) {
-        return []; // Return empty array instead of throwing error for better UX
-      }
-
-      /**
-       * Format Orders with Type Safety
-       *
-       * Transform raw MongoDB documents into properly typed,
-       * client-ready format. Includes error handling for any
-       * data inconsistencies or population failures.
-       */
-      const formattedOrders = formatOrderDocuments(rawOrders);
-
-      return formattedOrders;
+      return await orderService.getOrdersByUser(user.id);
     } catch (error) {
       throw handleTRPCError(error, "Error in getByUserId procedure.");
     }
@@ -112,16 +50,7 @@ export const orderRouter = createTRPCRouter({
   /**
    * Get Order by Order ID Procedure
    *
-   * Retrieves a single order by its ID with complete population
-   * of related documents. Includes comprehensive validation and
-   * error handling for robust operation.
-   *
-   * Features:
-   * - ObjectId validation before database query
-   * - Comprehensive document population
-   * - Type-safe data transformation
-   * - Detailed error messages for debugging
-   * - Optimized single-document retrieval
+   * Retrieves a single order by its.
    *
    * @param input.orderId - The order ID to retrieve
    * @returns Single formatted order with populated data
@@ -134,48 +63,9 @@ export const orderRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       try {
-        // Validate ObjectId format before database query
-        if (!mongoose.Types.ObjectId.isValid(input.orderId)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid order ID format",
-          });
-        }
+        const { orderId } = input;
 
-        // Ensure database connection
-        await connectToDatabase();
-
-        /**
-         * Retrieve Order with Population
-         *
-         * Use the existing getOrderById utility function which already
-         * includes proper population. This maintains consistency with
-         * other parts of the application.
-         */
-        const rawOrder = (await getOrderById(
-          input.orderId,
-          true,
-        )) as RawOrderDocument | null;
-
-        // Handle case where order is not found
-        if (!rawOrder) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Order with ID ${input.orderId} not found`,
-          });
-        }
-
-        /**
-         * Format Order with Type Safety
-         *
-         * Transform the raw MongoDB document into a properly typed,
-         * client-ready format. Includes validation of populated data.
-         */
-        const formattedOrder = formatOrderDocument(rawOrder);
-
-        console.log(`Successfully retrieved order ${input.orderId}`);
-
-        return formattedOrder;
+        return await orderService.getOrderUserView(orderId);
       } catch (error) {
         throw handleTRPCError(error, "Error in getByOrderId procedure.");
       }
@@ -359,92 +249,5 @@ export const orderRouter = createTRPCRouter({
         success: true,
         message: "Delivery Confirmed.",
       };
-    }),
-
-  /**
-   * Get Order Summary by User ID Procedure
-   *
-   * Retrieves a summary of orders for a user including statistics
-   * and recent order information. Useful for dashboard displays.
-   *
-   * @param input.userId - The user ID to get summary for
-   * @returns Order summary with statistics
-   */
-  getOrderSummaryByUserId: baseProcedure
-    .input(
-      z.object({
-        userId: z.string().min(1, "User ID is required"),
-        limit: z.number().min(1).max(50).default(10),
-      }),
-    )
-    .query(async ({ input }) => {
-      try {
-        await connectToDatabase();
-        const Order = await getOrderModel();
-
-        // Validate user ID format
-        if (!mongoose.Types.ObjectId.isValid(input.userId)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid user ID format",
-          });
-        }
-
-        /**
-         * Parallel Queries for Efficiency
-         *
-         * Execute multiple queries simultaneously to gather
-         * comprehensive order statistics and recent orders.
-         */
-        const [totalOrders, recentOrders, orderStats] = await Promise.all([
-          // Total order count
-          Order.countDocuments({ userId: input.userId }),
-
-          // Recent orders with basic info
-          Order.find({ userId: input.userId })
-            .select("_id totalAmount paymentStatus createdAt")
-            .sort({ createdAt: -1 })
-            .limit(input.limit)
-            .lean(),
-
-          // Order statistics aggregation
-          Order.aggregate([
-            { $match: { userId: new mongoose.Types.ObjectId(input.userId) } },
-            {
-              $group: {
-                _id: null,
-                totalSpent: { $sum: "$totalAmount" },
-                averageOrderValue: { $avg: "$totalAmount" },
-                statusCounts: {
-                  $push: "$paymentStatus",
-                },
-              },
-            },
-          ]),
-        ]);
-
-        return {
-          totalOrders,
-          totalSpent: orderStats[0]?.totalSpent || 0,
-          averageOrderValue: orderStats[0]?.averageOrderValue || 0,
-          recentOrders: recentOrders.map((order) => ({
-            _id: order._id.toString(),
-            totalAmount: order.totalAmount,
-            paymentStatus: order.paymentStatus,
-            createdAt: order.createdAt,
-          })),
-        };
-      } catch (error) {
-        console.error("Error in getOrderSummaryByUserId procedure:", error);
-
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to retrieve order summary",
-        });
-      }
     }),
 });

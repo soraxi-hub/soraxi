@@ -21,45 +21,42 @@ type CreatePendingOrderParams = {
 };
 
 /**
- * OrderPendingService handles creation of pending orders using the OrderBuilder pattern
+ * OrderPendingService handles creation of pending orders using the OrderBuilder pattern.
  *
- * This service:
- * - Uses OrderBuilder for clean, maintainable order construction
- * - Handles discount calculation and distribution
- * - Manages idempotency to prevent duplicate orders
- * - Orchestrates with CouponService for validation
- * - Manages MongoDB transactions for data consistency
+ * Responsibility after the financial-composition refactor:
+ * ─────────────────────────────────────────────────────────
+ * This service is a pure orchestrator. Its only financial concern is
+ * validating the coupon and computing the order-level totalDiscount so it
+ * can be handed to OrderBuilder.applyDiscount().
  *
- * The flow: PreparedPaymentData → Discount Calculation → OrderBuilder → OrderService → Database
+ * It does NOT:
+ *   - Distribute discounts across stores (OrderBuilder.build() does that via
+ *     DiscountCalculator.distributeDiscountProportionally).
+ *   - Compute commissions or settlement amounts (buildSubOrderFinancials does
+ *     that via calculateCommission).
+ *   - Touch any per-sub-order financials.
  *
- * @example
- * ```typescript
- * const order = await OrderPendingService.createPendingOrder({
- *   user,
- *   cart,
- *   input: preparedPaymentData
- * });
- * ```
+ * Flow:
+ *   PreparedPaymentData
+ *     → coupon validation + totalDiscount  (calculateDiscount)
+ *     → OrderBuilder fluent construction
+ *     → OrderBuilder.build()              (discount split + financials computed)
+ *     → OrderRepository.createOrder()     (persistence)
  */
 export class OrderPendingService {
   /**
-   * Creates a pending order with payment status = Pending
-   *
-   * This is the main entry point for creating orders from the checkout flow.
+   * Creates a pending order with PaymentStatus = Pending.
    *
    * @param params - User, cart, and prepared payment data
    * @returns The saved order document
-   * @throws DuplicateOrderError if order with same idempotency key exists
-   * @throws InvalidOrderStateError if order construction fails
-   * @throws Database errors from MongoDB
+   * @throws Error if the idempotency key is missing or a duplicate order exists
+   * @throws DuplicateOrderError from OrderRepository if the key races past the pre-check
+   * @throws Any domain or DB error propagated from OrderBuilder / OrderRepository
    *
    * @remarks
-   * The method internally handles:
-   * 1. Duplicate order detection via idempotency key
-   * 2. Coupon validation and discount calculation
-   * 3. Proportional discount distribution across stores
-   * 4. MongoDB transaction management for consistency
-   * 5. Order builder construction and persistence
+   * CRITICAL — do not rename or restructure the fields extracted from `input`.
+   * They are verified by the Flutterwave webhook handler; any change here must
+   * be mirrored there.
    */
   static async createPendingOrder({
     user,
@@ -74,7 +71,10 @@ export class OrderPendingService {
       const idempotencyKey = cart.idempotencyKey;
       if (!idempotencyKey) throw new Error("IdempotencyKey required");
 
-      // Check for duplicate order
+      // ── Duplicate guard ────────────────────────────────────────────────
+      // A second check is performed inside OrderRepository.createOrder()
+      // within the transaction, but this early check avoids building the
+      // entire order only to throw at persistence time.
       const existing = await QueryBuilderFactory.queryBuilder<IOrder>(
         OrderModel,
       )
@@ -88,26 +88,26 @@ export class OrderPendingService {
         );
       }
 
-      // Extract and destructure payment data
+      // ── Extract payment data ───────────────────────────────────────────
       /**
-       * Critical: Please note that changing any of this data or field names may break
-       * the webhook verification and payment confirmation process. Proceed with caution.
-       * If you must change anything here, ensure you also update the webhook handler accordingly.
+       * CRITICAL: do not rename these fields — the webhook handler reads
+       * the same shape for payment verification.
        */
       const {
-        // amount,
         cartItemsWithShippingMethod: cartItems,
         meta: { address, city, state, postal_code, deliveryType, couponCode },
       } = input;
 
-      // Step 1: Calculate discount if coupon is provided
+      // ── Step 1: Validate coupon and get total discount ─────────────────
+      // calculateDiscount returns the order-level totalDiscount only.
+      // Per-store distribution is handled inside OrderBuilder.build().
       const { totalDiscount, couponType } = await this.calculateDiscount({
         couponCode,
         cartItems,
         userId: user.userId,
       });
 
-      // Step 2: Build the order using OrderBuilder
+      // ── Step 2: Construct order via OrderBuilder ───────────────────────
       const builder = new OrderBuilder()
         .setCustomer({
           userId: user.userId,
@@ -128,7 +128,9 @@ export class OrderPendingService {
         })
         .setIdempotencyKey(idempotencyKey);
 
-      // Step 3: Add sub-orders with discount distribution
+      // ── Step 3: Add sub-orders ─────────────────────────────────────────
+      // Products and shipping only — no financial data attached here.
+      // Financial snapshots are computed inside builder.build().
       cartItems.forEach((store) => {
         builder.addSubOrder({
           storeId: store.storeId,
@@ -161,7 +163,10 @@ export class OrderPendingService {
         });
       });
 
-      // Step 4: Apply discount if applicable
+      // ── Step 4: Apply order-level discount ─────────────────────────────
+      // Only the total discount amount is passed in. builder.build() will
+      // call DiscountCalculator.distributeDiscountProportionally internally
+      // to split it across sub-orders.
       if (totalDiscount > 0) {
         builder.applyDiscount({
           amount: totalDiscount,
@@ -171,18 +176,18 @@ export class OrderPendingService {
         });
       }
 
-      // Step 5: Build the order configuration
+      // ── Step 5: Build — computes all financials ────────────────────────
+      // After this call, every SubOrderBuildResult in orderConfig.subOrders
+      // carries a sealed ISubOrderFinancials snapshot.
       const orderConfig = builder.build();
 
-      // Step 6: Persist the order using OrderService
+      // ── Step 6: Persist ────────────────────────────────────────────────
       const savedOrder = await OrderRepository.createOrder(
         orderConfig,
         session,
       );
 
-      // Commit transaction
       await session.commitTransaction();
-
       return savedOrder;
     } catch (err) {
       await session.abortTransaction();
@@ -192,49 +197,63 @@ export class OrderPendingService {
     }
   }
 
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
   /**
-   * Calculates discount amount and distributes it proportionally across stores
+   * Validates the coupon and computes the order-level totalDiscount in kobo.
+   *
+   * What this method does:
+   *   1. Short-circuits with zero discount when no coupon code is present.
+   *   2. Computes the order total (sum of all store amounts) for coupon
+   *      validation and discount calculation.
+   *   3. Calls CouponService to validate the coupon against the user and total.
+   *   4. Calls DiscountCalculator.calculateDiscount to get the scalar discount.
+   *   5. Returns totalDiscount and couponType.
+   *
+   * What this method does NOT do:
+   *   - Distribute the discount across stores. That responsibility now lives
+   *     entirely in OrderBuilder.build() via DiscountCalculator
+   *     .distributeDiscountProportionally. Removing it here eliminates the
+   *     previous double-distribution bug where the service split the discount
+   *     into discountsPerStore but the builder never consumed that result.
    *
    * @private
-   * @param params - Coupon code, cart items, and user ID
-   * @returns Total discount, per-store distribution, and coupon type
-   *
-   * @remarks
-   * If no coupon code is provided, returns zero discount.
-   * Discount is distributed proportionally based on each store's percentage of the total order.
    */
   private static async calculateDiscount(params: {
     couponCode?: string | null;
     cartItems: CartItemsWithShippingMethod["cartItemsWithShippingMethod"];
     userId: string;
-  }) {
-    if (!params.couponCode || !params.couponCode.trim()) {
-      return {
-        totalDiscount: 0,
-        discountsPerStore: [] as number[],
-        couponType: undefined as CouponTypeEnum | undefined,
-      };
+  }): Promise<{
+    totalDiscount: number;
+    couponType: CouponTypeEnum | undefined;
+  }> {
+    if (!params.couponCode?.trim()) {
+      return { totalDiscount: 0, couponType: undefined };
     }
 
     const { couponCode, cartItems, userId } = params;
 
-    // Calculate order total for coupon validation
-    const storeAmounts = cartItems.map((store) => {
-      return store.products.reduce((sum: number, item) => {
-        const price = item.selectedSize?.price || item.product.price;
+    // Compute per-store subtotals and grand total for coupon validation.
+    // currencyOperations is used here (not OrderCalculations) to stay
+    // consistent with the checkout pipeline's existing arithmetic style.
+    const storeAmounts = cartItems.map((store) =>
+      store.products.reduce((sum: number, item) => {
+        const price = item.selectedSize?.price ?? item.product.price;
         return currencyOperations.add(
           sum,
           currencyOperations.multiply(Number(price), item.quantity),
         );
-      }, 0);
-    });
+      }, 0),
+    );
 
     const orderTotal = storeAmounts.reduce(
       (sum: number, amount: number) => currencyOperations.add(sum, amount),
       0,
     );
 
-    // Validate coupon
+    // Validate the coupon
     const couponService = await CouponService.init();
     const coupon = await couponService.validateCoupon({
       code: couponCode,
@@ -242,26 +261,12 @@ export class OrderPendingService {
       orderTotal,
     });
 
-    // Calculate total discount
+    // Compute the scalar total discount
     const totalDiscount = DiscountCalculator.calculateDiscount(
-      {
-        type: coupon.type,
-        value: coupon.value,
-      },
+      { type: coupon.type, value: coupon.value },
       orderTotal,
     );
 
-    // Distribute discount proportionally across stores
-    const proportionalBreakdown =
-      DiscountCalculator.distributeDiscountProportionally(
-        totalDiscount,
-        storeAmounts,
-      );
-
-    return {
-      totalDiscount,
-      discountsPerStore: proportionalBreakdown.distribution,
-      couponType: coupon.type,
-    };
+    return { totalDiscount, couponType: coupon.type };
   }
 }

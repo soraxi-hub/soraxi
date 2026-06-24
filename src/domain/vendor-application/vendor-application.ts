@@ -3,10 +3,20 @@ import { VendorApplicationProps } from "./vendor-application-types";
 export class VendorApplication {
   constructor(private props: VendorApplicationProps) {}
 
-  // ─── Getters ─────────────────────────────────────────────────────────────
-
   get id() {
     return this.props.id;
+  }
+
+  get cityOfApplicant() {
+    return this.props.cityOfApplicant;
+  }
+
+  get stateOfApplicant() {
+    return this.props.stateOfApplicant;
+  }
+
+  get submittedBy() {
+    return this.props.submittedBy;
   }
 
   get referenceId() {
@@ -31,6 +41,10 @@ export class VendorApplication {
 
   get phone() {
     return this.props.phone;
+  }
+
+  get institution() {
+    return this.props.institution;
   }
 
   get categoryId() {
@@ -132,16 +146,17 @@ export class VendorApplication {
 
   // ─── State transitions ────────────────────────────────────────────────────
 
-  approve(inviteToken: string, inviteExpiresAt: Date, adminId: string): void {
+  approve(_inviteToken: string, _inviteExpiresAt: Date, adminId: string): void {
     if (!this.canBeApproved()) {
       throw new Error(
         `Application ${this.props.referenceId} cannot be approved from status: ${this.props.status}`,
       );
     }
 
+    // No need for the invite token since we are autogenerating the store for the vendor
     this.props.status = "approved";
-    this.props.inviteToken = inviteToken;
-    this.props.inviteExpiresAt = inviteExpiresAt;
+    // this.props.inviteToken = inviteToken;
+    // this.props.inviteExpiresAt = inviteExpiresAt;
     this.props.reviewedBy = adminId;
     this.props.updatedAt = new Date();
   }

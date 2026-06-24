@@ -13,7 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { FirstStepProps } from "../../../../types/waitlist-wizard.types";
+import type { FirstStepProps } from "@/types/waitlist-wizard.types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { INSTITUTIONS } from "@/constants/constant";
 
 export const BusinessContactStep: React.FC<FirstStepProps> = ({
   formData,
@@ -159,6 +167,102 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
               <p className="text-sm text-red-500 flex items-center">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 {errors.phone}
+              </p>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Institution */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="institution" className="text-sm font-medium">
+                Institution <span className="text-red-500">*</span>
+              </Label>
+              {getValidationIcon("institution")}
+            </div>
+            <Select
+              value={formData.institution}
+              onValueChange={(val) => onFormDataChange("institution", val)}
+              disabled={isLoading}
+            >
+              <SelectTrigger
+                id="institution"
+                className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800] w-full"
+              >
+                <SelectValue placeholder="Select your institution" />
+              </SelectTrigger>
+              <SelectContent>
+                {INSTITUTIONS.map((inst) => (
+                  <SelectItem key={inst} value={inst}>
+                    {inst}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.institution && (
+              <p className="text-sm text-red-500 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {errors.institution}
+              </p>
+            )}
+            <p className="text-xs text-gray-500">
+              The institution your store will be associated with
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* State */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="state" className="text-sm font-medium">
+                State <span className="text-red-500">*</span>
+              </Label>
+              {getValidationIcon("stateOfApplicant")}
+            </div>
+            <Input
+              id="state"
+              value={formData.stateOfApplicant}
+              onChange={(e) =>
+                onFormDataChange("stateOfApplicant", e.target.value)
+              }
+              placeholder="e.g. Cross River"
+              disabled={isLoading}
+              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
+            />
+            {errors.stateOfApplicant && (
+              <p className="text-sm text-red-500 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {errors.stateOfApplicant}
+              </p>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* City */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="city" className="text-sm font-medium">
+                City <span className="text-red-500">*</span>
+              </Label>
+              {getValidationIcon("cityOfApplicant")}
+            </div>
+            <Input
+              id="city"
+              value={formData.cityOfApplicant}
+              onChange={(e) =>
+                onFormDataChange("cityOfApplicant", e.target.value)
+              }
+              placeholder="e.g. Calabar"
+              disabled={isLoading}
+              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
+            />
+            {errors.cityOfApplicant && (
+              <p className="text-sm text-red-500 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {errors.cityOfApplicant}
               </p>
             )}
           </div>

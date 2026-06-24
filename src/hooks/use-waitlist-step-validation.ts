@@ -48,6 +48,19 @@ export function useWaitlistStepValidation(): UseWaitlistStepValidationReturn {
         stepErrors.phone = "Please enter a valid phone number";
       }
 
+      if (!formData.institution.trim()) {
+        stepErrors.institution =
+          "Please select an institution close to your business";
+      }
+
+      if (!formData.stateOfApplicant.trim()) {
+        stepErrors.stateOfApplicant = "State is required";
+      }
+
+      if (!formData.cityOfApplicant.trim()) {
+        stepErrors.cityOfApplicant = "City is required";
+      }
+
       return {
         isValid: Object.keys(stepErrors).length === 0,
         errors: stepErrors,

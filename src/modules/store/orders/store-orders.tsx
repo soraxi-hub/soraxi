@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import {
-  Search,
   Filter,
   Eye,
   MoreHorizontal,
@@ -12,7 +11,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,10 +44,9 @@ import {
 import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { formatNaira } from "@/lib/utils/naira";
 import { Separator } from "@/components/ui/separator";
 import { getStatusBadge } from "@/lib/utils";
-import { deliveryStatusLabel } from "@/enums";
+import { DeliveryStatus, deliveryStatusLabel } from "@/enums";
 
 /**
  * Store Orders Management Component
@@ -93,7 +90,6 @@ export default function StoreOrdersManagement({
    */
   const [selectedMonth, setSelectedMonth] = useState("current");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // ==================== Utility Functions ====================
@@ -176,7 +172,7 @@ export default function StoreOrdersManagement({
       deliveryStatus: selectedStatus,
       page: currentPage,
       limit: 20,
-    })
+    }),
   );
 
   const orders = data?.orders || [];
@@ -199,7 +195,7 @@ export default function StoreOrdersManagement({
    */
   useEffect(() => {
     fetchOrders();
-  }, [selectedMonth, selectedStatus, searchQuery]);
+  }, [selectedMonth, selectedStatus]);
 
   /**
    * Pagination Changes
@@ -213,18 +209,6 @@ export default function StoreOrdersManagement({
   // ==================== Event Handlers ====================
 
   /**
-   * Handle Search Input
-   *
-   * Processes search input with debouncing to prevent excessive API calls.
-   *
-   * @param value - The search query value
-   */
-  const handleSearch = (value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(1); // Reset to first page when searching
-  };
-
-  /**
    * Handle Filter Changes
    *
    * Processes filter changes and resets pagination to first page.
@@ -234,7 +218,7 @@ export default function StoreOrdersManagement({
    */
   const handleFilterChange = (
     filterType: "month" | "status",
-    value: string
+    value: string,
   ) => {
     if (filterType === "month") {
       setSelectedMonth(value);
@@ -264,30 +248,6 @@ export default function StoreOrdersManagement({
       setCurrentPage(direction);
     }
   };
-
-  /**
-   * Handle Order Export
-   *
-   * Initiates the export process for filtered orders with user feedback.
-   */
-  // const handleExportOrders = async () => {
-  //   try {
-  //     // toast({
-  //     //   title: "Export Started",
-  //     //   description: "Your order export is being prepared...",
-  //     // })
-
-  //     // TODO: Implement actual export functionality
-  //     // This would typically call an export API endpoint
-  //     console.log("Exporting orders with current filters...");
-  //   } catch (err) {
-  //     // toast({
-  //     //   title: "Export Failed",
-  //     //   description: "Failed to export orders. Please try again.",
-  //     //   variant: "destructive",
-  //     // })
-  //   }
-  // };
 
   // ==================== Render Functions ====================
 
@@ -332,26 +292,25 @@ export default function StoreOrdersManagement({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="Order Placed">Order Placed</SelectItem>
-            <SelectItem value="Processing">Processing</SelectItem>
-            <SelectItem value="Shipped">Shipped</SelectItem>
-            <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
-            <SelectItem value="Delivered">Delivered</SelectItem>
-            <SelectItem value="Canceled">Canceled</SelectItem>
-            <SelectItem value="Returned">Returned</SelectItem>
-            <SelectItem value="Failed Delivery">Failed Delivery</SelectItem>
-            <SelectItem value="Refunded">Refunded</SelectItem>
+            <SelectItem value={DeliveryStatus.OrderPlaced}>
+              Order Placed
+            </SelectItem>
+            <SelectItem value={DeliveryStatus.Processing}>
+              Processing
+            </SelectItem>
+            <SelectItem value={DeliveryStatus.Shipped}>Shipped</SelectItem>
+            <SelectItem value={DeliveryStatus.OutForDelivery}>
+              Out for Delivery
+            </SelectItem>
+            <SelectItem value={DeliveryStatus.Delivered}>Delivered</SelectItem>
+            <SelectItem value={DeliveryStatus.Canceled}>Canceled</SelectItem>
+            <SelectItem value={DeliveryStatus.Returned}>Returned</SelectItem>
+            <SelectItem value={DeliveryStatus.FailedDelivery}>
+              Failed Delivery
+            </SelectItem>
+            <SelectItem value={DeliveryStatus.Refunded}>Refunded</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      <div>
-        <label className="text-sm font-medium mb-2 block">Search Orders</label>
-        <Input
-          placeholder="Search by order ID, customer name, or product..."
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
       </div>
     </div>
   );
@@ -401,11 +360,6 @@ export default function StoreOrdersManagement({
         </div>
 
         <div className="flex items-center gap-2 w-full md:justify-end">
-          {/* <Button variant="outline" onClick={handleExportOrders}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button> */}
-
           <Button
             onClick={() => fetchOrders()}
             className="flex-1 md:flex-0 bg-soraxi-green text-white hover:bg-soraxi-green-hover"
@@ -459,23 +413,10 @@ export default function StoreOrdersManagement({
                   Orders ({totalCount} total)
                   {selectedStatus !== "all" && (
                     <Badge variant="outline" className="ml-2">
-                      {selectedStatus}
+                      {deliveryStatusLabel(selectedStatus as DeliveryStatus)}
                     </Badge>
                   )}
                 </CardTitle>
-
-                {/* Desktop Search */}
-                <div className="hidden md:flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search orders..."
-                      value={searchQuery}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      className="pl-10 w-64"
-                    />
-                  </div>
-                </div>
               </div>
             </CardHeader>
 
@@ -496,7 +437,7 @@ export default function StoreOrdersManagement({
                     No Orders Found
                   </h3>
                   <p className="text-muted-foreground">
-                    {searchQuery || selectedStatus !== "all"
+                    {selectedStatus !== "all"
                       ? "No orders match your current filters."
                       : "You haven't received any orders yet."}
                   </p>
@@ -519,51 +460,44 @@ export default function StoreOrdersManagement({
                       <TableBody>
                         {orders.map((order) => {
                           const primaryStatus =
-                            order.subOrders[0]?.deliveryStatus ||
-                            "Order Placed";
+                            order.subOrder.deliveryStatus || "Order Placed";
                           const statusConfig = getStatusBadge(primaryStatus);
                           const StatusIcon = statusConfig.icon;
 
                           return (
-                            <TableRow key={order._id}>
+                            <TableRow key={order.orderId}>
                               <TableCell>
                                 <div>
                                   <p className="font-medium truncate max-w-[180px]">
-                                    {typeof order.user === "string"
-                                      ? "Unknown User"
-                                      : `${order.user.firstName} ${order.user.lastName}`}
+                                    {order.customerInfo.name}
                                   </p>
                                   <p className="text-sm text-muted-foreground truncate max-w-[180px]">
-                                    {typeof order.user === "string"
-                                      ? ""
-                                      : order.user.email}
+                                    {order.customerInfo.email}
                                   </p>
                                 </div>
                               </TableCell>
 
                               <TableCell>
                                 <div className="space-y-1">
-                                  {order.subOrders.map((subOrder, index) => (
-                                    <div key={index} className="text-sm">
-                                      {subOrder.products
-                                        .slice(0, 2)
-                                        .map((product, productIndex) => (
-                                          <p
-                                            key={productIndex}
-                                            className="truncate max-w-[200px]"
-                                          >
-                                            {product.productSnapshot.name} (×
-                                            {product.productSnapshot.quantity})
-                                          </p>
-                                        ))}
-                                      {subOrder.products.length > 2 && (
-                                        <p className="text-muted-foreground">
-                                          +{subOrder.products.length - 2} more
-                                          items
+                                  <div className="text-sm">
+                                    {order.subOrder.products
+                                      .slice(0, 2)
+                                      .map((product, productIndex) => (
+                                        <p
+                                          key={productIndex}
+                                          className="truncate max-w-[200px]"
+                                        >
+                                          {product.productSnapshot.name} (×
+                                          {product.productSnapshot.quantity})
                                         </p>
-                                      )}
-                                    </div>
-                                  ))}
+                                      ))}
+                                    {order.subOrder.products.length > 2 && (
+                                      <p className="text-muted-foreground">
+                                        +{order.subOrder.products.length - 2}{" "}
+                                        more items
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
 
@@ -581,7 +515,7 @@ export default function StoreOrdersManagement({
                               </TableCell>
 
                               <TableCell className="font-medium">
-                                {formatNaira(order.subOrders[0].originalAmount)}
+                                {order.subOrder.financials.formattedAmountPaid}
                               </TableCell>
 
                               <TableCell>
@@ -589,13 +523,13 @@ export default function StoreOrdersManagement({
                                   <p>
                                     {format(
                                       new Date(order.createdAt),
-                                      "MMM dd, yyyy"
+                                      "MMM dd, yyyy",
                                     )}
                                   </p>
                                   <p className="text-muted-foreground">
                                     {format(
                                       new Date(order.createdAt),
-                                      "h:mm a"
+                                      "h:mm a",
                                     )}
                                   </p>
                                 </div>
@@ -611,7 +545,7 @@ export default function StoreOrdersManagement({
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem asChild>
                                       <Link
-                                        href={`/store/${storeId}/orders/${order._id}`}
+                                        href={`/store/${storeId}/orders/${order.orderId}`}
                                       >
                                         <Eye className="h-4 w-4 mr-2" />
                                         View Details
@@ -668,7 +602,7 @@ export default function StoreOrdersManagement({
                                   {pageNum}
                                 </Button>
                               );
-                            }
+                            },
                           )}
                         </div>
 

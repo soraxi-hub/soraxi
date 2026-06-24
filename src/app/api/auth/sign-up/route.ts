@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       throw new AppError("CONFLICT", "Phone Number already exist");
     }
 
-    const user = UserFactory.createAuthUser(props);
+    const user = UserFactory.createSignupUser(props);
     await user.hashPassword();
     await UserRepository.saveUser(user);
 
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
+    console.log("Erorr signing up:", error);
     return handleApiError(error);
   }
 }

@@ -114,11 +114,8 @@ export function StoreAccordion({
               const StatusIcon = statusConfig.icon;
 
               const subOrderId = subOrder._id ?? "";
-              const financialStatus = financialStatuses[subOrderId];
-              const storeName =
-                typeof subOrder.store === "object" && "name" in subOrder.store
-                  ? subOrder.store.name
-                  : `Store ${index + 1}`;
+              const financialStatus = financialStatuses[subOrderId.toString()];
+              const storeName = `Store ${index + 1}`;
 
               // Determine dispute UI state for this suborder
               const isDisputeOpen =
@@ -220,7 +217,10 @@ export function StoreAccordion({
                               <Button
                                 variant="outline"
                                 onClick={() =>
-                                  onDisputeInitAction(subOrderId, storeName)
+                                  onDisputeInitAction(
+                                    subOrderId.toString(),
+                                    storeName,
+                                  )
                                 }
                                 disabled={submitting}
                                 className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -269,7 +269,9 @@ export function StoreAccordion({
                               <TooltipTrigger asChild>
                                 <Button
                                   onClick={() =>
-                                    onUpdateDeliveryStatusAction(subOrderId)
+                                    onUpdateDeliveryStatusAction(
+                                      subOrderId.toString(),
+                                    )
                                   }
                                   disabled={submitting}
                                   className="w-full mt-2 text-white bg-soraxi-green hover:bg-soraxi-green-hover"
@@ -349,7 +351,7 @@ export function StoreAccordion({
                             // Returns functionality removed — replaced by disputes
                             onReturnInitAction={() => {}}
                             deliveryStatus={subOrder.deliveryStatus}
-                            subOrderId={subOrderId}
+                            subOrderId={subOrderId.toString()}
                           />
                         ),
                       )}

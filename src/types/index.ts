@@ -77,5 +77,5 @@ export interface ShippingMethod {
   name: string;
   price: number;
   description?: string;
-  estimatedDeliveryDays?: number;
+  estimatedDeliveryDays?: number | string; // Estimated number of days for delivery after order placement (e.g., "3-5 days")
 }

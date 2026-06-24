@@ -8,10 +8,16 @@ import {
   StatusHistory,
   CouponTypeEnum,
 } from "@/enums";
+import { IDiscount } from "@/validators/discount-validation";
+import {
+  CustomerConfirmedDelivery,
+  ISubOrderFinancials,
+  ShippingAddress,
+} from "@/types/order";
+import { ShippingMethod } from "@/types";
 import { getUserModel } from "./user.model";
 import { getStoreModel } from "./store.model";
 import { getProductModel } from "./product.model";
-import { IDiscount } from "@/validators/discount-validation";
 
 /**
  * Interface representing a product snapshot in an order.
@@ -33,10 +39,6 @@ export interface IOrderProduct {
       price: number;
     };
   };
-  storeSnapshot: {
-    _id: mongoose.Types.ObjectId;
-    name: string;
-  };
 }
 
 /**
@@ -46,28 +48,20 @@ export interface ISubOrder {
   _id: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
   products: IOrderProduct[];
-  originalAmount: number; // Add original amount before discount
-  totalAmount: number;
-  discount?: IDiscount; // Change from simple number to discount object
-  shippingMethod?: {
-    name: string;
-    price: number;
-    estimatedDeliveryDays?: string; // Estimated number of days for delivery after order placement (e.g., "3-5 days")
-    description?: string;
-  };
-  // trackingNumber?: string; // For the start and our MVP, we don't need it
+  financials: ISubOrderFinancials;
+  shippingMethod?: ShippingMethod;
   deliveryDate?: Date; // The date the product was delivered
   deliveryStatus: DeliveryStatus;
-  customerConfirmedDelivery: {
-    confirmed: boolean; // true if customer manually confirmed delivery
-    confirmedAt?: Date; // when the customer confirmed
-    autoConfirmed: boolean; // true if system auto-confirmed
-  };
+  customerConfirmedDelivery: CustomerConfirmedDelivery;
   statusHistory: Array<{
     status: StatusHistory;
     timestamp: Date;
     notes?: string;
   }>;
+  storeSnapshot: {
+    name: string;
+    email?: string;
+  };
 }
 
 /**
@@ -76,16 +70,15 @@ export interface ISubOrder {
 export interface IOrder {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  userSnapshot: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+  };
   stores: mongoose.Types.ObjectId[];
   subOrders: ISubOrder[];
   totalAmount: number;
-  shippingAddress: {
-    postalCode: string;
-    address: string;
-    deliveryType: DeliveryType;
-    campusName?: string;
-    campusLocation?: string;
-  };
+  shippingAddress: ShippingAddress;
   paymentStatus: PaymentStatus;
   idempotencyKey: string;
   paymentMethod?: string;
@@ -93,7 +86,6 @@ export interface IOrder {
   notes?: string;
   couponCode?: string; // Add coupon code reference
   discount?: IDiscount; // Change from simple number to discount object
-  // expireAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -144,16 +136,6 @@ const OrderProductSchema = new Schema<IOrderProduct>({
       price: { type: Number },
     },
   },
-  storeSnapshot: {
-    _id: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: [true, "Store snapshot ID is required"],
-    },
-    name: {
-      type: String,
-      required: [true, "Store name is required for store snapshot"],
-    },
-  },
 });
 
 /**
@@ -170,6 +152,50 @@ const DiscountSchema = new Schema<IDiscount>({
 });
 
 /**
+ * Schema for the immutable financial snapshot of a sub-order.
+ *
+ * All monetary values are stored in kobo to prevent
+ * floating-point precision errors.
+ */
+const SubOrderFinancialsSchema = new Schema<ISubOrderFinancials>(
+  {
+    subtotal: {
+      type: Number,
+      required: [true, "Subtotal is required"],
+    },
+
+    discount: {
+      type: DiscountSchema,
+    },
+
+    amountPaid: {
+      type: Number,
+      required: [true, "Amount paid is required"],
+    },
+
+    platformFee: {
+      percentage: {
+        type: Number,
+        required: [true, "Platform fee percentage is required"],
+      },
+
+      amount: {
+        type: Number,
+        required: [true, "Platform fee amount is required"],
+      },
+    },
+
+    vendorSettlementAmount: {
+      type: Number,
+      required: [true, "Vendor settlement amount is required"],
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+/**
  * Schema for sub-orders linked to stores.
  */
 const SubOrderSchema = new Schema<ISubOrder>({
@@ -179,9 +205,10 @@ const SubOrderSchema = new Schema<ISubOrder>({
     required: [true, "StoreId is required for reference"],
   },
   products: [OrderProductSchema],
-  originalAmount: { type: Number }, // Add originalAmount field
-  totalAmount: { type: Number, required: [true, "Total amount is required"] },
-  discount: DiscountSchema, // Update discount to object schema
+  financials: {
+    type: SubOrderFinancialsSchema,
+    required: [true, "Financial breakdown is required"],
+  },
   shippingMethod: {
     name: { type: String },
     price: { type: Number },
@@ -198,6 +225,16 @@ const SubOrderSchema = new Schema<ISubOrder>({
     confirmed: { type: Boolean, default: false },
     confirmedAt: { type: Date },
     autoConfirmed: { type: Boolean, default: false },
+  },
+  storeSnapshot: {
+    name: {
+      type: String,
+      required: [true, "Store name is required for store snapshot"],
+    },
+    email: {
+      type: String,
+      // required: [true, "Store email is required for store snapshot"],
+    },
   },
   statusHistory: [
     {
@@ -222,6 +259,23 @@ const OrderSchema = new Schema<IOrderDocument>(
       ref: "User",
       required: [true, "UserId is required for reference"],
     },
+    userSnapshot: {
+      name: {
+        type: String,
+        required: [true, "Customer's name is required for Customer snapshot"],
+      },
+      email: {
+        type: String,
+        required: [true, "Customer's email is required for Customer snapshot"],
+      },
+      phoneNumber: {
+        type: String,
+        required: [
+          true,
+          "Customer's phone number is required for Customer snapshot",
+        ],
+      },
+    },
     stores: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -234,7 +288,8 @@ const OrderSchema = new Schema<IOrderDocument>(
     shippingAddress: {
       postalCode: { type: String, required: [true, "Postal code is required"] },
       address: { type: String, required: [true, "Address is required"] },
-      // New fields for delivery type
+      city: { type: String, required: [true, "City is required"] },
+      state: { type: String, required: [true, "State is required"] },
       deliveryType: {
         type: String,
         enum: Object.values(DeliveryType),
@@ -259,16 +314,9 @@ const OrderSchema = new Schema<IOrderDocument>(
       required: true,
       unique: true,
       immutable: true,
-      sparse: true,
-    }, // Only set at creation, cannot be changed even if the order is updated. Sparse to allow multiple nulls for old orders without the field
-    notes: { type: String },
+    }, // Only set at creation, cannot be changed even if the order is updated.
     couponCode: { type: String }, // Add couponCode field
     discount: DiscountSchema, // Update discount to object schema
-    // expireAt: {
-    //   type: Date,
-    //   default: () => new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
-    //   index: { expires: 0 },
-    // }, // TTL of 180 days, i.e., 6 months
   },
   {
     timestamps: true,
@@ -323,7 +371,7 @@ export async function getOrderById(
     .populate({
       path: "subOrders.storeId",
       model: "Store",
-      select: "name storeEmail logo",
+      select: "name storeEmail",
     })
     .select(
       "_id userId stores totalAmount paymentStatus discount createdAt subOrders",
@@ -332,19 +380,19 @@ export async function getOrderById(
   return lean ? query.lean<IOrder>().exec() : query.exec();
 }
 
-/**
- * Get all orders by a user ID
- * @param userId - The user placing the orders
- * @param lean - Whether to return plain objects or Mongoose documents
- */
-export async function getOrdersByUserId(
-  userId: string,
-  lean = false,
-): Promise<IOrder[] | null> {
-  await connectToDatabase();
-  const Order = await getOrderModel();
+// /**
+//  * Get all orders by a user ID
+//  * @param userId - The user placing the orders
+//  * @param lean - Whether to return plain objects or Mongoose documents
+//  */
+// export async function getOrdersByUserId(
+//   userId: string,
+//   lean = false,
+// ): Promise<IOrder[] | null> {
+//   await connectToDatabase();
+//   const Order = await getOrderModel();
 
-  return lean
-    ? Order.find({ userId: userId }).lean<IOrder[]>()
-    : Order.find({ userId: userId });
-}
+//   return lean
+//     ? Order.find({ userId: userId }).lean<IOrder[]>()
+//     : Order.find({ userId: userId });
+// }

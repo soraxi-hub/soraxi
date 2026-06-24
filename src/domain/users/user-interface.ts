@@ -1,5 +1,6 @@
 import { IUser } from "@/lib/db/models/user.model";
 import { Types } from "mongoose";
+import { BaseUser } from "./user";
 
 export interface IUserInfo {
   userId: string | undefined;
@@ -25,6 +26,26 @@ export interface IUserInfo {
   createdAt: Date | undefined;
   updatedAt: Date | undefined;
 }
+
+/**
+ * Properties required for creating a user during sign‑up.
+ * These are the fields the client sends in the registration request.
+ */
+export type SignupUserContext = Pick<
+  BaseUser,
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "password"
+  | "phoneNumber"
+  | "address"
+  | "cityOfResidence"
+  | "stateOfResidence"
+  | "postalCode"
+> & {
+  /** Whether the email/phone has been verified; defaults to `false`. */
+  isVerified?: boolean;
+};
 
 export type AuthUserContext = Pick<
   IUser,

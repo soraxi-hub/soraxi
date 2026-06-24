@@ -50,7 +50,6 @@ export interface StoreVerification {
 export interface StoreBusinessInfo {
   businessName?: string;
   registrationNumber?: string; // e.g., company registration number like CAC for Nigerians
-  taxId?: string;
   type: StoreBusinessInfoEnum;
   documentUrls?: string[];
 }
@@ -106,6 +105,15 @@ export interface IStore {
 
   // Payouts
   payoutAccounts: IPayoutAccount[];
+
+  // Security
+  security: {
+    hasChangedDefaultPassword: {
+      type: Boolean;
+      default: false;
+    };
+    passwordChangedAt: Date;
+  };
 
   // Metadata
   createdAt: Date;
@@ -266,6 +274,15 @@ const StoreSchema = new Schema<IStoreDocument>(
     payoutAccounts: {
       type: [PayoutAccountSchema],
       default: [],
+    },
+
+    // Security
+    security: {
+      hasChangedDefaultPassword: {
+        type: Boolean,
+        default: false,
+      },
+      passwordChangedAt: Date,
     },
   },
   { timestamps: true },

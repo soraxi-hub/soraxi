@@ -442,7 +442,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
       </Dialog>
 
       {/* Main Container */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-0 py-0">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center gap-2 justify-between mb-6">

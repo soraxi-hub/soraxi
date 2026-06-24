@@ -340,7 +340,7 @@ export const adminOrdersRouter = createTRPCRouter({
               storeName: store?.name ?? "Unknown Store",
               storeEmail: store?.storeEmail ?? null,
               deliveryStatus: sub.deliveryStatus,
-              totalAmount: sub.totalAmount,
+              totalAmount: sub.financials.subtotal,
               shippingMethod: sub.shippingMethod ?? null,
               deliveryDate: sub.deliveryDate ?? null,
               customerConfirmedDelivery: sub.customerConfirmedDelivery,

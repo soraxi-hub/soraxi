@@ -265,23 +265,24 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
 
   return (
     <>
-      <div className="space-y-6 py-6 px-6">
+      <div className="space-y-6 py-0 px-0">
         {/* ── Page header ──────────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Application Review</h1>
-            <p className="text-muted-foreground">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">
+              Application Review
+            </h1>
+            <p className="text-muted-foreground text-sm truncate">
               Ref: {application.referenceId} ·{" "}
               {format(new Date(application.createdAt), "PPP")}
             </p>
           </div>
 
-          {/* Action buttons — only shown when still pending */}
           {isPending && (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 w-full sm:w-auto"
                 onClick={openRejectDialog}
                 disabled={isActioning}
               >
@@ -289,7 +290,7 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
                 Reject
               </Button>
               <Button
-                className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+                className="bg-soraxi-green hover:bg-soraxi-green-hover text-white w-full sm:w-auto"
                 onClick={openApproveDialog}
                 disabled={isActioning}
               >
@@ -355,6 +356,26 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
                 <div>
                   <Label className="text-xs text-muted-foreground">Phone</Label>
                   <p className="mt-0.5">{application.phone}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Institution
+                  </Label>
+                  <p className="font-medium mt-0.5">
+                    {application.institution || "—"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">State</Label>
+                  <p className="font-medium mt-0.5">
+                    {application.stateOfApplicant || "—"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">City</Label>
+                  <p className="font-medium mt-0.5">
+                    {application.cityOfApplicant || "—"}
+                  </p>
                 </div>
               </div>
             </div>

@@ -102,10 +102,6 @@ export class Store implements StoreInterface {
     return this.props.businessInfo?.registrationNumber;
   }
 
-  get taxId(): string | undefined {
-    return this.props.businessInfo?.taxId;
-  }
-
   // -------------------------
   // RATINGS
   // -------------------------

@@ -131,7 +131,7 @@ export function BasicInfoStep({
                 onChange={(value) => onFieldChange("specifications", value)}
                 modules={quillModules}
                 formats={quillFormats}
-                className="h-56 bg-white text-black"
+                className="h-60 bg-white text-black pb-10"
               />
             </div>
             {errors.specifications && (
@@ -161,7 +161,7 @@ export function BasicInfoStep({
                 onChange={(value) => onFieldChange("description", value)}
                 modules={quillModules}
                 formats={quillFormats}
-                className="h-56 bg-white text-black"
+                className="h-60 bg-white text-black pb-10"
               />
             </div>
             {errors.description && (

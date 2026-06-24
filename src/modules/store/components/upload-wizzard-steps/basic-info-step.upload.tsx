@@ -139,7 +139,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 onChange={(value) => onFormDataChange("specifications", value)}
                 modules={quillModules}
                 formats={quillFormats}
-                className="h-56 bg-white text-black"
+                className="h-60 pb-10 bg-white text-black"
                 readOnly={anyLoading}
               />
             </div>
@@ -168,7 +168,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 onChange={(value) => onFormDataChange("description", value)}
                 modules={quillModules}
                 formats={quillFormats}
-                className="h-56 bg-white text-black"
+                className="h-60 pb-10 bg-white text-black"
                 readOnly={anyLoading}
               />
             </div>
@@ -185,14 +185,6 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 Use rich formatting to make your description stand out, or let
                 AI draft one for you.
               </p>
-
-              {/*
-               * CHANGED: was onClick={() => console.log("Do something")}
-               * Now calls the prop that wires back up to the wizard hook.
-               *
-               * Button label changes between "Generate" and "Regenerate"
-               * depending on whether a description already exists.
-               */}
               <Button
                 onClick={onGenerateDescription}
                 disabled={anyLoading}

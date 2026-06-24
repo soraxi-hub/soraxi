@@ -8,6 +8,9 @@ export interface WaitlistFormData {
   ownerName: string;
   email: string;
   phone: string;
+  institution: string;
+  stateOfApplicant: string;
+  cityOfApplicant: string;
 
   // Step 2 — Category & Model
   categoryId: string;
@@ -39,6 +42,9 @@ export const initialWaitlistFormData: WaitlistFormData = {
   cacNumber: "",
   instagramHandle: "",
   otherProofUrl: "",
+  institution: "",
+  stateOfApplicant: "",
+  cityOfApplicant: "",
 };
 
 // ─── Validation ───────────────────────────────────────────────────────────────
