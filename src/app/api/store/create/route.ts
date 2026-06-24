@@ -14,6 +14,7 @@ import {
   StoreTokenPayload,
   UserTokenPayload,
 } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import mongoose from "mongoose";
 
 /**
  * API Route: Create New Store
@@ -21,6 +22,9 @@ import {
  * Generates unique store ID and hashes password for security
  */
 export async function POST(request: NextRequest) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     if (!process.env.JWT_SECRET_KEY) {
       console.error("Missing required environment variables");
@@ -86,13 +90,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const savedStore = await StoreService.createStore({
-      storeName,
-      storeEmail,
-      password,
-      ownerId: userData.id,
-      token,
-    });
+    const savedStore = await StoreService.createStore(
+      {
+        storeName,
+        storeEmail,
+        password,
+        ownerId: userData.id,
+        token,
+      },
+      session,
+    );
 
     // Build token payload
     const storePayload: StoreTokenPayload = {
@@ -134,11 +141,16 @@ export async function POST(request: NextRequest) {
 
     await CookieService.setUserAuth(response, userPayload, hostname);
 
+    await session.commitTransaction();
+    session.endSession();
+
     // Return success response with store information
     return response;
   } catch (error) {
     console.error("Error creating store:", error);
-
+    await session.abortTransaction();
     return handleApiError(error);
+  } finally {
+    session.endSession();
   }
 }

@@ -1,6 +1,42 @@
+/**
+ * OrderBuilder
+ *
+ * Implements the Builder pattern for constructing valid, financially-complete
+ * Order documents.
+ *
+ * Financial responsibility model (after refactor):
+ * ─────────────────────────────────────────────────
+ * OrderBuilder is an ORCHESTRATOR, not a calculator.
+ *
+ * It is responsible for:
+ *   • Collecting and validating inputs (customer, address, payment, sub-orders,
+ *     discount, idempotency key).
+ *   • Splitting a coupon discount proportionally across sub-orders via
+ *     DiscountCalculator (one call, no custom math).
+ *   • Calling buildSubOrderFinancials() once per sub-order to produce the
+ *     immutable financial snapshot.
+ *   • Combining the validated SubOrderConfig with its snapshot into a
+ *     SubOrderBuildResult, which is what the rest of the system consumes.
+ *
+ * It is NOT responsible for:
+ *   • Knowing commission percentages or flat-fee thresholds.
+ *   • Knowing how to calculate percentage vs. fixed discounts.
+ *   • Any monetary arithmetic beyond calling the dedicated utilities.
+ *
+ * Changes from the previous version:
+ * ─────────────────────────────────────────────────
+ *   • build() now calls buildSubOrderFinancials() for each sub-order and
+ *     embeds the result as SubOrderBuildResult in OrderBuildConfig.subOrders.
+ *   • calculateTotals() is preserved for previewing the order-level grand
+ *     total (used by the UI and by validateCompleteness).
+ *   • No commission or discount arithmetic lives in this file.
+ */
+
 import { PaymentStatus } from "@/enums";
 import { OrderCalculations } from "./calculations";
+import { DiscountCalculator } from "@/lib/utils/discount-calculator";
 import { OrderValidators } from "./validators";
+import { buildSubOrderFinancials } from "./build-sub-order-financials";
 import {
   IncompleteOrderError,
   InvalidOrderStateError,
@@ -11,41 +47,13 @@ import type {
   ShippingAddressInfo,
   PaymentInfo,
   SubOrderConfig,
+  SubOrderBuildResult,
   DiscountInfo,
   OrderBuildConfig,
   OrderTotals,
 } from "./types";
 
-/**
- * OrderBuilder implements the Builder pattern for constructing valid Order documents
- *
- * This class provides a fluent API for building orders incrementally while ensuring:
- * - All required data is present before finalization
- * - All business logic rules are enforced (totals, discounts, etc.)
- * - Data immutability where appropriate
- * - Clear separation of concerns
- * - Type safety throughout
- *
- * @example
- * ```typescript
- * const order = await new OrderBuilder()
- *   .setCustomer({ userId: "123", email: "user@example.com", ... })
- *   .setShippingAddress({ address: "...", city: "...", ... })
- *   .setPaymentInfo({ gateway: PaymentGateway.Flutterwave })
- *   .addSubOrder({ storeId: "store1", storeName: "Store 1", ... })
- *   .applyDiscount({ amount: 5000, couponCode: "SAVE10" })
- *   .setIdempotencyKey(idempotencyKey)
- *   .build();
- * ```
- *
- * @remarks
- * - This builder is designed for single-use. Create a new instance for each order.
- * - All monetary values are in kobo (smallest currency unit).
- * - The builder validates state at every step but only enforces final consistency at build().
- * - Method chaining is supported for fluent API usage.
- */
 export class OrderBuilder {
-  // State management
   private customer?: CustomerInfo;
   private shippingAddress?: ShippingAddressInfo;
   private paymentInfo?: PaymentInfo;
@@ -57,20 +65,10 @@ export class OrderBuilder {
   private isBuilt = false;
 
   /**
-   * Sets customer information for the order
+   * Sets customer information for the order.
    *
-   * @param customer - Customer details including user ID, email, name, and phone
-   * @returns this (for method chaining)
-   * @throws {InvalidCustomerError} if customer data is invalid
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.setCustomer({
-   *   userId: "user123",
-   *   email: "user@example.com",
-   *   name: "John Doe",
-   *   phoneNumber: "+2348012345678"
-   * });
+   * @throws {InvalidCustomerError} if customer data is invalid.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   setCustomer(customer: CustomerInfo): this {
     this.throwIfBuilt();
@@ -80,21 +78,10 @@ export class OrderBuilder {
   }
 
   /**
-   * Sets shipping address for the order
+   * Sets the shipping address for the order.
    *
-   * @param address - Shipping address details
-   * @returns this (for method chaining)
-   * @throws {InvalidAddressError} if address is invalid
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.setShippingAddress({
-   *   address: "123 Main St",
-   *   city: "Lagos",
-   *   state: "Lagos State",
-   *   postalCode: "100001",
-   *   deliveryType: DeliveryType.OffCampus
-   * });
+   * @throws {InvalidAddressError} if the address is invalid.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   setShippingAddress(address: ShippingAddressInfo): this {
     this.throwIfBuilt();
@@ -104,19 +91,10 @@ export class OrderBuilder {
   }
 
   /**
-   * Sets payment information for the order
+   * Sets payment information for the order.
    *
-   * @param paymentInfo - Payment gateway and method details
-   * @returns this (for method chaining)
-   * @throws {InvalidPaymentError} if payment info is invalid
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.setPaymentInfo({
-   *   gateway: PaymentGateway.Flutterwave,
-   *   status: PaymentStatus.Pending,
-   *   method: "card"
-   * });
+   * @throws {InvalidPaymentError} if payment info is missing or invalid.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   setPaymentInfo(paymentInfo: PaymentInfo): this {
     this.throwIfBuilt();
@@ -134,81 +112,46 @@ export class OrderBuilder {
   }
 
   /**
-   * Adds a sub-order (a store's portion of the order)
+   * Adds a sub-order (a store's portion of the overall order).
    *
-   * Validates that:
-   * - Store information is valid
-   * - All products in the sub-order are valid
-   * - Shipping method is properly configured
-   * - Sub-order totals can be calculated correctly
+   * Validates store info, all products, and the shipping method.
+   * Financial computation is deferred to build().
    *
-   * @param subOrder - Sub-order configuration
-   * @returns this (for method chaining)
-   * @throws {InvalidSubOrderError} if sub-order is invalid
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.addSubOrder({
-   *   storeId: "store1",
-   *   storeName: "Store One",
-   *   products: [{ product: {...}, quantity: 2 }],
-   *   shippingMethod: { name: "Standard", price: 2000 }
-   * });
+   * @throws {InvalidSubOrderError} if the sub-order is invalid.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   addSubOrder(subOrder: SubOrderConfig): this {
     this.throwIfBuilt();
 
-    // Validate store information
     OrderValidators.validateStoreInfo(subOrder.storeId, subOrder.storeName);
-
-    // Validate products
     OrderValidators.validateSubOrderHasProducts(subOrder.products);
     for (const product of subOrder.products) {
       OrderValidators.validateProduct(product);
     }
-
-    // Validate shipping
     OrderValidators.validateShippingMethod(subOrder.shippingMethod);
 
-    // Store the sub-order (make it immutable)
     this.subOrders.push(Object.freeze(subOrder));
-
     return this;
   }
 
   /**
-   * Applies a discount to the entire order
+   * Applies a discount to the order.
    *
-   * Validates that:
-   * - Discount type is valid (percentage or fixed)
-   * - Discount value is reasonable (not exceeding order total)
-   * - Discount amount is calculated correctly
+   * The amount must be non-negative. Validation against the order subtotal
+   * is deferred to build() once all sub-orders are known.
    *
-   * @param discount - Discount information
-   * @returns this (for method chaining)
-   * @throws {InvalidDiscountError} if discount is invalid
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.applyDiscount({
-   *   amount: 10000,
-   *   couponCode: "SAVE10",
-   *   type: CouponTypeEnum.Fixed,
-   *   description: "Coupon discount: SAVE10"
-   * });
+   * @throws {Error} if the discount amount is negative.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   applyDiscount(discount: DiscountInfo): this {
     this.throwIfBuilt();
 
-    // Discount amount will be validated against subtotal during build()
-    // For now, we just validate it's non-negative
     if (discount.amount < 0) {
       throw new Error("Discount amount cannot be negative");
     }
 
     this.discount = Object.freeze({ ...discount });
 
-    // Store coupon code separately if provided
     if (discount.couponCode) {
       this.couponCode = discount.couponCode;
     }
@@ -217,14 +160,10 @@ export class OrderBuilder {
   }
 
   /**
-   * Sets order notes
+   * Sets optional order notes.
    *
-   * @param notes - Additional notes about the order
-   * @returns this (for method chaining)
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.setNotes("Handle with care - fragile items");
+   * @throws {InvalidSubOrderError} if notes exceed 1,000 characters.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   setNotes(notes: string): this {
     this.throwIfBuilt();
@@ -234,18 +173,10 @@ export class OrderBuilder {
   }
 
   /**
-   * Sets the idempotency key for the order
+   * Sets the idempotency key for the order.
    *
-   * This key ensures that duplicate order requests result in the same order
-   * being returned, rather than creating duplicate orders.
-   *
-   * @param key - Unique idempotency key (should be UUID or similar)
-   * @returns this (for method chaining)
-   * @throws {InvalidSubOrderError} if key is invalid
-   * @throws {InvalidOrderStateError} if order is already built
-   *
-   * @example
-   * builder.setIdempotencyKey(crypto.randomUUID());
+   * @throws {InvalidSubOrderError} if the key is empty or too long.
+   * @throws {InvalidOrderStateError} if the order has already been built.
    */
   setIdempotencyKey(key: string): this {
     this.throwIfBuilt();
@@ -255,42 +186,87 @@ export class OrderBuilder {
   }
 
   /**
-   * Builds and returns the final order configuration
+   * Finalises and returns the complete, financially-enriched OrderBuildConfig.
    *
-   * This method:
-   * - Validates all required fields are present
-   * - Calculates totals and verifies consistency
-   * - Validates discount against subtotal
-   * - Generates status history
-   * - Returns an immutable OrderBuildConfig ready for persistence
+   * Steps performed:
+   *   1. Validate completeness (all required fields present, totals coherent).
+   *   2. Compute per-sub-order subtotals for proportional discount splitting.
+   *   3. Split the order-level discount proportionally across sub-orders
+   *      (via DiscountCalculator — no custom math here).
+   *   4. Call buildSubOrderFinancials() for each sub-order to produce an
+   *      immutable ISubOrderFinancials snapshot.
+   *   5. Pair each SubOrderConfig with its snapshot as a SubOrderBuildResult.
+   *   6. Return an immutable OrderBuildConfig.
    *
-   * @returns Complete OrderBuildConfig object
-   * @throws {IncompleteOrderError} if required fields are missing
-   * @throws {InvalidOrderTotalsError} if total calculations fail
-   * @throws {InvalidDiscountError} if discount exceeds subtotal
-   *
-   * @remarks
-   * After calling build(), the builder instance should not be reused.
-   * Create a new OrderBuilder for new orders.
-   *
-   * @example
-   * const config = await builder.build();
-   * const orderDoc = new Order(config);
-   * const savedOrder = await orderDoc.save();
+   * @returns Complete OrderBuildConfig ready for persistence.
+   * @throws {IncompleteOrderError} if required fields are missing or totals fail.
    */
   build(): OrderBuildConfig {
     this.throwIfBuilt();
-
-    // Validate all required fields are present
     this.validateCompleteness();
-
-    // Mark as built to prevent further modifications
     this.isBuilt = true;
 
-    // Build the configuration object
+    // ── Step 1: Compute per-sub-order subtotals ───────────────────────────
+    // These raw subtotals are used only for proportional discount distribution.
+    // They are NOT the final financial figures (those come from
+    // buildSubOrderFinancials).
+    const subOrderSubtotals = this.subOrders.map((subOrder) =>
+      OrderCalculations.calculateProductsTotal(
+        subOrder.products.map((p) => ({
+          price: p.selectedSize?.price ?? p.product.price,
+          quantity: p.quantity,
+        })),
+      ),
+    );
+
+    // ── Step 2: Distribute discount proportionally across sub-orders ──────
+    // DiscountCalculator owns this logic. OrderBuilder just passes the numbers.
+    let discountDistribution: number[] = this.subOrders.map(() => 0);
+
+    if (this.discount && this.discount.amount > 0) {
+      const { distribution } =
+        DiscountCalculator.distributeDiscountProportionally(
+          this.discount.amount,
+          subOrderSubtotals,
+        );
+      discountDistribution = distribution;
+    }
+
+    // ── Step 3: Build financial snapshot for each sub-order ───────────────
+    // buildSubOrderFinancials() is the only place commission and settlement
+    // amounts are computed. OrderBuilder does not touch those numbers.
+    const enrichedSubOrders: SubOrderBuildResult[] = this.subOrders.map(
+      (subOrder, index) => {
+        const allocatedDiscount = discountDistribution[index] ?? 0;
+
+        // Only attach a discount object when an actual amount was allocated,
+        // so ISubOrderFinancials.discount remains absent for sub-orders that
+        // received ₦0 (e.g. due to rounding in a very skewed distribution).
+        const subOrderDiscount: DiscountInfo | undefined =
+          allocatedDiscount > 0 && this.discount
+            ? {
+                ...this.discount,
+                // Override the amount with this sub-order's allocated slice.
+                amount: allocatedDiscount,
+              }
+            : undefined;
+
+        const financials = buildSubOrderFinancials({
+          items: subOrder.products,
+          discount: subOrderDiscount,
+        });
+
+        return Object.freeze({
+          config: subOrder,
+          financials,
+        } satisfies SubOrderBuildResult);
+      },
+    );
+
+    // ── Step 4: Assemble and return the final config ───────────────────────
     const config: OrderBuildConfig = {
       customer: this.customer!,
-      subOrders: Object.freeze([...this.subOrders]),
+      subOrders: Object.freeze(enrichedSubOrders),
       shippingAddress: this.shippingAddress!,
       paymentInfo: this.paymentInfo!,
       discount: this.discount,
@@ -299,49 +275,41 @@ export class OrderBuilder {
       idempotencyKey: this.idempotencyKey!,
     };
 
-    // Return immutable configuration
     return Object.freeze(config);
   }
 
   /**
-   * Calculates total order amount including all sub-orders, shipping, and discount
+   * Calculates the order-level grand total across all sub-orders.
    *
-   * @returns OrderTotals with subtotal, discount, shipping, and total
-   * @throws {TotalCalculationError} if calculation fails
+   * Used internally by validateCompleteness() and can be called externally
+   * to preview totals before build().
    *
-   * @remarks
-   * This can be called before build() to preview totals.
-   * The final totals are recalculated during build() for consistency.
-   *
-   * @example
-   * const totals = builder.calculateTotals();
-   * console.log(`Total: ${totals.total} kobo`);
+   * @returns OrderTotals with subtotal, discount, shipping, and total.
+   * @throws {IncompleteOrderError} if no sub-orders have been added yet.
    */
   calculateTotals(): OrderTotals {
     if (this.subOrders.length === 0) {
       throw new IncompleteOrderError("No sub-orders to calculate totals for");
     }
 
-    // Calculate subtotal across all sub-orders
     const subtotal = this.subOrders.reduce((sum, subOrder) => {
-      const storeTotal = OrderCalculations.calculateProductsTotal(
-        subOrder.products.map((p) => ({
-          price: p.selectedSize?.price ?? p.product.price,
-          quantity: p.quantity,
-        })),
+      return (
+        sum +
+        OrderCalculations.calculateProductsTotal(
+          subOrder.products.map((p) => ({
+            price: p.selectedSize?.price ?? p.product.price,
+            quantity: p.quantity,
+          })),
+        )
       );
-      return sum + storeTotal;
     }, 0);
 
-    // Calculate total shipping
     const shippingTotal = this.subOrders.reduce((sum, subOrder) => {
       return sum + (subOrder.shippingMethod.price || 0);
     }, 0);
 
-    // Get discount amount if any
     const discountAmount = this.discount?.amount ?? 0;
 
-    // Return calculated totals
     return OrderCalculations.calculateOrderTotals(
       subtotal,
       shippingTotal,
@@ -350,10 +318,8 @@ export class OrderBuilder {
   }
 
   /**
-   * Gets the current build state for inspection (for testing/debugging)
-   *
-   * @returns Current state of the builder
-   * @remarks This is primarily for testing and debugging. Avoid using in production.
+   * Returns the current internal state for testing/debugging purposes.
+   * Do not use in production logic.
    * @internal
    */
   getState() {
@@ -369,13 +335,12 @@ export class OrderBuilder {
     };
   }
 
-  // ============================================================================
-  // PRIVATE METHODS - Internal helpers
-  // ============================================================================
+  // ── Private helpers ───────────────────────────────────────────────────────
 
   /**
-   * Validates that the builder has all required fields for building an order
-   * @throws {IncompleteOrderError} if required fields are missing
+   * Asserts that all required fields are present and totals are coherent.
+   *
+   * @throws {IncompleteOrderError}
    * @private
    */
   private validateCompleteness(): void {
@@ -394,20 +359,22 @@ export class OrderBuilder {
       );
     }
 
-    // Validate totals consistency
+    // Validate totals coherence — catches discount > subtotal, negative totals, etc.
     try {
       this.calculateTotals();
     } catch (error) {
       throw new IncompleteOrderError(
-        `Order totals are invalid: ${error instanceof Error ? error.message : String(error)}`,
+        `Order totals are invalid: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   }
 
   /**
-   * Throws if the order has already been built
-   * Prevents modifications after build() has been called
-   * @throws {InvalidOrderStateError} if already built
+   * Prevents further modification after build() has been called.
+   *
+   * @throws {InvalidOrderStateError}
    * @private
    */
   private throwIfBuilt(): void {

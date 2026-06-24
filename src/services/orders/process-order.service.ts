@@ -194,7 +194,7 @@ export class ProcessOrder {
     // ----------------------------------------------------------------
     const suborderBreakdowns = order.subOrders.map((subOrder) => {
       const { commission, settleAmount, details } = calculateCommission(
-        subOrder.totalAmount,
+        subOrder.financials.subtotal,
       );
 
       /**
@@ -223,7 +223,7 @@ export class ProcessOrder {
       return {
         suborderId: subOrder._id,
         vendorId,
-        grossAmount: subOrder.totalAmount,
+        grossAmount: subOrder.financials.subtotal,
         commission,
         settleAmount,
         commissionDetails: {

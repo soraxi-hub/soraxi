@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import {
-  // ArrowLeft,
   Package,
   MapPin,
   CreditCard,
@@ -17,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-// import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -26,13 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { isPopulatedUser } from "@/lib/utils/order-formatter";
 import { cn, getStatusBadge } from "@/lib/utils";
 import {
   Dialog,
@@ -87,10 +83,7 @@ interface OrderDetailViewProps {
  * perspective, providing tools for order fulfillment, customer communication,
  * and financial tracking.
  */
-export default function OrderDetailView({
-  orderId,
-  storeId,
-}: OrderDetailViewProps) {
+export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
   // ==================== State Management ====================
 
   /**
@@ -128,7 +121,7 @@ export default function OrderDetailView({
    * - Automatic retry on failure
    */
   const {
-    data,
+    data: order,
     isLoading: loading,
     refetch: refetchOrder,
     error,
@@ -143,7 +136,10 @@ export default function OrderDetailView({
   );
 
   const financialStatuses = financialData?.statuses ?? {};
-  const { order } = data;
+  const statusConfig = getStatusBadge(order.subOrder.deliveryStatus);
+  const StatusIcon = statusConfig.icon;
+  const financialStatus = financialStatuses[subOrderId];
+  // const { order } = data;
 
   const StatusUpdate = useMutation(
     trpc.orderStatus.updateStatus.mutationOptions({
@@ -251,7 +247,7 @@ export default function OrderDetailView({
           <div>
             <h1 className="text-lg md:text-2xl font-semibold flex sm:gap-2 flex-col sm:flex-row">
               <span>Order Id:</span>
-              <span className="font-mono">{order._id}</span>
+              <span className="font-mono">{order.orderId}</span>
             </h1>
             <p className="text-muted-foreground">
               Placed on{" "}
@@ -273,55 +269,48 @@ export default function OrderDetailView({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {order.subOrders.map((subOrder, index) => {
-                const statusConfig = getStatusBadge(subOrder.deliveryStatus);
-                const StatusIcon = statusConfig.icon;
-                const subOrderId = subOrder._id?.toString() ?? "";
-                const financialStatus = financialStatuses[subOrderId];
-                return (
-                  <div key={index} className="space-y-4 p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-full ${statusConfig.color}`}
-                        >
-                          <StatusIcon className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium">
-                            {deliveryStatusLabel(subOrder.deliveryStatus)}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant={statusConfig.variant}>
-                        {deliveryStatusLabel(subOrder.deliveryStatus)}
-                      </Badge>
+              <div className="space-y-4 p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${statusConfig.color}`}>
+                      <StatusIcon className="h-4 w-4" />
                     </div>
-
-                    {/* Dispute banner — shown when suborder is DISPUTED or REFUNDED */}
-                    {financialStatus &&
-                      (financialStatus.status ===
-                        SuborderFinancialStatus.DISPUTED ||
-                        financialStatus.status ===
-                          SuborderFinancialStatus.REFUNDED) && (
-                        <VendorDisputeBanner
-                          storeId={storeId} // from ctx.store in the page
-                          suborderId={subOrderId}
-                          status={financialStatus.status}
-                          disputeId={financialStatus.disputeId}
-                          frozenAmount={financialStatus.frozenAmount}
-                        />
-                      )}
-
-                    {/* Status Update Controls */}
-                    <SellerStatusUpdate
-                      subOrder={subOrder}
-                      updating={updating}
-                      handleStatusUpdateAction={handleStatusUpdate}
-                    />
+                    <div>
+                      <p className="font-medium">
+                        {deliveryStatusLabel(order.subOrder.deliveryStatus)}
+                      </p>
+                    </div>
                   </div>
-                );
-              })}
+                  <Badge variant={statusConfig.variant}>
+                    {deliveryStatusLabel(order.subOrder.deliveryStatus)}
+                  </Badge>
+                </div>
+
+                {/* Dispute banner — shown when suborder is DISPUTED or REFUNDED */}
+                {financialStatus &&
+                  (financialStatus.status ===
+                    SuborderFinancialStatus.DISPUTED ||
+                    financialStatus.status ===
+                      SuborderFinancialStatus.REFUNDED) && (
+                    <VendorDisputeBanner
+                      storeId={order.storeId}
+                      suborderId={order.subOrder._id.toString()}
+                      status={financialStatus.status}
+                      disputeId={financialStatus.disputeId}
+                      frozenAmount={financialStatus.frozenAmount}
+                    />
+                  )}
+
+                {/* Status Update Controls */}
+                <SellerStatusUpdate
+                  subOrder={{
+                    _id: order.subOrder._id.toString(),
+                    deliveryStatus: order.subOrder.deliveryStatus,
+                  }}
+                  updating={updating}
+                  handleStatusUpdateAction={handleStatusUpdate}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -332,66 +321,55 @@ export default function OrderDetailView({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {order.subOrders.map((subOrder, subIndex) => (
-                  <div key={subIndex}>
-                    {order.subOrders.length > 1 && (
-                      <div className="mb-4">
-                        <h4 className="font-medium text-sm text-muted-foreground">
-                          Sub-order {subIndex + 1}
+                <div>
+                  {order.subOrder.products.map((item, itemIndex) => (
+                    <div
+                      key={itemIndex}
+                      className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg"
+                    >
+                      {/* Product Image */}
+                      <div className="relative w-24 h-24 sm:w-16 sm:h-16 mx-auto sm:mx-0 flex-shrink-0">
+                        <Image
+                          src={
+                            item.productSnapshot.images[0] ||
+                            siteConfig.placeHolderImg
+                          }
+                          alt={item.productSnapshot.name}
+                          fill
+                          className="object-cover rounded-md"
+                        />
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0 text-center sm:text-left">
+                        <h4 className="font-medium truncate">
+                          {item.productSnapshot.name}
                         </h4>
-                        <Separator className="mt-2" />
-                      </div>
-                    )}
-
-                    {subOrder.products.map((item, itemIndex) => (
-                      <div
-                        key={itemIndex}
-                        className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg"
-                      >
-                        {/* Product Image */}
-                        <div className="relative w-24 h-24 sm:w-16 sm:h-16 mx-auto sm:mx-0 flex-shrink-0">
-                          <Image
-                            src={
-                              item.productSnapshot.images[0] ||
-                              siteConfig.placeHolderImg
-                            }
-                            alt={item.productSnapshot.name}
-                            fill
-                            className="object-cover rounded-md"
-                          />
-                        </div>
-
-                        {/* Product Details */}
-                        <div className="flex-1 min-w-0 text-center sm:text-left">
-                          <h4 className="font-medium truncate">
-                            {item.productSnapshot.name}
-                          </h4>
-                          <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                            <span>Qty: {item.productSnapshot.quantity}</span>
-                            {item.productSnapshot.selectedSize && (
-                              <span>
-                                Size: {item.productSnapshot.selectedSize.size}
-                              </span>
-                            )}
+                        <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                          <span>Qty: {item.productSnapshot.quantity}</span>
+                          {item.productSnapshot.selectedSize && (
                             <span>
-                              Price: {formatNaira(item.productSnapshot.price)}
+                              Size: {item.productSnapshot.selectedSize.size}
                             </span>
-                          </div>
-                        </div>
-
-                        {/* Price Summary */}
-                        <div className="text-center sm:text-right mt-2 sm:mt-0">
-                          <p className="font-medium">
-                            {formatNaira(
-                              item.productSnapshot.price *
-                                item.productSnapshot.quantity,
-                            )}
-                          </p>
+                          )}
+                          <span>
+                            Price: {formatNaira(item.productSnapshot.price)}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ))}
+
+                      {/* Price Summary */}
+                      <div className="text-center sm:text-right mt-2 sm:mt-0">
+                        <p className="font-medium">
+                          {formatNaira(
+                            item.productSnapshot.price *
+                              item.productSnapshot.quantity,
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -410,7 +388,7 @@ export default function OrderDetailView({
                 <p className="text-sm text-muted-foreground">
                   {order.shippingAddress?.deliveryType === DeliveryType.Campus
                     ? `Campus Delivery (${campusLocations.join(", ")})`
-                    : (order.shippingAddress?.address ?? "Unknown")}
+                    : order.shippingAddress.address}
                 </p>
                 {/* Postal code is hidden since delivery is only within UNICAL */}
                 {/* <p className="text-sm text-muted-foreground">
@@ -418,22 +396,18 @@ export default function OrderDetailView({
                 </p> */}
               </div>
 
-              {order.subOrders[0]?.shippingMethod && (
+              {order.subOrder.shippingMethod && (
                 <div>
                   <h4 className="font-medium mb-2">Shipping Method</h4>
                   <div className="space-y-1 text-sm">
-                    <p>{order.subOrders[0].shippingMethod.name}</p>
+                    <p>{order.subOrder.shippingMethod.name}</p>
                     <p className="text-muted-foreground">
-                      {formatNaira(order.subOrders[0].shippingMethod.price)}
+                      {formatNaira(order.subOrder.shippingMethod.price)}
                     </p>
-                    {order.subOrders[0].shippingMethod
-                      .estimatedDeliveryDays && (
+                    {order.subOrder.shippingMethod.estimatedDeliveryDays && (
                       <p className="text-muted-foreground">
                         Est.{" "}
-                        {
-                          order.subOrders[0].shippingMethod
-                            .estimatedDeliveryDays
-                        }{" "}
+                        {order.subOrder.shippingMethod.estimatedDeliveryDays}{" "}
                         days
                       </p>
                     )}
@@ -456,26 +430,20 @@ export default function OrderDetailView({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                {isPopulatedUser(order.user) && order.user.firstName && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">
-                      {order.user.firstName} {order.user.lastName}
-                    </span>
-                  </div>
-                )}
-                {isPopulatedUser(order.user) && order.user.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{order.user.email}</span>
-                  </div>
-                )}
-                {isPopulatedUser(order.user) && order.user.phoneNumber && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{order.user.phoneNumber}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{order.customerInfo.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{order.customerInfo.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {order.customerInfo.phoneNumber}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -491,13 +459,6 @@ export default function OrderDetailView({
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Method:</span>
-                  <span className="font-medium">
-                    {`${order.paymentMethod?.charAt(0)?.toUpperCase()}` +
-                      order.paymentMethod?.slice(1).replace("_", " ")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Status:</span>
                   <Badge
                     variant={
@@ -506,73 +467,60 @@ export default function OrderDetailView({
                         : "error"
                     }
                   >
-                    {`${order.paymentStatus?.charAt(0).toUpperCase()}` +
-                      order.paymentStatus?.slice(1)}
+                    {order.paymentStatus
+                      ? order.paymentStatus.charAt(0).toUpperCase() +
+                        order.paymentStatus.slice(1)
+                      : "Unknown"}
                   </Badge>
                 </div>
               </div>
 
               <Separator />
 
-              {order.subOrders.map((subOrder, index) => {
-                if (!subOrder.discount) return null;
-
-                return (
-                  <div key={index} className="space-y-3">
-                    {order.subOrders.length > 1 && (
-                      <div className="flex justify-between text-sm font-medium text-muted-foreground">
-                        <span>Sub-order {index + 1} Discount:</span>
-                      </div>
-                    )}
-                    <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 space-y-2 border border-green-200 dark:border-green-800">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-medium text-green-700 dark:text-green-300 text-sm">
-                            Discount Applied
-                          </p>
-                          {subOrder.discount.couponCode && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                              Code:{" "}
-                              <span className="font-semibold">
-                                {subOrder.discount.couponCode}
-                              </span>
-                            </p>
-                          )}
-                          {subOrder.discount.type && (
-                            <p className="text-xs text-green-600 dark:text-green-400">
-                              Type:{" "}
-                              <span className="font-semibold capitalize">
-                                {subOrder.discount.type}
-                              </span>
-                            </p>
-                          )}
-                          {subOrder.discount.description && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                              {subOrder.discount.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-700 dark:text-green-300">
-                            -{formatNaira(subOrder.discount.amount)}
-                          </p>
-                          <p className="text-xs text-green-600 dark:text-green-400">
-                            Your benefit
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <Separator />
+              {order.subOrder.financials ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{order.subOrder.financials.formattedSubtotal}</span>
                   </div>
-                );
-              })}
-
-              <div className="space-y-2">
-                <div className="flex justify-between font-medium text-lg">
-                  <span>Total:</span>
-                  <span>{formatNaira(order.totalAmount)}</span>
+                  {order.subOrder.financials.discount && (
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Discount</span>
+                      <span>
+                        -{order.subOrder.financials.discount.formattedAmount}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform Fee</span>
+                    <span>
+                      {order.subOrder.financials.platformFee.formattedAmount}
+                    </span>
+                  </div>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between font-medium">
+                    <span>Amount Paid</span>
+                    <span>{order.subOrder.financials.formattedAmountPaid}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium text-soraxi-green">
+                    <span>Settlement Amount</span>
+                    <span>
+                      {
+                        order.subOrder.financials
+                          .formattedVendorSettlementAmount
+                      }
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // Fallback if financials are not available
+                <div className="space-y-2">
+                  <div className="flex justify-between font-medium text-lg">
+                    <span>Total</span>
+                    <span>{order.formattedTotalAmount}</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -587,43 +535,41 @@ export default function OrderDetailView({
             <CardContent>
               <div className="space-y-4">
                 <ScrollArea className="h-48 pr-2">
-                  {order.subOrders.map((subOrder, index) => (
-                    <div key={index} className="flex flex-col gap-3">
-                      {subOrder.statusHistory &&
-                      subOrder.statusHistory.length > 0 ? (
-                        subOrder.statusHistory.map(
-                          (statusItem, statusIndex) => (
-                            <div
-                              key={statusIndex}
-                              className="flex items-center gap-3"
-                            >
-                              <div className="w-2 h-2 bg-primary rounded-full"></div>
-                              <div>
-                                <p className="font-medium">
-                                  {statusHistoryLabel(statusItem.status)}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {format(
-                                    new Date(statusItem.timestamp),
-                                    "MMM dd, yyyy 'at' h:mm a",
-                                  )}
-                                </p>
-                                {statusItem.notes && (
-                                  <p className="text-sm text-muted-foreground">
-                                    Notes: {statusItem.notes}
-                                  </p>
+                  <div className="flex flex-col gap-3">
+                    {order.subOrder.statusHistory &&
+                    order.subOrder.statusHistory.length > 0 ? (
+                      order.subOrder.statusHistory.map(
+                        (statusItem, statusIndex) => (
+                          <div
+                            key={statusIndex}
+                            className="flex items-center gap-3"
+                          >
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            <div>
+                              <p className="font-medium">
+                                {statusHistoryLabel(statusItem.status)}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {format(
+                                  new Date(statusItem.timestamp),
+                                  "MMM dd, yyyy 'at' h:mm a",
                                 )}
-                              </div>
+                              </p>
+                              {statusItem.notes && (
+                                <p className="text-sm text-muted-foreground">
+                                  Notes: {statusItem.notes}
+                                </p>
+                              )}
                             </div>
-                          ),
-                        )
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No status history available
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                          </div>
+                        ),
+                      )
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No status history available
+                      </p>
+                    )}
+                  </div>
                 </ScrollArea>
               </div>
             </CardContent>

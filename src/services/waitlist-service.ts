@@ -6,7 +6,7 @@ import { siteConfig } from "@/config/site";
 import {
   NotificationFactory,
   renderTemplate,
-  VendorInviteEmail,
+  VendorApplicationApprovedEmail,
   WaitlistConfirmationEmail,
   WaitlistRejectionEmail,
 } from "@/domain/notification";
@@ -14,6 +14,11 @@ import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
 import React from "react";
 import mongoose from "mongoose";
 import { AppError } from "@/lib/errors/app-error";
+import { StoreRepository } from "@/repositories/store-repo";
+import { StoreService } from "./store/store.service";
+import { generateDefaultPassword } from "@/lib/utils";
+import { UserRepository } from "@/repositories/user-repo";
+import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
 
 interface ApplyResult {
   referenceId: string;
@@ -35,6 +40,9 @@ interface AdminApplicationSummary {
   ownerName: string;
   email: string;
   phone: string;
+  institution: string;
+  stateOfApplicant: string;
+  cityOfApplicant: string;
   categoryId: string;
   subCategory?: string;
   categoryVendorCount: number;
@@ -58,10 +66,20 @@ export class WaitlistService {
 
   // ─── Vendor: Submit application ───────────────────────────────────────────
 
-  async apply(input: VendorApplicationCreateInput): Promise<ApplyResult> {
-    const alreadyApplied = await this.vendorApplicationRepository.existsByEmail(
-      input.email,
-    );
+  async apply(
+    input: Omit<VendorApplicationCreateInput, "productSamples"> & {
+      productSamples: File[];
+    },
+  ): Promise<ApplyResult> {
+    const normalizedEmail = input.email.toLowerCase().trim();
+
+    // Check if user already has a store
+    const existingUserStore = await UserRepository.hasStore(input.submittedBy);
+    if (existingUserStore)
+      throw new AppError("CONFLICT", "Cannot create multiple stores");
+
+    const alreadyApplied =
+      await this.vendorApplicationRepository.existsByEmail(normalizedEmail);
 
     if (alreadyApplied) {
       throw new AppError(
@@ -71,7 +89,32 @@ export class WaitlistService {
       );
     }
 
-    const application = VendorApplicationFactory.create(input);
+    // Check if store email already exists
+    const existingStoreEmail =
+      await StoreRepository.isExistingStoreEmail(normalizedEmail);
+    if (existingStoreEmail)
+      throw new AppError("CONFLICT", "This email is already in use", {
+        email: normalizedEmail,
+      });
+
+    // Check if store name already exists (case-insensitive)
+    const existingStoreName = await StoreRepository.isExistingstoreName(
+      input.businessName,
+    );
+    if (existingStoreName)
+      throw new AppError("CONFLICT", "Bussiness name already in use", {
+        businessName: input.businessName,
+      });
+
+    const uploadedSamples = await ProductImageUploadService.uploadImages(
+      input.productSamples,
+      "storeWaitlist",
+    );
+
+    const application = VendorApplicationFactory.create({
+      ...input,
+      productSamples: uploadedSamples,
+    });
     await this.vendorApplicationRepository.create(application);
 
     // Send confirmation email with application.referenceId
@@ -195,34 +238,53 @@ export class WaitlistService {
     applicationId: string,
     adminId: string,
   ): Promise<void> {
-    const application =
-      await this.vendorApplicationRepository.findById(applicationId);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (!application) {
-      throw new AppError("NOT_FOUND", "Application not found.", {
-        applicationId,
-        adminId,
-      });
-    }
-
-    const { token, expiresAt } = VendorApplicationFactory.generateInviteToken();
-    application.approve(token, expiresAt, adminId);
-
-    await this.vendorApplicationRepository.save(application);
-
-    // Send invite email with one-time link
     try {
-      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/store/create?token=${token}`;
+      const application =
+        await this.vendorApplicationRepository.findById(applicationId);
+
+      if (!application) {
+        throw new AppError("NOT_FOUND", "Application not found.", {
+          applicationId,
+          adminId,
+        });
+      }
+
+      const { token, expiresAt } =
+        VendorApplicationFactory.generateInviteToken();
+      application.approve(token, expiresAt, adminId);
+
+      await this.vendorApplicationRepository.save(application, session);
+      const password = generateDefaultPassword(application.businessName);
+
+      const savedStore = await StoreService.createStore(
+        {
+          storeName: application.businessName,
+          storeEmail: application.email,
+          password,
+          ownerId: application.submittedBy,
+          token,
+        },
+        session,
+      );
+
+      const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/store/${savedStore._id.toString()}/dashboard`;
       const subject = `You're invited to join ${siteConfig.name} as a vendor`;
       const html = await renderTemplate(
-        React.createElement(VendorInviteEmail, {
+        React.createElement(VendorApplicationApprovedEmail, {
           businessName: application.businessName,
-          inviteUrl,
+          loginUrl,
+          email: application.email,
+          temporaryPassword: password,
         }),
       );
-      const text = EmailTextTemplates.generateVendorInviteText(
+      const text = EmailTextTemplates.generateVendorApplicationApprovedText(
         application.businessName,
-        inviteUrl,
+        application.email,
+        password,
+        loginUrl,
       );
 
       const notification = NotificationFactory.create("email", {
@@ -235,12 +297,13 @@ export class WaitlistService {
       });
 
       await notification.send();
+      await session.commitTransaction();
+      session.endSession();
     } catch (error) {
-      console.error(
-        `Failed to send invite email to ${application.email}:`,
-        error,
-      );
-      // Do not throw – application is already approved, email failure shouldn't block
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
   }
 
@@ -343,6 +406,9 @@ export class WaitlistService {
       email: app.email,
       phone: app.phone,
       categoryId: app.categoryId,
+      institution: app.institution,
+      stateOfApplicant: app.stateOfApplicant,
+      cityOfApplicant: app.cityOfApplicant,
       subCategory: app.subCategory,
       categoryVendorCount,
       productSamples: app.productSamples,

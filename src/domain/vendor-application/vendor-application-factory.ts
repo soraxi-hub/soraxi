@@ -10,6 +10,9 @@ export class VendorApplicationFactory {
    */
   static create(input: VendorApplicationCreateInput): VendorApplication {
     const id = new mongoose.Types.ObjectId().toString();
+    const submittedBy = new mongoose.Types.ObjectId(
+      input.submittedBy,
+    ).toString();
     const referenceId = VendorApplicationFactory.generateReferenceId();
     const now = new Date();
 
@@ -17,12 +20,14 @@ export class VendorApplicationFactory {
       id,
       referenceId,
       status: "pending",
-
+      submittedBy,
       businessName: input.businessName.trim(),
       ownerName: input.ownerName.trim(),
       email: input.email.toLowerCase().trim(),
       phone: input.phone.trim(),
-
+      institution: input.institution,
+      cityOfApplicant: input.cityOfApplicant,
+      stateOfApplicant: input.stateOfApplicant,
       categoryId: input.categoryId,
       subCategory: input.subCategory?.trim(),
 

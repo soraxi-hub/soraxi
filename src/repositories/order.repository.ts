@@ -9,65 +9,43 @@ import type {
 } from "@/lib/db/models/order.model";
 import type { OrderBuildConfig } from "../domain/orders/types";
 import { DeliveryStatus, StatusHistory } from "@/enums";
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 
 /**
- * OrderService handles the persistence layer for orders
+ * OrderRepository handles the persistence layer for orders.
  *
- * This service:
- * - Creates orders using the OrderBuilder pattern
- * - Checks for idempotency (preventing duplicate orders)
- * - Handles MongoDB transactions for consistency
- * - Converts builder output to Mongoose documents
+ * This class bridges the domain layer (OrderBuilder) with the persistence
+ * layer (MongoDB). All order creation must go through here to guarantee
+ * idempotency and consistent document structure.
  *
- * @remarks
- * This service bridges the domain layer (OrderBuilder) with the persistence layer (MongoDB).
- * All order creation should go through this service to ensure consistency and idempotency.
+ * Financial data contract:
+ * ─────────────────────────────────────────────────────────────────────────
+ * OrderBuildConfig.subOrders is now SubOrderBuildResult[].
+ * Each entry carries:
+ *   .config      — the validated raw sub-order input (products, shipping, …)
+ *   .financials  — the immutable ISubOrderFinancials snapshot computed by
+ *                  buildSubOrderFinancials() during OrderBuilder.build()
+ *
+ * configToDocument reads financial data ONLY from .financials.
+ * It does NOT recompute subtotals, discounts, commissions, or settlement
+ * amounts. Those numbers were sealed upstream and must not be recalculated
+ * here under any circumstances.
  */
 export class OrderRepository {
   /**
-   * Creates a new order after validating it doesn't already exist
+   * Creates a new order after confirming no duplicate exists.
    *
-   * Uses idempotency to prevent duplicate orders:
-   * - If an order with the same idempotencyKey exists, throws DuplicateOrderError
-   * - The caller should handle duplicates by returning the existing order
-   *
-   * @param config - Order configuration from OrderBuilder.build()
-   * @returns The saved order document
-   * @throws {DuplicateOrderError} if order with same idempotency key exists
-   * @throws Database or validation errors from MongoDB
-   *
-   * @example
-   * ```typescript
-   * const config = await orderBuilder.build();
-   * const order = await OrderService.createOrder(config);
-   * ```
-   *
-   * @remarks
-   * This method should be called within a transaction for consistency.
-   * Recommended usage pattern:
-   *
-   * ```typescript
-   * const session = await mongoose.startSession();
-   * session.startTransaction();
-   * try {
-   *   const order = await OrderService.createOrder(config, session);
-   *   // ... other operations
-   *   await session.commitTransaction();
-   * } catch (error) {
-   *   await session.abortTransaction();
-   *   throw error;
-   * } finally {
-   *   session.endSession();
-   * }
-   * ```
+   * @param config  - Fully built OrderBuildConfig from OrderBuilder.build()
+   * @param session - Optional Mongoose ClientSession for transaction support
+   * @returns       The saved IOrderDocument
+   * @throws {DuplicateOrderError} if an order with the same idempotency key exists
    */
   static async createOrder(
     config: OrderBuildConfig,
-    session?: mongoose.ClientSession,
+    session: mongoose.ClientSession,
   ): Promise<IOrderDocument> {
     const Order = await getOrderModel();
 
-    // Check for duplicate order using idempotency key
     const existing = await Order.findOne(
       { idempotencyKey: config.idempotencyKey },
       null,
@@ -80,86 +58,76 @@ export class OrderRepository {
       );
     }
 
-    // Convert builder config to MongoDB document format
     const orderDoc = await this.configToDocument(config);
-
-    // Save the order
-    const savedOrder = await orderDoc.save({ session });
-
-    return savedOrder;
+    return orderDoc.save({ session });
   }
 
   /**
-   * Retrieves an order by ID with populated references
+   * Retrieves an order by ID with populated references.
    *
-   * @param orderId - MongoDB ID of the order
-   * @param lean - If true, returns plain object; if false, returns Mongoose document
-   * @returns The order or null if not found
-   *
-   * @example
-   * const order = await OrderService.getOrderById(orderId);
-   * const orderData = await OrderService.getOrderById(orderId, true);
+   * @param orderId - MongoDB ObjectId string
+   * @param lean    - Return plain object when true, Mongoose document when false
    */
-  static async getOrderById(
-    orderId: string,
-    lean: boolean = false,
-  ): Promise<IOrderDocument | IOrder | null> {
-    const Order = await getOrderModel();
+  static async getOrderById(orderId: string, lean: boolean = false) {
+    const OrderModel = await getOrderModel();
 
-    let query = Order.findById(orderId)
-      .populate("userId", "_id firstName lastName email phoneNumber")
-      .populate("subOrders.products.productId", "_id name images price")
-      .populate("subOrders.storeId", "_id name email");
-
-    if (lean) {
-      return query.lean<IOrder>().exec();
-    }
-
-    return query.exec();
+    return await QueryBuilderFactory.queryBuilder<IOrder, IOrderDocument>(
+      OrderModel,
+    )
+      .where("_id", new mongoose.Types.ObjectId(orderId))
+      .withLean(lean)
+      .executeOne();
   }
 
   /**
-   * Retrieves all orders for a specific user
+   * Retrieves all orders for a specific user.
    *
-   * @param userId - MongoDB ID of the user
-   * @param options - Query options (sort, limit, skip)
-   * @returns Array of orders
-   *
-   * @example
-   * const userOrders = await OrderService.getOrdersByUserId(userId, {
-   *   sort: { createdAt: -1 },
-   *   limit: 10,
-   * });
+   * @param userId  - MongoDB ObjectId string
+   * @param options - Optional sort, limit, skip controls
    */
   static async getOrdersByUserId(
     userId: string,
-    options?: { sort?: Record<string, 1 | -1>; limit?: number; skip?: number },
+    _options?: { sort?: Record<string, 1 | -1>; limit?: number; skip?: number },
   ): Promise<IOrder[]> {
-    const Order = await getOrderModel();
+    const OrderModel = await getOrderModel();
 
-    let query = Order.find({ userId });
-
-    if (options?.sort) {
-      query = query.sort(options.sort);
-    }
-
-    if (options?.skip) {
-      query = query.skip(options.skip);
-    }
-
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    return query.lean<IOrder[]>();
+    return await QueryBuilderFactory.queryBuilder<IOrder, IOrderDocument>(
+      OrderModel,
+    )
+      .where("userId", new mongoose.Types.ObjectId(userId))
+      .execute();
   }
 
   /**
-   * Checks if an order exists by idempotency key
-   * Useful for handling duplicate requests
+   * Retrieves paginated orders matching the given conditions.
    *
-   * @param idempotencyKey - The idempotency key to check
-   * @returns The existing order if found, null otherwise
+   * @param matchConditions - MongoDB filter
+   * @param options - Pagination { skip, limit }
+   * @returns { orders, totalCount }
+   */
+  static async getStoreOrders(
+    matchConditions: any,
+    { skip, limit }: { skip: number; limit: number },
+  ): Promise<{ orders: IOrder[]; totalCount: number }> {
+    const Order = await getOrderModel();
+
+    const [orders, totalCount] = await Promise.all([
+      Order.find(matchConditions)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean<IOrder[]>(),
+      Order.countDocuments(matchConditions),
+    ]);
+
+    return { orders, totalCount };
+  }
+
+  /**
+   * Checks if an order already exists for a given idempotency key.
+   *
+   * @param idempotencyKey - The key to look up
+   * @returns The existing lean order, or null
    */
   static async getOrderByIdempotencyKey(
     idempotencyKey: string,
@@ -169,43 +137,56 @@ export class OrderRepository {
   }
 
   // ============================================================================
-  // PRIVATE HELPERS - Document construction
+  // PRIVATE HELPERS
   // ============================================================================
 
   /**
-   * Converts OrderBuilder config to a Mongoose document
+   * Converts an OrderBuildConfig into a Mongoose Order document.
    *
-   * Maps domain-level types to MongoDB schema types:
-   * - Creates snapshots for products and stores
-   * - Generates status history
-   * - Calculates final totals
+   * Financial data is read directly from each SubOrderBuildResult.financials.
+   * No monetary arithmetic is performed here — all figures were computed and
+   * sealed by buildSubOrderFinancials() during OrderBuilder.build().
+   *
+   * Root-level totalAmount derivation:
+   *   The order model stores a single totalAmount that represents what the
+   *   customer is charged. This is the only computation done here:
+   *
+   *     totalAmount = Σ(subOrder.financials.amountPaid)
+   *                 + Σ(subOrder.config.shippingMethod.price)
+   *
+   *   amountPaid already has the per-sub-order discount baked in, so adding
+   *   shipping on top gives the correct customer-facing total. We do NOT add
+   *   the order-level discount again — it is already reflected in amountPaid.
    *
    * @private
    */
   private static async configToDocument(config: OrderBuildConfig) {
     const OrderModel = await getOrderModel();
 
-    // Calculate total amount
-    const subtotal = config.subOrders.reduce((sum, subOrder) => {
-      const storeTotal = subOrder.products.reduce((storeSum, product) => {
-        const price = product.selectedSize?.price ?? product.product.price;
-        return storeSum + price * product.quantity;
-      }, 0);
-      return sum + storeTotal;
-    }, 0);
-
+    // ── Root-level totals ─────────────────────────────────────────────────
+    // Read amountPaid from each sub-order's pre-computed financials.
+    // Do NOT recalculate subtotals or discounts — they are already locked in.
     const shippingTotal = config.subOrders.reduce(
-      (sum, subOrder) => sum + (subOrder.shippingMethod.price || 0),
+      (sum, result) => sum + (result.config.shippingMethod.price || 0),
       0,
     );
 
-    const discountAmount = config.discount?.amount ?? 0;
-    const totalAmount = subtotal + shippingTotal - discountAmount;
+    const productsAmountPaid = config.subOrders.reduce(
+      (sum, result) => sum + result.financials.amountPaid,
+      0,
+    );
 
-    // Convert sub-orders to database format
-    const subOrders: ISubOrder[] = config.subOrders.map((subOrder) => {
+    const totalAmount = productsAmountPaid + shippingTotal;
+
+    // ── Sub-orders ────────────────────────────────────────────────────────
+    const subOrders: ISubOrder[] = config.subOrders.map((result) => {
+      const { config: subOrder, financials } = result;
+
+      // Build product documents
       const products: IOrderProduct[] = subOrder.products.map((product) => {
-        const price = product.selectedSize?.price ?? product.product.price;
+        // Effective price for this line item (size price takes precedence)
+        const effectivePrice =
+          product.selectedSize?.price ?? product.product.price;
 
         return {
           productId: new mongoose.Types.ObjectId(product.product._id),
@@ -214,9 +195,9 @@ export class OrderRepository {
             _id: new mongoose.Types.ObjectId(product.product._id),
             name: product.product.name,
             images: product.product.images,
-            price,
+            price: effectivePrice,
             quantity: product.quantity,
-            category: product.product.category?.[0],
+            category: product.product.category,
             subCategory: product.product.subCategory,
             selectedSize: product.selectedSize
               ? {
@@ -225,38 +206,20 @@ export class OrderRepository {
                 }
               : undefined,
           },
-          storeSnapshot: {
-            _id: new mongoose.Types.ObjectId(subOrder.storeId),
-            name: subOrder.storeName,
-          },
         };
       });
-
-      const storeTotal = products.reduce(
-        (sum, p) => sum + p.productSnapshot.price * p.productSnapshot.quantity,
-        0,
-      );
-
-      const storeDiscount = config.discount
-        ? Math.floor((storeTotal / subtotal) * discountAmount)
-        : 0;
-
-      const totalAmountForStore = storeTotal - storeDiscount;
 
       return {
         storeId: new mongoose.Types.ObjectId(subOrder.storeId),
         products,
-        originalAmount: storeTotal,
-        totalAmount: totalAmountForStore,
-        discount: config.discount
-          ? {
-              amount: storeDiscount,
-              couponCode: config.discount.couponCode,
-              type: config.discount.type,
-              description: config.discount.description,
-            }
-          : undefined,
-        deliveryStatus: DeliveryStatus.OrderPlaced,
+
+        // ── Financial snapshot ──────────────────────────────────────────
+        // Written verbatim from the pre-computed snapshot.
+        // This is the single source of truth for all monetary figures on
+        // this sub-order. Nothing is recalculated.
+        financials,
+
+        // ── Shipping ────────────────────────────────────────────────────
         shippingMethod: {
           name: subOrder.shippingMethod.name,
           price: subOrder.shippingMethod.price || 0,
@@ -264,6 +227,9 @@ export class OrderRepository {
             subOrder.shippingMethod.estimatedDeliveryDays?.toString(),
           description: subOrder.shippingMethod.description,
         },
+
+        // ── Status ──────────────────────────────────────────────────────
+        deliveryStatus: DeliveryStatus.OrderPlaced,
         statusHistory: [
           {
             status: StatusHistory.OrderPlaced,
@@ -275,18 +241,25 @@ export class OrderRepository {
           confirmed: false,
           autoConfirmed: false,
         },
+        storeSnapshot: {
+          name: subOrder.storeName,
+        },
       } as unknown as ISubOrder;
     });
 
-    // Create address string
-    const addressString = `${config.shippingAddress.state}, ${config.shippingAddress.city}, ${config.shippingAddress.address}`;
-
-    // Create the order document
+    // ── Order document ────────────────────────────────────────────────────
     return new OrderModel({
       userId: new mongoose.Types.ObjectId(config.customer.userId),
+      userSnapshot: {
+        name: config.customer.name,
+        email: config.customer.email,
+        phoneNumber: config.customer.phoneNumber,
+      },
       stores: [
         ...new Set(
-          config.subOrders.map((s) => new mongoose.Types.ObjectId(s.storeId)),
+          config.subOrders.map(
+            (r) => new mongoose.Types.ObjectId(r.config.storeId),
+          ),
         ),
       ],
       subOrders,
@@ -294,7 +267,7 @@ export class OrderRepository {
       couponCode: config.couponCode,
       discount: config.discount
         ? {
-            amount: discountAmount,
+            amount: config.discount.amount,
             couponCode: config.discount.couponCode,
             type: config.discount.type,
             description: config.discount.description,
@@ -302,7 +275,9 @@ export class OrderRepository {
         : undefined,
       shippingAddress: {
         postalCode: config.shippingAddress.postalCode,
-        address: addressString,
+        city: config.shippingAddress.city,
+        state: config.shippingAddress.state,
+        address: config.shippingAddress.address,
         deliveryType: config.shippingAddress.deliveryType,
         campusName: config.shippingAddress.campusName,
         campusLocation: config.shippingAddress.campusLocation,

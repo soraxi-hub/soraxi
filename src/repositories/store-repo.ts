@@ -20,7 +20,7 @@ export class StoreRepository {
       name: store.storeName,
       storeEmail: store.email,
       password: store.password,
-      storeOwner: store.ownerId, // Associate store with authenticated user
+      storeOwner: store.ownerId,
       uniqueId: store.uniqueId,
     });
 
@@ -76,11 +76,9 @@ export class StoreRepository {
   static async linkVendorWalletToStore(
     vendorWalletId: string,
     storeId: string,
-    session: mongoose.ClientSession | null,
+    session: mongoose.ClientSession,
   ): Promise<void> {
     const StoreModel = await getStoreModel();
-
-    console.log("storeId", storeId);
 
     const store = await QueryBuilderFactory.queryBuilder<
       IStore,

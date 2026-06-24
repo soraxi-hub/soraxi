@@ -195,7 +195,6 @@ export async function POST(request: NextRequest) {
         type: businessInfo.type,
         businessName: businessInfo.businessName,
         registrationNumber: businessInfo.registrationNumber,
-        taxId: businessInfo.taxId,
         documentUrls: businessInfo.documentUrls || [],
       },
 
@@ -306,11 +305,6 @@ export async function POST(request: NextRequest) {
         fromAddress: "noreply@soraxihub.com",
         html: storeOwnerHtml,
         text: storeOwnerText,
-        // metadata: {
-        //   storeId: updatedStore._id.toString(),
-        //   storeName: updatedStore.name,
-        //   notificationType: "store_onboarding_confirmation",
-        // },
       });
 
       await storeOwnerNotification.send();

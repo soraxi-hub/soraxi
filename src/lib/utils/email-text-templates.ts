@@ -504,6 +504,42 @@ Best regards,
 The ${siteConfig.name} Team`;
   },
 
+  generateVendorApplicationApprovedText(
+    businessName: string,
+    email: string,
+    temporaryPassword: string,
+    loginUrl: string,
+  ): string {
+    return `Hello ${businessName},
+
+Congratulations! Your application to become a vendor on ${siteConfig.name} has been approved.
+
+We've automatically created your vendor store and account.
+
+Login Credentials
+
+Email: ${email}
+Temporary Password: ${temporaryPassword}
+
+For security reasons, please change this password immediately after your first login.
+
+Login here:
+${loginUrl}
+
+Before you start selling, we recommend completing your store setup by:
+
+- Updating your password
+- Adding your payout account details
+- Configuring shipping methods
+- Completing your store profile
+- Uploading your first products
+
+We're excited to have you as part of the ${siteConfig.name} vendor community.
+
+Best regards,
+The ${siteConfig.name} Team`;
+  },
+
   generateWaitlistRejectionText(businessName: string, reason: string): string {
     return `Hello ${businessName},
 

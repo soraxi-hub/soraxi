@@ -6,13 +6,17 @@ import {
 
 export interface IVendorApplication {
   _id: mongoose.Types.ObjectId;
+  submittedBy: mongoose.Types.ObjectId;
   referenceId: string;
   status: VendorApplicationStatus;
+  stateOfApplicant: string;
+  cityOfApplicant: string;
 
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
+  institution: string; // Which Nigerian tertiary institution
 
   categoryId: string;
   subCategory?: string;
@@ -48,12 +52,24 @@ const VendorApplicationSchema = new Schema<IVendorApplicationDocument>(
       enum: ["pending", "approved", "rejected", "invited"],
       default: "pending",
     },
-
+    submittedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "User id s required for reference"],
+    },
     businessName: { type: String, required: true },
     ownerName: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, unique: true },
     phone: { type: String, required: true },
-
+    institution: { type: String, required: true },
+    cityOfApplicant: {
+      type: String,
+      required: [true, "City of residence is required"],
+    },
+    stateOfApplicant: {
+      type: String,
+      required: [true, "State of residence is required"],
+    },
     categoryId: {
       type: String,
       required: true,
@@ -78,7 +94,7 @@ const VendorApplicationSchema = new Schema<IVendorApplicationDocument>(
 
     isDropshipper: { type: Boolean, required: true },
 
-    reviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
     reviewNote: { type: String },
     rejectionReason: { type: String },
     inviteToken: { type: String },
@@ -88,7 +104,6 @@ const VendorApplicationSchema = new Schema<IVendorApplicationDocument>(
 );
 
 // Indexes for common lookups
-VendorApplicationSchema.index({ email: 1 });
 VendorApplicationSchema.index({ status: 1 });
 VendorApplicationSchema.index({ categoryId: 1, status: 1 });
 

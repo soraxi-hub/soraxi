@@ -6,14 +6,12 @@ import { StoreRepository } from "@/repositories/store-repo";
 import { UserRepository } from "@/repositories/user-repo";
 import { VendorWalletService } from "../vendor-wallet/vendor-wallet.service";
 import mongoose from "mongoose";
-import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
-import { WaitlistService } from "@/services/waitlist-service";
-
-const vendorApplicationRepository = new VendorApplicationRepository();
-const waitlistService = new WaitlistService(vendorApplicationRepository);
 
 export class StoreService {
-  static async createStore(data: BuildStoreInput) {
+  static async createStore(
+    data: BuildStoreInput,
+    session: mongoose.ClientSession,
+  ) {
     const { ownerId } = data;
 
     // Check if user already has a store
@@ -53,50 +51,36 @@ export class StoreService {
       uniqueId,
     });
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // Repository: Save it
+    const savedStore = await StoreRepository.saveStoreToDB(store, session);
 
-    try {
-      // Repository: Save it
-      const savedStore = await StoreRepository.saveStoreToDB(store, session);
+    // Side Effects: Create Wallet
+    const vendorWallet = await VendorWalletService.createVendorWallet(
+      savedStore._id.toString(),
+      session,
+    );
 
-      // Side Effects: Create Wallet
-      const vendorWallet = await VendorWalletService.createVendorWallet(
-        savedStore._id.toString(),
-        session,
+    if (!vendorWallet._id)
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "[STORESERVICE]: Vendor wallet Id required",
+        { storeId: savedStore._id.toString() },
       );
 
-      if (!vendorWallet._id)
-        throw new AppError(
-          "INTERNAL_SERVER_ERROR",
-          "[STORESERVICE]: Vendor wallet Id required",
-          { storeId: savedStore._id.toString() },
-        );
+    await StoreRepository.linkVendorWalletToStore(
+      vendorWallet._id.toString(),
+      savedStore._id.toString(),
+      session,
+    );
 
-      await StoreRepository.linkVendorWalletToStore(
-        vendorWallet._id.toString(),
-        savedStore._id.toString(),
-        session,
-      );
+    // Update user store array
+    await UserRepository.updateUserStoreArray(
+      ownerId,
+      savedStore._id.toString(),
+      session,
+    );
 
-      // Update user store array
-      await UserRepository.updateUserStoreArray(
-        ownerId,
-        savedStore._id.toString(),
-        session,
-      );
-
-      await waitlistService.redeemInviteToken(data.token, session);
-
-      await session.commitTransaction();
-      session.endSession();
-
-      return savedStore;
-    } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
-      throw err;
-    }
+    return savedStore;
   }
 
   /**

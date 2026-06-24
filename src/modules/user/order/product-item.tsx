@@ -36,7 +36,6 @@ interface ProductItemProps {
 export function ProductItem({
   product,
   onReviewInitAction,
-  // onReturnInitAction,
   deliveryStatus,
 }: ProductItemProps) {
   if (!product.productSnapshot) return null;
@@ -66,7 +65,9 @@ export function ProductItem({
             {deliveryStatus === DeliveryStatus.Delivered && (
               <Button
                 className="mt-2 bg-soraxi-green hover:bg-soraxi-green-hover text-white w-full text-sm flex items-center gap-2"
-                onClick={() => onReviewInitAction(product.productSnapshot._id)}
+                onClick={() =>
+                  onReviewInitAction(product.productSnapshot._id.toString())
+                }
                 aria-label="Review product"
                 size="sm"
               >

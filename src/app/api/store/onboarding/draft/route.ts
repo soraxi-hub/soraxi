@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
         type: data.businessInfo.type,
         businessName: data.businessInfo.businessName,
         registrationNumber: data.businessInfo.registrationNumber,
-        taxId: data.businessInfo.taxId,
         documentUrls: data.businessInfo.documentUrls || [],
       };
     }

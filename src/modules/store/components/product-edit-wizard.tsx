@@ -353,8 +353,8 @@ export function ProductEditWizard({
   };
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="min-h-screen bg-background py-0">
+      <div className="container mx-auto px-0 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Edit Product</h1>

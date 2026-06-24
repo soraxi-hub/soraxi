@@ -4,14 +4,20 @@ import { AppError } from "@/lib/errors/app-error";
 import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
 import { WaitlistService } from "@/services/waitlist-service";
 import { z } from "zod";
-import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
+import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
+
+const vendorApplicationRepository = new VendorApplicationRepository();
+const waitlistService = new WaitlistService(vendorApplicationRepository);
 
 // Zod schema for validating the application data (same as in procedure.ts, but adapted for FormData input)
 const formDataSchema = z.object({
   businessName: z.string().min(2).max(100),
   ownerName: z.string().min(2).max(100),
   email: z.string().email(),
-  phone: z.string().min(7).max(20),
+  phone: z.string().min(7).max(14),
+  institution: z.string().min(2).max(150),
+  cityOfApplicant: z.string().min(2).max(20),
+  stateOfApplicant: z.string().min(2).max(20),
   categoryId: z.string().min(1),
   subCategory: z.string().max(100).optional(),
   estimatedInventorySize: z.enum(["small", "medium", "large"]),
@@ -25,10 +31,17 @@ const formDataSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the student
+    const authSession = await getUserDataFromToken(request);
+
+    if (!authSession) {
+      throw new AppError("UNAUTHORIZED", "Login to submit a waitlist");
+    }
+
+    const submittedBy = authSession.id;
+
     // 1. Parse FormData
     const formData = await request.formData();
-
-    console.log("formdata", formData);
 
     // 2. Extract and validate text fields
     const rawFields: Record<string, unknown> = {};
@@ -60,22 +73,19 @@ export async function POST(request: NextRequest) {
       throw new AppError("BAD_REQUEST", "Maximum 4 product samples allowed");
     }
 
-    // 4. Upload each file and collect URLs
-    // const uploadedSamples = [""];
-    const uploadedSamples = await ProductImageUploadService.uploadImages(
-      productSampleFiles,
-      "storeWaitlist",
-    );
-
-    // 5. Prepare input for WaitlistService
+    // 4. Prepare input for WaitlistService
     const serviceInput = {
+      submittedBy,
+      institution: validatedFields.institution,
+      cityOfApplicant: validatedFields.cityOfApplicant,
+      stateOfApplicant: validatedFields.stateOfApplicant,
       businessName: validatedFields.businessName,
       ownerName: validatedFields.ownerName,
       email: validatedFields.email,
       phone: validatedFields.phone,
       categoryId: validatedFields.categoryId,
       subCategory: validatedFields.subCategory,
-      productSamples: uploadedSamples,
+      productSamples: productSampleFiles,
       cacNumber: validatedFields.cacNumber,
       instagramHandle: validatedFields.instagramHandle,
       otherProofUrl: validatedFields.otherProofUrl,
@@ -84,13 +94,8 @@ export async function POST(request: NextRequest) {
       isDropshipper: validatedFields.isDropshipper,
     };
 
-    // 6. Call the waitlist service
-    const vendorApplicationRepository = new VendorApplicationRepository();
-    const waitlistService = new WaitlistService(vendorApplicationRepository);
-
     const result = await waitlistService.apply(serviceInput);
 
-    // 7. Return success response
     return NextResponse.json({
       success: true,
       referenceId: result.referenceId,

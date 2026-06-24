@@ -94,6 +94,9 @@ export function VendorWaitlistWizard() {
     payload.append("ownerName", formData.ownerName);
     payload.append("email", formData.email);
     payload.append("phone", formData.phone);
+    payload.append("institution", formData.institution);
+    payload.append("stateOfApplicant", formData.stateOfApplicant);
+    payload.append("cityOfApplicant", formData.cityOfApplicant);
     if (formData.cacNumber) payload.append("cacNumber", formData.cacNumber);
     if (formData.instagramHandle)
       payload.append("instagramHandle", formData.instagramHandle);
