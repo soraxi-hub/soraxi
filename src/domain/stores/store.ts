@@ -41,6 +41,10 @@ export class Store implements StoreInterface {
     return this.props.password;
   }
 
+  set password(password: string) {
+    this.props.password = password;
+  }
+
   // -------------------------
   // RELATIONS
   // -------------------------

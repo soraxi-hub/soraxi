@@ -5,12 +5,10 @@ import { TRPCError } from "@trpc/server";
 import { storeName, storeDescription } from "@/validators/store-validators";
 import { StoreRepository } from "@/repositories/store-repo";
 import { StoreFactory } from "@/domain/stores/store-factory";
-import { StoreStatusEnum } from "@/enums";
 import { ProductRepository } from "@/repositories/product-repo";
 import { Product } from "@/domain/products/product";
 
 export const storeProfileRouter = createTRPCRouter({
-  // Fetch Store Profile Data. This is used for private store profiles.
   getStoreProfilePrivate: baseProcedure.query(async ({ ctx }) => {
     const { store } = ctx;
 
@@ -31,13 +29,6 @@ export const storeProfileRouter = createTRPCRouter({
       ...storeDoc,
       storeOwner: storeDoc.storeOwner.toString(),
     });
-
-    if (baseStore.status !== StoreStatusEnum.Active) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Store is not available.",
-      });
-    }
 
     // 2. Fetch product IDs and then populated products
     const productIds = baseStore.products; // string[]

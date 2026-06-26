@@ -29,9 +29,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { siteConfig } from "@/config/site";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -39,23 +36,12 @@ import { getInitials, truncateText } from "@/lib/utils";
 import Link from "next/link";
 import { userSidebarItems } from "./constant";
 import { UserTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { useAuth } from "@/hooks/use-auth-hook";
+import { useRouter } from "next/navigation";
 
 export function AppSidebar({ user }: { user: UserTokenPayload | null }) {
   const router = useRouter();
-  const handleLogout = async () => {
-    try {
-      const response = await axios.post("/api/auth/sign-out");
-      if (response.status === 200) {
-        router.push("/sign-in");
-        router.refresh();
-        toast.success("Logged out successfully");
-        return;
-      }
-      toast.error("Logout failed. Please try again.");
-    } catch (error) {
-      return error;
-    }
-  };
+  const { handleLogout } = useAuth();
 
   if (!user) {
     router.push("/sign-in");

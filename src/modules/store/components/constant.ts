@@ -6,6 +6,7 @@ import {
   BriefcaseIcon,
   WalletIcon,
   UserIcon,
+  ShieldIcon,
 } from "lucide-react";
 
 export const storeSidebarItems = (storeId: string) => [
@@ -56,6 +57,16 @@ export const storeSidebarItems = (storeId: string) => [
         title: "Payment Setup",
         url: `/store/${storeId}/payment-setup`,
         icon: CreditCardIcon,
+      },
+    ],
+  },
+  {
+    label: "Account Security",
+    items: [
+      {
+        title: "Change Password",
+        url: `/store/${storeId}/security/change-password`,
+        icon: ShieldIcon,
       },
     ],
   },

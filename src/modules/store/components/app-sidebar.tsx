@@ -28,9 +28,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ui/theme-toggler";
@@ -39,24 +36,10 @@ import { getInitials, truncateText } from "@/lib/utils";
 import Link from "next/link";
 import { storeSidebarItems } from "./constant";
 import { StoreTokenPayload } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
+import { useAuth } from "@/hooks/use-auth-hook";
 
 export function StoreSidebar({ store }: { store: StoreTokenPayload }) {
-  const router = useRouter();
-  const handleLogout = async () => {
-    try {
-      const storeId = store.id;
-      const response = await axios.post("/api/store/logout");
-      if (response.status === 200) {
-        router.push(`/store/${storeId}/dashboard`);
-        router.refresh();
-        toast.success("Logged out successfully");
-        return;
-      }
-      toast.error("Logout failed. Please try again.");
-    } catch (error) {
-      return error;
-    }
-  };
+  const { handleStoreLogout } = useAuth();
 
   return (
     <Sidebar
@@ -159,7 +142,7 @@ export function StoreSidebar({ store }: { store: StoreTokenPayload }) {
             </Link>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={handleLogout}
+              onClick={() => handleStoreLogout(store.id)}
               className="text-destructive cursor-pointer"
             >
               <LogOutIcon className="w-4 h-4 mr-2" />

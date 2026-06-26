@@ -97,4 +97,24 @@ export class StoreRepository {
 
     await store.save({ session });
   }
+
+  static async persistUpdatedPassword(
+    store: Store,
+  ): Promise<IStoreDocument | null> {
+    const StoreModel = await getStoreModel();
+
+    const doc = await StoreModel.findByIdAndUpdate(
+      store.storeId,
+      {
+        password: store.password,
+        $set: {
+          "security.hasChangedDefaultPassword": true,
+          "security.passwordChangedAt": new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    return doc;
+  }
 }

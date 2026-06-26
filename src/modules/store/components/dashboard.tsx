@@ -81,11 +81,11 @@ export default function StoreDashboardPage({
 
   // Store exists - show dashboard
   return (
-    <FeedbackWrapper page={`store-dashboard`} delay={5000}>
+    <FeedbackWrapper page={`store-dashboard`} delay={120000}>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-foreground">
                 Store Dashboard
@@ -112,6 +112,27 @@ export default function StoreDashboardPage({
               </Badge>
             </div>
           </div>
+
+          {!storeData.security?.hasChangedDefaultPassword && (
+            <Alert className="mb-6">
+              <AlertDescription className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  You're using a temporary password. Set a permanent one to
+                  protect your account secure.
+                </div>
+
+                <Button
+                  size="sm"
+                  className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+                  asChild
+                >
+                  <Link href={`/store/${store_id}/security/change-password`}>
+                    Update Password
+                  </Link>
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Store Status Alert */}
           {storeData.status === StoreStatusEnum.Pending && (

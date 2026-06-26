@@ -1,5 +1,6 @@
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { AuthUserDecorator } from "@/domain/users/decorators/auth-user.decorator";
+import { User } from "@/domain/users/user";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getUserModel, IUser, IUserDocument } from "@/lib/db/models/user.model";
 import { AppError } from "@/lib/errors/app-error";
@@ -23,6 +24,22 @@ export class UserRepository {
     await newUser.save();
   }
 
+  static async persistUpdatedPassword(
+    user: User,
+  ): Promise<IUserDocument | null> {
+    const UserModel = await getUserModel();
+
+    const userDoc = await UserModel.findByIdAndUpdate(
+      user.userId,
+      {
+        password: user.password,
+      },
+      { new: true },
+    );
+
+    return userDoc;
+  }
+
   // Check if the user exists in the database
   static async isExistingUser(email: string): Promise<boolean> {
     const User = await getUserModel();
@@ -44,7 +61,6 @@ export class UserRepository {
       UserModel,
     )
       .where("email", email)
-      .select("firstName", "lastName", "email", "password", "stores")
       .executeOne();
 
     return user;

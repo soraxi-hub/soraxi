@@ -7,7 +7,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Check, X, Eye, EyeOff, Loader } from "lucide-react";
+import { Eye, EyeOff, Loader } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,8 +22,9 @@ import { Input } from "@/components/ui/input";
 import { userSignUpInfoValidation } from "@/validators/user-signUp-info-validation";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
-import { Progress } from "@/components/ui/progress";
 import AlertUI from "@/modules/shared/alert";
+import { usePasswordStrength } from "@/hooks/use-password-strength.hook";
+import { PasswordStrengthIndicator } from "@/modules/shared/password-strength-indicator";
 
 const steps = [
   {
@@ -41,21 +42,10 @@ const steps = [
 ];
 
 function SignUp() {
-  // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Password strength state
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [passwordChecks, setPasswordChecks] = useState({
-    length: false,
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-  });
-
+  const strength = usePasswordStrength();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -94,43 +84,6 @@ function SignUp() {
 
   const handlePrev = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  /**
-   * Check password strength and update UI feedback
-   */
-  const checkPasswordStrength = (password: string) => {
-    const checks = {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[^A-Za-z0-9]/.test(password),
-    };
-
-    setPasswordChecks(checks);
-
-    // Calculate strength percentage (20% for each check)
-    const strength = Object.values(checks).filter(Boolean).length * 20;
-    setPasswordStrength(strength);
-  };
-
-  /**
-   * Get color class based on password strength
-   */
-  const getStrengthColor = () => {
-    if (passwordStrength < 40) return "bg-red-500";
-    if (passwordStrength < 80) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  /**
-   * Get strength label based on password strength
-   */
-  const getStrengthLabel = () => {
-    if (passwordStrength < 40) return "Weak";
-    if (passwordStrength < 80) return "Moderate";
-    return "Strong";
   };
 
   const getFieldType = (val: string) => {
@@ -358,7 +311,9 @@ function SignUp() {
                                   onChange={(e) => {
                                     field.onChange(e);
                                     if (field.name === "password") {
-                                      checkPasswordStrength(e.target.value);
+                                      strength.checkPasswordStrength(
+                                        e.target.value,
+                                      );
                                     }
                                   }}
                                 />
@@ -381,71 +336,7 @@ function SignUp() {
                             <FormMessage />
 
                             {field.name === "password" && (
-                              <div className="mt-2 space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs">
-                                    Password Strength:
-                                  </span>
-                                  <span className="text-xs font-medium">
-                                    {getStrengthLabel()}
-                                  </span>
-                                </div>
-                                <Progress
-                                  value={passwordStrength}
-                                  className="h-1.5"
-                                  indicatorClassName={getStrengthColor()}
-                                />
-
-                                {/* Password requirements checklist */}
-                                <div className="mt-3 space-y-1.5">
-                                  <div className="flex items-center text-xs">
-                                    {passwordChecks.length ? (
-                                      <Check className="h-3.5 w-3.5 text-green-500 mr-1.5" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5 text-red-500 mr-1.5" />
-                                    )}
-                                    <span>At least 8 characters</span>
-                                  </div>
-                                  <div className="flex items-center text-xs">
-                                    {passwordChecks.uppercase ? (
-                                      <Check className="h-3.5 w-3.5 text-green-500 mr-1.5" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5 text-red-500 mr-1.5" />
-                                    )}
-                                    <span>
-                                      At least one uppercase letter (A-Z)
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center text-xs">
-                                    {passwordChecks.lowercase ? (
-                                      <Check className="h-3.5 w-3.5 text-green-500 mr-1.5" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5 text-red-500 mr-1.5" />
-                                    )}
-                                    <span>
-                                      At least one lowercase letter (a-z)
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center text-xs">
-                                    {passwordChecks.number ? (
-                                      <Check className="h-3.5 w-3.5 text-green-500 mr-1.5" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5 text-red-500 mr-1.5" />
-                                    )}
-                                    <span>At least one number (0-9)</span>
-                                  </div>
-                                  <div className="flex items-center text-xs">
-                                    {passwordChecks.special ? (
-                                      <Check className="h-3.5 w-3.5 text-green-500 mr-1.5" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5 text-red-500 mr-1.5" />
-                                    )}
-                                    <span>
-                                      At least one special character (!@#$%^&*)
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
+                              <PasswordStrengthIndicator strength={strength} />
                             )}
                           </FormItem>
                         )}

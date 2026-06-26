@@ -8,6 +8,7 @@ import {
   HelpCircleIcon,
   BuildingIcon,
   BadgeInfoIcon,
+  ShieldIcon,
   // AlertTriangleIcon,
 } from "lucide-react";
 
@@ -25,6 +26,16 @@ export const userSidebarItems = (user: UserTokenPayload) => [
   {
     label: "Settings",
     items: [{ title: "Edit Profile", url: "/edit-profile", icon: EditIcon }],
+  },
+  {
+    label: "Account Security",
+    items: [
+      {
+        title: "Change Password",
+        url: "/security/change-password",
+        icon: ShieldIcon,
+      },
+    ],
   },
   {
     label: "Help & Support",
