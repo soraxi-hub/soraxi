@@ -5,6 +5,7 @@ import { VendorApplicationRepository } from "@/repositories/vendor-application-r
 import { WaitlistService } from "@/services/waitlist-service";
 import { z } from "zod";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
+import { MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES } from "@/constants/image.constants";
 
 const vendorApplicationRepository = new VendorApplicationRepository();
 const waitlistService = new WaitlistService(vendorApplicationRepository);
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
         "At least one product sample image is required",
       );
     }
-    if (productSampleFiles.length > 4) {
+    if (productSampleFiles.length > MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES) {
       throw new AppError("BAD_REQUEST", "Maximum 4 product samples allowed");
     }
 

@@ -3,7 +3,7 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { DeliveryStatus, StatusHistory } from "@/enums";
+import { DeliveryStatus } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import {
   getTransactionRecordByOrderId,
@@ -80,10 +80,8 @@ export const orderRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const { mainOrderId, subOrderId, deliveryStatus } = input;
-      const now = new Date();
+      const { mainOrderId, subOrderId } = input;
 
-      // Validate user ID format
       if (
         !mongoose.Types.ObjectId.isValid(mainOrderId) ||
         !mongoose.Types.ObjectId.isValid(subOrderId)
@@ -94,87 +92,39 @@ export const orderRouter = createTRPCRouter({
         });
       }
 
-      const Order = await getOrderModel();
+      const OrderModel = await getOrderModel();
+      const orderDoc = await OrderModel.findById(mainOrderId);
 
-      const order = await Order.findById(mainOrderId);
-      // Handle case where order is not found
-      if (!order) {
+      if (!orderDoc) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `Order with ID ${mainOrderId} not found`,
         });
       }
 
-      // ==================== Sub-Order Update ====================
-
-      /**
-       * Find and Update Sub-Order
-       *
-       * Locates the specific sub-order within the order and applies the
-       * status update along with any additional information.
-       */
-      const subOrder = order.subOrders.find(
+      // Resolve storeId from the sub-order — required by confirmDelivery().
+      const rawSubOrder = orderDoc.subOrders.find(
         (sub) => sub._id?.toString() === subOrderId,
       );
 
-      if (deliveryStatus !== DeliveryStatus.Delivered) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `BAD REQUEST: DELIVERY STATUS MUST BE MARKED AS "${DeliveryStatus.Delivered}" and not "${deliveryStatus}".`,
-        });
-      }
-
-      if (!subOrder) {
+      if (!rawSubOrder) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `The specified sub-order: ${subOrderId} could not be found.`,
         });
       }
 
-      const acceptableCurrentStatuses = [
-        DeliveryStatus.OutForDelivery,
-        DeliveryStatus.Delivered,
-      ];
+      const storeId = rawSubOrder.storeId.toString();
 
-      if (!acceptableCurrentStatuses.includes(subOrder.deliveryStatus)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Delivery cannot be confirmed unless it's marked as "Out for Delivery" or "Delivered".`,
-        });
-      }
-
-      const currentDate = new Date();
-
-      subOrder.customerConfirmedDelivery.confirmed = true;
-      subOrder.customerConfirmedDelivery.confirmedAt = now;
-
-      // Store previous status for logging
-      const previousStatus = subOrder.deliveryStatus;
-
-      // Update sub-order fields
-      subOrder.deliveryStatus = deliveryStatus;
-      subOrder.statusHistory.push({
-        status: StatusHistory.Delivered,
-        timestamp: currentDate,
-        notes: `Delivery Confirmed by customer.`,
-      }); // Here we push in this confirmation action.
-
-      if (previousStatus === DeliveryStatus.OutForDelivery) {
-        // Set delivery date and calculate return window
-        subOrder.deliveryDate = currentDate;
-      }
-
-      // ==================== Stage 2: Financial Settlement ====================
-
+      // ==================== Financial Settlement ====================
       const session = await mongoose.startSession();
       session.startTransaction();
 
       try {
-        // --- Fetch the transaction record to get this suborder's settleAmount ---
-        const transactionRecord = await getTransactionRecordByOrderId(
-          mainOrderId,
-          // NOTE: Pass session once helpers support it
-        );
+        await orderService.confirmDelivery(input.mainOrderId, storeId, session);
+
+        const transactionRecord =
+          await getTransactionRecordByOrderId(mainOrderId);
 
         if (!transactionRecord) {
           throw new TRPCError({
@@ -194,20 +144,12 @@ export const orderRouter = createTRPCRouter({
           });
         }
 
-        // Guard: only settle suborders that are still in PENDING status.
-        // Prevents double-settlement if this procedure is called more than once.
         if (breakdown.status !== SuborderFinancialStatus.PENDING) {
-          // Suborder already settled, disputed, or refunded — skip financial writes
-          // but still save the delivery confirmation on the order document
-          await order.save({ session });
+          await orderDoc.save({ session });
           await session.commitTransaction();
           return { success: true, message: "Delivery Confirmed." };
         }
 
-        // --- FUNDS_RELEASED journal entry ---
-        // Records the movement of vendor funds from VENDOR_PENDING to
-        // VENDOR_AVAILABLE now that the customer has confirmed receipt.
-        // Offsets: DEBIT VENDOR_AVAILABLE / CREDIT VENDOR_PENDING
         const writer = await JournalEntryWriter.init();
 
         await writer.writeFundsReleased({
@@ -218,7 +160,6 @@ export const orderRouter = createTRPCRouter({
           session,
         });
 
-        // --- Update Transaction Record: suborder status → SETTLED ---
         await updateSuborderFinancialStatus(
           mainOrderId,
           subOrderId,
@@ -226,17 +167,13 @@ export const orderRouter = createTRPCRouter({
           session,
         );
 
-        // --- Update Vendor Wallet cache: pending → available ---
-        // Mirrors the VENDOR_PENDING → VENDOR_AVAILABLE movement above.
         await releaseVendorPendingToAvailable(
           breakdown.vendorId.toString(),
           breakdown.settleAmount,
           session,
         );
 
-        // --- Save the order with delivery confirmation updates ---
-        await order.save({ session });
-
+        await orderDoc.save({ session });
         await session.commitTransaction();
       } catch (error) {
         await session.abortTransaction();

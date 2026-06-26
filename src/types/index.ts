@@ -79,3 +79,13 @@ export interface ShippingMethod {
   description?: string;
   estimatedDeliveryDays?: number | string; // Estimated number of days for delivery after order placement (e.g., "3-5 days")
 }
+
+/**
+ * Shipping method interface for payment
+ */
+export type ShippingMethodForPayment = Omit<
+  ShippingMethod,
+  "estimatedDeliveryDays"
+> & {
+  estimatedDeliveryDays?: number; // only number or absent (undefined)
+};

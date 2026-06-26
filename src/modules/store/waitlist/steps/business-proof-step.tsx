@@ -16,11 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import type { ProofStepProps } from "../../../../types/waitlist-wizard.types";
-
-const MAX_SAMPLES = 6;
-const MAX_SAMPLE_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+import type { ProofStepProps } from "@/types/waitlist-wizard.types";
+import {
+  ALLOWED_IMAGE_TYPES,
+  IMAGE_FILE_SIZE,
+  MAX_IMAGE_FILE_SIZE,
+  MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES,
+} from "@/constants/image.constants";
 
 export const BusinessProofStep: React.FC<ProofStepProps> = ({
   formData,
@@ -65,20 +67,23 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
   const handleFiles = (files: FileList) => {
     const fileArray = Array.from(files);
 
-    if (productSampleFiles.length + fileArray.length > MAX_SAMPLES) {
+    if (
+      productSampleFiles.length + fileArray.length >
+      MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES
+    ) {
       toast.info(
-        `You can upload up to ${MAX_SAMPLES} samples. You currently have ${productSampleFiles.length}.`,
+        `You can upload up to ${MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES} samples. You currently have ${productSampleFiles.length}.`,
       );
       return;
     }
 
     for (const file of fileArray) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
         toast.info("Only JPEG, PNG, and WebP images are allowed");
         return;
       }
-      if (file.size > MAX_SAMPLE_SIZE) {
-        toast.info("Each image must be less than 5MB");
+      if (file.size > MAX_IMAGE_FILE_SIZE) {
+        toast.info(`Each image must be less than ${IMAGE_FILE_SIZE}MB`);
         return;
       }
     }
@@ -196,8 +201,8 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
         <CardHeader className="pb-4">
           <CardTitle className="text-xl">Product Samples</CardTitle>
           <CardDescription>
-            Upload photos of products you plan to sell (min 1, max {MAX_SAMPLES}
-            )
+            Upload photos of products you plan to sell (min 1, max{" "}
+            {MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES})
           </CardDescription>
         </CardHeader>
 
@@ -230,7 +235,10 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
               multiple
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={handleImageChange}
-              disabled={isLoading || productSampleFiles.length >= MAX_SAMPLES}
+              disabled={
+                isLoading ||
+                productSampleFiles.length >= MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES
+              }
               className="hidden"
             />
             <label htmlFor="sample-upload" className="cursor-pointer">
@@ -242,7 +250,7 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
                 or click to select files
               </p>
               <p className="text-xs text-gray-500">
-                JPEG, PNG, WebP · Max 5MB each
+                JPEG, PNG, WebP · Max {IMAGE_FILE_SIZE}MB each
               </p>
             </label>
           </div>
@@ -251,12 +259,13 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
           {productSampleFiles.length > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                {productSampleFiles.length}/{MAX_SAMPLES} samples
+                {productSampleFiles.length}/{MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES}{" "}
+                samples
               </Badge>
               <p className="text-xs text-gray-500">
-                {productSampleFiles.length >= MAX_SAMPLES
+                {productSampleFiles.length >= MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES
                   ? "Maximum reached"
-                  : `${MAX_SAMPLES - productSampleFiles.length} more allowed`}
+                  : `${MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES - productSampleFiles.length} more allowed`}
               </p>
             </div>
           )}

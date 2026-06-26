@@ -4,8 +4,6 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { OrderService } from "@/services/orders/order.service";
 
-const orderService = new OrderService();
-
 export const storeOrdersRouter = createTRPCRouter({
   getStoreOrderById: baseProcedure
     .input(
@@ -23,6 +21,8 @@ export const storeOrdersRouter = createTRPCRouter({
           message: "Store authentication required to access order details",
         });
       }
+
+      const orderService = new OrderService();
 
       return await orderService.getOrderStoreView(orderId, store.id);
     }),
@@ -63,6 +63,8 @@ export const storeOrdersRouter = createTRPCRouter({
             message: "Store authentication required to access orders",
           });
         }
+
+        const orderService = new OrderService();
 
         // Call service method
         const result = await orderService.getStoreOrders(storeSession.id, {

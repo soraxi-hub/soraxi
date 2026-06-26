@@ -4,11 +4,7 @@ import { getOrderById, getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import type { IUser } from "@/lib/db/models/user.model";
-import {
-  DeliveryStatus,
-  deliveryStatusLabel,
-  type StatusHistory,
-} from "@/enums";
+import { DeliveryStatus, deliveryStatusLabel } from "@/enums";
 import {
   NotificationFactory,
   renderTemplate,
@@ -16,6 +12,7 @@ import {
   OrderFailureEmail,
 } from "@/domain/notification";
 import React from "react";
+import { OrderService } from "@/services/orders/order.service";
 
 export const orderStatusRouter = createTRPCRouter({
   /**
@@ -31,7 +28,7 @@ export const orderStatusRouter = createTRPCRouter({
         subOrderId: z.string().min(1, "Sub-order ID is required"),
         deliveryStatus: z.nativeEnum(DeliveryStatus),
         notes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -65,9 +62,9 @@ export const orderStatusRouter = createTRPCRouter({
         }
 
         // ==================== Database Operations ====================
-        const order = await getOrderById(input.orderId);
+        const orderDoc = await getOrderById(input.orderId, true);
 
-        if (!order) {
+        if (!orderDoc) {
           console.warn(`Order not found for status update: ${input.orderId}`);
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -76,13 +73,13 @@ export const orderStatusRouter = createTRPCRouter({
         }
 
         // Verify store ownership
-        const storeOwnsOrder = order.stores.some(
-          (storeId) => storeId.toString() === storeSession.id
+        const storeOwnsOrder = orderDoc.stores.some(
+          (storeId) => storeId.toString() === storeSession.id,
         );
 
         if (!storeOwnsOrder) {
           console.warn(
-            `Unauthorized order status update attempt: Store ${storeSession.id} tried to update order ${input.orderId}`
+            `Unauthorized order status update attempt: Store ${storeSession.id} tried to update order ${input.orderId}`,
           );
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -90,74 +87,46 @@ export const orderStatusRouter = createTRPCRouter({
           });
         }
 
-        // ==================== Sub-Order Update ====================
-        const subOrder = order.subOrders.find(
-          (sub) => sub._id?.toString() === input.subOrderId
-        );
+        // ==================== Sub-Order Update (via domain) ====================
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        if (!subOrder) {
+        try {
+          const orderService = new OrderService();
+
+          await orderService.updateDeliveryStatus(
+            input.orderId,
+            storeSession.id,
+            input.deliveryStatus,
+            input.notes ??
+              `Delivery updated to "${deliveryStatusLabel(input.deliveryStatus)}" by the store.`,
+            session,
+          );
+
+          await session.commitTransaction();
+        } catch (domainError) {
+          await session.abortTransaction();
           throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "The specified sub-order could not be found",
+            code: "BAD_REQUEST",
+            message:
+              domainError instanceof Error
+                ? domainError.message
+                : "Invalid status transition",
           });
+        } finally {
+          session.endSession();
         }
-
-        // Store previous status for logging
-        const previousStatus = subOrder.deliveryStatus;
-
-        // Update sub-order fields
-        subOrder.deliveryStatus = input.deliveryStatus;
-        // Prepare the status history update
-        const statusUpdate = {
-          status: input.deliveryStatus as unknown as StatusHistory,
-          timestamp: new Date(),
-          notes: `Delivery updated to "${deliveryStatusLabel(input.deliveryStatus)}" by the store.`,
-        };
-        subOrder.statusHistory.push(statusUpdate);
-
-        // ==================== Status-Specific Logic ====================
-        const currentDate = new Date();
-
-        switch (input.deliveryStatus) {
-          case DeliveryStatus.Delivered:
-            // Set delivery date and calculate return window
-            subOrder.deliveryDate = currentDate;
-            break;
-
-          case DeliveryStatus.Canceled:
-          case DeliveryStatus.Returned:
-          case DeliveryStatus.FailedDelivery:
-            // Mark for review — admin must manually trigger refund later
-            break;
-
-          case DeliveryStatus.Refunded:
-            // Complete refund — this is the only place refund actually happens
-
-            break;
-        }
-
-        // ==================== Save Changes ====================
-        await order.save();
-
-        // ==================== Audit Logging ====================
-        console.log(
-          `Order status updated: ${input.orderId} | Sub-order: ${input.subOrderId} | ` +
-            `Store: ${storeSession.id} | Status: ${previousStatus} → ${input.deliveryStatus}`
-        );
-
         // ==================== Email Notifications ====================
         try {
           const Order = await getOrderModel();
-          const orderDoc = await Order.findById(input.orderId)
-            .populate({
-              path: "userId",
-              select: "email",
-            })
+          const orderWithUser = await Order.findById(input.orderId)
+            .populate({ path: "userId", select: "email" })
             .select("userId");
 
-          const customerEmail = (orderDoc?.userId as unknown as IUser)?.email;
+          const customerEmail = (orderWithUser?.userId as unknown as IUser)
+            ?.email;
 
-          if (!orderDoc || !orderDoc.userId) {
+          if (!orderWithUser || !orderWithUser.userId) {
             console.log("Failed to fetch order or user ID");
           } else {
             const isOrderFailedOrCanceled =
@@ -176,10 +145,9 @@ export const orderStatusRouter = createTRPCRouter({
                 status: deliveryStatusLabel(input.deliveryStatus),
                 storeName: storeSession.name.toUpperCase(),
                 trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
-              })
+              }),
             );
 
-            // Send customer notification
             const customerNotification = NotificationFactory.create("email", {
               recipient: customerEmail,
               subject: statusSubject,
@@ -191,7 +159,6 @@ export const orderStatusRouter = createTRPCRouter({
 
             await customerNotification.send();
 
-            // Send admin notification for failed/canceled orders
             if (isOrderFailedOrCanceled) {
               const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;
 
@@ -203,7 +170,7 @@ export const orderStatusRouter = createTRPCRouter({
                   storeName: storeSession.name.toUpperCase(),
                   customerEmail: customerEmail || "Unknown",
                   reason: input.notes,
-                })
+                }),
               );
 
               const adminNotification = NotificationFactory.create("email", {
@@ -212,15 +179,13 @@ export const orderStatusRouter = createTRPCRouter({
                 emailType: "storeOrderNotification",
                 fromAddress: "orders@soraxihub.com",
                 html: adminHtml,
-                text: `Order ${input.subOrderId} for store "${
-                  storeSession.name
-                }" was marked as ${deliveryStatusLabel(input.deliveryStatus)}.`,
+                text: `Order ${input.subOrderId} for store "${storeSession.name}" was marked as ${deliveryStatusLabel(input.deliveryStatus)}.`,
               });
 
               await adminNotification.send();
 
               console.log(
-                `Admin notified for ${deliveryStatusLabel(input.deliveryStatus)} case`
+                `Admin notified for ${deliveryStatusLabel(input.deliveryStatus)} case`,
               );
             }
           }
@@ -231,14 +196,6 @@ export const orderStatusRouter = createTRPCRouter({
         return {
           success: true,
           message: `Order status updated to ${deliveryStatusLabel(input.deliveryStatus)}`,
-          updates: {
-            orderId: input.orderId,
-            subOrderId: input.subOrderId,
-            previousStatus,
-            newStatus: deliveryStatusLabel(input.deliveryStatus),
-            deliveryDate: subOrder.deliveryDate?.toISOString() || null,
-            updatedAt: currentDate.toISOString(),
-          },
         };
       } catch (error) {
         console.error("Order status update error:", error);
@@ -278,7 +235,7 @@ export const orderStatusRouter = createTRPCRouter({
     .input(
       z.object({
         orderId: z.string().min(1, "Order ID is required"),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       try {
@@ -311,7 +268,7 @@ export const orderStatusRouter = createTRPCRouter({
 
         // Verify store ownership
         const storeOwnsOrder = order.stores.some(
-          (storeId) => storeId.toString() === storeSession.id
+          (storeId) => storeId.toString() === storeSession.id,
         );
 
         if (!storeOwnsOrder) {

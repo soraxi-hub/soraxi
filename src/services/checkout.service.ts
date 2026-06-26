@@ -1,6 +1,6 @@
 import { DeliveryType, PaymentGateway, ProductTypeEnum } from "@/enums";
 import { currencyOperations } from "@/lib/utils/naira";
-import { ShippingMethod } from "@/types";
+import { ShippingMethod, ShippingMethodForPayment } from "@/types";
 import { CouponTypeEnum } from "@/enums";
 import { CheckoutData } from "@/modules/checkout/checkout-page-client";
 import { CartService } from "./cart/cart.service";
@@ -22,7 +22,7 @@ export type AppliedCouponType = {
 export interface CartItemsWithShippingMethod {
   cartItemsWithShippingMethod: Array<
     Omit<GroupedCartStoreItem, "shippingMethods"> & {
-      selectedShippingMethod: ShippingMethod;
+      selectedShippingMethod: ShippingMethodForPayment;
     }
   >;
 }
@@ -143,7 +143,7 @@ export class CheckoutService {
    * Prepares payment payload.
    */
   preparePaymentData(params: {
-    selectedShippingMethods: Record<string, ShippingMethod>;
+    selectedShippingMethods: Record<string, ShippingMethodForPayment>;
     appliedCoupon: AppliedCouponType;
     deliveryType: DeliveryType;
   }): PreparedPaymentData {
