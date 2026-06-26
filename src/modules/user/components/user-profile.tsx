@@ -34,7 +34,7 @@ const Profile = () => {
   if (isLoading) return <ProfileSkeleton />;
 
   return (
-    <FeedbackWrapper page={`user`} delay={5000}>
+    <FeedbackWrapper page={`user`} delay={120000}>
       <div className="space-y-6 py-6">
         {/* Profile Header */}
         <section>

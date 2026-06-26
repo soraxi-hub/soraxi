@@ -2,7 +2,6 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { StoreStatusEnum } from "@/enums";
 import { StoreRepository } from "@/repositories/store-repo";
 import { StoreFactory } from "@/domain/stores/store-factory";
 import { ProductRepository } from "@/repositories/product-repo";
@@ -35,13 +34,6 @@ export const publicStoreRouter = createTRPCRouter({
         ...storeDoc,
         storeOwner: storeDoc.storeOwner.toString(),
       });
-
-      if (baseStore.status !== StoreStatusEnum.Active) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Store is not available.",
-        });
-      }
 
       // 2. Fetch product IDs and then populated products
       const productIds = baseStore.products; // string[]

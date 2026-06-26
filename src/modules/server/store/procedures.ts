@@ -18,7 +18,7 @@ export const storeRouter = createTRPCRouter({
       const Store = await getStoreModel();
 
       const store = (await Store.findById(id).select(
-        "name storeEmail status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description logoUrl bannerUrl",
+        "name storeEmail status verification businessInfo shippingMethods payoutAccounts agreedToTermsAt description security",
       )) as (IStore & { _id: string }) | null;
 
       if (!store) {
@@ -36,6 +36,7 @@ export const storeRouter = createTRPCRouter({
         status: store.status,
         verification: store.verification,
         onboarding: computeOnboardingStatus(store),
+        security: store.security,
       };
     }),
 

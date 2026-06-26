@@ -13,6 +13,14 @@ import { AuthenticatedStore } from "@/domain/stores/auth-store";
 import { AdminRepository } from "@/repositories/admin-repo";
 import { AuthenticatedAdmin } from "@/domain/admin/admin";
 import { AdminFactory } from "@/domain/admin/admin-factory";
+import { PasswordService } from "@/lib/utils";
+import { IUserDocument } from "@/lib/db/models/user.model";
+import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import {
+  getStoreModel,
+  IStore,
+  IStoreDocument,
+} from "@/lib/db/models/store.model";
 
 export class AuthService {
   static async userLogin(
@@ -119,5 +127,104 @@ export class AuthService {
     const tokenPayload = CookieService.generateAdminToken(admin);
 
     return { admin: authAdmin, tokenPayload };
+  }
+
+  static async verifyCurrentPassword(
+    identifierEmail: string,
+    rawPassword: string,
+    ref: "user" | "store",
+  ): Promise<void> {
+    if (ref === "store") {
+      const storeModel = await getStoreModel();
+      const store = await QueryBuilderFactory.queryBuilder<IStore>(storeModel)
+        .where("storeEmail", identifierEmail)
+        .executeOne();
+
+      if (!store) {
+        throw new AppError("NOT_FOUND", "Store not found", {
+          email: identifierEmail,
+        });
+      }
+
+      const authStore = StoreFactory.buildAuthenticatedStore(store);
+      const isValid = await authStore.validatePassword(rawPassword);
+
+      if (!isValid) {
+        throw new AppError("UNAUTHORIZED", "Current password is incorrect");
+      }
+
+      return;
+    }
+
+    const user = await UserRepository.findUserByEmail(identifierEmail);
+
+    if (!user) {
+      throw new AppError("NOT_FOUND", "User not found", {
+        email: identifierEmail,
+      });
+    }
+
+    const authUser = UserFactory.createAuthUser(user);
+    const isValid = await authUser.validatePassword(rawPassword);
+
+    if (!isValid) {
+      throw new AppError("UNAUTHORIZED", "Current password is incorrect");
+    }
+  }
+
+  static async updatePassword(
+    identifierEmail: string,
+    rawPassword: string,
+    ref: "user" | "store",
+  ): Promise<IUserDocument | IStoreDocument> {
+    const hashedPassword = await PasswordService.hashPassword(rawPassword);
+
+    if (ref === "store") {
+      const storeModel = await getStoreModel();
+      const rawDoc = await QueryBuilderFactory.queryBuilder<IStore>(storeModel)
+        .where("storeEmail", identifierEmail)
+        .executeOne();
+
+      if (!rawDoc)
+        throw new AppError("NOT_FOUND", "Store not found", {
+          email: identifierEmail,
+        });
+
+      const store = StoreFactory.store({
+        ...rawDoc,
+        storeOwner: rawDoc.storeOwner.toString(),
+      });
+
+      store.password = hashedPassword;
+
+      const updatedStore = await StoreRepository.persistUpdatedPassword(store);
+
+      if (!updatedStore)
+        throw new AppError("NOT_FOUND", "User not found", {
+          email: identifierEmail,
+        });
+
+      return updatedStore;
+    }
+
+    const rawDoc = await UserRepository.findUserByEmail(identifierEmail);
+
+    if (!rawDoc)
+      throw new AppError("NOT_FOUND", "User not found", {
+        email: identifierEmail,
+      });
+
+    const user = UserFactory.createBaseUser(rawDoc);
+
+    user.password = hashedPassword;
+
+    const updatedUser = await UserRepository.persistUpdatedPassword(user);
+
+    if (!updatedUser)
+      throw new AppError("NOT_FOUND", "User not found", {
+        email: identifierEmail,
+      });
+
+    return updatedUser;
   }
 }

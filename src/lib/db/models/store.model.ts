@@ -106,12 +106,8 @@ export interface IStore {
   // Payouts
   payoutAccounts: IPayoutAccount[];
 
-  // Security
   security: {
-    hasChangedDefaultPassword: {
-      type: Boolean;
-      default: false;
-    };
+    hasChangedDefaultPassword: boolean;
     passwordChangedAt: Date;
   };
 
