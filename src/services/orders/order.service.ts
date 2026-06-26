@@ -5,7 +5,8 @@ import { Order } from "@/domain/orders/order";
 import mongoose from "mongoose";
 import { IOrder, IOrderDocument } from "@/lib/db/models/order.model";
 import { FilterQuery } from "mongoose";
-import { PaymentStatus } from "@/enums";
+import { DeliveryStatus, PaymentStatus } from "@/enums";
+import { OrderFactory } from "@/domain/orders/order-factory";
 
 /**
  * OrderService
@@ -204,7 +205,7 @@ export class OrderService implements IOrderService {
   async updateDeliveryStatus(
     orderId: string,
     storeId: string,
-    status: any,
+    status: DeliveryStatus,
     notes: string | undefined,
     session: mongoose.ClientSession,
   ) {
@@ -217,7 +218,7 @@ export class OrderService implements IOrderService {
       throw new AppError("NOT_FOUND", "Order not found");
     }
 
-    const order = new Order(orderDoc);
+    const order = OrderFactory.createOrder(orderDoc);
 
     order.updateSubOrderStatus(storeId, status, notes);
 

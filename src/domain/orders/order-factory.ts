@@ -1,5 +1,7 @@
 import { OrderService } from "@/services/orders/order.service";
 import { ProcessOrder } from "@/services/orders/process-order.service";
+import { Order } from "./order";
+import { IOrder, IOrderDocument } from "@/lib/db/models/order.model";
 
 export class OrderFactory {
   private static processOrderInstance: ProcessOrder | null = null;
@@ -17,5 +19,9 @@ export class OrderFactory {
 
   static getOrderServiceInstance(): OrderService {
     return new OrderService();
+  }
+
+  static createOrder(order: IOrderDocument | IOrder): Order {
+    return new Order(order);
   }
 }

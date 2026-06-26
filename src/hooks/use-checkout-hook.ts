@@ -1,7 +1,7 @@
 "use client";
 
 import { DeliveryType } from "@/enums";
-import { ShippingMethod } from "@/types";
+import { ShippingMethodForPayment } from "@/types";
 import { CouponTypeEnum } from "@/enums";
 import { Dispatch, SetStateAction, useState } from "react";
 import { toast } from "sonner";
@@ -31,9 +31,12 @@ interface UseCheckoutServiceReturn {
   setIsValidating: (value: boolean) => void;
   setValidationErrors: (errors: string[]) => void;
   setDeliveryType: Dispatch<SetStateAction<DeliveryType>>;
-  selectedShippingMethods: Record<string, ShippingMethod>;
+  selectedShippingMethods: Record<string, ShippingMethodForPayment>;
   onPlaceOrder: () => Promise<void>;
-  handleShippingMethodChange: (storeId: string, method: ShippingMethod) => void;
+  handleShippingMethodChange: (
+    storeId: string,
+    method: ShippingMethodForPayment,
+  ) => void;
 }
 
 export function useCheckoutService(
@@ -46,7 +49,7 @@ export function useCheckoutService(
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [selectedShippingMethods, setSelectedShippingMethods] = useState<
-    Record<string, ShippingMethod>
+    Record<string, ShippingMethodForPayment>
   >({});
   const [deliveryType, setDeliveryType] = useState<DeliveryType>(
     DeliveryType.Campus,
@@ -101,7 +104,7 @@ export function useCheckoutService(
    */
   const handleShippingMethodChange = (
     storeId: string,
-    method: ShippingMethod,
+    method: ShippingMethodForPayment,
   ) => {
     setSelectedShippingMethods((prev) => ({
       ...prev,
@@ -175,8 +178,8 @@ export function useCheckoutService(
 
       // Step 2: Process payment
       setIsProcessing(true);
-      // @ts-ignore
       await paymentMutation.mutateAsync(paymentData);
+      // @ts-ignore
     } catch (err: any) {
       setError(
         err.message ||

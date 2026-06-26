@@ -16,7 +16,7 @@ import { ProductItem } from "./product-item";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
-import type { ShippingMethod } from "@/types";
+import type { ShippingMethod, ShippingMethodForPayment } from "@/types";
 
 type CheckoutOutput = inferProcedureOutput<
   AppRouter["checkout"]["getGroupedCart"]
@@ -25,7 +25,7 @@ type GroupedCart = NonNullable<CheckoutOutput>["groupedCart"][number];
 
 interface StoreCartGroupProps {
   storeGroup: GroupedCart;
-  onShippingMethodChangeAction: (method: ShippingMethod) => void;
+  onShippingMethodChangeAction: (method: ShippingMethodForPayment) => void;
   selectedShippingMethod: ShippingMethod | undefined;
 }
 

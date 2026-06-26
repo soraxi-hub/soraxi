@@ -20,14 +20,6 @@ import { CustomerInfo } from "./types";
  * - delivery state transitions
  * - financial integrity
  * - sub-order isolation
- *
- * Monetary convention
- * -------------------
- * Raw values are always in kobo (the canonical storage unit).
- * Every monetary field is surfaced in three forms, mirroring the Payout model:
- *   totalAmount              → raw kobo  (backend arithmetic)
- *   totalAmountInNaira       → naira number (e.g. 5000)
- *   formattedTotalAmount     → display string (e.g. ₦5,000)
  */
 export class Order implements IOrderInfo {
   constructor(protected props: IOrder) {}
@@ -246,7 +238,7 @@ export class Order implements IOrderInfo {
   }
 
   // -------------------------------------------------------------------------
-  // 🔒 INVARIANT GUARDS
+  // INVARIANT GUARDS
   // -------------------------------------------------------------------------
 
   assertCanModify() {
@@ -268,7 +260,7 @@ export class Order implements IOrderInfo {
   }
 
   // -------------------------------------------------------------------------
-  // 💳 PAYMENT STATE TRANSITIONS
+  // PAYMENT STATE TRANSITIONS
   // -------------------------------------------------------------------------
 
   markPaymentPaid() {
@@ -293,7 +285,7 @@ export class Order implements IOrderInfo {
   }
 
   // -------------------------------------------------------------------------
-  // 🚚 DELIVERY STATE MACHINE
+  // DELIVERY STATE MACHINE
   // -------------------------------------------------------------------------
 
   private canTransition(from: DeliveryStatus, to: DeliveryStatus): boolean {
@@ -351,17 +343,22 @@ export class Order implements IOrderInfo {
       throw new Error(`Cannot update status: ${status}`);
     }
 
+    const now = new Date();
     subOrder.deliveryStatus = status;
+
+    if (status === DeliveryStatus.Delivered) {
+      subOrder.deliveryDate = now;
+    }
 
     subOrder.statusHistory.push({
       status: status as unknown as StatusHistory,
-      timestamp: new Date(),
+      timestamp: now,
       notes,
     });
   }
 
   // -------------------------------------------------------------------------
-  // 💡 PAYMENT REQUIRED RULE
+  // PAYMENT REQUIRED RULE
   // -------------------------------------------------------------------------
 
   private assertPaidRequiredForFulfillment(status: DeliveryStatus) {
@@ -378,7 +375,7 @@ export class Order implements IOrderInfo {
   }
 
   // -------------------------------------------------------------------------
-  // 📦 CUSTOMER DELIVERY CONFIRMATION
+  // CUSTOMER DELIVERY CONFIRMATION
   // -------------------------------------------------------------------------
 
   confirmDelivery(storeId: string) {
@@ -400,7 +397,7 @@ export class Order implements IOrderInfo {
   }
 
   // -------------------------------------------------------------------------
-  // 🧾 DTOs
+  // DTOs
   // -------------------------------------------------------------------------
 
   /**

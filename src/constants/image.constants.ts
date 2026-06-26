@@ -2,6 +2,7 @@
  * Constants
  */
 export const MAX_PRODUCT_IMAGES = 3;
+export const MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES = 4;
 export const IMAGE_FILE_SIZE = 4;
 export const MAX_IMAGE_FILE_SIZE = IMAGE_FILE_SIZE * 1024 * 1024; // 4MB
 export const ALLOWED_IMAGE_TYPES = [
