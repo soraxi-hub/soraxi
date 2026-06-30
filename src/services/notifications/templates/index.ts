@@ -29,6 +29,7 @@ export { StoreOrderNotificationEmail } from "./store-order-notification-email";
 export { OTPVerificationEmail } from "./otp-verification-email";
 export { SupportContactEmail } from "./support-contact-email";
 export { EscrowReleaseEmail } from "./escrow-release-email";
+export { RefundIssuedEmail } from "./refund-issued-email";
 export { StoreApprovedEmail } from "../templates/store/store-approved-email";
 export { StoreReactivatedEmail } from "../templates/store/store-reactivated-email";
 export { StoreRejectedEmail } from "../templates/store/store-rejected-email";

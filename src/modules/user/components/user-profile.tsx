@@ -24,6 +24,7 @@ import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 //   CardHeader,
 // } from "@/components/ui/card";
 import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
+// import { RecentlyViewed } from "@/modules/products/product-detail/recently-viewed";
 
 const Profile = () => {
   const trpc = useTRPC();
@@ -92,13 +93,10 @@ const Profile = () => {
 
         {/* <UserStores stores={user.getUserStores()} /> */}
 
-        {/* Recently Viewed Products */}
-        {/* {recentProducts.length > 0 && (
-            <RecentProductsSection
-              products={recentProducts}
-              blurData={blurData}
-            />
-          )} */}
+        {/* Recently Viewed */}
+        {/* <div className="mt-12">
+          <RecentlyViewed />
+        </div> */}
       </div>
     </FeedbackWrapper>
   );

@@ -9,6 +9,15 @@ import { reverseVendorPayoutDeduction } from "@/lib/db/models/vendor-wallet.mode
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { PayoutStatus } from "@/enums/financial.enums";
 import { koboToNaira } from "@/lib/utils/naira";
+import {
+  NotificationFactory,
+  PayoutCompletedEmail,
+  PayoutFailedEmail,
+  renderTemplate,
+} from "@/domain/notification";
+import { getStoreModel } from "@/lib/db/models/store.model";
+import { DateFormatter } from "@/lib/utils/date-formatter";
+import React from "react";
 
 // ---------------------------------------------------------------------------
 // Flutterwave Transfer Interfaces
@@ -163,19 +172,44 @@ export interface IPayoutProcessingSummary {
 }
 
 /**
+ * Input for the manual payout confirmation flow.
+ */
+export interface IConfirmManualPayoutInput {
+  payout: IPayoutRecordDocument;
+  action: "complete" | "fail";
+  /**
+   * Reference copied from the Flutterwave dashboard after a successful
+   * manual transfer. Required when action is "complete".
+   */
+  flutterwaveReference?: string;
+  /**
+   * Human-readable reason. Required when action is "fail".
+   */
+  failureReason?: string;
+}
+
+/**
  * PayoutProcessingService
  *
- * Picks up all PayoutRecord documents with status INITIATED and calls
- * Flutterwave's Transfer API for each one.
+ * Owns all payout processing logic — both automated (cron-driven) and
+ * manual (admin-driven). Keeping everything here means one place to
+ * look when the payout flow changes.
  *
- * This is the bridge between Stage 5 (vendor requests payout) and
- * Stage 6 (webhook confirms outcome). After this service runs:
- * - Successful API calls → payout moves to PROCESSING, webhook handles final outcome
- * - Failed API calls → payout is reversed, vendor wallet restored
+ * Automated flow (current short-term workaround → future default):
+ *   Picks up all INITIATED PayoutRecord documents and calls
+ *   Flutterwave's Transfer API for each one.
+ *   Called by: Cron job — daily at 8am
  *
- * Called by: Cron job — daily at 8am
+ * Manual flow (active while Vercel IP whitelisting is not possible):
+ *   Admin executes the transfer on the Flutterwave dashboard, then
+ *   calls confirmManualPayout to record the outcome and close the ledger.
+ *   Called by: adminPayoutRouter.confirmManualPayout mutation
  */
 export class PayoutProcessingService {
+  // -------------------------------------------------------------------------
+  // PUBLIC: Automated flow entry point
+  // -------------------------------------------------------------------------
+
   /**
    * Main entry point called by the background job.
    * Fetches all INITIATED payouts and processes each independently.
@@ -233,6 +267,204 @@ export class PayoutProcessingService {
 
     return summary;
   }
+
+  // -------------------------------------------------------------------------
+  // PUBLIC: Manual flow entry point
+  // -------------------------------------------------------------------------
+
+  /**
+   * Records the outcome of a payout that was executed manually via the
+   * Flutterwave dashboard.
+   *
+   * Complete path:
+   *   - Stores the admin-supplied Flutterwave reference on the payout record
+   *   - Writes the PAYOUT_COMPLETED journal entry
+   *   - Notifies the vendor of successful transfer
+   *
+   * Fail path:
+   *   - Marks the payout record as FAILED with a reason
+   *   - Writes the PAYOUT_FAILED journal entry
+   *   - Reverses the processing fee and gateway fee journal entries
+   *   - Restores the vendor wallet cache (full requested amount)
+   *   - Notifies the vendor that their balance has been restored
+   *
+   * The caller (procedure) is responsible for:
+   *   - Auth and permission checks
+   *   - Validating that the payout is still INITIATED before calling this
+   *
+   * @param input - Action details including the payout record and outcome
+   * @returns Result message
+   */
+  static async confirmManualPayout(
+    input: IConfirmManualPayoutInput,
+  ): Promise<{ message: string }> {
+    const { payout, action, flutterwaveReference, failureReason } = input;
+    const payoutObjectId = payout._id as mongoose.Types.ObjectId;
+    const PayoutRecord = await getPayoutRecordModel();
+
+    // ------------------------------------------------------------------
+    // COMPLETE PATH
+    // ------------------------------------------------------------------
+    if (action === "complete") {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const writer = await JournalEntryWriter.init();
+
+        // Store the admin-supplied reference and mark COMPLETED
+        await PayoutRecord.findByIdAndUpdate(
+          payoutObjectId,
+          {
+            $set: {
+              status: PayoutStatus.COMPLETED,
+              flutterwaveTransferId: flutterwaveReference!.trim(),
+            },
+          },
+          { session },
+        );
+
+        // PAYOUT_COMPLETED journal entry
+        // Closes PAYOUT_PROCESSING now that the transfer is confirmed.
+        //
+        //   DEBIT   PLATFORM_ESCROW       netAmount
+        //   DEBIT   GATEWAY_FEES_EXPENSE  gatewayFee   (if applicable)
+        //   CREDIT  PAYOUT_PROCESSING     netAmount + fee
+        await writer.writePayoutCompleted({
+          vendorId: payout.vendorId,
+          netAmount: payout.amountBreakdown.netAmount,
+          gatewayFee: payout.amountBreakdown.gatewayFee ?? 0,
+          payoutId: payoutObjectId,
+          session,
+        });
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
+
+      // Re-fetch so the notification has the updated flutterwaveTransferId
+      const updatedPayout = await PayoutRecord.findById(payoutObjectId);
+      if (updatedPayout) {
+        await this.notifyVendorSuccess(updatedPayout).catch((err) => {
+          // Notification failure must never undo a committed transaction
+          console.error(
+            `[PayoutProcessingService] Success notification failed for payout ${payoutObjectId.toString()}:`,
+            err,
+          );
+        });
+      }
+
+      return {
+        message: "Payout marked as completed. Vendor has been notified.",
+      };
+    }
+
+    // ------------------------------------------------------------------
+    // FAIL PATH
+    // ------------------------------------------------------------------
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const writer = await JournalEntryWriter.init();
+
+      // Mark FAILED and record reason
+      await PayoutRecord.findByIdAndUpdate(
+        payoutObjectId,
+        {
+          $set: {
+            status: PayoutStatus.FAILED,
+            failureReason: failureReason!.trim(),
+          },
+        },
+        { session },
+      );
+
+      // PAYOUT_FAILED journal entry
+      // Reverses the PAYOUT_PROCESSING debit from writePayoutInitiated.
+      //
+      //   DEBIT   VENDOR_AVAILABLE    netAmount
+      //   CREDIT  PAYOUT_PROCESSING   netAmount
+      await writer.writePayoutFailed({
+        vendorId: payout.vendorId,
+        requestedAmount: payout.amountBreakdown.netAmount,
+        payoutId: payoutObjectId,
+        session,
+      });
+
+      // Reverse processing fee
+      //
+      //   DEBIT   PLATFORM_REVENUE_COMMISSION   processingFee
+      //   CREDIT  VENDOR_AVAILABLE              processingFee
+      if (payout.amountBreakdown.processingFee > 0) {
+        await writer.writePayoutProcessingFeeReversal({
+          vendorId: payout.vendorId,
+          processingFee: payout.amountBreakdown.processingFee,
+          payoutId: payoutObjectId,
+          session,
+        });
+      }
+
+      // Reverse gateway fee
+      // Transfer was never sent via the API so Flutterwave did not charge the fee.
+      //
+      //   DEBIT   PLATFORM_ESCROW        gatewayFee
+      //   CREDIT  GATEWAY_FEES_EXPENSE   gatewayFee
+      if (
+        payout.amountBreakdown.gatewayFee &&
+        payout.amountBreakdown.gatewayFee > 0
+      ) {
+        await writer.writeGatewayFeeReversal({
+          feeAmount: payout.amountBreakdown.gatewayFee,
+          payoutId: payoutObjectId,
+          session,
+        });
+      }
+
+      // Restore vendor wallet cache
+      // requestedAmount = netAmount + processingFee (+ debtRecovery if any),
+      // mirroring the total VENDOR_AVAILABLE reduction across all journal entries.
+      await reverseVendorPayoutDeduction(
+        payout.vendorId.toString(),
+        payout.amountBreakdown.requestedAmount,
+        session,
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // Re-fetch for notification
+    const updatedPayout = await PayoutRecord.findById(payoutObjectId);
+    if (updatedPayout) {
+      await this.notifyVendorFailure(
+        updatedPayout,
+        failureReason!.trim(),
+      ).catch((err) => {
+        console.error(
+          `[PayoutProcessingService] Failure notification failed for payout ${payoutObjectId.toString()}:`,
+          err,
+        );
+      });
+    }
+
+    return {
+      message:
+        "Payout marked as failed. Vendor wallet has been restored and vendor has been notified.",
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // PRIVATE: Automated flow helpers
+  // -------------------------------------------------------------------------
 
   /**
    * Processes a single INITIATED payout record.
@@ -435,6 +667,97 @@ export class PayoutProcessingService {
 
     console.log(
       `[PayoutProcessingService] Reversed payout ${payoutRecordId} — vendor wallet restored, fees reversed.`,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // PRIVATE: Shared notification helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Notifies the vendor that their payout was successfully transferred.
+   * Fire-and-forget — always called outside the session after commit.
+   * Used by both the manual confirm flow and (eventually) the automated flow.
+   *
+   * @param payoutRecord - The completed payout record
+   */
+  private static async notifyVendorSuccess(
+    payoutRecord: IPayoutRecordDocument,
+  ): Promise<void> {
+    const Store = await getStoreModel();
+    const store = await Store.findById(payoutRecord.vendorId).select(
+      "storeEmail name",
+    );
+
+    if (!store) return;
+
+    const html = await renderTemplate(
+      React.createElement(PayoutCompletedEmail, {
+        storeName: store.name,
+        settlementDate: DateFormatter.dateTime(payoutRecord.createdAt),
+        flutterwaveTransferId: payoutRecord.flutterwaveTransferId,
+        bankDetails: payoutRecord.bankDetails,
+        amountBreakdown: payoutRecord.amountBreakdown,
+      }),
+    );
+
+    const notification = NotificationFactory.create("email", {
+      recipient: store.storeEmail,
+      subject: "Your payout has been processed",
+      emailType: "noreply",
+      fromAddress: "noreply@soraxihub.com",
+      html,
+      text: `Your payout of ₦${koboToNaira(payoutRecord.amountBreakdown.netAmount).toLocaleString()} has been successfully transferred.`,
+    });
+
+    await notification.send();
+
+    console.log(
+      `[PayoutProcessingService] Success notification sent for payout ${(payoutRecord._id as mongoose.Types.ObjectId).toString()}`,
+    );
+  }
+
+  /**
+   * Notifies the vendor that their payout failed and their balance has been restored.
+   * Fire-and-forget — always called outside the session after commit.
+   * Used by both the manual confirm flow and (eventually) the automated flow.
+   *
+   * @param payoutRecord - The failed payout record
+   * @param failureReason - Human-readable reason from the admin or Flutterwave
+   */
+  private static async notifyVendorFailure(
+    payoutRecord: IPayoutRecordDocument,
+    failureReason: string,
+  ): Promise<void> {
+    const Store = await getStoreModel();
+    const store = await Store.findById(payoutRecord.vendorId).select(
+      "storeEmail name",
+    );
+
+    if (!store) return;
+
+    const html = await renderTemplate(
+      React.createElement(PayoutFailedEmail, {
+        storeName: store.name,
+        bankDetails: payoutRecord.bankDetails,
+        amountBreakdown: payoutRecord.amountBreakdown,
+        payoutReference: payoutRecord.flutterwaveTransferId,
+      }),
+    );
+
+    const notification = NotificationFactory.create("email", {
+      recipient: store.storeEmail,
+      subject: "Payout failed — your balance has been restored",
+      emailType: "noreply",
+      fromAddress: "noreply@soraxihub.com",
+      html,
+      text: `Your payout of ₦${koboToNaira(payoutRecord.amountBreakdown.netAmount).toLocaleString()} failed. Your balance has been restored. Reason: ${failureReason}`,
+    });
+
+    await notification.send();
+
+    console.log(
+      `[PayoutProcessingService] Failure notification sent for payout ${(payoutRecord._id as mongoose.Types.ObjectId).toString()}`,
     );
   }
 }

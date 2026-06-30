@@ -2,7 +2,7 @@
  * Enums for the Soraxi financial system.
  *
  * These enums define all valid states, categories, and types
- * used across the ledger, wallets, transactions, payouts, and disputes.
+ * used across the ledger, wallets, transactions, payouts, disputes, and refunds.
  */
 
 // ---------------------------------------------------------------------------
@@ -33,6 +33,11 @@ export enum LedgerEntryCategory {
   PAYOUT_FAILED = "payout_failed", // Withdrawal attempt failed
   GATEWAY_FEE_DEDUCTED = "gateway_fee_deducted", // Flutterwave charge recorded as platform expense
   DEBT_RECOVERED = "debt_recovered", // Debt repayment from payout
+
+  // Refund categories
+  ORDER_CANCELLATION_REFUND = "order_cancellation_refund", // Vendor cancelled — full amountPaid refunded
+  FAILED_DELIVERY_REFUND = "failed_delivery_refund", // Delivery failed — settleAmount refunded, commission kept
+  REFUND_CONFIRMED = "refund_confirmed", // Flutterwave confirmed refund disbursed to customer
 }
 
 /**
@@ -52,6 +57,7 @@ export enum LedgerReferenceType {
   DISPUTE = "dispute",
   PAYOUT = "payout",
   PENALTY = "penalty",
+  REFUND = "refund", // RefundRecord _id
 }
 
 // ---------------------------------------------------------------------------
@@ -120,7 +126,7 @@ export enum SuborderFinancialStatus {
   HELD = "held", // Funds frozen due to open dispute
   SETTLED = "settled", // Funds released to vendor's available balance
   DISPUTED = "disputed", // Active dispute in progress
-  REFUNDED = "refunded", // customer has been refunded
+  REFUNDED = "refunded", // Customer has been refunded
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +159,31 @@ export enum FlutterwavePaymentStatus {
   PENDING = "pending",
   SUCCESSFUL = "successful",
   FAILED = "failed",
+}
+
+// ---------------------------------------------------------------------------
+// Refund Record
+// ---------------------------------------------------------------------------
+
+/**
+ * What triggered the refund.
+ *
+ * Using an enum here keeps the refund system loosely coupled — new triggers
+ * can be added without rewriting the core refund service or journal entries.
+ */
+export enum RefundTrigger {
+  ORDER_CANCELLED = "order_cancelled", // Vendor cancelled from OrderPlaced or Processing
+  FAILED_DELIVERY = "failed_delivery", // Vendor marked OutForDelivery as FailedDelivery
+  DISPUTE_UPHELD = "dispute_upheld", // Platform upheld a dispute in the student's favour
+}
+
+/**
+ * Internal lifecycle status of a refund attempt.
+ */
+export enum RefundStatus {
+  INITIATED = "initiated", // Refund record created; Flutterwave API call pending or queued for manual
+  COMPLETED = "completed", // Flutterwave confirmed the refund was disbursed
+  FAILED = "failed", // Flutterwave refund attempt failed
 }
 
 // ---------------------------------------------------------------------------

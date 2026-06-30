@@ -34,6 +34,7 @@ import { platformWalletRouter } from "@/modules/server/admin/platform-wallet/pro
 import { adminPayoutRouter } from "@/modules/server/admin/payouts/procedures";
 import { waitlistRouter } from "@/modules/server/waitlist/procedure";
 import { adminFinancialMetricsRouter } from "@/modules/server/admin/financials/procedures";
+import { adminRefundRouter } from "@/modules/server/admin/refunds/procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -60,6 +61,7 @@ export const appRouter = createTRPCRouter({
   storeOrders: storeOrdersRouter,
   adminPayout: adminPayoutRouter,
   flutterwave: flutterwaveRouter,
+  adminRefund: adminRefundRouter,
   storeProfile: storeProfileRouter,
   adminDispute: adminDisputeRouter,
   storeProducts: storeProductRouter,

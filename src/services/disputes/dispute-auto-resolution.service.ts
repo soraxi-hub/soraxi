@@ -22,6 +22,7 @@ import {
 } from "@/enums/financial.enums";
 import { DEBT_RECOVERY_THRESHOLD_KOBO } from "@/constants/financial.constants";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 // import { NotificationFactory, renderTemplate } from "@/domain/notification";
 // import React from "react";
 // NOTE: Create these email templates following your existing template pattern
@@ -188,17 +189,23 @@ export class DisputeAutoResolutionService {
       const now = new Date();
 
       // --- DISPUTE_AUTO_RESOLVED journal entry ---
-      // Refunds the frozen amount to the customer with no penalty to the vendor.
-      // The platform team failed to resolve within the deadline — the vendor
-      // is not penalised for the team's inaction.
+      // Refunds the full amountPaid (settle + commission) to the customer with
+      // no penalty to the vendor. The platform team failed to resolve within
+      // the deadline — the vendor is not penalised for the team's inaction.
       //
-      //   DEBIT   VENDOR_DISPUTED          frozenAmount
-      //   CREDIT  CUSTOMER_REFUND_PAYABLE  frozenAmount
+      //   Pair 1 — Refund of frozen settle amount:
+      //     DEBIT   VENDOR_DISPUTED          frozenAmount
+      //     CREDIT  CUSTOMER_REFUND_PAYABLE  frozenAmount
+      //
+      //   Pair 2 — Commission reversed (student receives full amountPaid back):
+      //     DEBIT   PLATFORM_REVENUE_COMMISSION  commission
+      //     CREDIT  CUSTOMER_REFUND_PAYABLE      commission
       const writer = await JournalEntryWriter.init();
 
       await writer.writeDisputeAutoResolved({
         vendorId: dispute.vendorId,
         settleAmount: dispute.frozenAmount,
+        commission: breakdown.commission,
         disputeId: dispute._id as mongoose.Types.ObjectId,
         session,
       });
@@ -215,6 +222,11 @@ export class DisputeAutoResolutionService {
         0, // No new recovery percentage — no new debt is being created
         session,
       );
+
+      // --- Update Platform Wallet cache ---
+      // Mirrors the PLATFORM_REVENUE_COMMISSION DEBIT in writeDisputeAutoResolved.
+      // Commission is reversed since the student receives the full amountPaid back.
+      await debitPlatformCommission(breakdown.commission, session);
 
       // --- Update Dispute Record ---
       // AUTO_RESOLVED + SYSTEM distinguishes this from a team-resolved dispute

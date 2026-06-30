@@ -19,7 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { PricingInventoryStepProps } from "../../../../types/upload-wizard.types";
+import type { PricingInventoryStepProps } from "@/types/upload-wizard.types";
+import { calculateCommission } from "@/lib/utils/calculate-commission";
+import { formatNaira, nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Pricing & Inventory Step Component
@@ -160,39 +162,67 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
           {formData.price &&
             formData.productQuantity &&
             formData.price > 0 &&
-            formData.productQuantity > 0 && (
-              <>
-                <Separator />
-                <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
-                  <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-2">
-                    Summary
-                  </h4>
-                  <div className="space-y-1 text-sm">
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Price:{" "}
-                      <span className="font-semibold">
-                        ₦{formData.price.toLocaleString()}
-                      </span>
-                    </p>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Quantity:{" "}
-                      <span className="font-semibold">
-                        {formData.productQuantity} units
-                      </span>
-                    </p>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Total Value:{" "}
-                      <span className="font-semibold">
-                        ₦
-                        {(
-                          formData.price * formData.productQuantity
-                        ).toLocaleString()}
-                      </span>
-                    </p>
+            formData.productQuantity > 0 &&
+            (() => {
+              const priceInKobo = nairaToKobo(formData.price);
+              const { commission, settleAmount, details } =
+                calculateCommission(priceInKobo);
+
+              return (
+                <>
+                  <Separator />
+                  <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
+                    <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-2">
+                      Summary
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Price:{" "}
+                        <span className="font-semibold">
+                          {formatNaira(nairaToKobo(formData.price))}
+                        </span>
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Quantity:{" "}
+                        <span className="font-semibold">
+                          {formData.productQuantity} units
+                        </span>
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Total Value:{" "}
+                        <span className="font-semibold">
+                          {formatNaira(
+                            nairaToKobo(
+                              formData.price * formData.productQuantity,
+                            ),
+                          )}
+                        </span>
+                      </p>
+
+                      <Separator className="my-2" />
+
+                      {/* Fee Breakdown */}
+                      <p className="text-gray-500 dark:text-gray-500">
+                        Soraxi fee (5%
+                        {details.flatFeeApplied > 0
+                          ? ` + ${formatNaira(details.flatFeeApplied)} flat fee`
+                          : ""}
+                        ):{" "}
+                        <span className="font-semibold text-red-500">
+                          − {formatNaira(commission)}
+                        </span>
+                      </p>
+                      <p className="text-gray-900 dark:text-white font-medium">
+                        You receive per unit:{" "}
+                        <span className="font-bold text-[#14a800]">
+                          {formatNaira(settleAmount)}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              );
+            })()}
         </CardContent>
       </Card>
 

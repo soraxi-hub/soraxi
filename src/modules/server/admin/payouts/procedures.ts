@@ -9,6 +9,7 @@ import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { AdminGuard } from "@/domain/admin/admin-guard";
 import { PayoutStatus } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { PayoutProcessingService } from "@/services/payment/payout/payout-processing.service";
 
 export const adminPayoutRouter = createTRPCRouter({
   /**
@@ -29,7 +30,6 @@ export const adminPayoutRouter = createTRPCRouter({
       const { admin: unAuthenticatedAdmin } = ctx;
 
       // ==================== Authentication & Authorization ====================
-      // Admin Authentication Check
       AdminGuard.from(unAuthenticatedAdmin).require(
         PERMISSIONS.VIEW_WITHDRAWALS,
       );
@@ -117,7 +117,6 @@ export const adminPayoutRouter = createTRPCRouter({
       const { admin: unAuthenticatedAdmin } = ctx;
 
       // ==================== Authentication & Authorization ====================
-      // Admin Authentication Check
       AdminGuard.from(unAuthenticatedAdmin).require(
         PERMISSIONS.VIEW_WITHDRAWALS,
       );
@@ -139,7 +138,7 @@ export const adminPayoutRouter = createTRPCRouter({
         // Fetch store details (vendor)
         const Store = await getStoreModel();
         const store = await Store.findById(payout.vendorId)
-          .select("name email")
+          .select("name storeEmail")
           .lean();
 
         return {
@@ -171,6 +170,93 @@ export const adminPayoutRouter = createTRPCRouter({
         };
       } catch (error) {
         throw handleTRPCError(error, "Failed to fetch payout details.");
+      }
+    }),
+
+  /**
+   * Admin: Confirm or fail a payout that was executed manually via the
+   * Flutterwave dashboard.
+   *
+   * This procedure owns only auth, input validation, and status guarding.
+   * All financial logic is delegated to PayoutProcessingService.confirmManualPayout.
+   *
+   * Requires MANAGE_WITHDRAWALS permission.
+   */
+  confirmManualPayout: baseProcedure
+    .input(
+      z.object({
+        payoutRecordId: z.string().min(1),
+        action: z.enum(["complete", "fail"]),
+        /**
+         * Reference copied from the Flutterwave dashboard after a successful
+         * manual transfer. Required when action is "complete".
+         */
+        flutterwaveReference: z.string().optional(),
+        /**
+         * Human-readable reason. Required when action is "fail".
+         */
+        failureReason: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { admin: unAuthenticatedAdmin } = ctx;
+
+      // ==================== Authentication & Authorization ====================
+      AdminGuard.from(unAuthenticatedAdmin).require(
+        PERMISSIONS.MANAGE_WITHDRAWALS,
+      );
+
+      // ==================== Input validation ====================
+      if (input.action === "complete" && !input.flutterwaveReference?.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A Flutterwave reference is required to confirm a payout.",
+        });
+      }
+
+      if (input.action === "fail" && !input.failureReason?.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "A failure reason is required when marking a payout as failed.",
+        });
+      }
+
+      try {
+        await connectToDatabase();
+        const PayoutRecord = await getPayoutRecordModel();
+
+        const payout = await PayoutRecord.findById(
+          new mongoose.Types.ObjectId(input.payoutRecordId),
+        );
+
+        if (!payout) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Payout record not found.",
+          });
+        }
+
+        // ==================== Status guard ====================
+        // Only INITIATED payouts are actionable — terminal states are immutable
+        if (payout.status !== PayoutStatus.INITIATED) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `This payout is already in a terminal state (${payout.status}) and cannot be updated.`,
+          });
+        }
+
+        // ==================== Delegate to service ====================
+        const result = await PayoutProcessingService.confirmManualPayout({
+          payout,
+          action: input.action,
+          flutterwaveReference: input.flutterwaveReference,
+          failureReason: input.failureReason,
+        });
+
+        return { success: true, message: result.message };
+      } catch (error) {
+        throw handleTRPCError(error, "Failed to process manual payout action.");
       }
     }),
 });

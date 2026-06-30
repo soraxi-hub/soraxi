@@ -28,7 +28,9 @@ export const PERMISSIONS = {
   // Finance permissions
   VIEW_ESCROW: "view_escrow",
   VIEW_WITHDRAWALS: "view_withdrawals",
+  MANAGE_WITHDRAWALS: "manage_withdrawals",
   VIEW_REFUNDS: "view_refunds",
+  MANAGE_REFUNDS: "manage_refunds",
   PROCESS_ESCROW: "process_escrow",
   PROCESS_REFUND: "process_refund",
   PROCESS_WITHDRAWAL: "process_withdrawal",

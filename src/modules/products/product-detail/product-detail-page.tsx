@@ -5,6 +5,8 @@ import { ProductImageGallery } from "./product-image-gallery";
 import { ProductInfo } from "./product-info";
 import { ProductTabs } from "./product-tabs";
 import { RelatedProducts } from "./related-products";
+import { RecentlyViewed } from "./recently-viewed";
+import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 
 import {
   Breadcrumb,
@@ -37,6 +39,19 @@ export function ProductDetailPage({
   product,
   relatedProducts,
 }: ProductDetailPageProps) {
+  useRecentlyViewed(
+    product
+      ? {
+          productId: product.productId,
+          slug: product.slug,
+          name: product.name,
+          image: product.images[0],
+          formattedPrice: product.formattedPrice,
+          isVerifiedProduct: product.isVerifiedProduct,
+        }
+      : null
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {product && (
@@ -115,6 +130,11 @@ export function ProductDetailPage({
 
           {/* Related */}
           <RelatedProducts products={relatedProducts} />
+
+          {/* Recently Viewed */}
+          <div className="mt-12">
+            <RecentlyViewed excludeProductId={product.productId} />
+          </div>
         </div>
       )}
     </div>

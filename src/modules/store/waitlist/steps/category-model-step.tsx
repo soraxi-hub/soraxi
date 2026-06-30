@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { categories, getSubcategoryNames } from "@/constants/constant";
-import type { StepWithNavProps } from "../../../../types/waitlist-wizard.types";
+import type { StepWithNavProps } from "@/types/waitlist-wizard.types";
 
 const INVENTORY_SIZES = [
   { value: "small", label: "Small", description: "Fewer than 20 products" },

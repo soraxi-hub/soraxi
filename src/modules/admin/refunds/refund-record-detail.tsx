@@ -10,14 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Clock,
-  RefreshCw,
   CheckCircle,
   XCircle,
   AlertCircle,
   Banknote,
-  Building2,
-  CreditCard,
   Store,
+  User,
+  CreditCard,
   Copy,
   Check,
 } from "lucide-react";
@@ -25,18 +24,19 @@ import { format } from "date-fns";
 import { useTRPC } from "@/trpc/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatNaira } from "@/lib/utils/naira";
-import { PayoutStatus } from "@/enums/financial.enums";
+import { RefundStatus, RefundTrigger } from "@/enums/financial.enums";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "../security/permissions";
 import { toast } from "sonner";
 
-interface AdminPayoutDetailProps {
-  payoutRecordId: string;
+interface AdminRefundDetailProps {
+  refundId: string;
 }
 
 // ---------------------------------------------------------------------------
-// Small copy-to-clipboard helper button
+// Copy button helper
 // ---------------------------------------------------------------------------
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -66,38 +66,38 @@ function CopyButton({ value }: { value: string }) {
 // ---------------------------------------------------------------------------
 
 /**
- * Admin Payout Detail Component
+ * Admin Refund Detail Component
  *
- * Displays a single payout record with store information and full details.
- * When status is INITIATED, renders the manual payout action panel so the
- * admin can confirm or fail the transfer after executing it on Flutterwave.
+ * Displays a single refund record with full financial breakdown, vendor,
+ * and customer details. When status is INITIATED, renders the manual
+ * processing action panel so the admin can confirm or fail the refund
+ * after executing it on the Flutterwave dashboard.
+ *
+ * Follows the same structure as AdminPayoutDetail.
  */
-function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
+function AdminRefundDetail({ refundId }: AdminRefundDetailProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
   const { data, refetch, isLoading, error } = useQuery(
-    trpc.adminPayout.getAdminWithdrawalById.queryOptions({
-      payoutRecordId,
-    }),
+    trpc.adminRefund.getAdminRefundById.queryOptions({ refundId }),
   );
 
   // ---- Action panel local state ----
-  const [flutterwaveReference, setFlutterwaveReference] = useState("");
+  const [flutterwaveRefundId, setFlutterwaveRefundId] = useState("");
   const [showFailForm, setShowFailForm] = useState(false);
   const [failureReason, setFailureReason] = useState("");
 
   const confirmMutation = useMutation(
-    trpc.adminPayout.confirmManualPayout.mutationOptions({
+    trpc.adminRefund.confirmManualRefund.mutationOptions({
       onSuccess: (result) => {
         toast.success(result.message);
-        setFlutterwaveReference("");
+        setFlutterwaveRefundId("");
         setFailureReason("");
         setShowFailForm(false);
         refetch();
-        // Invalidate list so summary counts stay accurate
         queryClient.invalidateQueries({
-          queryKey: trpc.adminPayout.getAdminWithdrawals.queryKey(),
+          queryKey: trpc.adminRefund.getAdminRefunds.queryKey(),
         });
       },
       onError: (err) => {
@@ -108,75 +108,76 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
 
   const handleConfirm = () => {
     confirmMutation.mutate({
-      payoutRecordId,
+      refundId,
       action: "complete",
-      flutterwaveReference: flutterwaveReference.trim(),
+      flutterwaveRefundId: flutterwaveRefundId.trim(),
     });
   };
 
   const handleFail = () => {
     confirmMutation.mutate({
-      payoutRecordId,
+      refundId,
       action: "fail",
       failureReason: failureReason.trim(),
     });
   };
 
-  const payout = data?.data;
+  const refund = data?.data;
 
-  const getStatusBadge = (status: PayoutStatus) => {
+  const getStatusBadge = (status: RefundStatus) => {
     switch (status) {
-      case PayoutStatus.INITIATED:
-        return <Badge variant="secondary">Initiated</Badge>;
-      case PayoutStatus.PROCESSING:
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
-      case PayoutStatus.COMPLETED:
+      case RefundStatus.INITIATED:
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">Initiated</Badge>
+        );
+      case RefundStatus.COMPLETED:
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
-      case PayoutStatus.FAILED:
+      case RefundStatus.FAILED:
         return <Badge variant="destructive">Failed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const maskAccountNumber = (accountNumber: string): string => {
-    if (!accountNumber || accountNumber.length <= 4) return "******";
-    return `******${accountNumber.slice(-4)}`;
+  const getTriggerDescription = (trigger: RefundTrigger): string => {
+    switch (trigger) {
+      case RefundTrigger.ORDER_CANCELLED:
+        return "The vendor cancelled this order. The student receives a full refund including the platform commission.";
+      case RefundTrigger.FAILED_DELIVERY:
+        return "The vendor marked this delivery as failed. The student receives the vendor settle amount. Platform commission is retained.";
+      case RefundTrigger.DISPUTE_UPHELD:
+        return "A dispute was upheld in the student's favour. The student receives a full refund including the platform commission.";
+      default:
+        return "";
+    }
   };
 
   const getStatusBanner = () => {
-    if (!payout) return null;
-    switch (payout.status) {
-      case PayoutStatus.INITIATED:
+    if (!refund) return null;
+    switch (refund.status) {
+      case RefundStatus.INITIATED:
         return {
           borderColor: "border-l-yellow-500",
           icon: <Clock className="w-6 h-6 text-yellow-600" />,
-          title: "Awaiting Manual Transfer",
+          title: "Awaiting Manual Refund",
           message:
-            "Transfer this payout via the Flutterwave dashboard, then paste the reference below and confirm.",
+            "Execute this refund via the Flutterwave dashboard using the transaction ID below, then paste the Flutterwave refund ID and confirm.",
         };
-      case PayoutStatus.PROCESSING:
-        return {
-          borderColor: "border-l-blue-500",
-          icon: <RefreshCw className="w-6 h-6 text-blue-600" />,
-          title: "Processing",
-          message: "This payout is currently being processed.",
-        };
-      case PayoutStatus.COMPLETED:
+      case RefundStatus.COMPLETED:
         return {
           borderColor: "border-l-green-500",
           icon: <CheckCircle className="w-6 h-6 text-green-600" />,
-          title: "Payout Completed",
+          title: "Refund Completed",
           message:
-            "Funds have been successfully transferred to the vendor's bank account.",
+            "The refund has been confirmed and will be disbursed to the customer's original payment method within 3–15 business days.",
         };
-      case PayoutStatus.FAILED:
+      case RefundStatus.FAILED:
         return {
           borderColor: "border-l-red-500",
           icon: <XCircle className="w-6 h-6 text-red-600" />,
-          title: "Payout Failed",
+          title: "Refund Failed",
           message:
-            "This payout failed. Funds have been returned to the vendor's wallet.",
+            "This refund failed. The refund liability remains open — manual follow-up is required.",
         };
       default:
         return null;
@@ -203,46 +204,42 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
         </Card>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-40" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-24 w-full" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-24 w-full" />
-              </CardContent>
-            </Card>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-40" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          <div>
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-24 w-full" />
-              </CardContent>
-            </Card>
+          <div className="space-y-6">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
-  if (error || !payout) {
+  if (error || !refund) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="font-medium text-lg mb-2">Error Loading Details</h3>
           <p className="text-muted-foreground mb-4">
-            {error?.message || "Payout record not found"}
+            {error?.message || "Refund record not found"}
           </p>
           <Button variant="outline" onClick={() => refetch()}>
             Try Again
@@ -253,19 +250,15 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
   }
 
   const banner = getStatusBanner();
-  const isInitiated = payout.status === PayoutStatus.INITIATED;
+  const isInitiated = refund.status === RefundStatus.INITIATED;
   const isMutating = confirmMutation.isPending;
 
   return (
     <div className="space-y-6 py-6 px-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Payout Details</h1>
-          <p className="text-muted-foreground">
-            Payout ID: {payout.payoutRecordId}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Refund Details</h1>
+        <p className="text-muted-foreground">Refund ID: {refund.refundId}</p>
       </div>
 
       {/* Status Banner */}
@@ -277,7 +270,7 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">{banner.title}</h3>
-                  {getStatusBadge(payout.status)}
+                  {getStatusBadge(refund.status)}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {banner.message}
@@ -291,6 +284,40 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Trigger Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Refund Trigger
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-muted-foreground">Trigger Type</Label>
+                <Badge variant="secondary">{refund.triggerLabel}</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {getTriggerDescription(refund.trigger)}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                <div>
+                  <Label className="text-muted-foreground">Order ID</Label>
+                  <p className="font-mono text-sm flex items-center">
+                    {refund.orderId.slice(-12)}
+                    <CopyButton value={refund.orderId} />
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Suborder ID</Label>
+                  <p className="font-mono text-sm flex items-center">
+                    {refund.suborderId.slice(-12)}
+                    <CopyButton value={refund.suborderId} />
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Amount Breakdown */}
           <Card>
             <CardHeader>
@@ -303,41 +330,46 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-muted-foreground">
-                    Requested Amount
+                    Vendor Settle Amount
                   </Label>
-                  <p className="font-medium flex items-center">
-                    {formatNaira(payout.amountBreakdown.requestedAmount, {
+                  <p className="font-medium">
+                    {formatNaira(refund.amountBreakdown.settleAmount, {
+                      showDecimals: true,
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">
+                    Commission{" "}
+                    {refund.trigger === RefundTrigger.FAILED_DELIVERY
+                      ? "(retained)"
+                      : "(reversed)"}
+                  </Label>
+                  <p
+                    className={`font-medium ${
+                      refund.trigger === RefundTrigger.FAILED_DELIVERY
+                        ? "text-muted-foreground"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {formatNaira(refund.amountBreakdown.commission, {
+                      showDecimals: true,
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">
+                    Total Refunded to Student
+                  </Label>
+                  <p className="font-medium text-green-600 flex items-center">
+                    {formatNaira(refund.amountBreakdown.amountRefunded, {
                       showDecimals: true,
                     })}
                     {isInitiated && (
                       <CopyButton
                         value={String(
-                          payout.amountBreakdown.requestedAmount / 100,
+                          refund.amountBreakdown.amountRefunded / 100,
                         )}
-                      />
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">
-                    Processing Fee
-                  </Label>
-                  <p className="font-medium text-muted-foreground">
-                    -
-                    {formatNaira(payout.amountBreakdown.processingFee, {
-                      showDecimals: true,
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Net Amount</Label>
-                  <p className="font-medium text-green-600 flex items-center">
-                    {formatNaira(payout.amountBreakdown.netAmount, {
-                      showDecimals: true,
-                    })}
-                    {isInitiated && (
-                      <CopyButton
-                        value={String(payout.amountBreakdown.netAmount / 100)}
                       />
                     )}
                   </p>
@@ -346,97 +378,54 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
                 <div>
                   <Label className="text-muted-foreground">Created At</Label>
-                  <p>{format(new Date(payout.createdAt), "PPP 'at' p")}</p>
+                  <p>{format(new Date(refund.createdAt), "PPP 'at' p")}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Last Updated</Label>
-                  <p>{format(new Date(payout.updatedAt), "PPP 'at' p")}</p>
+                  <p>{format(new Date(refund.updatedAt), "PPP 'at' p")}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Bank Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Bank Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label className="text-muted-foreground">Account Name</Label>
-                <p className="flex items-center">
-                  {payout.bankDetails.accountName}
-                  {isInitiated && (
-                    <CopyButton value={payout.bankDetails.accountName} />
-                  )}
-                </p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Account Number</Label>
-                <p className="font-mono flex items-center">
-                  {isInitiated
-                    ? payout.bankDetails.accountNumber
-                    : maskAccountNumber(payout.bankDetails.accountNumber)}
-                  {isInitiated && (
-                    <CopyButton value={payout.bankDetails.accountNumber} />
-                  )}
-                </p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Bank Code</Label>
-                <p className="flex items-center">
-                  {payout.bankDetails.bankCode}
-                  {isInitiated && (
-                    <CopyButton value={payout.bankDetails.bankCode} />
-                  )}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Manual Payout Action Panel — only shown for INITIATED payouts */}
+          {/* Manual Refund Action Panel — only shown for INITIATED refunds */}
           {isInitiated && (
             <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-300">
                   <Clock className="w-5 h-5" />
-                  Record Transfer Outcome
+                  Record Refund Outcome
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
                 <p className="text-sm text-muted-foreground">
-                  After executing the transfer on the Flutterwave dashboard,
-                  paste the transfer reference below and confirm. If the
-                  transfer could not be made, use "Mark as Failed" instead.
+                  Use the Flutterwave transaction ID in the sidebar to locate
+                  and execute this refund on the Flutterwave dashboard. Once
+                  done, paste the Flutterwave refund ID below and confirm.
                 </p>
 
                 {/* Confirm path */}
                 {!showFailForm && (
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="fw-reference">
-                        Flutterwave Transfer Reference
+                      <Label htmlFor="fw-refund-id">
+                        Flutterwave Refund ID
                       </Label>
                       <Input
-                        id="fw-reference"
-                        placeholder="e.g. FLW-REF-123456789"
-                        value={flutterwaveReference}
-                        onChange={(e) =>
-                          setFlutterwaveReference(e.target.value)
-                        }
+                        id="fw-refund-id"
+                        placeholder="e.g. 75923"
+                        value={flutterwaveRefundId}
+                        onChange={(e) => setFlutterwaveRefundId(e.target.value)}
                         disabled={isMutating}
                       />
                     </div>
                     <div className="flex items-center gap-3">
                       <Button
                         onClick={handleConfirm}
-                        disabled={isMutating || !flutterwaveReference.trim()}
+                        disabled={isMutating || !flutterwaveRefundId.trim()}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
-                        {isMutating ? "Saving..." : "Confirm Payment"}
+                        {isMutating ? "Saving..." : "Confirm Refund"}
                       </Button>
                       <Button
                         variant="ghost"
@@ -457,7 +446,7 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
                       <Label htmlFor="failure-reason">Failure Reason</Label>
                       <Textarea
                         id="failure-reason"
-                        placeholder="Describe why this payout could not be completed..."
+                        placeholder="Describe why this refund could not be completed..."
                         value={failureReason}
                         onChange={(e) => setFailureReason(e.target.value)}
                         disabled={isMutating}
@@ -487,7 +476,7 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
           )}
 
           {/* Failure Details (terminal FAILED state) */}
-          {payout.status === PayoutStatus.FAILED && payout.failureReason && (
+          {refund.status === RefundStatus.FAILED && refund.failureReason && (
             <Card className="border-red-200 bg-red-50 dark:bg-red-950/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-red-700">
@@ -497,7 +486,11 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
               </CardHeader>
               <CardContent>
                 <Label className="text-muted-foreground">Failure Reason</Label>
-                <p className="text-red-600">{payout.failureReason}</p>
+                <p className="text-red-600 mt-1">{refund.failureReason}</p>
+                <p className="text-sm text-muted-foreground mt-3">
+                  The refund liability (CUSTOMER_REFUND_PAYABLE) remains open. A
+                  follow-up manual action is required to close it.
+                </p>
               </CardContent>
             </Card>
           )}
@@ -505,48 +498,96 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Store Information */}
+          {/* Flutterwave Reference */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Flutterwave Reference
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-muted-foreground">Transaction ID</Label>
+                <p className="font-mono text-sm break-all flex items-center">
+                  {refund.flutterwaveTransactionId}
+                  {isInitiated && (
+                    <CopyButton value={refund.flutterwaveTransactionId} />
+                  )}
+                </p>
+                {isInitiated && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use this to locate the transaction on the Flutterwave
+                    dashboard.
+                  </p>
+                )}
+              </div>
+              {refund.flutterwaveRefundId && (
+                <div className="pt-2 border-t">
+                  <Label className="text-muted-foreground">Refund ID</Label>
+                  <p className="font-mono text-sm break-all">
+                    {refund.flutterwaveRefundId}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Vendor Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Store className="w-5 h-5" />
-                Store Information
+                Vendor
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-muted-foreground">Store Name</Label>
-                <p className="font-medium">{payout.store?.name || "N/A"}</p>
+                <p className="font-medium">{refund.vendor?.name ?? "N/A"}</p>
               </div>
-              <div>
-                <Label className="text-muted-foreground">Store Email</Label>
-                <p>{payout.store?.email || "N/A"}</p>
-              </div>
+              {refund.vendor?.email && (
+                <div>
+                  <Label className="text-muted-foreground">Store Email</Label>
+                  <p>{refund.vendor.email}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Transfer Reference (completed state) */}
-          {payout.flutterwaveTransferId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Transfer Reference
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-mono text-sm break-all">
-                  {payout.flutterwaveTransferId}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {/* Customer Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Customer
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-muted-foreground">Name</Label>
+                <p className="font-medium">{refund.customer?.name ?? "N/A"}</p>
+              </div>
+              {refund.customer?.email && (
+                <div>
+                  <Label className="text-muted-foreground">Email</Label>
+                  <p>{refund.customer.email}</p>
+                </div>
+              )}
+              {refund.customer?.phoneNumber && (
+                <div>
+                  <Label className="text-muted-foreground">Phone</Label>
+                  <p>{refund.customer.phoneNumber}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
 }
 
-export default withAdminAuth(AdminPayoutDetail, {
-  requiredPermissions: [PERMISSIONS.VIEW_WITHDRAWALS],
+export default withAdminAuth(AdminRefundDetail, {
+  requiredPermissions: [PERMISSIONS.VIEW_REFUNDS],
 });
