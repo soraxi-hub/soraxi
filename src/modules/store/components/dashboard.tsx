@@ -118,7 +118,7 @@ export default function StoreDashboardPage({
               <AlertDescription className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   You're using a temporary password. Set a permanent one to
-                  protect your account secure.
+                  protect your account.
                 </div>
 
                 <Button

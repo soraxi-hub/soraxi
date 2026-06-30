@@ -112,6 +112,12 @@ export interface WriteDisputeUpheldParams {
   vendorId: mongoose.Types.ObjectId;
   /** The frozen settle amount to be refunded to the customer, in Kobo. */
   settleAmount: number;
+  /**
+   * The platform commission originally earned on this suborder, in Kobo.
+   * This is reversed so the student receives the full amountPaid back.
+   * settleAmount + commission must equal the original amountPaid.
+   */
+  commission: number;
   /** The penalty amount deducted from the vendor's available balance, in Kobo. */
   penaltyAmount: number;
   /** _id of the dispute document. */
@@ -124,6 +130,12 @@ export interface WriteDisputeAutoResolvedParams {
   vendorId: mongoose.Types.ObjectId;
   /** The frozen settle amount to be refunded to the customer, in Kobo. */
   settleAmount: number;
+  /**
+   * The platform commission originally earned on this suborder, in Kobo.
+   * Reversed so the student receives the full amountPaid back.
+   * settleAmount + commission must equal the original amountPaid.
+   */
+  commission: number;
   /** _id of the dispute document. */
   disputeId: mongoose.Types.ObjectId;
   session: mongoose.ClientSession;
@@ -226,6 +238,60 @@ export interface WriteGatewayFeeReversalParams {
   feeAmount: number;
   /** _id of the payout record document. */
   payoutId: mongoose.Types.ObjectId;
+  session: mongoose.ClientSession;
+}
+
+export interface WriteOrderCancellationRefundParams {
+  /** The vendor whose pending funds are being reversed. */
+  vendorId: mongoose.Types.ObjectId;
+  /**
+   * The vendor's net settle amount for this suborder, in Kobo.
+   * Reversed out of VENDOR_PENDING.
+   */
+  settleAmount: number;
+  /**
+   * The platform commission earned on this suborder, in Kobo.
+   * Reversed out of PLATFORM_REVENUE_COMMISSION since the sale never completed.
+   * settleAmount + commission must equal amountPaid.
+   */
+  commission: number;
+  /**
+   * The full amount the student paid for this suborder, in Kobo.
+   * Must equal settleAmount + commission.
+   * This is the amount credited to CUSTOMER_REFUND_PAYABLE.
+   */
+  amountPaid: number;
+  /** _id of the RefundRecord document. */
+  refundId: mongoose.Types.ObjectId;
+  /** _id of the suborder document — stored in metadata for traceability. */
+  suborderId: mongoose.Types.ObjectId;
+  session: mongoose.ClientSession;
+}
+
+export interface WriteFailedDeliveryRefundParams {
+  /** The vendor whose pending funds are being reversed. */
+  vendorId: mongoose.Types.ObjectId;
+  /**
+   * The vendor's net settle amount for this suborder, in Kobo.
+   * This is the amount refunded to the student.
+   * Commission is NOT reversed — it stays with Soraxi.
+   */
+  settleAmount: number;
+  /** _id of the RefundRecord document. */
+  refundId: mongoose.Types.ObjectId;
+  /** _id of the suborder document — stored in metadata for traceability. */
+  suborderId: mongoose.Types.ObjectId;
+  session: mongoose.ClientSession;
+}
+
+export interface WriteRefundConfirmedParams {
+  /**
+   * The amount Flutterwave confirmed was disbursed to the customer, in Kobo.
+   * Closes the CUSTOMER_REFUND_PAYABLE liability and reduces PLATFORM_ESCROW.
+   */
+  amountRefunded: number;
+  /** _id of the RefundRecord document. */
+  refundId: mongoose.Types.ObjectId;
   session: mongoose.ClientSession;
 }
 
@@ -596,30 +662,46 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record the outcome of an upheld dispute — a refund owed to the customer
-   * plus a penalty deducted from the vendor.
+   * Record the outcome of an upheld dispute — a full refund of amountPaid
+   * owed to the customer (settle + commission reversed) plus a penalty
+   * deducted from the vendor.
    *
-   * This produces four ledger lines sharing one journal entry (two balanced pairs):
+   * This produces six ledger lines sharing one journal entry (three balanced pairs):
    *
-   *   Pair 1 — Refund:
+   *   Pair 1 — Frozen settle amount becomes a refund liability:
    *     DEBIT   VENDOR_DISPUTED               settleAmount
    *     CREDIT  CUSTOMER_REFUND_PAYABLE       settleAmount
    *
-   *   Pair 2 — Penalty:
+   *   Pair 2 — Commission reversed into refund liability:
+   *     DEBIT   PLATFORM_REVENUE_COMMISSION   commission
+   *     CREDIT  CUSTOMER_REFUND_PAYABLE       commission
+   *
+   *   Pair 3 — Penalty:
    *     DEBIT   VENDOR_AVAILABLE              penaltyAmount
    *     CREDIT  PLATFORM_REVENUE_PENALTIES    penaltyAmount
    *
-   * The invariant check verifies that total credits === total debits across
-   * all four lines before any DB write occurs.
+   * Total CUSTOMER_REFUND_PAYABLE credit = settleAmount + commission = amountPaid.
+   *
+   * The invariant check verifies total credits === total debits across all
+   * six lines before any DB write occurs.
    *
    * @param params - Dispute upheld parameters
    */
   async writeDisputeUpheld(params: WriteDisputeUpheldParams): Promise<void> {
-    const { vendorId, settleAmount, penaltyAmount, disputeId, session } =
-      params;
+    const {
+      vendorId,
+      settleAmount,
+      commission,
+      penaltyAmount,
+      disputeId,
+      session,
+    } = params;
 
     assertValidKoboAmount(settleAmount, "settleAmount");
+    assertValidKoboAmount(commission, "commission");
     assertValidKoboAmount(penaltyAmount, "penaltyAmount");
+
+    const amountPaid = settleAmount + commission;
 
     const lines: PendingLedgerLine[] = [
       // Pair 1: frozen disputed funds become a refund liability
@@ -635,7 +717,18 @@ export class JournalEntryWriter {
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
         amount: settleAmount,
       },
-      // Pair 2: penalty deducted from vendor available, credited to platform
+      // Pair 2: platform commission reversed — student gets full amountPaid back
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.PLATFORM_REVENUE_COMMISSION,
+        amount: commission,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        amount: commission,
+      },
+      // Pair 3: penalty deducted from vendor available, credited to platform
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.VENDOR_AVAILABLE,
@@ -656,9 +749,16 @@ export class JournalEntryWriter {
         referenceType: LedgerReferenceType.DISPUTE,
         referenceId: disputeId,
         description:
-          `Dispute ${disputeId} upheld — refund of ${settleAmount} Kobo issued ` +
-          `and penalty of ${penaltyAmount} Kobo applied to vendor ${vendorId}`,
-        metadata: { vendorId, disputeId, settleAmount, penaltyAmount },
+          `Dispute ${disputeId} upheld — full refund of ${amountPaid} Kobo (settle: ${settleAmount}, commission: ${commission}) ` +
+          `issued to customer and penalty of ${penaltyAmount} Kobo applied to vendor ${vendorId}`,
+        metadata: {
+          vendorId,
+          disputeId,
+          settleAmount,
+          commission,
+          amountPaid,
+          penaltyAmount,
+        },
       },
       lines,
       session,
@@ -668,29 +768,218 @@ export class JournalEntryWriter {
   /**
    * Record a system-triggered auto-resolution of an overdue dispute.
    *
-   * This is a restricted variant of writeDisputeUpheld used exclusively by
-   * the DisputeAutoResolutionService. The outcome is financially identical to
-   * an upheld dispute (frozen funds refunded to the customer) but NO penalty
-   * is applied to the vendor — the platform team failed to resolve the dispute
-   * in time, so the vendor is not penalised for the team's inaction.
+   * Financially identical to writeDisputeUpheld in terms of the refund amount
+   * — the student receives the full amountPaid back (settle + commission reversed).
+   * However NO penalty is applied to the vendor — the platform team failed to
+   * resolve the dispute in time, so the vendor is not penalised for the team's
+   * inaction.
    *
-   * Journal entry (pair 1 of writeDisputeUpheld only):
-   *   DEBIT   VENDOR_DISPUTED          settleAmount
-   *   CREDIT  CUSTOMER_REFUND_PAYABLE  settleAmount
+   * This produces four ledger lines sharing one journal entry (two balanced pairs):
+   *
+   *   Pair 1 — Frozen settle amount becomes a refund liability:
+   *     DEBIT   VENDOR_DISPUTED               settleAmount
+   *     CREDIT  CUSTOMER_REFUND_PAYABLE       settleAmount
+   *
+   *   Pair 2 — Commission reversed into refund liability:
+   *     DEBIT   PLATFORM_REVENUE_COMMISSION   commission
+   *     CREDIT  CUSTOMER_REFUND_PAYABLE       commission
+   *
+   * Total CUSTOMER_REFUND_PAYABLE credit = settleAmount + commission = amountPaid.
    *
    * @param params - Dispute auto-resolved parameters
    */
   async writeDisputeAutoResolved(
     params: WriteDisputeAutoResolvedParams,
   ): Promise<void> {
-    const { vendorId, settleAmount, disputeId, session } = params;
+    const { vendorId, settleAmount, commission, disputeId, session } = params;
+
+    assertValidKoboAmount(settleAmount, "settleAmount");
+    assertValidKoboAmount(commission, "commission");
+
+    const amountPaid = settleAmount + commission;
+
+    const lines: PendingLedgerLine[] = [
+      // Pair 1: frozen disputed funds become a refund liability
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.VENDOR_DISPUTED,
+        entityId: vendorId,
+        entityType: LedgerEntityType.VENDOR,
+        amount: settleAmount,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        amount: settleAmount,
+      },
+      // Pair 2: platform commission reversed — student gets full amountPaid back
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.PLATFORM_REVENUE_COMMISSION,
+        amount: commission,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        amount: commission,
+      },
+    ];
+
+    await this.commitEntry(
+      {
+        category: LedgerEntryCategory.REFUND_ISSUED,
+        referenceType: LedgerReferenceType.DISPUTE,
+        referenceId: disputeId,
+        description:
+          `Dispute ${disputeId} auto-resolved — full refund of ${amountPaid} Kobo (settle: ${settleAmount}, commission: ${commission}) ` +
+          `issued to customer. No penalty applied: platform team failed to resolve within the deadline.`,
+        metadata: {
+          vendorId,
+          disputeId,
+          settleAmount,
+          commission,
+          amountPaid,
+          penaltyAmount: 0,
+          triggeredBy: "SYSTEM_AUTO_RESOLUTION",
+        },
+      },
+      lines,
+      session,
+    );
+  }
+
+  /**
+   * Record a vendor cancellation refund — the full amountPaid is returned to
+   * the student because the vendor chose not to fulfil the order.
+   *
+   * Funds are still in VENDOR_PENDING at this stage (cancellation is only
+   * possible from OrderPlaced or Processing, before delivery confirmation).
+   * The commission that was credited to the platform at order settlement is
+   * reversed since the sale never completed.
+   *
+   * Journal entry (three balanced pairs in one entry):
+   *
+   *   Pair 1 — Vendor pending funds reversed:
+   *     DEBIT   VENDOR_PENDING                settleAmount
+   *     CREDIT  CUSTOMER_REFUND_PAYABLE       settleAmount
+   *
+   *   Pair 2 — Commission reversed:
+   *     DEBIT   PLATFORM_REVENUE_COMMISSION   commission
+   *     CREDIT  CUSTOMER_REFUND_PAYABLE       commission
+   *
+   * Total CUSTOMER_REFUND_PAYABLE credit = settleAmount + commission = amountPaid.
+   *
+   * Caller must also:
+   *   - Subtract settleAmount from vendor wallet pending and total
+   *   - Subtract commission from platform wallet commission balance
+   *   - Update TransactionRecord suborder status → REFUNDED
+   *
+   * @param params - Order cancellation refund parameters
+   */
+  async writeOrderCancellationRefund(
+    params: WriteOrderCancellationRefundParams,
+  ): Promise<void> {
+    const {
+      vendorId,
+      settleAmount,
+      commission,
+      amountPaid,
+      refundId,
+      suborderId,
+      session,
+    } = params;
+
+    assertValidKoboAmount(settleAmount, "settleAmount");
+    assertValidKoboAmount(commission, "commission");
+    assertValidKoboAmount(amountPaid, "amountPaid");
+
+    // Guard: amounts must reconcile
+    if (settleAmount + commission !== amountPaid) {
+      throw new Error(
+        `writeOrderCancellationRefund: settleAmount (${settleAmount}) + commission (${commission}) ` +
+          `!== amountPaid (${amountPaid}). Amounts do not reconcile.`,
+      );
+    }
+
+    const lines: PendingLedgerLine[] = [
+      // Pair 1: vendor pending funds reversed into refund liability
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.VENDOR_PENDING,
+        entityId: vendorId,
+        entityType: LedgerEntityType.VENDOR,
+        amount: settleAmount,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        amount: settleAmount,
+      },
+      // Pair 2: commission reversed — platform gives back what it earned
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.PLATFORM_REVENUE_COMMISSION,
+        amount: commission,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        amount: commission,
+      },
+    ];
+
+    await this.commitEntry(
+      {
+        category: LedgerEntryCategory.ORDER_CANCELLATION_REFUND,
+        referenceType: LedgerReferenceType.REFUND,
+        referenceId: refundId,
+        description:
+          `Order cancellation refund of ${amountPaid} Kobo (settle: ${settleAmount}, commission: ${commission}) ` +
+          `issued to customer for suborder ${suborderId} — vendor ${vendorId} cancelled`,
+        metadata: {
+          vendorId,
+          suborderId,
+          refundId,
+          settleAmount,
+          commission,
+          amountPaid,
+        },
+      },
+      lines,
+      session,
+    );
+  }
+
+  /**
+   * Record a failed delivery refund — the vendor's settle amount is returned
+   * to the student. The platform commission is NOT reversed; it stays with
+   * Soraxi since the vendor attempted delivery and the failure may be due to
+   * the student's unavailability.
+   *
+   * Funds are still in VENDOR_PENDING at this stage (FailedDelivery fires at
+   * OutForDelivery, before the customer confirms receipt or auto-confirm runs).
+   *
+   * Journal entry:
+   *   DEBIT   VENDOR_PENDING              settleAmount
+   *   CREDIT  CUSTOMER_REFUND_PAYABLE     settleAmount
+   *
+   * Caller must also:
+   *   - Subtract settleAmount from vendor wallet pending and total
+   *   - Update TransactionRecord suborder status → REFUNDED
+   *
+   * @param params - Failed delivery refund parameters
+   */
+  async writeFailedDeliveryRefund(
+    params: WriteFailedDeliveryRefundParams,
+  ): Promise<void> {
+    const { vendorId, settleAmount, refundId, suborderId, session } = params;
 
     assertValidKoboAmount(settleAmount, "settleAmount");
 
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.VENDOR_DISPUTED,
+        accountType: LedgerAccountType.VENDOR_PENDING,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
@@ -704,19 +993,66 @@ export class JournalEntryWriter {
 
     await this.commitEntry(
       {
-        category: LedgerEntryCategory.REFUND_ISSUED,
-        referenceType: LedgerReferenceType.DISPUTE,
-        referenceId: disputeId,
+        category: LedgerEntryCategory.FAILED_DELIVERY_REFUND,
+        referenceType: LedgerReferenceType.REFUND,
+        referenceId: refundId,
         description:
-          `Dispute ${disputeId} auto-resolved — refund of ${settleAmount} Kobo issued to customer. ` +
-          `No penalty applied: platform team failed to resolve within the deadline.`,
-        metadata: {
-          vendorId,
-          disputeId,
-          settleAmount,
-          penaltyAmount: 0,
-          triggeredBy: "SYSTEM_AUTO_RESOLUTION",
-        },
+          `Failed delivery refund of ${settleAmount} Kobo issued to customer for suborder ${suborderId} ` +
+          `— vendor ${vendorId} marked delivery as failed. Commission retained by platform.`,
+        metadata: { vendorId, suborderId, refundId, settleAmount },
+      },
+      lines,
+      session,
+    );
+  }
+
+  /**
+   * Close the CUSTOMER_REFUND_PAYABLE liability once Flutterwave confirms
+   * the refund has been disbursed to the customer.
+   *
+   * This entry fires for all refund triggers (ORDER_CANCELLED, FAILED_DELIVERY,
+   * DISPUTE_UPHELD) — both via the automated Flutterwave webhook and via the
+   * manual admin confirmation path.
+   *
+   * Journal entry:
+   *   DEBIT   CUSTOMER_REFUND_PAYABLE   amountRefunded
+   *   CREDIT  PLATFORM_ESCROW           amountRefunded
+   *
+   * The DEBIT closes the liability opened by the trigger-specific refund entry.
+   * The CREDIT reduces PLATFORM_ESCROW to reflect that the funds have
+   * physically left the platform back to the customer.
+   *
+   * @param params - Refund confirmed parameters
+   */
+  async writeRefundConfirmed(
+    params: WriteRefundConfirmedParams,
+  ): Promise<void> {
+    const { amountRefunded, refundId, session } = params;
+
+    assertValidKoboAmount(amountRefunded, "amountRefunded");
+
+    const lines: PendingLedgerLine[] = [
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        amount: amountRefunded,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.PLATFORM_ESCROW,
+        amount: amountRefunded,
+      },
+    ];
+
+    await this.commitEntry(
+      {
+        category: LedgerEntryCategory.REFUND_CONFIRMED,
+        referenceType: LedgerReferenceType.REFUND,
+        referenceId: refundId,
+        description:
+          `Refund confirmed by Flutterwave — ${amountRefunded} Kobo disbursed to customer. ` +
+          `CUSTOMER_REFUND_PAYABLE liability closed.`,
+        metadata: { refundId, amountRefunded },
       },
       lines,
       session,
@@ -787,13 +1123,6 @@ export class JournalEntryWriter {
    *   DEBIT   PLATFORM_ESCROW       netAmount
    *   CREDIT  PAYOUT_PROCESSING     netAmount
    *
-   * The DEBIT on PLATFORM_ESCROW represents funds physically leaving the
-   * platform to the vendor's bank account. The CREDIT closes the in-flight
-   * PAYOUT_PROCESSING balance opened by writePayoutInitiated.
-   *
-   * The caller must ensure `netAmount + gatewayFee` equals the amount that
-   * was placed into PAYOUT_PROCESSING when the payout was initiated.
-   *
    * @param params - Payout completed parameters
    */
   async writePayoutCompleted(
@@ -803,7 +1132,6 @@ export class JournalEntryWriter {
 
     assertValidKoboAmount(netAmount, "netAmount");
 
-    // gatewayFee is allowed to be 0 — it means the platform absorbed it
     if (!Number.isInteger(gatewayFee) || gatewayFee < 0) {
       throw new Error(
         `Invalid gatewayFee: expected a non-negative integer in Kobo, got ${gatewayFee}.`,
@@ -812,20 +1140,12 @@ export class JournalEntryWriter {
 
     const totalProcessingAmount = netAmount + gatewayFee;
 
-    // PAYOUT_COMPLETED always has three conceptual movements:
-    //   1. Funds physically exit the platform  → DEBIT PLATFORM_ESCROW (netAmount)
-    //   2. Gateway fee is recognised as expense → DEBIT GATEWAY_FEES_EXPENSE (gatewayFee, if > 0)
-    //   3. In-flight processing account closes  → CREDIT PAYOUT_PROCESSING (netAmount + gatewayFee)
-    //
-    // When gatewayFee is 0 the fee line is omitted, leaving a simple two-line entry.
     const lines: PendingLedgerLine[] = [
-      // Funds physically leave the platform
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.PLATFORM_ESCROW,
         amount: netAmount,
       },
-      // Close the in-flight processing balance (covers both the net transfer and the fee)
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.PAYOUT_PROCESSING,
@@ -833,7 +1153,6 @@ export class JournalEntryWriter {
         entityType: LedgerEntityType.VENDOR,
         amount: totalProcessingAmount,
       },
-      // Fee line — only present when the gateway actually charged one
       ...(gatewayFee > 0
         ? [
             {
@@ -867,9 +1186,6 @@ export class JournalEntryWriter {
    * Journal entry:
    *   DEBIT   VENDOR_AVAILABLE    requestedAmount
    *   CREDIT  PAYOUT_PROCESSING   requestedAmount
-   *
-   * The CREDIT on PAYOUT_PROCESSING closes the in-flight balance. The DEBIT on
-   * VENDOR_AVAILABLE restores the funds to the vendor's withdrawable balance.
    *
    * @param params - Payout failed parameters
    */
@@ -911,7 +1227,7 @@ export class JournalEntryWriter {
   /**
    * Record a debt recovery deduction withheld from a vendor's payout.
    *
-   * This uses a DEBT_RECOVERY_CLEARING intermediate account to produce two
+   * Uses a DEBT_RECOVERY_CLEARING intermediate account to produce two
    * balanced pairs within one journal entry:
    *
    *   Pair 1 — Withhold from vendor:
@@ -922,12 +1238,6 @@ export class JournalEntryWriter {
    *     DEBIT   PLATFORM_REVENUE_PENALTIES   recoveredAmount
    *     CREDIT  DEBT_RECOVERY_CLEARING       recoveredAmount
    *
-   * The clearing account opens and closes within the same journal entry,
-   * leaving a net zero balance on DEBT_RECOVERY_CLEARING.
-   *
-   * This method should be called before writePayoutInitiated when a payout
-   * includes a debt recovery deduction.
-   *
    * @param params - Debt recovery parameters
    */
   async writeDebtRecovery(params: WriteDebtRecoveryParams): Promise<void> {
@@ -936,7 +1246,6 @@ export class JournalEntryWriter {
     assertValidKoboAmount(recoveredAmount, "recoveredAmount");
 
     const lines: PendingLedgerLine[] = [
-      // Pair 1: withheld from vendor's available balance via clearing account
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.DEBT_RECOVERY_CLEARING,
@@ -949,7 +1258,6 @@ export class JournalEntryWriter {
         entityType: LedgerEntityType.VENDOR,
         amount: recoveredAmount,
       },
-      // Pair 2: clearing account is closed, platform earns the recovery
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.PLATFORM_REVENUE_PENALTIES,
@@ -981,11 +1289,6 @@ export class JournalEntryWriter {
    * Journal entry:
    *   DEBIT   GATEWAY_FEES_EXPENSE   feeAmount
    *   CREDIT  PLATFORM_ESCROW        feeAmount
-   *
-   * Used when the gateway fee is recorded separately from the payout
-   * completion (e.g. when the fee is disclosed after the transfer completes).
-   * If the gateway fee is recorded at payout completion time, use the
-   * `gatewayFee` parameter on writePayoutCompleted instead.
    *
    * @param params - Gateway fee parameters
    */
@@ -1024,17 +1327,9 @@ export class JournalEntryWriter {
    * Record the release of a vendor's pending funds to their available balance
    * following a confirmed delivery.
    *
-   * This is triggered either by the customer explicitly confirming receipt
-   * or by the auto-confirmation background job after the confirmation window
-   * has elapsed.
-   *
    * Journal entry:
    *   DEBIT   VENDOR_AVAILABLE   settleAmount
    *   CREDIT  VENDOR_PENDING     settleAmount
-   *
-   * The CREDIT on VENDOR_PENDING closes the balance that was opened by
-   * writeOrderSettlement at payment time. The DEBIT on VENDOR_AVAILABLE
-   * makes the funds withdrawable by the vendor.
    *
    * @param params - Funds released parameters
    */
@@ -1075,11 +1370,6 @@ export class JournalEntryWriter {
 
   /**
    * Record Soraxi's internal processing fee deducted from a vendor payout.
-   *
-   * This is distinct from the Flutterwave gateway fee (writeGatewayFee) —
-   * it represents Soraxi's own revenue for handling the withdrawal, not a
-   * third-party cost. The fee is withheld from the vendor's available balance
-   * before the net payout amount enters PAYOUT_PROCESSING.
    *
    * Journal entry:
    *   DEBIT   VENDOR_AVAILABLE              processingFee
@@ -1125,10 +1415,6 @@ export class JournalEntryWriter {
   /**
    * Reverse Soraxi's internal processing fee when a payout fails.
    *
-   * This is the exact mirror of writePayoutProcessingFee — it undoes
-   * the revenue that was credited to the platform when the payout was
-   * initiated, returning the fee amount to the vendor's available balance.
-   *
    * Journal entry:
    *   DEBIT   PLATFORM_REVENUE_COMMISSION   processingFee
    *   CREDIT  VENDOR_AVAILABLE              processingFee
@@ -1172,10 +1458,6 @@ export class JournalEntryWriter {
 
   /**
    * Reverse a Flutterwave gateway fee when a payout fails.
-   *
-   * This is the exact mirror of writeGatewayFee — it undoes the expense
-   * that was recorded when the payout was initiated, crediting
-   * GATEWAY_FEES_EXPENSE back and debiting PLATFORM_ESCROW.
    *
    * Journal entry:
    *   DEBIT   PLATFORM_ESCROW        feeAmount

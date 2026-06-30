@@ -28,3 +28,16 @@ query to filter out products whose merchant/store is suspended (e.g., add a
 join/where checking merchant.suspended = false or equivalent flag used
 elsewhere) before mapping and returning results so suspended-store products are
 excluded in the returned list.
+
+```ts
+await Store.findByIdAndUpdate(
+  dispute.vendorId,
+  {
+    $set: {
+      flaggedForReview: true, // NOTE: Confirm field name on your store model
+      flaggedAt: now, // NOTE: Add this field to store schema if needed
+    },
+  },
+  { session },
+);
+```

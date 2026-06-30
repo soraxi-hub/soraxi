@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   ClipboardList,
   TrendingUp,
+  RefreshCcw,
 } from "lucide-react";
 import { PERMISSIONS } from "./security/permissions";
 
@@ -81,16 +82,22 @@ export const adminNavigationItems = [
     title: "Finance",
     items: [
       {
+        title: "Wallet",
+        url: "/admin/platform-wallet",
+        icon: Wallet,
+        permissions: [PERMISSIONS.VIEW_PLATFORM_WALLET],
+      },
+      {
         title: "Payouts",
         url: "/admin/payouts",
         icon: CreditCard,
         permissions: [PERMISSIONS.VIEW_WITHDRAWALS],
       },
       {
-        title: "Wallet",
-        url: "/admin/platform-wallet",
-        icon: Wallet,
-        permissions: [PERMISSIONS.VIEW_PLATFORM_WALLET],
+        title: "Refunds",
+        url: "/admin/refunds",
+        icon: RefreshCcw,
+        permissions: [PERMISSIONS.VIEW_REFUNDS],
       },
       {
         title: "Analytics",

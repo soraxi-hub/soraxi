@@ -21,7 +21,10 @@ import {
   getVendorWalletByVendorId,
   releaseVendorDisputedToAvailable,
 } from "@/lib/db/models/vendor-wallet.model";
-import { creditPlatformPenalty } from "@/lib/db/models/platform-wallet.model";
+import {
+  creditPlatformPenalty,
+  debitPlatformCommission,
+} from "@/lib/db/models/platform-wallet.model";
 import { calculatePenalty } from "@/lib/utils/calculate-penalty.util ";
 import {
   SuborderFinancialStatus,
@@ -192,13 +195,17 @@ export const adminDisputeRouter = createTRPCRouter({
 
       try {
         // --- DISPUTE_UPHELD journal entry ---
-        // Produces four balanced ledger lines in one atomic entry:
+        // Produces six balanced ledger lines in one atomic entry (three pairs):
         //
-        //   Pair 1 — Refund:
+        //   Pair 1 — Refund of frozen settle amount:
         //     DEBIT   VENDOR_DISPUTED             frozenAmount
         //     CREDIT  CUSTOMER_REFUND_PAYABLE     frozenAmount
         //
-        //   Pair 2 — Penalty:
+        //   Pair 2 — Commission reversed (student receives full amountPaid back):
+        //     DEBIT   PLATFORM_REVENUE_COMMISSION commission
+        //     CREDIT  CUSTOMER_REFUND_PAYABLE     commission
+        //
+        //   Pair 3 — Penalty:
         //     DEBIT   VENDOR_AVAILABLE            penaltyAmount
         //     CREDIT  PLATFORM_REVENUE_PENALTIES  penaltyAmount
         const writer = await JournalEntryWriter.init();
@@ -206,6 +213,7 @@ export const adminDisputeRouter = createTRPCRouter({
         await writer.writeDisputeUpheld({
           vendorId: dispute.vendorId,
           settleAmount: dispute.frozenAmount,
+          commission: breakdown.commission,
           penaltyAmount,
           disputeId: new mongoose.Types.ObjectId(input.disputeId),
           session,
@@ -225,6 +233,10 @@ export const adminDisputeRouter = createTRPCRouter({
 
         // --- Update Platform Wallet cache ---
         // Credits the penalty as platform penalty revenue.
+        // Mirrors the PLATFORM_REVENUE_PENALTIES CREDIT in writeDisputeUpheld.
+        // The commission is reversed since the student is refunded the full amountPaid.
+        await debitPlatformCommission(breakdown.commission, session);
+
         // Mirrors the PLATFORM_REVENUE_PENALTIES CREDIT in writeDisputeUpheld.
         await creditPlatformPenalty(penaltyAmount, session);
 

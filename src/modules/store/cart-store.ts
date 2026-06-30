@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-// import type { ICart } from "@/lib/db/models/cart.model"; // Optional for full cart shape
 
 type CartItem = {
   productId: string;
@@ -39,7 +38,7 @@ export const useCartStore = create<CartState>()(
 
       addItem: (item) => {
         const existing = get().items.find(
-          (i) => i.productId === item.productId && i.size === item.size
+          (i) => i.productId === item.productId && i.size === item.size,
         );
 
         let updatedItems;
@@ -47,7 +46,7 @@ export const useCartStore = create<CartState>()(
           updatedItems = get().items.map((i) =>
             i.productId === item.productId && i.size === item.size
               ? { ...i, quantity: i.quantity + item.quantity }
-              : i
+              : i,
           );
         } else {
           updatedItems = [...get().items, item];
@@ -61,7 +60,8 @@ export const useCartStore = create<CartState>()(
 
       removeItem: (productId, size) => {
         const updatedItems = get().items.filter(
-          (i) => !(i.productId === productId && (size ? i.size === size : true))
+          (i) =>
+            !(i.productId === productId && (size ? i.size === size : true)),
         );
         set({
           items: updatedItems,
@@ -74,7 +74,7 @@ export const useCartStore = create<CartState>()(
           (i) =>
             i.productId === productId && i.size === size
               ? { ...i, quantity }
-              : i
+              : i,
           // i.productId === productId ? { ...i, quantity } : i
         );
         set({
@@ -87,6 +87,6 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "cart-storage", // for localStorage
-    }
-  )
+    },
+  ),
 );

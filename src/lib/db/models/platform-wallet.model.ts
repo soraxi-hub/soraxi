@@ -133,6 +133,38 @@ export async function creditPlatformCommission(
 }
 
 /**
+ * Debit the platform wallet's commission balance — reverses commission
+ * revenue that was previously credited. Called when a refund (order
+ * cancellation, upheld dispute, or auto-resolved dispute) reverses the
+ * platform's commission because the sale never completed or the student
+ * is being made whole.
+ *
+ * Mirrors the PLATFORM_REVENUE_COMMISSION DEBIT in writeDisputeUpheld,
+ * writeDisputeAutoResolved, and writeOrderCancellationRefund.
+ *
+ * @param commissionInKobo - Commission amount to reverse, in Kobo
+ * @returns Updated platform wallet document or null
+ */
+export async function debitPlatformCommission(
+  commissionInKobo: number,
+  session: mongoose.ClientSession,
+): Promise<IPlatformWallet | null> {
+  await connectToDatabase();
+  const PlatformWallet = await getPlatformWalletModel();
+
+  return PlatformWallet.findOneAndUpdate<IPlatformWallet>(
+    {},
+    {
+      $inc: {
+        "balances.commission": -commissionInKobo,
+        "balances.total": -commissionInKobo,
+      },
+    },
+    { new: true, session },
+  );
+}
+
+/**
  * Credit the platform wallet with penalty revenue from an upheld dispute.
  * Called when a dispute is upheld and a penalty is successfully deducted
  * from the vendor's wallet.

@@ -13,7 +13,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-
 import Autoplay from "embla-carousel-autoplay";
 
 import type { inferProcedureOutput } from "@trpc/server";
@@ -63,9 +62,9 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                 className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
               >
                 <Link href={`/products/${product.slug}`}>
-                  <Card className="group cursor-pointer hover:shadow-lg transition-shadow p-0 h-full">
+                  <Card className="group cursor-pointer hover:shadow-lg transition-shadow p-0 h-full rounded-sm">
                     <CardContent className="p-0">
-                      <div className="relative aspect-square overflow-hidden rounded-t-lg">
+                      <div className="relative aspect-square overflow-hidden rounded-t-sm">
                         <Image
                           src={
                             (product.images && product.images[0]) ||
@@ -83,7 +82,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                       </div>
 
                       <div className="p-4 space-y-2">
-                        <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                        <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
                           {product.name}
                         </h3>
 
@@ -95,7 +94,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                                 className={`w-3 h-3 ${
                                   i <
                                   Math.floor(
-                                    product.rating ? product.rating : 0
+                                    product.rating ? product.rating : 0,
                                   )
                                     ? "text-yellow-400 fill-current"
                                     : "text-gray-300"
