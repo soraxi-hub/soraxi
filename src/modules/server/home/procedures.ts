@@ -1,9 +1,113 @@
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getProductModel, getProducts } from "@/lib/db/models/product.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { ProductService } from "@/services/products/product.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
+
+/**
+ * These home-page/public-listing reads are hit on nearly every request and
+ * change infrequently, so they're wrapped in `unstable_cache` with a short
+ * revalidate window. Results are JSON round-tripped before returning so the
+ * shape is identical on a cache hit vs. a cache miss (guards against
+ * Mongoose-specific types like ObjectId/Date serializing differently once
+ * they pass through Next's cache).
+ */
+const REVALIDATE_SECONDS = 60;
+
+type PublicProductsInput = Parameters<
+  typeof ProductService.getPublicProducts
+>[0];
+type PublicProductsResult = Awaited<
+  ReturnType<typeof ProductService.getPublicProducts>
+>;
+
+const getCachedPublicProducts = unstable_cache(
+  async (input: PublicProductsInput): Promise<PublicProductsResult> => {
+    const data = await ProductService.getPublicProducts(input);
+    return JSON.parse(JSON.stringify(data));
+  },
+  ["home:getPublicProducts"],
+  { revalidate: REVALIDATE_SECONDS },
+);
+
+const getCachedRelatedProducts = unstable_cache(
+  async (slug: string, limit: number) => {
+    const Product = await getProductModel();
+
+    const currentProduct = await Product.findOne({
+      slug,
+      isVerifiedProduct: true,
+      isVisible: true,
+    }).lean();
+
+    if (!currentProduct) {
+      return [];
+    }
+
+    const related = await Product.find({
+      slug: { $ne: currentProduct.slug },
+      isVerifiedProduct: true,
+      isVisible: true,
+      category: { $in: currentProduct.category },
+    })
+      .sort({ rating: -1 })
+      .limit(limit)
+      .lean();
+
+    const formatted = related.map((product) => ({
+      id: product._id.toString(),
+      name: product.name,
+      images: product.images,
+      sizes: product.sizes,
+      category: product.category,
+      subCategory: product.subCategory,
+      rating: product.rating || 0,
+      storeId: product.storeId.toString(),
+      slug: product.slug,
+      isVerifiedProduct: product.isVerifiedProduct,
+      price: product.price,
+    }));
+
+    return JSON.parse(JSON.stringify(formatted)) as typeof formatted;
+  },
+  ["home:getRelatedProducts"],
+  { revalidate: REVALIDATE_SECONDS },
+);
+
+const getCachedFeaturedProducts = unstable_cache(
+  async () => {
+    const products = await getProducts({
+      visibleOnly: true,
+      minRating: 4,
+      limit: 12,
+    });
+
+    const formattedProducts = products
+      .map((product) => ({
+        id: product._id!.toString(),
+        name: product.name,
+        price: product.price,
+        images: product.images,
+        category: product.category,
+        subCategory: product.subCategory,
+        rating: product.rating || 0,
+        slug: product.slug,
+        isVerifiedProduct: product.isVerifiedProduct,
+      }))
+      .filter((p) => p.isVerifiedProduct);
+
+    return JSON.parse(JSON.stringify(formattedProducts)) as typeof formattedProducts;
+  },
+  ["home:getFeaturedProducts"],
+  { revalidate: REVALIDATE_SECONDS },
+);
 
 /**
  * tRPC Router: homeRouter
@@ -34,13 +138,24 @@ export const homeRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       try {
-        const data = await ProductService.getPublicProducts(input);
+        const data = await getCachedPublicProducts(input);
 
         return {
           success: true,
           ...data,
         };
       } catch (err: any) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:home.getPublicProducts",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(
           err,
           "Failed to fetch products. Please try again later.",
@@ -93,6 +208,17 @@ export const homeRouter = createTRPCRouter({
           storeStatus: storeDoc.status,
         };
       } catch (err: any) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:home.getPublicProductBySlug",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(
           err,
           "Failed to fetch product. Please try again later.",
@@ -113,42 +239,19 @@ export const homeRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       try {
-        const Product = await getProductModel();
-
-        const currentProduct = await Product.findOne({
-          slug: input.slug,
-          isVerifiedProduct: true,
-          isVisible: true,
-        }).lean();
-
-        if (!currentProduct) {
-          return [];
-        }
-
-        const related = await Product.find({
-          slug: { $ne: currentProduct.slug },
-          isVerifiedProduct: true,
-          isVisible: true,
-          category: { $in: currentProduct.category },
-        })
-          .sort({ rating: -1 })
-          .limit(input.limit)
-          .lean();
-
-        return related.map((product) => ({
-          id: product._id.toString(),
-          name: product.name,
-          images: product.images,
-          sizes: product.sizes,
-          category: product.category,
-          subCategory: product.subCategory,
-          rating: product.rating || 0,
-          storeId: product.storeId.toString(),
-          slug: product.slug,
-          isVerifiedProduct: product.isVerifiedProduct,
-          price: product.price,
-        }));
+        return await getCachedRelatedProducts(input.slug, input.limit);
       } catch (err: any) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:home.getRelatedProducts",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to fetch related products.");
       }
     }),
@@ -160,26 +263,19 @@ export const homeRouter = createTRPCRouter({
    */
   getFeaturedProducts: baseProcedure.query(async () => {
     try {
-      const products = await getProducts({
-        visibleOnly: true,
-        minRating: 4,
-        limit: 12,
-      });
-
-      const formattedProducts = products.map((product) => ({
-        id: product._id!.toString(),
-        name: product.name,
-        price: product.price,
-        images: product.images,
-        category: product.category,
-        subCategory: product.subCategory,
-        rating: product.rating || 0,
-        slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
-      }));
-
-      return formattedProducts.filter((p) => p.isVerifiedProduct);
+      return await getCachedFeaturedProducts();
     } catch (err: any) {
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, {
+              source: "trpc:home.getFeaturedProducts",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(err, "Failed to fetch featured products.");
     }
   }),

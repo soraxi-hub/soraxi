@@ -7,6 +7,11 @@ import { generateUniqueId } from "@/lib/utils";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { FeedBackRepo } from "@/repositories/feedback-repo";
 import { type NextRequest, NextResponse } from "next/server";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,6 +64,15 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error submitting feedback:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/feedback" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

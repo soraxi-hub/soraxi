@@ -8,6 +8,11 @@ import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import mongoose from "mongoose";
 import { UserFactory } from "@/domain/users/user-factory";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const flutterwaveRouter = createTRPCRouter({
   initializePayment: baseProcedure
@@ -52,6 +57,17 @@ export const flutterwaveRouter = createTRPCRouter({
           props,
         });
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:flutterwave.initializePayment",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error);
       }
     }),

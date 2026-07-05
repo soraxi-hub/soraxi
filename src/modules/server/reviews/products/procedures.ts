@@ -7,6 +7,11 @@ import { getProductReviewModel } from "@/lib/db/models/product-review.model";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
 import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 type PopulatedUser = Pick<IUser, "firstName" | "email" | "lastName">;
 
@@ -88,6 +93,17 @@ export const productReviewRouter = createTRPCRouter({
             message: "You have already submitted a review for this product",
           });
         }
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:reviews.products.submitReview",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, `Error creating review: ${error.message}`);
       }
     }),
@@ -132,6 +148,17 @@ export const productReviewRouter = createTRPCRouter({
           verified: true,
         }));
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:reviews.products.getReviewsByProductId",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Error fetching reviews.");
       }
     }),

@@ -4,6 +4,11 @@ import { PlatformWalletRepository } from "@/repositories/implementations/platfor
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { AdminGuard } from "@/domain/admin/admin-guard";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // Instantiate the repository and service (dependency injection)
 const platformWalletRepository = new PlatformWalletRepository();
@@ -42,6 +47,17 @@ export const platformWalletRouter = createTRPCRouter({
       const wallet = await platformWalletService.getWallet();
       return wallet;
     } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:admin.platform-wallet.getOverview",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
       throw handleTRPCError(error);
     }
   }),

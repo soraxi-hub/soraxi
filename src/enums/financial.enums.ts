@@ -175,6 +175,7 @@ export enum RefundTrigger {
   ORDER_CANCELLED = "order_cancelled", // Vendor cancelled from OrderPlaced or Processing
   FAILED_DELIVERY = "failed_delivery", // Vendor marked OutForDelivery as FailedDelivery
   DISPUTE_UPHELD = "dispute_upheld", // Platform upheld a dispute in the student's favour
+  DISPUTE_AUTO_RESOLVED = "dispute_auto_resolved", // Platform missed the deadline; refund issued without penalty
 }
 
 /**

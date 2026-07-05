@@ -2,7 +2,14 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { OrderService } from "@/services/orders/order.service";
+import { OrderFactory } from "@/domain/orders/order-factory";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
+
+const orderService = OrderFactory.getOrderServiceInstance();
 
 export const storeOrdersRouter = createTRPCRouter({
   getStoreOrderById: baseProcedure
@@ -22,9 +29,26 @@ export const storeOrdersRouter = createTRPCRouter({
         });
       }
 
-      const orderService = new OrderService();
-
-      return await orderService.getOrderStoreView(orderId, store.id);
+      try {
+        return await orderService.getOrderStoreView(orderId, store.id);
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.store-orders.getStoreOrderById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch order details. Please try again later.",
+        });
+      }
     }),
 
   /**
@@ -64,9 +88,6 @@ export const storeOrdersRouter = createTRPCRouter({
           });
         }
 
-        const orderService = new OrderService();
-
-        // Call service method
         const result = await orderService.getStoreOrders(storeSession.id, {
           startDate: input.startDate,
           endDate: input.endDate,
@@ -81,6 +102,18 @@ export const storeOrdersRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Store orders fetch error:", error);
+
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.store-orders.getStoreOrders",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
 
         // Handle specific error types
         if (error instanceof mongoose.Error.ValidationError) {

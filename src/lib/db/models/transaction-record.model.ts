@@ -50,6 +50,7 @@ export interface ITransactionRecord {
 
   // Flutterwave payment details
   flutterwaveReference: string; // Flutterwave's unique transaction reference
+  flutterwaveTransactionId: number; // Flutterwave's unique transaction Id
   flutterwaveStatus: FlutterwavePaymentStatus;
 
   totalAmount: number; // Total amount paid by customer in Kobo
@@ -129,6 +130,12 @@ const TransactionRecordSchema = new Schema<ITransactionRecordDocument>(
     },
     flutterwaveReference: {
       type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    flutterwaveTransactionId: {
+      type: Number,
       required: true,
       unique: true,
       index: true,

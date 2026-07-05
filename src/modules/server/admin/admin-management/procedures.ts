@@ -13,6 +13,11 @@ import {
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 const bcryptjs = await import("bcryptjs");
 
 export const adminManagementRouter = createTRPCRouter({
@@ -30,36 +35,61 @@ export const adminManagementRouter = createTRPCRouter({
    */
   listAdmins: baseProcedure.query(async ({ ctx }) => {
     const { admin: unAuthenticatedAdmin } = ctx;
-    // ==================== Authentication & Authorization ====================
+    try {
+      // ==================== Authentication & Authorization ====================
 
-    /**
-     * Admin Authentication Check
-     *
-     * Verifies that the request is coming from an authenticated admin user
-     * with appropriate permissions to release escrow funds. This is a critical
-     * security check as escrow release involves financial transactions.
-     */
-    AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.MANAGE_ADMINS);
+      /**
+       * Admin Authentication Check
+       *
+       * Verifies that the request is coming from an authenticated admin user
+       * with appropriate permissions to release escrow funds. This is a critical
+       * security check as escrow release involves financial transactions.
+       */
+      AdminGuard.from(unAuthenticatedAdmin).require(PERMISSIONS.MANAGE_ADMINS);
 
-    const admins = await getAllAdmins(true);
+      const admins = await getAllAdmins(true);
 
-    if (!admins) {
+      if (!admins) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Admins not found",
+        });
+      }
+
+      const formattedAdmins = admins.map((admin) => ({
+        _id: admin._id.toString(),
+        name: admin.name,
+        email: admin.email,
+        roles: admin.roles,
+        isActive: admin.isActive,
+        lastLogin: admin.updatedAt,
+      }));
+
+      return { success: true, admins: formattedAdmins };
+    } catch (error) {
+      console.error("Error listing admins:", error);
+
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:admin.admin-management.listAdmins",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
+
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
       throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Admins not found",
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch admins",
       });
     }
-
-    const formattedAdmins = admins.map((admin) => ({
-      _id: admin._id.toString(),
-      name: admin.name,
-      email: admin.email,
-      roles: admin.roles,
-      isActive: admin.isActive,
-      lastLogin: admin.updatedAt,
-    }));
-
-    return { success: true, admins: formattedAdmins };
   }),
 
   /**
@@ -149,6 +179,18 @@ export const adminManagementRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error creating admin:", error);
+
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.admin-management.createAdmin",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
 
         if (error instanceof TRPCError) {
           throw error;
@@ -297,6 +339,18 @@ export const adminManagementRouter = createTRPCRouter({
       } catch (error) {
         console.error("Error updating admin:", error);
 
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.admin-management.updateAdmin",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
+
         if (error instanceof TRPCError) {
           throw error;
         }
@@ -394,6 +448,18 @@ export const adminManagementRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error deleting admin:", error);
+
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.admin-management.deleteAdmin",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
 
         if (error instanceof TRPCError) {
           throw error;

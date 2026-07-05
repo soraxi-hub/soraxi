@@ -11,6 +11,11 @@ import { RefundStatus, RefundTrigger } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getUserModel } from "@/lib/db/models/user.model";
 import { RefundService } from "@/services/refund.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,6 +149,17 @@ export const adminRefundRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.refunds.getAdminRefunds",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch refund records.");
       }
     }),
@@ -223,6 +239,17 @@ export const adminRefundRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.refunds.getAdminRefundById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch refund details.");
       }
     }),
@@ -295,7 +322,9 @@ export const adminRefundRouter = createTRPCRouter({
           });
         }
 
-        // ==================== Status guard ====================
+        // ==================== Fast pre-check ====================
+        // Early rejection before opening a transaction. The fail-path update
+        // is the authoritative atomic guard — this only avoids unnecessary work.
         if (refund.status !== RefundStatus.INITIATED) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -317,8 +346,10 @@ export const adminRefundRouter = createTRPCRouter({
         session.startTransaction();
 
         try {
-          await RefundRecord.findByIdAndUpdate(
-            refund._id,
+          // Atomic compare-and-set: only transition to FAILED if still INITIATED.
+          // A null result means a concurrent request already finalized this refund.
+          const claimed = await RefundRecord.findOneAndUpdate(
+            { _id: refund._id, status: RefundStatus.INITIATED },
             {
               $set: {
                 status: RefundStatus.FAILED,
@@ -327,6 +358,13 @@ export const adminRefundRouter = createTRPCRouter({
             },
             { session },
           );
+
+          if (!claimed) {
+            throw new Error(
+              "Refund is no longer in INITIATED state — it may have been finalized by a concurrent request.",
+            );
+          }
+
           await session.commitTransaction();
         } catch (error) {
           await session.abortTransaction();
@@ -341,6 +379,17 @@ export const adminRefundRouter = createTRPCRouter({
             "Refund marked as failed. The refund liability remains open — a follow-up action will be required.",
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.refunds.confirmManualRefund",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to process manual refund action.");
       }
     }),

@@ -8,6 +8,11 @@ import { OTP } from "@/lib/utils/otp";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { OtpEntityType, OtpPurpose } from "@/enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -133,6 +138,15 @@ export async function POST(request: NextRequest) {
 
     throw new AppError("BAD_REQUEST", "Invalid ref parameter");
   } catch (error) {
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/auth/reset-password" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

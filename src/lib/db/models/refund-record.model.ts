@@ -1,6 +1,10 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
-import { RefundStatus, RefundTrigger } from "@/enums/financial.enums";
+import {
+  RefundStatus,
+  RefundTrigger,
+  LedgerReferenceType,
+} from "@/enums/financial.enums";
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -89,8 +93,22 @@ export interface IRefundRecord {
   /** Populated when status is FAILED. */
   failureReason?: string;
 
-  /** Reference to the journal entry that opened the refund liability. */
-  ledgerEntryId: mongoose.Types.ObjectId;
+  /**
+   * Ledger reference to the journal entry that OPENED this refund's
+   * CUSTOMER_REFUND_PAYABLE liability. Mirrors the ledger's own
+   * (referenceType, referenceId) keying so an audit can resolve the opening
+   * entry uniformly across all triggers.
+   *
+   * ORDER_CANCELLED  → (REFUND,  refundId)   opening entry keyed on this record
+   * FAILED_DELIVERY  → (REFUND,  refundId)   opening entry keyed on this record
+   * DISPUTE_UPHELD   → (DISPUTE, disputeId)  opening entry is the shared dispute
+   * DISPUTE_AUTO...  → (DISPUTE, disputeId)  entry (also carries penalty + freeze)
+   *
+   * The CLOSING entry (REFUND_CONFIRMED) is always keyed on
+   * (REFUND, this._id) and is derivable without a stored field.
+   */
+  ledgerReferenceType: LedgerReferenceType;
+  ledgerReferenceId: mongoose.Types.ObjectId;
 
   createdAt: Date;
   updatedAt: Date;
@@ -182,7 +200,12 @@ const RefundRecordSchema = new Schema<IRefundRecordDocument>(
       type: String,
       default: null,
     },
-    ledgerEntryId: {
+    ledgerReferenceType: {
+      type: String,
+      required: true,
+      enum: Object.values(LedgerReferenceType),
+    },
+    ledgerReferenceId: {
       type: Schema.Types.ObjectId,
       required: true,
     },
@@ -195,11 +218,30 @@ const RefundRecordSchema = new Schema<IRefundRecordDocument>(
 // Compound index: look up all refunds for a vendor efficiently
 RefundRecordSchema.index({ vendorId: 1, createdAt: -1 });
 
-// Compound index: look up all refunds on a specific suborder
-// Partial unique: only one non-failed refund per suborder at a time
+// Compound index: resolve the opening ledger entry for a refund by the same
+// (referenceType, referenceId) pair the ledger keys entries on.
+RefundRecordSchema.index({ ledgerReferenceType: 1, ledgerReferenceId: 1 });
+
+// Partial UNIQUE index: at most one non-failed refund per suborder.
+//
+// The unique constraint is on suborderId ALONE, not on { suborderId, status }.
+// Keying on the pair would treat (suborderId, INITIATED) and
+// (suborderId, COMPLETED) as distinct keys and allow both to coexist — exactly
+// the states that represent one active/settled refund and must NOT duplicate.
+//
+// The partialFilterExpression scopes the constraint to non-failed states, so:
+//   - INITIATED / COMPLETED  → counted; a second one for the same suborder
+//                              fails with a duplicate-key error (E11000).
+//   - FAILED                 → excluded; a genuine retry after a failed refund
+//                              is still allowed.
+//
+// This is the guard that blocks two concurrent refund attempts (e.g. racing
+// Canceled transitions) from both creating a refund for the same suborder.
 RefundRecordSchema.index(
-  { suborderId: 1, status: 1 },
+  { suborderId: 1 },
   {
+    name: "uniq_non_failed_refund_per_suborder",
+    unique: true,
     partialFilterExpression: {
       status: { $in: [RefundStatus.INITIATED, RefundStatus.COMPLETED] },
     },

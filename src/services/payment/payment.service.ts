@@ -35,12 +35,4 @@ export class PaymentService {
     // Delegate payment initialization
     return paymentGateway.verifyPayment(transactionReference);
   }
-
-  static async handleWebhook() {}
-
-  static async processSuccessfulPayment() {}
-
-  static async refundPayment() {}
-
-  static calculateGatewayFee() {}
 }

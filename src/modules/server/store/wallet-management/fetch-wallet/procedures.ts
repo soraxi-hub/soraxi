@@ -2,6 +2,11 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { VendorWalletService } from "@/services/vendor-wallet/vendor-wallet.service";
 import { AppError } from "@/lib/errors/app-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * Store Wallet Router
@@ -38,6 +43,18 @@ export const storeWalletRouter = createTRPCRouter({
         wallet,
       };
     } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:store.wallet-management.fetch-wallet.getWallet",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
+
       // Convert application errors into TRPC errors
       if (error instanceof AppError) {
         throw new TRPCError({

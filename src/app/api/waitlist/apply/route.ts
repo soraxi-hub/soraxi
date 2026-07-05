@@ -6,6 +6,11 @@ import { WaitlistService } from "@/services/waitlist-service";
 import { z } from "zod";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES } from "@/constants/image.constants";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 const vendorApplicationRepository = new VendorApplicationRepository();
 const waitlistService = new WaitlistService(vendorApplicationRepository);
@@ -105,6 +110,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error submitting waitlist application:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/waitlist/apply" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

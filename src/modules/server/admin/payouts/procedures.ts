@@ -10,6 +10,11 @@ import { AdminGuard } from "@/domain/admin/admin-guard";
 import { PayoutStatus } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { PayoutProcessingService } from "@/services/payment/payout/payout-processing.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const adminPayoutRouter = createTRPCRouter({
   /**
@@ -99,6 +104,17 @@ export const adminPayoutRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.payouts.getAdminWithdrawals",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch payout records.");
       }
     }),
@@ -169,6 +185,17 @@ export const adminPayoutRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.payouts.getAdminWithdrawalById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch payout details.");
       }
     }),
@@ -237,8 +264,9 @@ export const adminPayoutRouter = createTRPCRouter({
           });
         }
 
-        // ==================== Status guard ====================
-        // Only INITIATED payouts are actionable — terminal states are immutable
+        // ==================== Fast pre-check ====================
+        // Early rejection before starting a transaction. The service performs
+        // the authoritative atomic claim, so this is not the enforcing guard.
         if (payout.status !== PayoutStatus.INITIATED) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -256,6 +284,17 @@ export const adminPayoutRouter = createTRPCRouter({
 
         return { success: true, message: result.message };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.payouts.confirmManualPayout",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to process manual payout action.");
       }
     }),

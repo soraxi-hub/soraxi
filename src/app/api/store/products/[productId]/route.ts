@@ -5,6 +5,11 @@ import { AppError } from "@/lib/errors/app-error";
 import bcrypt from "bcryptjs";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 import { StoreStatusEnum, ProductTypeEnum } from "@/enums";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import mongoose from "mongoose";
@@ -147,6 +152,17 @@ export async function PUT(
       await session.abortTransaction();
     }
     console.error("Error updating product:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "PUT /api/store/products/[productId]",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   } finally {
     if (session) {

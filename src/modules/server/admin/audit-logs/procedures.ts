@@ -8,6 +8,11 @@ import {
   GetAuditLogsOutputSchemaForAnId,
 } from "@/types/admin-audit-log-types"; // Import the new output schema
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const auditLogRouter = createTRPCRouter({
   /**
@@ -117,6 +122,18 @@ export const auditLogRouter = createTRPCRouter({
       } catch (error) {
         console.error("Error fetching audit logs:", error);
 
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.audit-logs.getAuditLogs",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
+
         if (error instanceof TRPCError) {
           throw error;
         }
@@ -193,6 +210,18 @@ export const auditLogRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error fetching audit log:", error);
+
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.audit-logs.getAuditLogDetail",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
 
         if (error instanceof TRPCError) {
           throw error;

@@ -9,6 +9,11 @@ import { getOTPModel } from "@/lib/db/models/otp.model";
 import { OTP } from "@/lib/utils/otp";
 import { PasswordService } from "@/lib/utils";
 import { OtpPurpose } from "@/enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,6 +96,15 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/auth/verify/verify-otp" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

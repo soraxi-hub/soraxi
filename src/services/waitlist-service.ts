@@ -19,6 +19,11 @@ import { StoreService } from "./store/store.service";
 import { generateDefaultPassword } from "@/lib/utils";
 import { UserRepository } from "@/repositories/user-repo";
 import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 interface ApplyResult {
   referenceId: string;
@@ -358,6 +363,17 @@ export class WaitlistService {
         error,
       );
       // Do not throw – application is already rejected, email failure shouldn't block
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "service:waitlist.rejectApplication",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
     }
   }
 

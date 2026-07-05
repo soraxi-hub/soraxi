@@ -53,6 +53,7 @@ export function RecentlyViewed({ excludeProductId }: RecentlyViewedProps) {
                         src={product.image}
                         alt={product.name}
                         fill
+                        sizes="(min-width: 1280px) 16vw, (min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       {product.isVerifiedProduct && (

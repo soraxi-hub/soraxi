@@ -234,7 +234,10 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
               <div
                 ref={viewportRef}
                 onScroll={handleAgreementScroll}
-                className="h-80 w-full overflow-y-auto border border-border rounded-lg p-4"
+                tabIndex={0}
+                role="region"
+                aria-label="Vendor Onboarding Agreement"
+                className="h-80 w-full overflow-y-auto border border-border rounded-lg p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="text-sm text-muted-foreground space-y-3 pr-2">
                   <p>

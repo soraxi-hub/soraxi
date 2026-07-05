@@ -2,6 +2,11 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { ProductTypeEnum } from "@/enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // type PaystackInitResponse = {
 //   status: boolean;
@@ -163,6 +168,17 @@ export const paystackRouter = createTRPCRouter({
         return result;
       } catch (error: any) {
         console.error("Paystack Error:", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:paystack.initializePayment",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "An error occurred while initializing payment.",

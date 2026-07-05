@@ -309,13 +309,6 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
                     {formatNaira(payout.amountBreakdown.requestedAmount, {
                       showDecimals: true,
                     })}
-                    {isInitiated && (
-                      <CopyButton
-                        value={String(
-                          payout.amountBreakdown.requestedAmount / 100,
-                        )}
-                      />
-                    )}
                   </p>
                 </div>
                 <div>

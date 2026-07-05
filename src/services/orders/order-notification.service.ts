@@ -8,6 +8,11 @@ import React from "react";
 import mongoose from "mongoose";
 import { IOrder } from "@/lib/db/models/order.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 type CustomerInfo = {
   fullName: string;
@@ -59,6 +64,17 @@ export class OrderNotificationService {
       return true;
     } catch (error) {
       console.error("Failed to send customer notification:", error);
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "service:order-notification.sendCustomerNotification",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
       return false;
     }
   }
@@ -133,6 +149,17 @@ export class OrderNotificationService {
       }
     } catch (err) {
       console.error("Failed to send store notifications:", err);
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, {
+              source: "service:order-notification.sendStoreNotifications",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
     }
 
     return sent;

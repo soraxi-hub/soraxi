@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { AppError } from "@/lib/errors/app-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST() {
   try {
@@ -33,6 +38,15 @@ export async function POST() {
       { status: 200 },
     );
   } catch (error) {
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/cloudinary-images" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

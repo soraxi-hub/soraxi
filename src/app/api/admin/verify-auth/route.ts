@@ -5,6 +5,11 @@ import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tok
 import { type NextRequest, NextResponse } from "next/server";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,6 +49,15 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error verifying admin auth:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "GET /api/admin/verify-auth" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

@@ -17,6 +17,11 @@ import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { getStoreEmailTemplates } from "@/services/notifications/utils/utils";
 import { NotificationFactory } from "@/domain/notification";
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const adminStoreRouter = createTRPCRouter({
   listStores: baseProcedure
@@ -101,6 +106,17 @@ export const adminStoreRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error fetching stores:", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.store.listStores",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch stores",
@@ -115,83 +131,102 @@ export const adminStoreRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const { storeId } = input;
-      const { admin: unAuthenticatedAdmin } = ctx;
+      try {
+        const { storeId } = input;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-      /**
-       * Admin Authentication Check
-       *
-       * Verifies that the request is coming from an authenticated admin user
-       * with appropriate permissions.
-       */
-      AdminGuard.from(unAuthenticatedAdmin).requireAny([
-        PERMISSIONS.SUSPEND_STORE,
-        PERMISSIONS.VERIFY_STORE,
-        PERMISSIONS.REJECT_STORE,
-      ]);
+        /**
+         * Admin Authentication Check
+         *
+         * Verifies that the request is coming from an authenticated admin user
+         * with appropriate permissions.
+         */
+        AdminGuard.from(unAuthenticatedAdmin).requireAny([
+          PERMISSIONS.SUSPEND_STORE,
+          PERMISSIONS.VERIFY_STORE,
+          PERMISSIONS.REJECT_STORE,
+        ]);
 
-      // Validate user ID format
-      if (!mongoose.Types.ObjectId.isValid(storeId)) {
+        // Validate user ID format
+        if (!mongoose.Types.ObjectId.isValid(storeId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid store ID format",
+          });
+        }
+
+        const Store = await getStoreModel();
+        await getProductModel();
+        const storeData = await Store.findById(storeId)
+          .select(
+            "-password -storeOwner -recipientCode -walletId -suspensionReason -forgotpasswordToken -forgotpasswordTokenExpiry",
+          )
+          .populate({
+            path: "physicalProducts",
+            select:
+              "_id name images price sizes slug isVerifiedProduct category productType",
+          })
+          .lean();
+
+        if (!storeData) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found.",
+          });
+        }
+
+        const formattedStoreData = {
+          _id: storeData._id.toString(),
+          name: storeData.name,
+          storeEmail: storeData.storeEmail,
+          uniqueId: storeData.uniqueId,
+          followers: storeData.followers.map(
+            (follower: mongoose.Types.ObjectId) => follower.toString(),
+          ),
+          products: (
+            (storeData.physicalProducts as unknown as Product[]) || []
+          ).map((product) => ({
+            _id: product._id.toString(),
+            name: product.name,
+            images: product.images,
+            price: koboToNaira(product.price || 0),
+            sizes: product.sizes,
+            slug: product.slug,
+            category: product.category,
+            isVerifiedProduct: product.isVerifiedProduct,
+            productType: product.productType,
+          })),
+          description: storeData.description,
+          verification: storeData.verification,
+          businessInfo: storeData.businessInfo,
+          ratings: storeData.ratings,
+          status: storeData.status,
+          agreedToTermsAt: storeData.agreedToTermsAt,
+          createdAt: storeData.createdAt,
+          updatedAt: storeData.updatedAt,
+          payoutAccounts: storeData.payoutAccounts,
+          shippingMethods: storeData.shippingMethods,
+        };
+
+        return formattedStoreData;
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.store.getStoreProfileAdminView",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid store ID format",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch store profile.",
         });
       }
-
-      const Store = await getStoreModel();
-      await getProductModel();
-      const storeData = await Store.findById(storeId)
-        .select(
-          "-password -storeOwner -recipientCode -walletId -suspensionReason -forgotpasswordToken -forgotpasswordTokenExpiry",
-        )
-        .populate({
-          path: "physicalProducts",
-          select:
-            "_id name images price sizes slug isVerifiedProduct category productType",
-        })
-        .lean();
-
-      if (!storeData) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Store not found.",
-        });
-      }
-
-      const formattedStoreData = {
-        _id: storeData._id.toString(),
-        name: storeData.name,
-        storeEmail: storeData.storeEmail,
-        uniqueId: storeData.uniqueId,
-        followers: storeData.followers.map(
-          (follower: mongoose.Types.ObjectId) => follower.toString(),
-        ),
-        products: (
-          (storeData.physicalProducts as unknown as Product[]) || []
-        ).map((product) => ({
-          _id: product._id.toString(),
-          name: product.name,
-          images: product.images,
-          price: koboToNaira(product.price || 0),
-          sizes: product.sizes,
-          slug: product.slug,
-          category: product.category,
-          isVerifiedProduct: product.isVerifiedProduct,
-          productType: product.productType,
-        })),
-        description: storeData.description,
-        verification: storeData.verification,
-        businessInfo: storeData.businessInfo,
-        ratings: storeData.ratings,
-        status: storeData.status,
-        agreedToTermsAt: storeData.agreedToTermsAt,
-        createdAt: storeData.createdAt,
-        updatedAt: storeData.updatedAt,
-        payoutAccounts: storeData.payoutAccounts,
-        shippingMethods: storeData.shippingMethods,
-      };
-
-      return formattedStoreData;
     }),
 
   storeActionForAdmins: baseProcedure
@@ -364,6 +399,17 @@ export const adminStoreRouter = createTRPCRouter({
           console.log(
             error || `Failed to Log admin action of susspending a store`,
           );
+          if (isReportableError(error)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(error, {
+                  source: "trpc:admin.store.storeActionForAdmins.logAdminAction",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors; never mask the original error
+            }
+          }
         }
 
         // Send notification email to store owner
@@ -386,6 +432,17 @@ export const adminStoreRouter = createTRPCRouter({
           await notification.send();
         } catch (error) {
           console.error(`Failed to send store email:: ${error}`);
+          if (isReportableError(error)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(error, {
+                  source: "trpc:admin.store.storeActionForAdmins.notifyEmail",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors; never mask the original error
+            }
+          }
         }
 
         return {
@@ -397,6 +454,18 @@ export const adminStoreRouter = createTRPCRouter({
 
         if (session) {
           session.abortTransaction();
+        }
+
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.store.storeActionForAdmins",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
         }
 
         if (error instanceof TRPCError) {

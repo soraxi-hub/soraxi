@@ -21,6 +21,11 @@ import {
   FlutterwavePaymentStatus,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 type CustomerInfo = {
   fullName: string;
@@ -30,6 +35,7 @@ type CustomerInfo = {
 type UpdateOrderRecordProps = {
   orderId: string;
   idempotencyKey: string;
+  transactionId: number;
   session: mongoose.ClientSession | null;
   paymentMethod: string;
   customerInfo: CustomerInfo;
@@ -52,6 +58,7 @@ export class ProcessOrder {
   async updateOrderRecordToSuccessState({
     orderId,
     idempotencyKey,
+    transactionId,
     session,
     paymentMethod,
     customerInfo,
@@ -111,6 +118,18 @@ export class ProcessOrder {
             `Failed to redeem coupon for code: ${couponCode}, user: ${order.userId}, order: ${order._id}`,
         );
 
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "service:process-order.redeemCoupon",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
+
         await (async () => {
           const subject = `Admin Alert: Coupon Redemption Failed`;
           const html = await renderTemplate(
@@ -145,6 +164,7 @@ export class ProcessOrder {
       await this.processPaymentConfirmedFinancials(
         order,
         idempotencyKey,
+        transactionId,
         session,
         collectionFeeKobo,
       );
@@ -156,6 +176,17 @@ export class ProcessOrder {
       );
       // NOTE: Same principle applies — don't fail the order.
       // Flag for admin review and retry queue (covered in Layer 4: Background Jobs)
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "service:process-order.processPaymentConfirmedFinancials",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
     }
 
     // Send notifications
@@ -177,6 +208,7 @@ export class ProcessOrder {
   private async processPaymentConfirmedFinancials(
     order: IOrder,
     flutterwaveReference: string,
+    flutterwaveTransactionId: number,
     session: mongoose.ClientSession | null,
     collectionFeeKobo: number,
   ): Promise<void> {
@@ -243,6 +275,7 @@ export class ProcessOrder {
         customerId: order.userId,
         orderId: order._id,
         flutterwaveReference,
+        flutterwaveTransactionId,
         flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,
         totalAmount: order.totalAmount,
         suborderBreakdowns,

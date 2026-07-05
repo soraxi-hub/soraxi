@@ -16,6 +16,11 @@ import { getTransactionRecordModel } from "@/lib/db/models/transaction-record.mo
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { StoreStatusEnum, ProductStatusEnum } from "@/enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -435,6 +440,17 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.financials.getPlatformMetrics",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch platform metrics.");
       }
     }),
@@ -667,6 +683,17 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.financials.getPlatformMetricsBreakdown",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(
           error,
           "Failed to fetch platform metrics breakdown.",

@@ -7,6 +7,11 @@ import { MINIMUM_PAYOUT_AMOUNT_KOBO } from "@/constants/financial.constants";
 import { koboToNaira } from "@/lib/utils/naira";
 import { PayoutRepository } from "@/repositories/implementations/payout.repository";
 import { PayoutService } from "@/services/implementations/payout.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 const payoutRepository = new PayoutRepository();
 export const payoutService = new PayoutService(payoutRepository);
@@ -60,6 +65,17 @@ export const vendorPayoutRouter = createTRPCRouter({
           message: result.message,
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.payout.store-payouts.createWithdrawalRequest",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to create withdrawal request.");
       }
     }),
@@ -117,6 +133,17 @@ export const vendorPayoutRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.payout.store-payouts.getWithdrawals",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch withdrawal history.");
       }
     }),
@@ -167,6 +194,17 @@ export const vendorPayoutRouter = createTRPCRouter({
           data: payout,
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.payout.store-payouts.getWithdrawalById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch withdrawal details.");
       }
     }),

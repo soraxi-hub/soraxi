@@ -1,6 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyCronRequest } from "@/lib/utils/cron-auth.util";
 import { OrderAutoConfirmService } from "@/services/orders/order-auto-confirm.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatCronSummary,
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * GET /api/cron/auto-confirm-orders
@@ -23,6 +29,18 @@ export async function GET(request: NextRequest) {
 
     const summary = await OrderAutoConfirmService.processEligibleSuborders();
 
+    try {
+      await sendTelegramMessage(
+        formatCronSummary("cron:auto-confirm-orders", [
+          `Eligible: ${summary.totalEligible}`,
+          `Confirmed: ${summary.confirmed}`,
+          `Failed: ${summary.failed}`,
+        ]),
+      );
+    } catch {
+      // sendTelegramMessage already console.errors; don't fail the job over it
+    }
+
     console.log(
       `[Cron] auto-confirm-orders: Completed — ${summary.confirmed} confirmed, ${summary.failed} failed out of ${summary.totalEligible} eligible`,
     );
@@ -30,6 +48,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, summary }, { status: 200 });
   } catch (error: any) {
     console.error("[Cron] auto-confirm-orders: Job failed with error:", error);
+
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "cron:auto-confirm-orders" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors; never mask the original error
+      }
+    }
 
     return NextResponse.json(
       {

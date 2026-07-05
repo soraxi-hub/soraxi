@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -27,7 +26,6 @@ import {
   ShoppingCart,
   MoreHorizontal,
   Eye,
-  Search,
   Filter,
   Calendar,
   RefreshCw,
@@ -53,7 +51,6 @@ function OrderMonitoring() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -71,7 +68,6 @@ function OrderMonitoring() {
       fromDate: fromDate?.toISOString(),
       toDate: toDate?.toISOString(),
       status: statusFilter,
-      search: searchQuery,
     }),
   );
 
@@ -102,7 +98,6 @@ function OrderMonitoring() {
     setStatusFilter("all");
     setFromDate(undefined);
     setToDate(undefined);
-    setSearchQuery("");
     setPage(1);
     setTimeout(() => loadOrders(), 0);
   };
@@ -140,66 +135,56 @@ function OrderMonitoring() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* From Date */}
             <div className="space-y-2">
-              <Label>Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search orders..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <Label>From Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {fromDate ? format(fromDate, "PPP") : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={fromDate}
+                    onSelect={setFromDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
+
+            {/* To Date */}
             <div className="space-y-2">
-              <Label>Date Range</Label>
-              <div className="grid gap-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={`w-full justify-start text-left font-normal ${
-                        !fromDate ? "text-muted-foreground" : ""
-                      }`}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {fromDate ? format(fromDate, "PPP") : "From date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={fromDate}
-                      onSelect={setFromDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={`w-full justify-start text-left font-normal ${
-                        !toDate ? "text-muted-foreground" : ""
-                      }`}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {toDate ? format(toDate, "PPP") : "To date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={toDate}
-                      onSelect={setToDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <Label>To Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {toDate ? format(toDate, "PPP") : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={toDate}
+                    onSelect={setToDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
+
+            {/* Payment Status */}
             <div className="space-y-2">
               <Label>Payment Status</Label>
               <select
@@ -215,7 +200,9 @@ function OrderMonitoring() {
               </select>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2 mt-4">
             <Button
               onClick={handleApplyFilters}
               className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
@@ -253,9 +240,7 @@ function OrderMonitoring() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Store</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
@@ -264,27 +249,14 @@ function OrderMonitoring() {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-mono text-sm">
-                      {order.orderNumber}
-                    </TableCell>
+                  <TableRow key={order.orderId}>
                     <TableCell>
                       <div>
                         <p className="font-medium text-sm">
-                          {order.customer.name}
+                          {order.customerInfo.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {order.customer.email}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">
-                          {order.store.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {order.store.email}
+                          {order.customerInfo.email}
                         </p>
                       </div>
                     </TableCell>
@@ -307,7 +279,7 @@ function OrderMonitoring() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           {/* CHANGED: Link to dedicated page instead of opening dialog */}
-                          <Link href={`/admin/orders/${order.id}`}>
+                          <Link href={`/admin/orders/${order.orderId}`}>
                             <DropdownMenuItem className="cursor-pointer">
                               <Eye className="w-4 h-4 mr-2" />
                               View Order

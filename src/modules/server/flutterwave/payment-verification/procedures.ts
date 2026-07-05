@@ -8,6 +8,11 @@ import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/services/cart/cart.service";
 import { PaymentGatewayFactory } from "@/domain/payment/payment.factory";
 import { nairaToKobo } from "@/lib/utils/naira";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const flutterwavePaymentVerificationRouter = createTRPCRouter({
   verifyPayment: baseProcedure
@@ -104,6 +109,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             const collectionFeeKobo = appFeeKobo + vatKobo;
             const { orderId, idempotencyKey } = transactionData.meta;
             const paymentMethod = transactionData.payment_type;
+            const flutterwaveTransactionId = transactionData.id;
 
             // Get customer info from order
             const customerInfo = {
@@ -115,6 +121,7 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             const result = await processOrder.updateOrderRecordToSuccessState({
               orderId,
               idempotencyKey,
+              transactionId: flutterwaveTransactionId,
               session,
               paymentMethod,
               customerInfo,
@@ -160,6 +167,17 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
         // Rollback transaction if it was started
         if (session) {
           await session.abortTransaction();
+        }
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:flutterwave.payment-verification.verifyPayment",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
         }
         throw handleTRPCError(
           error,

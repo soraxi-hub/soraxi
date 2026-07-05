@@ -4,6 +4,11 @@ import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tok
 import { TokenType } from "@/enums";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { AppError } from "@/lib/errors/app-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -81,6 +86,15 @@ export async function PATCH(req: NextRequest) {
 
     return response;
   } catch (error) {
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "PATCH /api/auth/change-password" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

@@ -12,6 +12,11 @@ import {
 import React from "react";
 import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
 import { siteConfig } from "@/config/site";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -92,6 +97,7 @@ export async function POST(request: NextRequest) {
       await notification.send();
     } catch (error) {
       console.error(`Error sending welcome message: ${error}`);
+      // TODO: report?
     }
 
     return NextResponse.json(
@@ -100,6 +106,15 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.log("Erorr signing up:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/auth/sign-up" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }
