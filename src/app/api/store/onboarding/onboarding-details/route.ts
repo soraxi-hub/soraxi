@@ -6,6 +6,11 @@ import { handleApiError } from "@/lib/utils/handle-api-error";
 import mongoose from "mongoose";
 import { koboToNaira } from "@/lib/utils/naira";
 import { StoreBusinessInfoEnum } from "@/enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * API Route: Get Store Onboarding Details
@@ -87,6 +92,17 @@ export async function GET(_request: NextRequest) {
     });
   } catch (error) {
     console.error("Error getting store status:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "GET /api/store/onboarding/onboarding-details",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

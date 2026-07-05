@@ -5,6 +5,11 @@ import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
 import bcrypt from "bcryptjs";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 import { ProductTypeEnum, StoreStatusEnum } from "@/enums";
 import mongoose from "mongoose";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
@@ -161,6 +166,15 @@ export async function POST(request: NextRequest) {
       await session.abortTransaction();
     }
     console.error("Error creating product:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/store/products" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   } finally {
     if (session) {

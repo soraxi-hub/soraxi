@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { StoreStatusEnum } from "@/enums";
 import mongoose from "mongoose";
@@ -10,6 +15,10 @@ import {
   ProductDescriptionService,
   type ProductDescriptionContext,
 } from "@/services/ai/product-description.service";
+import { checkRateLimit } from "@/lib/utils/rate-limiter";
+
+// 8 AI description generations per store per hour
+const RATE_LIMIT = { max: 8, windowMs: 60 * 60 * 1000 } as const;
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,6 +70,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ---- Rate limit ----
+    const rl = await checkRateLimit(
+      `ai-desc:${storeSession.id}`,
+      RATE_LIMIT.max,
+      RATE_LIMIT.windowMs,
+    );
+
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `You have reached the limit of ${RATE_LIMIT.max} AI generations per hour. Please try again later.`,
+          retryable: true,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rl.retryAfter) },
+        },
+      );
+    }
+
     // ---- Delegate to service ----
     const ctx: ProductDescriptionContext = {
       name: (body.name ?? "").trim(),
@@ -93,6 +123,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[generate-description] Error:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "POST /api/store/products/generate-description",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

@@ -10,6 +10,11 @@ import {
   getActiveDisputeBySuborderId,
 } from "@/lib/db/models/dispute-record.model";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const customerDisputeRouter = createTRPCRouter({
   /**
@@ -90,6 +95,17 @@ export const customerDisputeRouter = createTRPCRouter({
 
         return { statuses };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:user.disputes.getSuborderFinancialStatuses",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(
           error,
           "Failed to fetch suborder financial statuses.",
@@ -163,6 +179,17 @@ export const customerDisputeRouter = createTRPCRouter({
           orderId: dispute.orderId.toString(),
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:user.disputes.getDisputeById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch dispute details.");
       }
     }),

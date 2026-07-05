@@ -5,6 +5,11 @@ import { handleApiError } from "@/lib/utils/handle-api-error";
 import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import { AuthService } from "@/services/auth.service";
 import { AppError } from "@/lib/errors/app-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +50,15 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Admin sign-in error:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/auth/admin-sign-in" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

@@ -41,6 +41,11 @@ import { TRPCError } from "@trpc/server";
 import { koboToNaira } from "@/lib/utils/naira";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { DateFormatter } from "@/lib/utils/date-formatter";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const adminDisputeRouter = createTRPCRouter({
   /**
@@ -266,7 +271,7 @@ export const adminDisputeRouter = createTRPCRouter({
           data: {
             disputeId: input.disputeId,
             outcome: DisputeOutcome.UPHELD,
-            refundAmount: dispute.frozenAmount,
+            refundAmount: dispute.frozenAmount + breakdown.commission,
             penaltyAmount,
             vendorDebt: wouldGoNegative
               ? {
@@ -282,6 +287,17 @@ export const adminDisputeRouter = createTRPCRouter({
         };
       } catch (error) {
         await session.abortTransaction();
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.disputes.resolveDisputeUpheld",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error);
       } finally {
         session.endSession();
@@ -442,6 +458,17 @@ export const adminDisputeRouter = createTRPCRouter({
         };
       } catch (error) {
         await session.abortTransaction();
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.disputes.resolveDisputeRejected",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw error;
       } finally {
         session.endSession();
@@ -466,84 +493,99 @@ export const adminDisputeRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      // ----------------------------------------------------------------
-      // STEP 1: Authenticate admin and check permission
-      // ----------------------------------------------------------------
-      const { admin: unAuthenticatedAdmin } = ctx;
-      AdminGuard.from(unAuthenticatedAdmin).require(
-        PERMISSIONS.RESOLVE_DISPUTES,
-      );
+      try {
+        // ----------------------------------------------------------------
+        // STEP 1: Authenticate admin and check permission
+        // ----------------------------------------------------------------
+        const { admin: unAuthenticatedAdmin } = ctx;
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.RESOLVE_DISPUTES,
+        );
 
-      if (!mongoose.Types.ObjectId.isValid(input.disputeId)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid dispute ID format.",
-        });
-      }
+        if (!mongoose.Types.ObjectId.isValid(input.disputeId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid dispute ID format.",
+          });
+        }
 
-      // ----------------------------------------------------------------
-      // STEP 2: Guards
-      // ----------------------------------------------------------------
-      await connectToDatabase();
+        // ----------------------------------------------------------------
+        // STEP 2: Guards
+        // ----------------------------------------------------------------
+        await connectToDatabase();
 
-      // Guard 1: Dispute must exist
-      const dispute = await getDisputeRecordById(input.disputeId);
+        // Guard 1: Dispute must exist
+        const dispute = await getDisputeRecordById(input.disputeId);
 
-      if (!dispute) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Dispute ${input.disputeId} not found.`,
-        });
-      }
+        if (!dispute) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Dispute ${input.disputeId} not found.`,
+          });
+        }
 
-      // Guard 2: Dispute must be in OPEN status only
-      // AWAITING_EVIDENCE means additional evidence was already requested —
-      // the team cannot request it a second time
-      if (dispute.status !== DisputeStatus.OPEN) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
+        // Guard 2: Dispute must be in OPEN status only
+        // AWAITING_EVIDENCE means additional evidence was already requested —
+        // the team cannot request it a second time
+        if (dispute.status !== DisputeStatus.OPEN) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              dispute.status === DisputeStatus.AWAITING_EVIDENCE
+                ? "Additional evidence has already been requested for this dispute."
+                : `Dispute cannot be marked inconclusive in its current state: ${dispute.status}.`,
+          });
+        }
+
+        // ----------------------------------------------------------------
+        // STEP 3: Update dispute record — no financial writes needed
+        // Funds remain frozen in vendor's disputed balance unchanged
+        // ----------------------------------------------------------------
+
+        // requestAdditionalEvidence sets status → AWAITING_EVIDENCE,
+        // outcome → INCONCLUSIVE, and populates the 48-hour deadline
+        const updatedDispute = await requestAdditionalEvidence(input.disputeId);
+
+        if (!updatedDispute) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to update dispute record.",
+          });
+        }
+
+        // ----------------------------------------------------------------
+        // STEP 4: Notify student to submit additional evidence
+        // NOTE: Implement student notification email following your
+        // existing NotificationFactory pattern. Include:
+        // - What additional evidence is needed
+        // - The 48-hour deadline (updatedDispute.additionalEvidenceDeadline)
+        // - The route/link to submit evidence
+        // ----------------------------------------------------------------
+
+        return {
+          success: true,
           message:
-            dispute.status === DisputeStatus.AWAITING_EVIDENCE
-              ? "Additional evidence has already been requested for this dispute."
-              : `Dispute cannot be marked inconclusive in its current state: ${dispute.status}.`,
-        });
+            "Dispute marked as inconclusive. Student has been notified to submit additional evidence.",
+          data: {
+            disputeId: input.disputeId,
+            status: updatedDispute.status,
+            additionalEvidenceDeadline: updatedDispute.additionalEvidenceDeadline,
+          },
+        };
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.disputes.markDisputeInconclusive",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        throw handleTRPCError(error, "Failed to mark dispute as inconclusive.");
       }
-
-      // ----------------------------------------------------------------
-      // STEP 3: Update dispute record — no financial writes needed
-      // Funds remain frozen in vendor's disputed balance unchanged
-      // ----------------------------------------------------------------
-
-      // requestAdditionalEvidence sets status → AWAITING_EVIDENCE,
-      // outcome → INCONCLUSIVE, and populates the 48-hour deadline
-      const updatedDispute = await requestAdditionalEvidence(input.disputeId);
-
-      if (!updatedDispute) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update dispute record.",
-        });
-      }
-
-      // ----------------------------------------------------------------
-      // STEP 4: Notify student to submit additional evidence
-      // NOTE: Implement student notification email following your
-      // existing NotificationFactory pattern. Include:
-      // - What additional evidence is needed
-      // - The 48-hour deadline (updatedDispute.additionalEvidenceDeadline)
-      // - The route/link to submit evidence
-      // ----------------------------------------------------------------
-
-      return {
-        success: true,
-        message:
-          "Dispute marked as inconclusive. Student has been notified to submit additional evidence.",
-        data: {
-          disputeId: input.disputeId,
-          status: updatedDispute.status,
-          additionalEvidenceDeadline: updatedDispute.additionalEvidenceDeadline,
-        },
-      };
     }),
 
   // ---------------------------------------------------------------
@@ -624,6 +666,17 @@ export const adminDisputeRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.disputes.listDisputes",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch disputes.");
       }
     }),
@@ -731,6 +784,17 @@ export const adminDisputeRouter = createTRPCRouter({
             })) ?? [],
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.disputes.getAdminDisputeById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch dispute details.");
       }
     }),

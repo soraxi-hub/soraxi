@@ -3,6 +3,11 @@ import { createTRPCRouter, baseProcedure } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 // import { CheckoutQueryService } from "@/services/server-queries/checkout-query.service";
 import { CartService } from "@/services/cart/cart.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const checkoutRouter = createTRPCRouter({
   /**
@@ -22,6 +27,17 @@ export const checkoutRouter = createTRPCRouter({
       return await CartService.getGroupedCart(user.id);
       // return await CheckoutQueryService.getGroupedCart(user.id);
     } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:checkout.getGroupedCart",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(error);
     }
   }),
@@ -44,6 +60,17 @@ export const checkoutRouter = createTRPCRouter({
       return await CartService.validateUserCart(user.id);
       // return await CheckoutQueryService.validateUserCart(user.id);
     } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:checkout.validateUserCart",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(error);
     }
   }),

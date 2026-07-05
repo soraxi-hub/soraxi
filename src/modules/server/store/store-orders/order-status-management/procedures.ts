@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { getOrderById, getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import type { IUser } from "@/lib/db/models/user.model";
 import { DeliveryStatus, deliveryStatusLabel } from "@/enums";
 import {
   NotificationFactory,
@@ -12,7 +10,13 @@ import {
   OrderFailureEmail,
 } from "@/domain/notification";
 import React from "react";
-import { OrderService } from "@/services/orders/order.service";
+import { OrderFactory } from "@/domain/orders/order-factory";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
+import { OrderRepository } from "@/repositories/order.repository";
 
 export const orderStatusRouter = createTRPCRouter({
   /**
@@ -62,7 +66,10 @@ export const orderStatusRouter = createTRPCRouter({
         }
 
         // ==================== Database Operations ====================
-        const orderDoc = await getOrderById(input.orderId, true);
+        const orderDoc = await OrderRepository.getOrderById(
+          input.orderId,
+          true,
+        );
 
         if (!orderDoc) {
           console.warn(`Order not found for status update: ${input.orderId}`);
@@ -92,7 +99,7 @@ export const orderStatusRouter = createTRPCRouter({
         session.startTransaction();
 
         try {
-          const orderService = new OrderService();
+          const orderService = OrderFactory.getOrderServiceInstance();
 
           await orderService.updateDeliveryStatus(
             input.orderId,
@@ -106,6 +113,21 @@ export const orderStatusRouter = createTRPCRouter({
           await session.commitTransaction();
         } catch (domainError) {
           await session.abortTransaction();
+          // This branch always converts to a BAD_REQUEST below, so the real
+          // cause (which may be a genuine DB/unexpected failure, not just an
+          // invalid transition) would otherwise never reach the outer catch.
+          if (isReportableError(domainError)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(domainError, {
+                  source:
+                    "trpc:store.store-orders.order-status-management.updateStatus",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors; never mask the original error
+            }
+          }
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:
@@ -116,81 +138,80 @@ export const orderStatusRouter = createTRPCRouter({
         } finally {
           session.endSession();
         }
+
         // ==================== Email Notifications ====================
         try {
-          const Order = await getOrderModel();
-          const orderWithUser = await Order.findById(input.orderId)
-            .populate({ path: "userId", select: "email" })
-            .select("userId");
+          const customerEmail = orderDoc.userSnapshot.email;
 
-          const customerEmail = (orderWithUser?.userId as unknown as IUser)
-            ?.email;
+          const isOrderFailedOrCanceled =
+            input.deliveryStatus === DeliveryStatus.Canceled ||
+            input.deliveryStatus === DeliveryStatus.FailedDelivery;
 
-          if (!orderWithUser || !orderWithUser.userId) {
-            console.log("Failed to fetch order or user ID");
-          } else {
-            const isOrderFailedOrCanceled =
-              input.deliveryStatus === DeliveryStatus.Canceled ||
-              input.deliveryStatus === DeliveryStatus.FailedDelivery;
+          const statusSubject = isOrderFailedOrCanceled
+            ? `Issue with your order "${input.subOrderId}"`
+            : `Your order is now "${deliveryStatusLabel(input.deliveryStatus)}"`;
 
-            const statusSubject = isOrderFailedOrCanceled
-              ? `Issue with your order "${input.subOrderId}"`
-              : `Your order is now "${deliveryStatusLabel(input.deliveryStatus)}"`;
+          const customerHtml = await renderTemplate(
+            React.createElement(OrderStatusEmail, {
+              customerName: orderDoc.userSnapshot.name,
+              orderId: input.orderId,
+              subOrderId: input.subOrderId,
+              status: deliveryStatusLabel(input.deliveryStatus),
+              storeName: storeSession.name.toUpperCase(),
+              trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
+            }),
+          );
 
-            const customerHtml = await renderTemplate(
-              React.createElement(OrderStatusEmail, {
-                customerName: undefined,
+          const customerNotification = NotificationFactory.create("email", {
+            recipient: customerEmail,
+            subject: statusSubject,
+            emailType: "storeOrderNotification",
+            fromAddress: "orders@soraxihub.com",
+            html: customerHtml,
+            text: `Your order status has been updated to: ${deliveryStatusLabel(input.deliveryStatus)}`,
+          });
+
+          await customerNotification.send();
+
+          if (isOrderFailedOrCanceled) {
+            const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;
+
+            const adminHtml = await renderTemplate(
+              React.createElement(OrderFailureEmail, {
+                deliveryStatus: deliveryStatusLabel(input.deliveryStatus),
                 orderId: input.orderId,
                 subOrderId: input.subOrderId,
-                status: deliveryStatusLabel(input.deliveryStatus),
                 storeName: storeSession.name.toUpperCase(),
-                trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
+                customerEmail: customerEmail || "Unknown",
+                reason: input.notes,
               }),
             );
 
-            const customerNotification = NotificationFactory.create("email", {
-              recipient: customerEmail,
-              subject: statusSubject,
+            const adminNotification = NotificationFactory.create("email", {
+              recipient: adminEmail,
+              subject: `Order ${deliveryStatusLabel(input.deliveryStatus)} - ${input.subOrderId}`,
               emailType: "storeOrderNotification",
               fromAddress: "orders@soraxihub.com",
-              html: customerHtml,
-              text: `Your order status has been updated to: ${deliveryStatusLabel(input.deliveryStatus)}`,
+              html: adminHtml,
+              text: `Order ${input.subOrderId} for store "${storeSession.name}" was marked as ${deliveryStatusLabel(input.deliveryStatus)}.`,
             });
 
-            await customerNotification.send();
-
-            if (isOrderFailedOrCanceled) {
-              const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;
-
-              const adminHtml = await renderTemplate(
-                React.createElement(OrderFailureEmail, {
-                  deliveryStatus: deliveryStatusLabel(input.deliveryStatus),
-                  orderId: input.orderId,
-                  subOrderId: input.subOrderId,
-                  storeName: storeSession.name.toUpperCase(),
-                  customerEmail: customerEmail || "Unknown",
-                  reason: input.notes,
-                }),
-              );
-
-              const adminNotification = NotificationFactory.create("email", {
-                recipient: adminEmail,
-                subject: `Order ${deliveryStatusLabel(input.deliveryStatus)} - ${input.subOrderId}`,
-                emailType: "storeOrderNotification",
-                fromAddress: "orders@soraxihub.com",
-                html: adminHtml,
-                text: `Order ${input.subOrderId} for store "${storeSession.name}" was marked as ${deliveryStatusLabel(input.deliveryStatus)}.`,
-              });
-
-              await adminNotification.send();
-
-              console.log(
-                `Admin notified for ${deliveryStatusLabel(input.deliveryStatus)} case`,
-              );
-            }
+            await adminNotification.send();
           }
         } catch (mailErr) {
           console.error("Failed to send status update email:", mailErr);
+          if (isReportableError(mailErr)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(mailErr, {
+                  source:
+                    "trpc:store.store-orders.order-status-management.updateStatus.emailNotify",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors; never mask the original error
+            }
+          }
         }
 
         return {
@@ -200,17 +221,23 @@ export const orderStatusRouter = createTRPCRouter({
       } catch (error) {
         console.error("Order status update error:", error);
 
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source:
+                  "trpc:store.store-orders.order-status-management.updateStatus",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+
         if (error instanceof mongoose.Error.ValidationError) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "The provided data failed validation",
-          });
-        }
-
-        if (error instanceof mongoose.Error.CastError) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "One or more fields have invalid format",
           });
         }
 
@@ -221,88 +248,6 @@ export const orderStatusRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update order status. Please try again later.",
-        });
-      }
-    }),
-
-  /**
-   * Get Order Status History Procedure
-   *
-   * Retrieves the complete status change history for an order,
-   * providing audit trail and tracking information.
-   */
-  getStatusHistory: baseProcedure
-    .input(
-      z.object({
-        orderId: z.string().min(1, "Order ID is required"),
-      }),
-    )
-    .query(async ({ input, ctx }) => {
-      try {
-        const { store: storeSession } = ctx;
-
-        if (!storeSession?.id) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Store authentication required",
-          });
-        }
-
-        // Parameter validation
-        if (!mongoose.Types.ObjectId.isValid(input.orderId)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid order ID format",
-          });
-        }
-
-        // Fetch order
-        const order = await getOrderById(input.orderId, true);
-
-        if (!order) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Order not found",
-          });
-        }
-
-        // Verify store ownership
-        const storeOwnsOrder = order.stores.some(
-          (storeId) => storeId.toString() === storeSession.id,
-        );
-
-        if (!storeOwnsOrder) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Access denied",
-          });
-        }
-
-        // Format status history
-        const statusHistory = order.subOrders.map((subOrder, index) => ({
-          subOrderId: subOrder._id?.toString(),
-          subOrderIndex: index + 1,
-          currentStatus: subOrder.deliveryStatus,
-          deliveryDate: subOrder.deliveryDate?.toISOString() || null,
-        }));
-
-        return {
-          success: true,
-          orderId: input.orderId,
-          statusHistory,
-          orderCreatedAt: order.createdAt.toISOString(),
-          lastUpdatedAt: order.updatedAt.toISOString(),
-        };
-      } catch (error) {
-        console.error("Order status history fetch error:", error);
-
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch status history. Please try again later.",
         });
       }
     }),

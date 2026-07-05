@@ -68,6 +68,14 @@ export class OrderRepository {
    * @param orderId - MongoDB ObjectId string
    * @param lean    - Return plain object when true, Mongoose document when false
    */
+  static async getOrderById(
+    orderId: string,
+    lean?: false,
+  ): Promise<IOrderDocument | null>;
+  static async getOrderById(
+    orderId: string,
+    lean: true,
+  ): Promise<IOrder | null>;
   static async getOrderById(orderId: string, lean: boolean = false) {
     const OrderModel = await getOrderModel();
 
@@ -80,22 +88,39 @@ export class OrderRepository {
   }
 
   /**
-   * Retrieves all orders for a specific user.
+   * Default cap on the number of orders returned by {@link getOrdersByUserId}
+   * when no explicit limit is supplied. Prevents an unbounded scan/response
+   * as a user's order history grows indefinitely over time.
+   */
+  private static readonly DEFAULT_USER_ORDERS_LIMIT = 200;
+
+  /**
+   * Retrieves orders for a specific user, newest first by default.
+   *
+   * Always bounded — even without explicit options — to avoid returning a
+   * user's entire order history unbounded as it grows.
    *
    * @param userId  - MongoDB ObjectId string
    * @param options - Optional sort, limit, skip controls
    */
   static async getOrdersByUserId(
     userId: string,
-    _options?: { sort?: Record<string, 1 | -1>; limit?: number; skip?: number },
+    options?: { sort?: Record<string, 1 | -1>; limit?: number; skip?: number },
   ): Promise<IOrder[]> {
     const OrderModel = await getOrderModel();
+    const limit = options?.limit ?? this.DEFAULT_USER_ORDERS_LIMIT;
+    const page = Math.floor((options?.skip ?? 0) / limit) + 1;
 
-    return await QueryBuilderFactory.queryBuilder<IOrder, IOrderDocument>(
+    const builder = QueryBuilderFactory.queryBuilder<IOrder, IOrderDocument>(
       OrderModel,
-    )
-      .where("userId", new mongoose.Types.ObjectId(userId))
-      .execute();
+    ).where("userId", new mongoose.Types.ObjectId(userId));
+
+    const sortEntries = Object.entries(options?.sort ?? { createdAt: -1 });
+    for (const [field, direction] of sortEntries) {
+      builder.sortBy(field, direction === 1 ? "asc" : "desc");
+    }
+
+    return await builder.paginate(page, limit).execute();
   }
 
   /**

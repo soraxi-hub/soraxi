@@ -22,6 +22,11 @@ import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 const DISPUTE_RESOLUTION_BUSINESS_DAYS = 5;
 
@@ -273,6 +278,15 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error("[POST /api/disputes/open] Error:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/disputes/open" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

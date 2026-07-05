@@ -12,6 +12,11 @@ import {
 import { getVendorWalletByVendorId } from "@/lib/db/models/vendor-wallet.model";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import { koboToNaira } from "@/lib/utils/naira";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const vendorDisputeRouter = createTRPCRouter({
   /**
@@ -114,6 +119,17 @@ export const vendorDisputeRouter = createTRPCRouter({
             : null,
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.disputes.getOrderFinancialStatuses",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(
           error,
           "Failed to fetch order financial statuses.",
@@ -186,6 +202,17 @@ export const vendorDisputeRouter = createTRPCRouter({
           suborderId: dispute.suborderId.toString(),
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.disputes.getDisputeById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch dispute details.");
       }
     }),
@@ -229,6 +256,17 @@ export const vendorDisputeRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.disputes.getStoreDisputes",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch store disputes.");
       }
     }),

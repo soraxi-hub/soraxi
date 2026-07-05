@@ -3,6 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
 import { WaitlistService } from "@/services/waitlist-service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 const vendorApplicationRepository = new VendorApplicationRepository();
 const waitlistService = new WaitlistService(vendorApplicationRepository);
@@ -43,6 +48,15 @@ export const waitlistRouter = createTRPCRouter({
           input.referenceId,
         );
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:waitlist.checkStatus" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         if (error instanceof Error) {
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -64,7 +78,18 @@ export const waitlistRouter = createTRPCRouter({
           input.page,
           input.limit,
         );
-      } catch {
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:waitlist.getPendingApplications",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       }
     }),
@@ -79,7 +104,18 @@ export const waitlistRouter = createTRPCRouter({
       try {
         const { applicationId } = input;
         return await waitlistService.getPendingApplicationById(applicationId);
-      } catch {
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:waitlist.getApplicationById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       }
     }),
@@ -104,6 +140,17 @@ export const waitlistRouter = createTRPCRouter({
         );
         return { success: true };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:waitlist.approveApplication",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         if (error instanceof Error) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -134,6 +181,17 @@ export const waitlistRouter = createTRPCRouter({
         );
         return { success: true };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:waitlist.rejectApplication",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         if (error instanceof Error) {
           throw new TRPCError({
             code: "BAD_REQUEST",

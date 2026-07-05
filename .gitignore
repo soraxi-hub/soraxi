@@ -43,3 +43,6 @@ next-env.d.ts
 /public/favicon_io
 /src/test
 /scripts
+
+# CLAUDE
+.claude

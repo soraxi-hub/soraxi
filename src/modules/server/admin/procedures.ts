@@ -17,6 +17,12 @@ import {
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 const ProductStatusWithAll = {
   ...ProductStatusEnum,
@@ -35,36 +41,49 @@ export const adminProductRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
-      const { status, category, search, page, limit } = input;
-      const Product = await getProductModel();
-      await getStoreModel();
+      try {
+        const { status, category, search, page, limit } = input;
+        const Product = await getProductModel();
+        await getStoreModel();
 
-      const query: any = {};
-      if (status && status !== "all") query.status = status;
-      if (category && category !== "all") query.category = category;
-      if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: "i" } },
-          { description: { $regex: search, $options: "i" } },
-        ];
+        const query: any = {};
+        if (status && status !== "all") query.status = status;
+        if (category && category !== "all") query.category = category;
+        if (search) {
+          query.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } },
+          ];
+        }
+
+        const products = await Product.find(query)
+          .populate({
+            path: "storeId",
+            select: "name storeEmail",
+          })
+          .select(
+            "name description price category status images createdAt updatedAt",
+          )
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean<RawProductDocument[]>();
+
+        const total = await Product.countDocuments(query);
+
+        return formatProductListResponse(products, total, page, limit);
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:admin.list" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        throw handleTRPCError(error, "Failed to fetch products.");
       }
-
-      const products = await Product.find(query)
-        .populate({
-          path: "storeId",
-          select: "name storeEmail",
-        })
-        .select(
-          "name description price category status images createdAt updatedAt",
-        )
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean<RawProductDocument[]>();
-
-      const total = await Product.countDocuments(query);
-
-      return formatProductListResponse(products, total, page, limit);
     }),
 
   getById: baseProcedure
@@ -74,48 +93,61 @@ export const adminProductRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
-      const { productId } = input;
-      const Product = await getProductModel();
-      await getStoreModel();
+      try {
+        const { productId } = input;
+        const Product = await getProductModel();
+        await getStoreModel();
 
-      const product = await Product.findById(productId)
-        .populate({
-          path: "storeId",
-          select: "name storeEmail uniqueId status verification",
-        })
-        .lean<RawProductDocumentAdminManagement>();
+        const product = await Product.findById(productId)
+          .populate({
+            path: "storeId",
+            select: "name storeEmail uniqueId status verification",
+          })
+          .lean<RawProductDocumentAdminManagement>();
 
-      if (!product) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Product not found",
-        });
+        if (!product) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found",
+          });
+        }
+
+        return {
+          id: product._id.toString(),
+          name: product.name,
+          description: product.description,
+          specifications: product.specifications,
+          price: product.price,
+          category: product.category,
+          targetAudience: product.targetAudience,
+          status: product.status,
+          images: product.images,
+          isVerifiedProduct: product.isVerifiedProduct,
+          // moderationNotes: product.moderationNotes,
+          firstApprovedAt: product.firstApprovedAt,
+          store: {
+            id: product.storeId._id.toString(),
+            name: product.storeId.name,
+            email: product.storeId.storeEmail,
+            uniqueId: product.storeId.uniqueId,
+            status: product.storeId.status,
+            verification: product.storeId.verification,
+          },
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        };
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:admin.getById" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        throw handleTRPCError(error, "Failed to fetch product.");
       }
-
-      return {
-        id: product._id.toString(),
-        name: product.name,
-        description: product.description,
-        specifications: product.specifications,
-        price: product.price,
-        category: product.category,
-        targetAudience: product.targetAudience,
-        status: product.status,
-        images: product.images,
-        isVerifiedProduct: product.isVerifiedProduct,
-        // moderationNotes: product.moderationNotes,
-        firstApprovedAt: product.firstApprovedAt,
-        store: {
-          id: product.storeId._id.toString(),
-          name: product.storeId.name,
-          email: product.storeId.storeEmail,
-          uniqueId: product.storeId.uniqueId,
-          status: product.storeId.status,
-          verification: product.storeId.verification,
-        },
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-      };
     }),
 
   action: baseProcedure
@@ -127,97 +159,121 @@ export const adminProductRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { productId, action } = input;
-      const { admin: unAuthenticatedAdmin } = ctx;
-
-      const admin = AdminGuard.from(unAuthenticatedAdmin).requireAny([
-        PERMISSIONS.VERIFY_PRODUCT,
-        PERMISSIONS.REJECT_PRODUCT,
-      ]);
-
-      const Product = await getProductModel();
-      const product = await Product.findById(productId);
-
-      if (!product) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Product not found",
-        });
-      }
-
-      let updateData: {
-        status: IProduct["status"];
-        isVerifiedProduct: boolean;
-        isVisible: boolean;
-        // moderationNotes: string;
-        firstApprovedAt?: Date;
-      } = {
-        status: ProductStatusWithAll.Pending as IProduct["status"],
-        isVerifiedProduct: false,
-        isVisible: false,
-        // moderationNotes: "",
-      };
-      let message = "";
-      let auditAction = "";
-
-      switch (action) {
-        case "approve":
-          if (product.status !== "pending") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Product is not pending approval",
-            });
-          }
-          updateData = {
-            status: ProductStatusWithAll.Approved as IProduct["status"],
-            isVerifiedProduct: true,
-            isVisible: true,
-            firstApprovedAt: new Date(),
-            // moderationNotes: reason || "Approved by admin",
-          };
-          message = "Product approved successfully";
-          auditAction = AUDIT_ACTIONS.PRODUCT_APPROVED;
-          break;
-        case "reject":
-          if (product.status) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Product is not pending approval",
-            });
-          }
-          updateData = {
-            status: ProductStatusWithAll.Rejected as IProduct["status"],
-            isVerifiedProduct: false,
-            isVisible: false,
-            // moderationNotes: reason || "Rejected by admin",
-          };
-          message = "Product rejected";
-          auditAction = AUDIT_ACTIONS.PRODUCT_REJECTED;
-          break;
-      }
-
-      await Product.findByIdAndUpdate(productId, updateData);
-
-      // Log admin action
       try {
-        const data = {
-          adminId: admin.id,
-          adminName: admin.name,
-          adminEmail: admin.email,
-          adminRoles: admin.roles,
-          action: auditAction,
-          module: AUDIT_MODULES.PRODUCTS,
-          resourceId: (product._id as { toString: () => string }).toString(),
-          resourceType: "product",
-          details: { action, previousStatus: product.status },
-        };
+        const { productId, action } = input;
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        await logAdminAction(data);
+        const admin = AdminGuard.from(unAuthenticatedAdmin).requireAny([
+          PERMISSIONS.VERIFY_PRODUCT,
+          PERMISSIONS.REJECT_PRODUCT,
+        ]);
+
+        const Product = await getProductModel();
+        const product = await Product.findById(productId);
+
+        if (!product) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found",
+          });
+        }
+
+        let updateData: {
+          status: IProduct["status"];
+          isVerifiedProduct: boolean;
+          isVisible: boolean;
+          // moderationNotes: string;
+          firstApprovedAt?: Date;
+        } = {
+          status: ProductStatusWithAll.Pending as IProduct["status"],
+          isVerifiedProduct: false,
+          isVisible: false,
+          // moderationNotes: "",
+        };
+        let message = "";
+        let auditAction = "";
+
+        switch (action) {
+          case "approve":
+            if (product.status !== "pending") {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Product is not pending approval",
+              });
+            }
+            updateData = {
+              status: ProductStatusWithAll.Approved as IProduct["status"],
+              isVerifiedProduct: true,
+              isVisible: true,
+              firstApprovedAt: new Date(),
+              // moderationNotes: reason || "Approved by admin",
+            };
+            message = "Product approved successfully";
+            auditAction = AUDIT_ACTIONS.PRODUCT_APPROVED;
+            break;
+          case "reject":
+            if (product.status) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Product is not pending approval",
+              });
+            }
+            updateData = {
+              status: ProductStatusWithAll.Rejected as IProduct["status"],
+              isVerifiedProduct: false,
+              isVisible: false,
+              // moderationNotes: reason || "Rejected by admin",
+            };
+            message = "Product rejected";
+            auditAction = AUDIT_ACTIONS.PRODUCT_REJECTED;
+            break;
+        }
+
+        await Product.findByIdAndUpdate(productId, updateData);
+
+        // Log admin action
+        try {
+          const data = {
+            adminId: admin.id,
+            adminName: admin.name,
+            adminEmail: admin.email,
+            adminRoles: admin.roles,
+            action: auditAction,
+            module: AUDIT_MODULES.PRODUCTS,
+            resourceId: (product._id as { toString: () => string }).toString(),
+            resourceType: "product",
+            details: { action, previousStatus: product.status },
+          };
+
+          await logAdminAction(data);
+        } catch (error) {
+          console.log(
+            error || `Failed to Log admin action of susspending a store`,
+          );
+          if (isReportableError(error)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(error, {
+                  source: "trpc:admin.action.logAdminAction",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors; never mask the original error
+            }
+          }
+        }
+        return { success: true, message };
       } catch (error) {
-        console.log(
-          error || `Failed to Log admin action of susspending a store`,
-        );
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:admin.action" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        throw handleTRPCError(error, "Failed to process product action.");
       }
-      return { success: true, message };
     }),
 });

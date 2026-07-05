@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
-import { getOrderModel } from "@/lib/db/models/order.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { DeliveryStatus } from "@/enums";
@@ -13,6 +12,12 @@ import { releaseVendorPendingToAvailable } from "@/lib/db/models/vendor-wallet.m
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import { OrderFactory } from "@/domain/orders/order-factory";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
+import { OrderRepository } from "@/repositories/order.repository";
 
 const orderService = OrderFactory.getOrderServiceInstance();
 
@@ -43,6 +48,15 @@ export const orderRouter = createTRPCRouter({
 
       return await orderService.getOrdersByUser(user.id);
     } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, { source: "trpc:order.getByUserId" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
       throw handleTRPCError(error, "Error in getByUserId procedure.");
     }
   }),
@@ -67,6 +81,15 @@ export const orderRouter = createTRPCRouter({
 
         return await orderService.getOrderUserView(orderId);
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:order.getByOrderId" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Error in getByOrderId procedure.");
       }
     }),
@@ -82,109 +105,130 @@ export const orderRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const { mainOrderId, subOrderId } = input;
 
-      if (
-        !mongoose.Types.ObjectId.isValid(mainOrderId) ||
-        !mongoose.Types.ObjectId.isValid(subOrderId)
-      ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid main Order ID or subOrder ID format",
-        });
-      }
-
-      const OrderModel = await getOrderModel();
-      const orderDoc = await OrderModel.findById(mainOrderId);
-
-      if (!orderDoc) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Order with ID ${mainOrderId} not found`,
-        });
-      }
-
-      // Resolve storeId from the sub-order — required by confirmDelivery().
-      const rawSubOrder = orderDoc.subOrders.find(
-        (sub) => sub._id?.toString() === subOrderId,
-      );
-
-      if (!rawSubOrder) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `The specified sub-order: ${subOrderId} could not be found.`,
-        });
-      }
-
-      const storeId = rawSubOrder.storeId.toString();
-
-      // ==================== Financial Settlement ====================
-      const session = await mongoose.startSession();
-      session.startTransaction();
-
       try {
-        await orderService.confirmDelivery(input.mainOrderId, storeId, session);
-
-        const transactionRecord =
-          await getTransactionRecordByOrderId(mainOrderId);
-
-        if (!transactionRecord) {
+        if (
+          !mongoose.Types.ObjectId.isValid(mainOrderId) ||
+          !mongoose.Types.ObjectId.isValid(subOrderId)
+        ) {
           throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Transaction record not found for order ${mainOrderId}`,
+            code: "BAD_REQUEST",
+            message: "Invalid main Order ID or subOrder ID format",
           });
         }
 
-        const breakdown = transactionRecord.suborderBreakdowns.find(
-          (b) => b.suborderId.toString() === subOrderId,
+        const orderDoc = await OrderRepository.getOrderById(mainOrderId, false);
+
+        if (!orderDoc) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Order with ID ${mainOrderId} not found`,
+          });
+        }
+
+        // Resolve storeId from the sub-order — required by confirmDelivery().
+        const rawSubOrder = orderDoc.subOrders.find(
+          (sub) => sub._id.toString() === subOrderId,
         );
 
-        if (!breakdown) {
+        if (!rawSubOrder) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: `No financial breakdown found for suborder ${subOrderId}`,
+            message: `The specified sub-order: ${subOrderId} could not be found.`,
           });
         }
 
-        if (breakdown.status !== SuborderFinancialStatus.PENDING) {
+        const storeId = rawSubOrder.storeId.toString();
+
+        // ==================== Financial Settlement ====================
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+          await orderService.confirmDelivery(
+            input.mainOrderId,
+            storeId,
+            session,
+          );
+
+          const transactionRecord =
+            await getTransactionRecordByOrderId(mainOrderId);
+
+          if (!transactionRecord) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Transaction record not found for order ${mainOrderId}`,
+            });
+          }
+
+          const breakdown = transactionRecord.suborderBreakdowns.find(
+            (b) => b.suborderId.toString() === subOrderId,
+          );
+
+          if (!breakdown) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `No financial breakdown found for suborder ${subOrderId}`,
+            });
+          }
+
+          if (breakdown.status !== SuborderFinancialStatus.PENDING) {
+            await orderDoc.save({ session });
+            await session.commitTransaction();
+            return { success: true, message: "Delivery Confirmed." };
+          }
+
+          const writer = await JournalEntryWriter.init();
+
+          await writer.writeFundsReleased({
+            vendorId: breakdown.vendorId,
+            settleAmount: breakdown.settleAmount,
+            suborderId: breakdown.suborderId,
+            triggeredBy: "CUSTOMER_CONFIRMATION",
+            session,
+          });
+
+          await updateSuborderFinancialStatus(
+            mainOrderId,
+            subOrderId,
+            SuborderFinancialStatus.SETTLED,
+            session,
+          );
+
+          await releaseVendorPendingToAvailable(
+            breakdown.vendorId.toString(),
+            breakdown.settleAmount,
+            session,
+          );
+
           await orderDoc.save({ session });
           await session.commitTransaction();
-          return { success: true, message: "Delivery Confirmed." };
+        } catch (error) {
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          session.endSession();
         }
 
-        const writer = await JournalEntryWriter.init();
-
-        await writer.writeFundsReleased({
-          vendorId: breakdown.vendorId,
-          settleAmount: breakdown.settleAmount,
-          suborderId: breakdown.suborderId,
-          triggeredBy: "CUSTOMER_CONFIRMATION",
-          session,
-        });
-
-        await updateSuborderFinancialStatus(
-          mainOrderId,
-          subOrderId,
-          SuborderFinancialStatus.SETTLED,
-          session,
-        );
-
-        await releaseVendorPendingToAvailable(
-          breakdown.vendorId.toString(),
-          breakdown.settleAmount,
-          session,
-        );
-
-        await orderDoc.save({ session });
-        await session.commitTransaction();
+        return {
+          success: true,
+          message: "Delivery Confirmed.",
+        };
       } catch (error) {
-        await session.abortTransaction();
-        throw error;
-      } finally {
-        session.endSession();
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:order.customerConfirmedDelivery",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
+        throw handleTRPCError(
+          error,
+          "Error in customerConfirmedDelivery procedure.",
+        );
       }
-
-      return {
-        success: true,
-        message: "Delivery Confirmed.",
-      };
     }),
 });

@@ -22,6 +22,11 @@ import {
 import { getStoreModel } from "@/lib/db/models/store.model";
 import React from "react";
 import { DateFormatter } from "@/lib/utils/date-formatter";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * PayoutWebhookHandler
@@ -156,12 +161,23 @@ export class PayoutWebhookHandler {
       await session.commitTransaction();
 
       // Notify vendor of successful payout — outside session
-      await this.notifyVendorSuccess(payoutRecord!).catch((err) => {
+      await this.notifyVendorSuccess(payoutRecord!).catch(async (err) => {
         // Notification failure must never cause a financial rollback
         console.error(
           `[PayoutWebhookHandler] Success notification failed for payout ${(payoutRecord!._id as mongoose.Types.ObjectId).toString()}:`,
           err,
         );
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "service:payout-webhook-handler.notifyVendorSuccess",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
       });
 
       return {
@@ -267,11 +283,22 @@ export class PayoutWebhookHandler {
 
       // Notify vendor of failure — outside session
       await this.notifyVendorFailure(payoutRecord!, failureReason).catch(
-        (err) => {
+        async (err) => {
           console.error(
             `[PayoutWebhookHandler] Failure notification failed for payout ${(payoutRecord!._id as mongoose.Types.ObjectId).toString()}:`,
             err,
           );
+          if (isReportableError(err)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(err, {
+                  source: "service:payout-webhook-handler.notifyVendorFailure",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors internally; never mask the original error
+            }
+          }
         },
       );
 

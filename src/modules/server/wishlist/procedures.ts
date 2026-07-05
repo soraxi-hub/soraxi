@@ -5,6 +5,11 @@ import { TRPCError } from "@trpc/server";
 import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { WishlistService } from "@/services/wishlist.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * @module wishlistRouter
@@ -57,6 +62,17 @@ export const wishlistRouter = createTRPCRouter({
       return formattedWishlist;
     } catch (err) {
       console.error("Error in getUnPopulatedWishlistByUserId:", err);
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, {
+              source: "trpc:wishlist.getUnPopulatedWishlistByUserId",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(err, "Failed to fetch wishlist data.");
     }
   }),
@@ -97,6 +113,15 @@ export const wishlistRouter = createTRPCRouter({
       return formattedWishlist;
     } catch (err) {
       console.error("Error in getByUserId:", err);
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, { source: "trpc:wishlist.getByUserId" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(err, "Failed to fetch user wishlist.");
     }
   }),
@@ -133,6 +158,15 @@ export const wishlistRouter = createTRPCRouter({
         return updated;
       } catch (err) {
         console.error("Error adding item to wishlist:", err);
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, { source: "trpc:wishlist.addItem" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to add item to wishlist.");
       }
     }),
@@ -175,6 +209,15 @@ export const wishlistRouter = createTRPCRouter({
         return updated;
       } catch (err) {
         console.error("Error removing item from wishlist:", err);
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, { source: "trpc:wishlist.removeItem" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to remove item from wishlist.");
       }
     }),

@@ -6,6 +6,11 @@ import { CouponQueryService } from "@/services/server-queries/coupon-query.servi
 import { koboToNaira } from "@/lib/utils/naira";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const adminCouponRouter = createTRPCRouter({
   /**
@@ -65,6 +70,17 @@ export const adminCouponRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.coupon.listCoupons",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch coupons");
       }
     }),
@@ -92,6 +108,17 @@ export const adminCouponRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.coupon.getCouponById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch coupon");
       }
     }),
@@ -132,6 +159,17 @@ export const adminCouponRouter = createTRPCRouter({
           message: "Coupon created successfully",
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.coupon.createCoupon",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to create coupon");
       }
     }),
@@ -168,6 +206,17 @@ export const adminCouponRouter = createTRPCRouter({
           message: "Coupon updated successfully",
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.coupon.updateCoupon",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to update coupon");
       }
     }),
@@ -192,6 +241,17 @@ export const adminCouponRouter = createTRPCRouter({
           message: "Coupon deleted successfully",
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.coupon.deleteCoupon",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to delete coupon");
       }
     }),
@@ -242,6 +302,17 @@ export const adminCouponRouter = createTRPCRouter({
           },
         };
       } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:admin.coupon.getCouponUsage",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch coupon usage");
       }
     }),

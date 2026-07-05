@@ -3,6 +3,12 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 
 import { TRPCError } from "@trpc/server";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // Define a single Bank type
 export type Bank = {
@@ -13,135 +19,181 @@ export type Bank = {
 
 export const paymentRouter = createTRPCRouter({
   getStorePayoutAccounts: baseProcedure.query(async ({ ctx }) => {
-    const { store: storeToken } = ctx;
+    try {
+      const { store: storeToken } = ctx;
 
-    if (!storeToken) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: `Please login to your store.`,
-      });
-    }
-    const Store = await getStoreModel();
-
-    const store = await Store.findById(storeToken.id)
-      .select("payoutAccounts")
-      .lean();
-
-    if (!store) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Store not found for ${storeToken.id}.`,
-      });
-    }
-
-    const payoutAccounts = store.payoutAccounts || [];
-
-    const formattedPayoutAccounts = payoutAccounts.map((acc) => {
-      if (!acc._id) {
-        throw new Error(
-          "[paymentRouter @ getStorePayoutAccounts]: PayoutAccount schema ID is required",
-        );
+      if (!storeToken) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: `Please login to your store.`,
+        });
       }
-      return {
-        id: acc._id.toString(),
-        payoutMethod: acc.payoutMethod,
-        bankDetails: {
-          bankName: acc.bankDetails.bankName,
-          accountNumber: acc.bankDetails.accountNumber,
-          accountHolderName: acc.bankDetails.accountHolderName,
-          bankCode: acc.bankDetails.bankCode,
-          bankId: acc.bankDetails.bankId,
-        },
-      };
-    });
+      const Store = await getStoreModel();
 
-    return formattedPayoutAccounts;
+      const store = await Store.findById(storeToken.id)
+        .select("payoutAccounts")
+        .lean();
+
+      if (!store) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Store not found for ${storeToken.id}.`,
+        });
+      }
+
+      const payoutAccounts = store.payoutAccounts || [];
+
+      const formattedPayoutAccounts = payoutAccounts.map((acc) => {
+        if (!acc._id) {
+          throw new Error(
+            "[paymentRouter @ getStorePayoutAccounts]: PayoutAccount schema ID is required",
+          );
+        }
+        return {
+          id: acc._id.toString(),
+          payoutMethod: acc.payoutMethod,
+          bankDetails: {
+            bankName: acc.bankDetails.bankName,
+            accountNumber: acc.bankDetails.accountNumber,
+            accountHolderName: acc.bankDetails.accountHolderName,
+            bankCode: acc.bankDetails.bankCode,
+            bankId: acc.bankDetails.bankId,
+          },
+        };
+      });
+
+      return formattedPayoutAccounts;
+    } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:store.payout-account.getStorePayoutAccounts",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
+      throw handleTRPCError(error, "Failed to fetch store payout accounts.");
+    }
   }),
 
   getBanks: baseProcedure.query(async () => {
-    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
-      console.error("Missing required environment variables");
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Server configuration error: Missing required PAYSTACK environment variables",
-      });
-    }
+    try {
+      if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+        console.error("Missing required environment variables");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Server configuration error: Missing required PAYSTACK environment variables",
+        });
+      }
 
-    const options = {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-    };
-
-    const response = await fetch(
-      "https://api.flutterwave.com/v3/banks/NG",
-      options,
-    );
-
-    const banks = (await response.json()) as {
-      status: true;
-      message: string;
-      data: Bank[];
-    };
-
-    const formattedBanks = banks.data.map((bank) => {
-      return {
-        id: bank.id,
-        code: bank.code,
-        name: bank.name,
+      const options = {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
       };
-    });
 
-    return formattedBanks;
+      const response = await fetch(
+        "https://api.flutterwave.com/v3/banks/NG",
+        options,
+      );
+
+      const banks = (await response.json()) as {
+        status: true;
+        message: string;
+        data: Bank[];
+      };
+
+      const formattedBanks = banks.data.map((bank) => {
+        return {
+          id: bank.id,
+          code: bank.code,
+          name: bank.name,
+        };
+      });
+
+      return formattedBanks;
+    } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:store.payout-account.getBanks",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
+      throw handleTRPCError(error, "Failed to fetch bank list.");
+    }
   }),
 
   resolveAccountNumber: baseProcedure
     .input(z.object({ accountNumber: z.string(), bankCode: z.string() }))
     .mutation(async ({ input }) => {
-      const { accountNumber, bankCode } = input;
+      try {
+        const { accountNumber, bankCode } = input;
 
-      if (
-        !process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION
-      ) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Server configuration error: Missing required FLUTTERWAVE environment variables",
-        });
-      }
+        if (
+          !process.env
+            .FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION
+        ) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "Server configuration error: Missing required FLUTTERWAVE environment variables",
+          });
+        }
 
-      const options = {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          account_number: accountNumber.toString(),
-          account_bank: bankCode.toString(),
-        }),
-      };
-
-      const response = await fetch(
-        "https://api.flutterwave.com/v3/accounts/resolve",
-        options,
-      );
-
-      const result = (await response.json()) as {
-        status: string;
-        message: string;
-        data: {
-          account_number: string;
-          account_name: string;
+        const options = {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            account_number: accountNumber.toString(),
+            account_bank: bankCode.toString(),
+          }),
         };
-      };
 
-      return result;
+        const response = await fetch(
+          "https://api.flutterwave.com/v3/accounts/resolve",
+          options,
+        );
+
+        const result = (await response.json()) as {
+          status: string;
+          message: string;
+          data: {
+            account_number: string;
+            account_name: string;
+          };
+        };
+
+        return result;
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.payout-account.resolveAccountNumber",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
+        throw handleTRPCError(error, "Failed to resolve account number.");
+      }
     }),
 
   addPayoutAccount: baseProcedure
@@ -159,47 +211,62 @@ export const paymentRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const { storeId, payoutMethod, bankDetails } = input;
-      const Store = await getStoreModel();
+      try {
+        const { storeId, payoutMethod, bankDetails } = input;
+        const Store = await getStoreModel();
 
-      const store = await Store.findById(storeId);
+        const store = await Store.findById(storeId);
 
-      if (!store) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Store not found",
-        });
+        if (!store) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found",
+          });
+        }
+
+        if (store.payoutAccounts.length >= 3) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You can only add up to 3 payout accounts.",
+          });
+        }
+
+        const existingPayoutAccount = store.payoutAccounts.find(
+          (account) =>
+            account.payoutMethod === payoutMethod &&
+            account.bankDetails.accountNumber === bankDetails.accountNumber &&
+            account.bankDetails.bankName === bankDetails.bankName &&
+            account.bankDetails.accountHolderName ===
+              bankDetails.accountHolderName,
+        );
+
+        if (existingPayoutAccount) {
+          // Update existing bank details
+          existingPayoutAccount.bankDetails = bankDetails;
+        } else {
+          // Add new payout account
+          store.payoutAccounts.push({
+            payoutMethod: "Bank Transfer",
+            bankDetails,
+          });
+        }
+
+        await store.save();
+
+        return { message: "Payout account updated successfully." };
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.payout-account.addPayoutAccount",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
+        throw handleTRPCError(error, "Failed to add payout account.");
       }
-
-      if (store.payoutAccounts.length >= 3) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You can only add up to 3 payout accounts.",
-        });
-      }
-
-      const existingPayoutAccount = store.payoutAccounts.find(
-        (account) =>
-          account.payoutMethod === payoutMethod &&
-          account.bankDetails.accountNumber === bankDetails.accountNumber &&
-          account.bankDetails.bankName === bankDetails.bankName &&
-          account.bankDetails.accountHolderName ===
-            bankDetails.accountHolderName,
-      );
-
-      if (existingPayoutAccount) {
-        // Update existing bank details
-        existingPayoutAccount.bankDetails = bankDetails;
-      } else {
-        // Add new payout account
-        store.payoutAccounts.push({
-          payoutMethod: "Bank Transfer",
-          bankDetails,
-        });
-      }
-
-      await store.save();
-
-      return { message: "Payout account updated successfully." };
     }),
 });

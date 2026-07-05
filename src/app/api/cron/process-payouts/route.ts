@@ -1,6 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyCronRequest } from "@/lib/utils/cron-auth.util";
 import { PayoutProcessingService } from "@/services/payment/payout/payout-processing.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatCronSummary,
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * GET /api/cron/process-payouts
@@ -25,6 +31,18 @@ export async function GET(request: NextRequest) {
 
     const summary = await PayoutProcessingService.processInitiatedPayouts();
 
+    try {
+      await sendTelegramMessage(
+        formatCronSummary("cron:process-payouts", [
+          `Initiated: ${summary.totalInitiated}`,
+          `Succeeded: ${summary.succeeded}`,
+          `Failed: ${summary.failed}`,
+        ]),
+      );
+    } catch {
+      // sendTelegramMessage already console.errors; don't fail the job over it
+    }
+
     console.log(
       `[Cron] process-payouts: Completed — ${summary.succeeded} succeeded, ${summary.failed} failed out of ${summary.totalInitiated} initiated`,
     );
@@ -32,6 +50,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, summary }, { status: 200 });
   } catch (error: any) {
     console.error("[Cron] process-payouts: Job failed with error:", error);
+
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "cron:process-payouts" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors; never mask the original error
+      }
+    }
 
     return NextResponse.json(
       {

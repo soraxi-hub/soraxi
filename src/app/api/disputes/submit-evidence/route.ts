@@ -10,6 +10,11 @@ import { DisputeStatus } from "@/enums/financial.enums";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * POST /api/disputes/submit-evidence
@@ -155,6 +160,17 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("[POST /api/disputes/submit-evidence] Error:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "POST /api/disputes/submit-evidence",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

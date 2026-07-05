@@ -15,9 +15,6 @@ import {
   ShippingAddress,
 } from "@/types/order";
 import { ShippingMethod } from "@/types";
-import { getUserModel } from "./user.model";
-import { getStoreModel } from "./store.model";
-import { getProductModel } from "./product.model";
 
 /**
  * Interface representing a product snapshot in an order.
@@ -324,6 +321,23 @@ const OrderSchema = new Schema<IOrderDocument>(
 );
 
 /**
+ * Indexes
+ *
+ * - userId + createdAt: powers "my orders" lookups (most frequent query),
+ *   sorted newest-first.
+ * - stores + createdAt: powers store/admin order listings filtered by store,
+ *   sorted newest-first (see OrderRepository.getStoreOrders).
+ * - subOrders.deliveryStatus + subOrders.customerConfirmedDelivery.confirmed:
+ *   powers the auto-confirm-delivery cron scan.
+ */
+OrderSchema.index({ userId: 1, createdAt: -1 });
+OrderSchema.index({ stores: 1, createdAt: -1 });
+OrderSchema.index({
+  "subOrders.deliveryStatus": 1,
+  "subOrders.customerConfirmedDelivery.confirmed": 1,
+});
+
+/**
  * Get the Order model
  */
 export async function getOrderModel(): Promise<Model<IOrderDocument>> {
@@ -333,66 +347,3 @@ export async function getOrderModel(): Promise<Model<IOrderDocument>> {
     mongoose.model<IOrderDocument>("Order", OrderSchema)
   );
 }
-
-/**
- * Get an order by ID
- * @param id - Order ID
- * @param lean - Whether to return a plain object or Mongoose document
- */
-export async function getOrderById(
-  id: string,
-  lean: true,
-): Promise<IOrder | null>;
-export async function getOrderById(
-  id: string,
-  lean?: false,
-): Promise<IOrderDocument | null>;
-export async function getOrderById(
-  id: string,
-  lean = false,
-): Promise<IOrder | null> {
-  await connectToDatabase();
-  await getUserModel();
-  await getStoreModel();
-  await getProductModel();
-  const Order = await getOrderModel();
-
-  const query = Order.findById(id)
-    .populate({
-      path: "userId",
-      model: "User",
-      select: "_id firstName lastName email phoneNumber",
-    })
-    .populate({
-      path: "subOrders.products.productId",
-      model: "Product",
-      select: "_id name images price productType storeId",
-    })
-    .populate({
-      path: "subOrders.storeId",
-      model: "Store",
-      select: "name storeEmail",
-    })
-    .select(
-      "_id userId stores totalAmount paymentStatus discount createdAt subOrders",
-    );
-
-  return lean ? query.lean<IOrder>().exec() : query.exec();
-}
-
-// /**
-//  * Get all orders by a user ID
-//  * @param userId - The user placing the orders
-//  * @param lean - Whether to return plain objects or Mongoose documents
-//  */
-// export async function getOrdersByUserId(
-//   userId: string,
-//   lean = false,
-// ): Promise<IOrder[] | null> {
-//   await connectToDatabase();
-//   const Order = await getOrderModel();
-
-//   return lean
-//     ? Order.find({ userId: userId }).lean<IOrder[]>()
-//     : Order.find({ userId: userId });
-// }

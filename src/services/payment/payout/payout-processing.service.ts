@@ -18,6 +18,11 @@ import {
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import React from "react";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // ---------------------------------------------------------------------------
 // Flutterwave Transfer Interfaces
@@ -290,7 +295,10 @@ export class PayoutProcessingService {
    *
    * The caller (procedure) is responsible for:
    *   - Auth and permission checks
-   *   - Validating that the payout is still INITIATED before calling this
+   *
+   * This method performs an atomic compare-and-set on the payout status inside
+   * the transaction, so it is the authoritative INITIATED guard. The procedure
+   * may keep a fast pre-check for early rejection, but this is the enforcing layer.
    *
    * @param input - Action details including the payout record and outcome
    * @returns Result message
@@ -312,9 +320,10 @@ export class PayoutProcessingService {
       try {
         const writer = await JournalEntryWriter.init();
 
-        // Store the admin-supplied reference and mark COMPLETED
-        await PayoutRecord.findByIdAndUpdate(
-          payoutObjectId,
+        // Atomic compare-and-set: claim the payout only if still INITIATED.
+        // A null result means a concurrent request already finalized it.
+        const claimed = await PayoutRecord.findOneAndUpdate(
+          { _id: payoutObjectId, status: PayoutStatus.INITIATED },
           {
             $set: {
               status: PayoutStatus.COMPLETED,
@@ -323,6 +332,12 @@ export class PayoutProcessingService {
           },
           { session },
         );
+
+        if (!claimed) {
+          throw new Error(
+            "Payout is no longer in INITIATED state — it may have been finalized by a concurrent request.",
+          );
+        }
 
         // PAYOUT_COMPLETED journal entry
         // Closes PAYOUT_PROCESSING now that the transfer is confirmed.
@@ -349,12 +364,23 @@ export class PayoutProcessingService {
       // Re-fetch so the notification has the updated flutterwaveTransferId
       const updatedPayout = await PayoutRecord.findById(payoutObjectId);
       if (updatedPayout) {
-        await this.notifyVendorSuccess(updatedPayout).catch((err) => {
+        await this.notifyVendorSuccess(updatedPayout).catch(async (err) => {
           // Notification failure must never undo a committed transaction
           console.error(
             `[PayoutProcessingService] Success notification failed for payout ${payoutObjectId.toString()}:`,
             err,
           );
+          if (isReportableError(err)) {
+            try {
+              await sendTelegramMessage(
+                formatErrorReport(err, {
+                  source: "service:payout-processing.notifyVendorSuccess",
+                }),
+              );
+            } catch {
+              // sendTelegramMessage already console.errors internally; never mask the original error
+            }
+          }
         });
       }
 
@@ -372,9 +398,10 @@ export class PayoutProcessingService {
     try {
       const writer = await JournalEntryWriter.init();
 
-      // Mark FAILED and record reason
-      await PayoutRecord.findByIdAndUpdate(
-        payoutObjectId,
+      // Atomic compare-and-set: claim the payout only if still INITIATED.
+      // A null result means a concurrent request already finalized it.
+      const claimed = await PayoutRecord.findOneAndUpdate(
+        { _id: payoutObjectId, status: PayoutStatus.INITIATED },
         {
           $set: {
             status: PayoutStatus.FAILED,
@@ -383,6 +410,12 @@ export class PayoutProcessingService {
         },
         { session },
       );
+
+      if (!claimed) {
+        throw new Error(
+          "Payout is no longer in INITIATED state — it may have been finalized by a concurrent request.",
+        );
+      }
 
       // PAYOUT_FAILED journal entry
       // Reverses the PAYOUT_PROCESSING debit from writePayoutInitiated.
@@ -448,11 +481,22 @@ export class PayoutProcessingService {
       await this.notifyVendorFailure(
         updatedPayout,
         failureReason!.trim(),
-      ).catch((err) => {
+      ).catch(async (err) => {
         console.error(
           `[PayoutProcessingService] Failure notification failed for payout ${payoutObjectId.toString()}:`,
           err,
         );
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "service:payout-processing.notifyVendorFailure",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
       });
     }
 

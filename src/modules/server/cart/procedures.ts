@@ -10,6 +10,11 @@ import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { CartRepository } from "@/repositories/cart-repo";
 import { CartService } from "@/services/cart/cart.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export const cartRouter = createTRPCRouter({
   /**
@@ -52,6 +57,15 @@ export const cartRouter = createTRPCRouter({
       return formattedCart;
     } catch (error) {
       console.error("error", error);
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, { source: "trpc:cart.getByUserId" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(error, "Failed to fetch user cart");
     }
   }),
@@ -83,6 +97,15 @@ export const cartRouter = createTRPCRouter({
       return cartItems;
     } catch (error) {
       console.error("error", error);
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, { source: "trpc:cart.cartHydration" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(error, "Failed to hydrate cart");
     }
   }),
@@ -171,6 +194,15 @@ export const cartRouter = createTRPCRouter({
         return updatedCart;
       } catch (error) {
         console.error("error", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:cart.addItem" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to add item to cart");
       }
     }),
@@ -220,6 +252,15 @@ export const cartRouter = createTRPCRouter({
         return updatedCart;
       } catch (error) {
         console.error("error", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:cart.removeItem" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to remove item from cart");
       }
     }),
@@ -273,6 +314,15 @@ export const cartRouter = createTRPCRouter({
         return updatedCart;
       } catch (error) {
         console.error("error", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:cart.updateQuantity" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to update cart item quantity");
       }
     }),
@@ -303,6 +353,15 @@ export const cartRouter = createTRPCRouter({
         }));
       } catch (error) {
         console.error("error", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:cart.getManyByIds" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch product details");
       }
     }),
@@ -340,6 +399,17 @@ export const cartRouter = createTRPCRouter({
       return updatedCart;
     } catch (error) {
       console.error("error", error);
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "trpc:cart.addIdempotencyKey",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(error, "Failed to add idempotency key");
     }
   }),

@@ -14,6 +14,11 @@ import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { editProfileValidation } from "@/validators/user-signUp-info-validation";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { UserFactory } from "@/domain/users/user-factory";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * @module userRouter
@@ -79,6 +84,15 @@ export const userRouter = createTRPCRouter({
       return user;
     } catch (error) {
       console.error("Error fetching user by ID:", error);
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, { source: "trpc:user.getById" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original error
+        }
+      }
       throw handleTRPCError(error, "Error fetching user by ID");
     }
   }),
@@ -112,6 +126,15 @@ export const userRouter = createTRPCRouter({
         return user as unknown as User;
       } catch (error) {
         console.error("Error fetching user by email:", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:user.getByEmail" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to fetch user by email");
       }
     }),
@@ -179,6 +202,15 @@ export const userRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error updating user profile:", error);
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, { source: "trpc:user.updateProfile" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
         throw handleTRPCError(error, "Failed to update user profile");
       }
     }),

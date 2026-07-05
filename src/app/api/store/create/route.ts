@@ -3,6 +3,11 @@ import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 import {
   storeName as storeNameSchema,
   storeEmail as storeEmailSchema,
@@ -149,6 +154,15 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating store:", error);
     await session.abortTransaction();
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/store/create" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   } finally {
     session.endSession();

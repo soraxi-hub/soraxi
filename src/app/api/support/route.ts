@@ -11,6 +11,11 @@ import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
 import { generateUniqueId } from "@/lib/utils";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(req: Request) {
   const { name, email, subject, message } = await req.json();
@@ -111,6 +116,15 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Support form submission error:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, { source: "POST /api/support" }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }

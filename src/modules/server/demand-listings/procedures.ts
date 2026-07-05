@@ -3,6 +3,11 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { TRPCError } from "@trpc/server";
 import { RequestService } from "@/services/request.service";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * tRPC Router: requestRouter
@@ -48,6 +53,17 @@ export const requestRouter = createTRPCRouter({
           request,
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:demand-listings.createRequest",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to create request");
       }
     }),
@@ -77,6 +93,17 @@ export const requestRouter = createTRPCRouter({
           ...requests,
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:demand-listings.getAllRequests",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to fetch requests");
       }
     }),
@@ -110,6 +137,17 @@ export const requestRouter = createTRPCRouter({
           request,
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:demand-listings.getRequestById",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to fetch request");
       }
     }),
@@ -139,6 +177,17 @@ export const requestRouter = createTRPCRouter({
         requests,
       };
     } catch (err) {
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, {
+              source: "trpc:demand-listings.getUserRequests",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
       throw handleTRPCError(err, "Failed to fetch user requests");
     }
   }),
@@ -182,6 +231,17 @@ export const requestRouter = createTRPCRouter({
           request,
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:demand-listings.updateRequest",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to update request");
       }
     }),
@@ -219,6 +279,17 @@ export const requestRouter = createTRPCRouter({
           message: "Request deleted successfully",
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:demand-listings.deleteRequest",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to delete request");
       }
     }),
@@ -256,6 +327,17 @@ export const requestRouter = createTRPCRouter({
           request,
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:demand-listings.markRequestFulfilled",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to update request status");
       }
     }),

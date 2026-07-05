@@ -10,6 +10,11 @@ import { PaymentGateway } from "@/enums";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { nairaToKobo } from "@/lib/utils/naira";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 export async function POST(request: Request) {
   const requestBody = await request.json();
@@ -91,6 +96,7 @@ export async function POST(request: Request) {
     const vatKobo = Math.round(appFeeKobo * 0.075);
     const collectionFeeKobo = appFeeKobo + vatKobo;
 
+    const flutterwaveTransactionId = transactionData.id;
     const { orderId, idempotencyKey } = transactionData.meta;
     const paymentMethod = transactionData.payment_type;
 
@@ -102,6 +108,7 @@ export async function POST(request: Request) {
     const result = await processOrder.updateOrderRecordToSuccessState({
       orderId,
       idempotencyKey,
+      transactionId: flutterwaveTransactionId,
       session,
       paymentMethod,
       customerInfo,
@@ -131,6 +138,17 @@ export async function POST(request: Request) {
     console.error("Webhook processing failed:", error);
     if (session) {
       await session.abortTransaction();
+    }
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "webhook:flutterwave/successful-payments",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors; never mask the original error
+      }
     }
     return handleApiError(error);
   } finally {

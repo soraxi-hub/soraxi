@@ -16,6 +16,11 @@ import {
 } from "@/domain/notification";
 import React from "react";
 import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // ----------- Types for incoming request -----------
 
@@ -318,6 +323,17 @@ export async function POST(request: NextRequest) {
      Store ID: ${store.id}, Store Name: ${updatedStore.name}, Store Email: ${store.storeEmail}.
      Error: ${error instanceof Error ? error.message : error}`,
       );
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, {
+              source: "service:store-onboarding-submit.notifyEmails",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
       // Don't throw error here - the store was successfully updated, just email failed
     }
 
@@ -335,6 +351,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error submitting onboarding:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "POST /api/store/onboarding/submit",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

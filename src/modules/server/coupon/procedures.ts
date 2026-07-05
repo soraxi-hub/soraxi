@@ -3,6 +3,11 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { CouponService } from "@/services/coupon.service";
 import { TRPCError } from "@trpc/server";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * tRPC Router: couponRouter
@@ -51,6 +56,15 @@ export const couponRouter = createTRPCRouter({
           coupon,
         };
       } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, { source: "trpc:coupon.validateCoupon" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to validate coupon");
       }
     }),
@@ -97,6 +111,15 @@ export const couponRouter = createTRPCRouter({
           message: "Coupon applied successfully",
         };
       } catch (err: any) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, { source: "trpc:coupon.applyCoupon" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to apply coupon");
       }
     }),
@@ -115,6 +138,15 @@ export const couponRouter = createTRPCRouter({
         coupons,
       };
     } catch (err) {
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, { source: "trpc:coupon.getHomepageCoupons" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
       throw handleTRPCError(err, "Failed to fetch homepage coupons");
     }
   }),
@@ -144,6 +176,15 @@ export const couponRouter = createTRPCRouter({
           coupon,
         };
       } catch (err: any) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, { source: "trpc:coupon.getCouponByCode" }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
+        }
         throw handleTRPCError(err, "Failed to fetch coupon");
       }
     }),

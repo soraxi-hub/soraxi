@@ -5,6 +5,7 @@ import {
   RefundStatus,
   RefundTrigger,
   SuborderFinancialStatus,
+  LedgerReferenceType,
 } from "@/enums/financial.enums";
 import {
   createRefundRecord,
@@ -23,6 +24,11 @@ import {
 import { getUserModel } from "@/lib/db/models/user.model";
 import React from "react";
 import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 // ---------------------------------------------------------------------------
 // Flutterwave Refund Client
@@ -151,6 +157,7 @@ export interface IProcessRefundInput {
  */
 export interface IProcessDisputeRefundInput extends IProcessRefundInput {
   disputeId: string;
+  trigger: RefundTrigger;
 }
 
 /**
@@ -197,20 +204,25 @@ export class RefundService {
   // -------------------------------------------------------------------------
 
   /**
-   * Process a refund triggered by a vendor cancelling an order.
+   * DB-only phase of a cancellation refund.
    *
-   * Cancellation is only possible from OrderPlaced or Processing, so funds
-   * are guaranteed to be in VENDOR_PENDING. The full amountPaid is refunded
-   * to the student (settle + commission reversed).
+   * Writes the ledger reversal, commission-cache reversal, vendor wallet
+   * deduction, TransactionRecord suborder status, and the INITIATED
+   * RefundRecord — all on the caller's session. Performs NO network I/O, so it
+   * is safe to call from inside an already-open transaction (e.g.
+   * OrderService.updateDeliveryStatus). The caller owns the transaction and is
+   * responsible for committing it.
    *
-   * Writes: writeOrderCancellationRefund
-   * Then:   calls Flutterwave refund API (automated path)
+   * Cancellation is only possible from OrderPlaced or Processing, so funds are
+   * guaranteed to be in VENDOR_PENDING. The full amountPaid is refunded to the
+   * student (settle + commission reversed).
    *
    * @param input - Refund input including suborder financial details
+   * @returns The created RefundRecord in INITIATED state
    */
-  static async processOrderCancellationRefund(
+  static async initiateOrderCancellationRefund(
     input: IProcessRefundInput,
-  ): Promise<void> {
+  ): Promise<IRefundRecordDocument> {
     const {
       suborderId,
       orderId,
@@ -264,16 +276,37 @@ export class RefundService {
         },
         flutterwaveTransactionId,
         status: RefundStatus.INITIATED,
-        ledgerEntryId: refundId, // Same ObjectId — journal entry referenceId
+        // Opening entry (writeOrderCancellationRefund) is keyed on (REFUND, refundId)
+        ledgerReferenceType: LedgerReferenceType.REFUND,
+        ledgerReferenceId: refundId,
       },
       session,
     );
 
-    // 5. Call Flutterwave refund API outside the session — network calls
-    //    must not run inside a MongoDB transaction
+    return refundRecord;
+  }
+
+  /**
+   * Automated cancellation refund: DB phase followed by the Flutterwave call.
+   *
+   * WARNING: callFlutterwaveRefund performs network I/O and opens its own
+   * session. Only call this OUTSIDE an open transaction. Code running inside a
+   * transaction (the order status flow) must call
+   * initiateOrderCancellationRefund instead and defer the network call until
+   * after commit.
+   *
+   * @param input - Refund input including suborder financial details
+   */
+  static async processOrderCancellationRefund(
+    input: IProcessRefundInput,
+  ): Promise<void> {
+    const refundRecord = await this.initiateOrderCancellationRefund(input);
+
+    // Amount refunded is settle + commission for cancellations; read it back
+    // from the record so this wrapper never diverges from the DB phase.
     await this.callFlutterwaveRefund(
       refundRecord,
-      amountPaid,
+      refundRecord.amountBreakdown.amountRefunded,
       "Order cancelled by vendor",
     );
   }
@@ -283,20 +316,23 @@ export class RefundService {
   // -------------------------------------------------------------------------
 
   /**
-   * Process a refund triggered by a vendor marking a delivery as failed.
+   * DB-only phase of a failed-delivery refund.
    *
-   * FailedDelivery fires at OutForDelivery stage — funds are still in
-   * VENDOR_PENDING (delivery confirmation has not happened yet).
-   * Only the settleAmount is refunded; commission is kept by Soraxi.
+   * Writes the ledger reversal, vendor wallet deduction, TransactionRecord
+   * suborder status, and the INITIATED RefundRecord — all on the caller's
+   * session. Performs NO network I/O, so it is safe to call from inside an
+   * already-open transaction. The caller owns and commits the transaction.
    *
-   * Writes: writeFailedDeliveryRefund
-   * Then:   calls Flutterwave refund API (automated path)
+   * FailedDelivery fires at OutForDelivery stage, so funds are still in
+   * VENDOR_PENDING (delivery confirmation has not happened yet). Only the
+   * settleAmount is refunded; commission is kept by Soraxi.
    *
    * @param input - Refund input including suborder financial details
+   * @returns The created RefundRecord in INITIATED state
    */
-  static async processFailedDeliveryRefund(
+  static async initiateFailedDeliveryRefund(
     input: IProcessRefundInput,
-  ): Promise<void> {
+  ): Promise<IRefundRecordDocument> {
     const {
       suborderId,
       orderId,
@@ -342,15 +378,36 @@ export class RefundService {
         },
         flutterwaveTransactionId,
         status: RefundStatus.INITIATED,
-        ledgerEntryId: refundId,
+        // Opening entry (writeFailedDeliveryRefund) is keyed on (REFUND, refundId)
+        ledgerReferenceType: LedgerReferenceType.REFUND,
+        ledgerReferenceId: refundId,
       },
       session,
     );
 
-    // 5. Call Flutterwave refund API outside the session
+    return refundRecord;
+  }
+
+  /**
+   * Automated failed-delivery refund: DB phase followed by the Flutterwave call.
+   *
+   * WARNING: callFlutterwaveRefund performs network I/O and opens its own
+   * session. Only call this OUTSIDE an open transaction. Code running inside a
+   * transaction (the order status flow) must call initiateFailedDeliveryRefund
+   * instead and defer the network call until after commit.
+   *
+   * @param input - Refund input including suborder financial details
+   */
+  static async processFailedDeliveryRefund(
+    input: IProcessRefundInput,
+  ): Promise<void> {
+    const refundRecord = await this.initiateFailedDeliveryRefund(input);
+
+    // Failed delivery refunds only the settleAmount; read it back from the
+    // record so this wrapper never diverges from the DB phase.
     await this.callFlutterwaveRefund(
       refundRecord,
-      settleAmount,
+      refundRecord.amountBreakdown.amountRefunded,
       "Delivery failed — vendor unable to complete delivery",
     );
   }
@@ -360,27 +417,26 @@ export class RefundService {
   // -------------------------------------------------------------------------
 
   /**
-   * Process a refund triggered by an upheld or auto-resolved dispute.
+   * DB-only phase of a dispute refund.
    *
-   * Called AFTER the dispute journal entries (writeDisputeUpheld or
-   * writeDisputeAutoResolved) have already been written by the dispute
-   * resolution service. Those entries have already credited CUSTOMER_REFUND_PAYABLE
-   * with the full amountPaid. This method only creates the RefundRecord and
-   * calls Flutterwave — it does NOT write additional journal entries for the
-   * liability itself.
+   * Creates the INITIATED RefundRecord on the caller's session and returns it.
+   * Performs NO network I/O, so it is safe to call from inside the dispute
+   * resolution service's open transaction. The caller owns and commits the
+   * transaction.
    *
-   * The wallet cache deduction for the vendor's disputed funds was already
-   * handled by the dispute resolution service via applyDisputeUpheldDeductions
-   * or equivalent. This method does not touch the vendor wallet.
-   *
-   * Writes: nothing to the ledger (already written by dispute service)
-   * Then:   calls Flutterwave refund API (automated path)
+   * Unlike the cancellation and failed-delivery initiate phases, this method
+   * writes NO ledger entries and does NOT touch the vendor wallet. Those were
+   * already done upstream by the dispute resolution service: writeDisputeUpheld
+   * or writeDisputeAutoResolved credited CUSTOMER_REFUND_PAYABLE with the full
+   * amountPaid, and the disputed-funds wallet deduction ran there too. This
+   * method only records the refund so it can be tracked and confirmed.
    *
    * @param input - Dispute refund input
+   * @returns The created RefundRecord in INITIATED state
    */
-  static async processDisputeRefund(
+  static async initiateDisputeRefund(
     input: IProcessDisputeRefundInput,
-  ): Promise<void> {
+  ): Promise<IRefundRecordDocument> {
     const {
       suborderId,
       orderId,
@@ -389,6 +445,8 @@ export class RefundService {
       settleAmount,
       commission,
       flutterwaveTransactionId,
+      disputeId,
+      trigger,
       session,
     } = input;
 
@@ -403,7 +461,7 @@ export class RefundService {
         orderId: new mongoose.Types.ObjectId(orderId),
         vendorId: new mongoose.Types.ObjectId(vendorId),
         customerId: new mongoose.Types.ObjectId(customerId),
-        trigger: RefundTrigger.DISPUTE_UPHELD,
+        trigger,
         amountBreakdown: {
           amountRefunded: amountPaid,
           settleAmount,
@@ -411,15 +469,38 @@ export class RefundService {
         },
         flutterwaveTransactionId,
         status: RefundStatus.INITIATED,
-        ledgerEntryId: refundId,
+        // The opening liability was written by the dispute service as part of
+        // writeDisputeUpheld / writeDisputeAutoResolved, keyed on the dispute.
+        // Point the audit trail at that entry, not an orphan refundId.
+        ledgerReferenceType: LedgerReferenceType.DISPUTE,
+        ledgerReferenceId: new mongoose.Types.ObjectId(disputeId),
       },
       session,
     );
 
-    // Call Flutterwave refund API outside the session
+    return refundRecord;
+  }
+
+  /**
+   * Automated dispute refund: DB phase followed by the Flutterwave call.
+   *
+   * WARNING: callFlutterwaveRefund performs network I/O and opens its own
+   * session. Only call this OUTSIDE an open transaction. Code running inside the
+   * dispute resolution transaction must call initiateDisputeRefund instead and
+   * defer the network call until after commit.
+   *
+   * @param input - Dispute refund input
+   */
+  static async processDisputeRefund(
+    input: IProcessDisputeRefundInput,
+  ): Promise<void> {
+    const refundRecord = await this.initiateDisputeRefund(input);
+
+    // Dispute refunds return the full amountPaid; read it back from the record
+    // so this wrapper never diverges from the DB phase.
     await this.callFlutterwaveRefund(
       refundRecord,
-      amountPaid,
+      refundRecord.amountBreakdown.amountRefunded,
       "Dispute upheld — full refund issued to customer",
     );
   }
@@ -479,11 +560,22 @@ export class RefundService {
     }
 
     // Notify customer outside the session
-    await this.notifyCustomerRefundIssued(refundRecord).catch((err) => {
+    await this.notifyCustomerRefundIssued(refundRecord).catch(async (err) => {
       console.error(
         `[RefundService] Customer notification failed for refund ${refundObjectId.toString()}:`,
         err,
       );
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, {
+              source: "service:refund.notifyCustomerRefundIssued",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
     });
 
     return {
@@ -593,11 +685,22 @@ export class RefundService {
     }
 
     // Notify customer outside the session
-    await this.notifyCustomerRefundIssued(refundRecord).catch((err) => {
+    await this.notifyCustomerRefundIssued(refundRecord).catch(async (err) => {
       console.error(
         `[RefundService] Customer notification failed for refund ${refundObjectId.toString()}:`,
         err,
       );
+      if (isReportableError(err)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(err, {
+              source: "service:refund.notifyCustomerRefundIssued",
+            }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors internally; never mask the original error
+        }
+      }
     });
 
     return { ok: true, message: "Refund confirmed successfully.", status: 200 };

@@ -405,7 +405,7 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
   orderId: ObjectId,
   vendorId: ObjectId,
   customerId: ObjectId,
-  trigger: RefundTrigger,          // "ORDER_CANCELLED" | "FAILED_DELIVERY" | "DISPUTE_UPHELD"
+  trigger: RefundTrigger,          // "ORDER_CANCELLED" | "FAILED_DELIVERY" | "DISPUTE_UPHELD" | "DISPUTE_AUTO_RESOLVED"
   amountBreakdown: {
     amountRefunded: number,        // Amount returned to student (Kobo)
     settleAmount: number,          // Vendor's net settle amount for this suborder (Kobo)

@@ -7,6 +7,11 @@ import {
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 type UpdateData = Partial<
   Pick<
@@ -85,6 +90,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error saving onboarding draft:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "POST /api/store/onboarding/draft",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }
@@ -148,6 +164,17 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error retrieving onboarding draft:", error);
+    if (isReportableError(error)) {
+      try {
+        await sendTelegramMessage(
+          formatErrorReport(error, {
+            source: "GET /api/store/onboarding/draft",
+          }),
+        );
+      } catch {
+        // sendTelegramMessage already console.errors internally; never mask the original error
+      }
+    }
     return handleApiError(error);
   }
 }
