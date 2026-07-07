@@ -241,6 +241,7 @@ export class RefundService {
     // 1. Write cancellation refund journal entry
     await writer.writeOrderCancellationRefund({
       vendorId: new mongoose.Types.ObjectId(vendorId),
+      customerId: new mongoose.Types.ObjectId(customerId),
       settleAmount,
       commission,
       amountPaid,
@@ -350,6 +351,7 @@ export class RefundService {
     // 1. Write failed delivery refund journal entry
     await writer.writeFailedDeliveryRefund({
       vendorId: new mongoose.Types.ObjectId(vendorId),
+      customerId: new mongoose.Types.ObjectId(customerId),
       settleAmount,
       refundId,
       suborderId: new mongoose.Types.ObjectId(suborderId),
@@ -539,6 +541,7 @@ export class RefundService {
       //   DEBIT   CUSTOMER_REFUND_PAYABLE   amountRefunded
       //   CREDIT  PLATFORM_ESCROW           amountRefunded
       await writer.writeRefundConfirmed({
+        customerId: refundRecord.customerId,
         amountRefunded: refundRecord.amountBreakdown.amountRefunded,
         refundId: refundObjectId,
         session,
@@ -664,6 +667,7 @@ export class RefundService {
 
       // Close CUSTOMER_REFUND_PAYABLE liability
       await writer.writeRefundConfirmed({
+        customerId: refundRecord.customerId,
         amountRefunded: refundRecord.amountBreakdown.amountRefunded,
         refundId: refundObjectId,
         session,

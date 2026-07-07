@@ -19,6 +19,7 @@ import { creditPlatformCommission } from "@/lib/db/models/platform-wallet.model"
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
   FlutterwavePaymentStatus,
+  LedgerEntityType,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
@@ -286,55 +287,53 @@ export class ProcessOrder {
     // ----------------------------------------------------------------
     // STEP 3: Write journal entries via the double-entry writer
     //
-    // Both entries are scoped to the order level — not per suborder —
-    // because each represents a single atomic financial event:
-    //
-    //   PAYMENT_RECEIVED: the full gross amount enters escrow in one movement.
-    //
-    //   ORDER_SETTLED: escrow is split across all vendors (one CREDIT line each)
-    //   and the platform commission, in one balanced journal entry.
-    //
-    // The writer enforces the double-entry invariant (credits === debits) and
-    // writes both the JournalEntry header and all LedgerLine documents
-    // atomically within the same session before any wallet state is touched.
+    // PAYMENT_RECEIVED records the full gross entering escrow in one movement.
+    // Each suborder is then settled with its own balanced entry, so referenceId
+    // points at the suborder and per-suborder commission stays derivable from
+    // the ledger. Summed, the settlement DEBITs close exactly the REFUND_PAYABLE
+    // that PAYMENT_RECEIVED opened.
     // ----------------------------------------------------------------
     const writer = await JournalEntryWriter.init();
 
     // --- PAYMENT_RECEIVED ---
-    // The full order amount enters the platform's escrow account.
-    // Offsets: DEBIT PLATFORM_ESCROW / CREDIT CUSTOMER_REFUND_PAYABLE
+    // DEBIT PLATFORM_ESCROW / CREDIT CUSTOMER_REFUND_PAYABLE
     await writer.writePaymentReceived({
       totalAmount: order.totalAmount,
       orderId: order._id,
+      entityId: order.userId,
+      entityType: LedgerEntityType.CUSTOMER,
       flutterwaveReference,
       session,
     });
 
-    // --- ORDER_SETTLED ---
-    // Escrow is split: each vendor receives their net settle amount into
-    // VENDOR_PENDING, and the platform earns commission revenue.
-    // Offsets: DEBIT CUSTOMER_REFUND_PAYABLE / CREDIT VENDOR_PENDING (×n) + PLATFORM_REVENUE_COMMISSION
-    const totalCommission = suborderBreakdowns.reduce(
-      (sum, b) => sum + b.commission,
-      0,
-    );
+    // --- Per-suborder settlement + wallet credit (single pass) ---
+    // Each entry: DEBIT CUSTOMER_REFUND_PAYABLE / CREDIT VENDOR_PENDING + PLATFORM_REVENUE_COMMISSION
+    let totalCommission = 0;
 
-    await writer.writeOrderSettlement({
-      vendorSettlements: suborderBreakdowns.map((b) => ({
-        vendorId: b.vendorId,
-        settleAmount: b.settleAmount,
-        suborderId: b.suborderId,
-      })),
-      totalCommission,
-      totalAmount: order.totalAmount,
-      orderId: order._id,
-      session,
-    });
+    for (const breakdown of suborderBreakdowns) {
+      await writer.writeSuborderSettlement({
+        vendorId: breakdown.vendorId,
+        customerId: order.userId,
+        settleAmount: breakdown.settleAmount,
+        commission: breakdown.commission,
+        amountPaid: breakdown.grossAmount,
+        suborderId: breakdown.suborderId,
+        session,
+      });
+
+      // Mirror the VENDOR_PENDING credit into the wallet running-state cache
+      await creditVendorPendingBalance(
+        breakdown.vendorId.toString(),
+        breakdown.settleAmount,
+        session,
+      );
+
+      totalCommission += breakdown.commission;
+    }
 
     // --- COLLECTION_FEE ---
-    // Flutterwave deducted their fee before settling our account.
-    // This reduces PLATFORM_ESCROW to reflect actual funds received,
-    // and records the cost as a gateway expense.
+    // Flutterwave's fee reduces PLATFORM_ESCROW and records a gateway expense.
+    // DEBIT GATEWAY_FEES_EXPENSE / CREDIT PLATFORM_ESCROW
     if (collectionFeeKobo > 0) {
       await writer.writeCollectionFee({
         feeAmount: collectionFeeKobo,
@@ -343,23 +342,7 @@ export class ProcessOrder {
       });
     }
 
-    // ----------------------------------------------------------------
-    // STEP 4: Update wallet running-state caches
-    //
-    // The ledger is the source of truth — wallet documents are fast-read
-    // caches that mirror the ledger. These updates must happen after the
-    // journal entries are committed so the two never diverge mid-write.
-    // ----------------------------------------------------------------
-    for (const breakdown of suborderBreakdowns) {
-      // Credit the vendor's pending balance (mirrors VENDOR_PENDING CREDIT above)
-      await creditVendorPendingBalance(
-        breakdown.vendorId.toString(),
-        breakdown.settleAmount,
-        session,
-      );
-    }
-
-    // Credit the platform's commission balance (mirrors PLATFORM_REVENUE_COMMISSION CREDIT above)
+    // Mirror the PLATFORM_REVENUE_COMMISSION credit into the platform wallet cache
     await creditPlatformCommission(totalCommission, session);
   }
 

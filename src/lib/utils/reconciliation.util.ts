@@ -292,23 +292,21 @@ export async function reconcileVendorWallet(
  * an entity and/or date range.
  *
  * ACCOUNTING CONVENTION: not every account increases the same way.
- * VENDOR_PENDING/VENDOR_AVAILABLE/VENDOR_DISPUTED, PLATFORM_REVENUE_*, and
- * CUSTOMER_REFUND_PAYABLE are liability/revenue-style — CREDIT increases,
- * DEBIT decreases (confirmed against JournalEntryWriter for VENDOR_PENDING
- * and both PLATFORM_REVENUE_* accounts). PLATFORM_ESCROW and
- * PAYOUT_PROCESSING are asset-style — DEBIT increases, CREDIT decreases
- * (confirmed via writePaymentReceived's own documentation: "the DEBIT on
- * PLATFORM_ESCROW records that the platform is now holding the funds").
- * Pass `increasesOn: "debit"` for the latter group; the default ("credit")
- * covers everything else EXCEPT VENDOR_AVAILABLE, whose direction is not
- * yet confirmed consistent across JournalEntryWriter — see the caveat on
- * `reconcileVendorDebt` and `checkEscrowSolvency` below before trusting
- * numbers derived from that specific account.
+ * All vendor accounts (VENDOR_PENDING, VENDOR_AVAILABLE, VENDOR_DISPUTED),
+ * PLATFORM_REVENUE_*, PAYOUT_PROCESSING, and CUSTOMER_REFUND_PAYABLE are
+ * liability/revenue-style: CREDIT increases, DEBIT decreases. This is now
+ * consistent across every JournalEntryWriter method (the earlier Group A/B
+ * split was corrected). PLATFORM_ESCROW and VENDOR_DEBT_RECEIVABLE are
+ * asset-style: DEBIT increases, CREDIT decreases. PLATFORM_ESCROW is the
+ * platform's cash; VENDOR_DEBT_RECEIVABLE is money vendors owe the platform.
+ * Pass `increasesOn: "debit"` for those two; the default ("credit") is correct
+ * for everything else.
  *
  * This is the building block reused by `reconcilePlatformWallet`,
- * `checkEscrowSolvency`, and `reconcileVendorDebt`. It performs a single
- * indexed aggregation — cost is bounded by the number of lines matching the
- * account (and entity/date filters, if given), not by total collection size.
+ * `checkEscrowSolvency`, `checkLedgerAccountingIdentity`, and
+ * `reconcileVendorDebt`. It performs a single indexed aggregation — cost is
+ * bounded by the number of lines matching the account (and entity/date
+ * filters, if given), not by total collection size.
  *
  * @param accountType - The ledger account to sum
  * @param options.entityId - Optional entity filter (vendor or customer _id)
@@ -725,9 +723,11 @@ export async function checkLedgerStructuralIntegrity(
 export interface EscrowSolvencyResult {
   /** PLATFORM_ESCROW's own balance (asset convention: debit increases it). */
   escrowBalance: number;
-  /** PAYOUT_PROCESSING's balance — money still under platform control, in transit to a vendor's bank (asset convention). */
+  /** PAYOUT_PROCESSING's balance: money owed to vendors while in transit to their bank (liability convention: credit increases it). */
   payoutProcessing: number;
-  /** escrowBalance + payoutProcessing — total cash the platform still directly controls. */
+  /** VENDOR_DEBT_RECEIVABLE: money vendors owe the platform (asset convention: debit increases it). */
+  debtReceivable: number;
+  /** escrowBalance + payoutProcessing + debtReceivable: total assets/claims the platform controls. */
   platformHeldCash: number;
   liabilities: {
     vendorPending: number;
@@ -736,57 +736,44 @@ export interface EscrowSolvencyResult {
     customerRefundPayable: number;
     total: number;
   };
+  /** True when platformHeldCash >= liabilities.total. */
   isSolvent: boolean;
-  /** platformHeldCash − liabilities.total; should be 0 in a fully solvent system. */
+  /**
+   * platformHeldCash − liabilities.total: the surplus.
+   * Positive by exactly retained earnings (commission + penalties − gateway
+   * expense) in a healthy system, since revenue cash never leaves escrow.
+   * For an exact integrity identity, see checkLedgerAccountingIdentity.
+   */
   delta: number;
 }
 
 /**
- * Verifies that the cash the platform still directly controls
- * (PLATFORM_ESCROW + PAYOUT_PROCESSING) covers everything it still owes
- * or holds on behalf of vendors and customers.
+ * Verifies that the assets and claims the platform controls
+ * (PLATFORM_ESCROW + PAYOUT_PROCESSING + VENDOR_DEBT_RECEIVABLE) cover
+ * everything it still owes or holds on behalf of vendors and customers.
  *
- * REVISED after reviewing JournalEntryWriter directly (see conversation) —
- * the original version of this function was wrong on two counts:
+ * Account conventions (all now consistent across JournalEntryWriter):
+ *   - PLATFORM_ESCROW: asset, debit increases. The platform's cash.
+ *   - VENDOR_DEBT_RECEIVABLE: asset, debit increases. Money vendors owe.
+ *   - PAYOUT_PROCESSING: liability, credit increases. Owed to a vendor while
+ *     in transit to their bank; still added to the platform's controlled
+ *     total because the cash has not left until the payout completes.
+ *   - VENDOR_* /CUSTOMER_REFUND_PAYABLE: liabilities, credit increases.
  *
- * 1. Sign convention: PLATFORM_ESCROW and PAYOUT_PROCESSING are
- *    asset-style accounts (DEBIT increases them), confirmed by
- *    writePaymentReceived's own comment ("the DEBIT on PLATFORM_ESCROW
- *    records that the platform is now holding the funds") and mirrored by
- *    writePayoutInitiated (DEBIT PAYOUT_PROCESSING when money moves
- *    in-flight). The shared helper now takes `increasesOn: "debit"` for
- *    these two.
- * 2. Account set: writeOrderSettlement never touches PLATFORM_ESCROW at
- *    all — settlement is a pure internal reclassification (escrow's
- *    CUSTOMER_REFUND_PAYABLE liability → VENDOR_PENDING + commission), not
- *    a cash movement. Escrow itself only moves on payment received, fees,
- *    confirmed refunds, and completed payouts. So PAYOUT_PROCESSING has to
- *    be added back to PLATFORM_ESCROW to get "total cash still under the
- *    platform's control" before comparing against liabilities — comparing
- *    escrow alone against the liability set (as the first version did)
- *    would always show a false shortfall equal to whatever's currently
- *    mid-payout.
+ * Settlement is a pure reclassification and never touches PLATFORM_ESCROW, so
+ * PAYOUT_PROCESSING and VENDOR_DEBT_RECEIVABLE are added to escrow to get the
+ * platform's full controlled position before comparing against liabilities.
  *
- * CAVEAT — worth verifying before trusting this in production: comparing
- * writePaymentReceived's documented DEBIT-increases-escrow convention
- * against writePayoutCompleted (which also DEBITs PLATFORM_ESCROW, but is
- * commented "funds exit the platform") suggests writePayoutCompleted may
- * have the escrow line's direction inverted — which would make this
- * function report a growing, spurious shortfall (or surplus, depending on
- * which way the bug runs) proportional to completed payout volume. If this
- * check reports a delta that tracks your completed-payout volume, that's
- * the first place to look — not a genuine solvency problem.
- *
- * Also unverified: VENDOR_AVAILABLE's debit/credit direction is not
- * consistently confirmed across JournalEntryWriter (see the caveat on
- * `reconcileVendorDebt`). If it's inverted in some methods, this check's
- * `liabilities.vendorAvailable` figure — and therefore `isSolvent` — would
- * be unreliable until that's resolved.
+ * This is a solvency signal: isSolvent is platformHeldCash >= liabilities, and
+ * delta is the surplus. In a healthy system the surplus equals retained
+ * earnings (revenue cash never leaves escrow), so an exact-zero delta is NOT
+ * expected here. For an exact integrity check, use checkLedgerAccountingIdentity.
  */
 export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
   const [
     escrowBalance,
     payoutProcessing,
+    debtReceivable,
     vendorPending,
     vendorAvailable,
     vendorDisputed,
@@ -795,7 +782,8 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
     deriveLedgerAccountBalance(LedgerAccountType.PLATFORM_ESCROW, {
       increasesOn: "debit",
     }),
-    deriveLedgerAccountBalance(LedgerAccountType.PAYOUT_PROCESSING, {
+    deriveLedgerAccountBalance(LedgerAccountType.PAYOUT_PROCESSING),
+    deriveLedgerAccountBalance(LedgerAccountType.VENDOR_DEBT_RECEIVABLE, {
       increasesOn: "debit",
     }),
     deriveLedgerAccountBalance(LedgerAccountType.VENDOR_PENDING),
@@ -804,7 +792,7 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
     deriveLedgerAccountBalance(LedgerAccountType.CUSTOMER_REFUND_PAYABLE),
   ]);
 
-  const platformHeldCash = escrowBalance + payoutProcessing;
+  const platformHeldCash = escrowBalance + payoutProcessing + debtReceivable;
 
   const liabilitiesTotal =
     vendorPending + vendorAvailable + vendorDisputed + customerRefundPayable;
@@ -812,6 +800,7 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
   return {
     escrowBalance,
     payoutProcessing,
+    debtReceivable,
     platformHeldCash,
     liabilities: {
       vendorPending,
@@ -820,8 +809,115 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
       customerRefundPayable,
       total: liabilitiesTotal,
     },
-    isSolvent: platformHeldCash === liabilitiesTotal,
+    isSolvent: platformHeldCash >= liabilitiesTotal,
     delta: platformHeldCash - liabilitiesTotal,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// checkLedgerAccountingIdentity
+// ---------------------------------------------------------------------------
+
+export interface LedgerAccountingIdentityResult {
+  /** escrow + payoutProcessing + debtReceivable − third-party liabilities. */
+  assetsMinusLiabilities: number;
+  /** commission + penalties − gatewayExpense: the platform's retained earnings. */
+  retainedEarnings: number;
+  /** True when the two sides match exactly. */
+  isBalanced: boolean;
+  /** assetsMinusLiabilities − retainedEarnings; non-zero means a broken entry. */
+  delta: number;
+  /** The individual account balances, for drill-down when delta is non-zero. */
+  components: {
+    escrowBalance: number;
+    payoutProcessing: number;
+    debtReceivable: number;
+    vendorPending: number;
+    vendorAvailable: number;
+    vendorDisputed: number;
+    customerRefundPayable: number;
+    commission: number;
+    penalties: number;
+    gatewayExpense: number;
+  };
+}
+
+/**
+ * Exact system-wide accounting identity. Because commission and penalty revenue
+ * never physically leave PLATFORM_ESCROW (settlement is a reclassification and
+ * nothing sweeps revenue cash out), the platform's assets always exceed its
+ * third-party liabilities by exactly its retained earnings. The identity that
+ * must hold in a correct system is:
+ *
+ *   escrow + payoutProcessing + debtReceivable
+ *     − (vendorPending + vendorAvailable + vendorDisputed + customerRefundPayable)
+ *   === commission + penalties − gatewayExpense
+ *
+ * Unlike checkEscrowSolvency (a loose >= signal), this asserts exact equality.
+ * A non-zero delta means a journal entry is malformed somewhere: a wrong
+ * account, a wrong direction, or a line written outside JournalEntryWriter.
+ * Pairs well with checkGlobalBalance and verifyJournalEntryIntegrity: those
+ * prove entries are internally balanced; this proves the accounts relate to
+ * each other correctly.
+ */
+export async function checkLedgerAccountingIdentity(): Promise<LedgerAccountingIdentityResult> {
+  const [
+    escrowBalance,
+    payoutProcessing,
+    debtReceivable,
+    vendorPending,
+    vendorAvailable,
+    vendorDisputed,
+    customerRefundPayable,
+    commission,
+    penalties,
+    gatewayExpense,
+  ] = await Promise.all([
+    deriveLedgerAccountBalance(LedgerAccountType.PLATFORM_ESCROW, {
+      increasesOn: "debit",
+    }),
+    deriveLedgerAccountBalance(LedgerAccountType.PAYOUT_PROCESSING),
+    deriveLedgerAccountBalance(LedgerAccountType.VENDOR_DEBT_RECEIVABLE, {
+      increasesOn: "debit",
+    }),
+    deriveLedgerAccountBalance(LedgerAccountType.VENDOR_PENDING),
+    deriveLedgerAccountBalance(LedgerAccountType.VENDOR_AVAILABLE),
+    deriveLedgerAccountBalance(LedgerAccountType.VENDOR_DISPUTED),
+    deriveLedgerAccountBalance(LedgerAccountType.CUSTOMER_REFUND_PAYABLE),
+    deriveLedgerAccountBalance(LedgerAccountType.PLATFORM_REVENUE_COMMISSION),
+    deriveLedgerAccountBalance(LedgerAccountType.PLATFORM_REVENUE_PENALTIES),
+    deriveLedgerAccountBalance(LedgerAccountType.GATEWAY_FEES_EXPENSE, {
+      increasesOn: "debit",
+    }),
+  ]);
+
+  const assetsMinusLiabilities =
+    escrowBalance +
+    payoutProcessing +
+    debtReceivable -
+    (vendorPending + vendorAvailable + vendorDisputed + customerRefundPayable);
+
+  const retainedEarnings = commission + penalties - gatewayExpense;
+
+  const delta = assetsMinusLiabilities - retainedEarnings;
+
+  return {
+    assetsMinusLiabilities,
+    retainedEarnings,
+    isBalanced: delta === 0,
+    delta,
+    components: {
+      escrowBalance,
+      payoutProcessing,
+      debtReceivable,
+      vendorPending,
+      vendorAvailable,
+      vendorDisputed,
+      customerRefundPayable,
+      commission,
+      penalties,
+      gatewayExpense,
+    },
   };
 }
 
@@ -848,24 +944,13 @@ export interface TransactionRecordReconciliationResult {
  * suborder. Catches drift between what `calculateCommission` produced when
  * the order was placed and what the ledger ended up recording.
  *
- * REVISED after reviewing JournalEntryWriter directly — the original
- * version of this function had two problems:
- *
- * 1. It matched on `referenceType: SUBORDER` alone, but `writeFundsReleased`
- *    *also* uses `referenceType: SUBORDER` with the same `suborderId` when
- *    delivery is later confirmed. A suborder that's progressed past
- *    settlement would have its release entry's lines pulled in alongside
- *    the settlement entry's, double-counting. Fixed by scoping to
- *    `category: VENDOR_SETTLEMENT` — the entry written by
- *    `writeOrderSettlement` specifically, which is what
- *    `TransactionRecord.suborderBreakdowns` reflects.
- * 2. It read settlement amounts from VENDOR_PENDING *or* VENDOR_AVAILABLE.
- *    `writeOrderSettlement` only ever credits VENDOR_PENDING (funds start
- *    in pending, not available) — VENDOR_AVAILABLE was never touched at
- *    settlement time and didn't need to be queried. Removing it also sidesteps
- *    an unresolved question: VENDOR_PENDING's direction is confirmed
- *    consistent across three independent JournalEntryWriter methods, but
- *    VENDOR_AVAILABLE's is not (see the caveat on `reconcileVendorDebt`).
+ * Settlement is now one balanced journal entry per suborder
+ * (`writeSuborderSettlement`), keyed by `referenceId: suborderId`,
+ * `referenceType: SUBORDER`, `category: VENDOR_SETTLEMENT`. Each such entry
+ * has exactly one PLATFORM_REVENUE_COMMISSION credit and one VENDOR_PENDING
+ * credit, so per-suborder commission and settle amounts are read directly off
+ * that entry's lines with no risk of pulling in later same-suborder entries
+ * (release, dispute) that use different categories.
  *
  * @param orderId - The _id of the order
  * @throws {Error} If no TransactionRecord exists for the given orderId
@@ -986,46 +1071,22 @@ export interface VendorDebtReconciliationResult {
 }
 
 /**
- * Reconciles VendorWallet.debt.amount — a running-state field not covered
- * by `reconcileVendorWallet`'s balances diff — against the ledger.
+ * Reconciles VendorWallet.debt.amount, a running-state field not covered by
+ * `reconcileVendorWallet`'s balances diff, against the ledger.
  *
- * CORRECTED after reviewing JournalEntryWriter directly — the original
- * version of this function derived debt from DEBT_RECOVERY_CLEARING, which
- * was wrong. That account is a pure wash: `writeDebtRecovery` debits and
- * credits it the *same amount within the same call* —
+ * Under the clamp-and-receivable debt model (Option B), a vendor's available
+ * balance never goes below zero. When an upheld penalty exceeds available, the
+ * shortfall is recorded in the per-vendor VENDOR_DEBT_RECEIVABLE account:
  *
- *   DEBIT   DEBT_RECOVERY_CLEARING   recoveredAmount
- *   ...
- *   CREDIT  DEBT_RECOVERY_CLEARING   recoveredAmount
+ *   writeDisputeUpheld:  DEBIT  VENDOR_DEBT_RECEIVABLE  penaltyToDebt   (debt up)
+ *   writeDebtRecovery:   CREDIT VENDOR_DEBT_RECEIVABLE  recoveredAmount (debt down)
  *
- * — so its net balance is always zero, system-wide, regardless of actual
- * outstanding debt. The original function would have returned `derived: 0`
- * for every vendor, every time.
+ * VENDOR_DEBT_RECEIVABLE is asset-style (debit increases it), so its net
+ * balance for a vendor is the amount that vendor currently owes the platform:
  *
- * Debt is instead implicitly represented as a NEGATIVE VENDOR_AVAILABLE
- * ledger balance. `writeDisputeUpheld`'s penalty line debits the vendor's
- * full `penaltyAmount` out of VENDOR_AVAILABLE regardless of whether the
- * vendor's balance can cover it — that's what pushes it negative — and
- * `applyDisputeUpheldDeductions` (vendor-wallet.model.ts) records
- * `Math.abs(newAvailable)` as `debt.amount` at exactly that moment. So:
+ *   derived debt = deriveLedgerAccountBalance(VENDOR_DEBT_RECEIVABLE, { entityId })
  *
- *   derived debt = max(0, -deriveLedgerAccountBalance(VENDOR_AVAILABLE, { entityId }))
- *
- * CAVEAT — worth verifying before trusting this in production:
- * VENDOR_AVAILABLE's debit/credit direction is not consistently confirmed
- * across JournalEntryWriter. Six composer methods are mutually consistent
- * with "debit increases it" (writeDisputeRejected, writePayoutFailed,
- * writeFundsReleased, and the inverse-decrease cases in writeDisputeOpened,
- * writePayoutInitiated, writeDebtRecovery); three go the other way
- * (writeDisputeUpheld's penalty line, writePayoutProcessingFee,
- * writePayoutProcessingFeeReversal) and — not coincidentally — are exactly
- * the methods this function's correctness depends on most (the penalty
- * line is what creates debt in the first place). Recommend running a
- * seeded test — open a dispute, uphold it with a penalty that exceeds the
- * vendor's available balance, then compare this function's `derived`
- * against the wallet's actual `debt.amount` — before trusting this in
- * production. If they disagree, `writeDisputeUpheld`'s penalty line
- * direction is the first place to check.
+ * A healthy vendor with no debt has a net balance of zero here.
  *
  * @param vendorId - The _id of the vendor
  * @throws {Error} If no VendorWallet exists for the given vendorId
@@ -1046,12 +1107,10 @@ export async function reconcileVendorDebt(
     );
   }
 
-  const derivedAvailable = await deriveLedgerAccountBalance(
-    LedgerAccountType.VENDOR_AVAILABLE,
-    { entityId: vendorId },
+  const derived = await deriveLedgerAccountBalance(
+    LedgerAccountType.VENDOR_DEBT_RECEIVABLE,
+    { entityId: vendorId, increasesOn: "debit" },
   );
-
-  const derived = Math.max(0, -derivedAvailable);
 
   return {
     vendorId: new mongoose.Types.ObjectId(vendorId),

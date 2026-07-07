@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
-import { WaitlistService } from "@/services/waitlist-service";
+import { WaitlistService } from "@/services/waitlist.service";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,

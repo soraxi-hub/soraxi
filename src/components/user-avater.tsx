@@ -68,9 +68,9 @@ function UserAvatar({ userName }: { userName?: string }) {
                   Orders
                 </DropdownMenuItem>
               </Link>
-              <Link href={"/requests/new"} className="lg:hidden">
+              <Link href={"/store/onboarding/"} className="lg:hidden">
                 <DropdownMenuItem className="cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
-                  Post What You Need
+                  Create Your Store
                 </DropdownMenuItem>
               </Link>
               <DropdownMenuSeparator className=" border" />

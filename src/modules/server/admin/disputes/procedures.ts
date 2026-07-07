@@ -33,10 +33,6 @@ import {
   DisputeResolvedBy,
   DebtRecoveryType,
 } from "@/enums/financial.enums";
-import {
-  DEBT_RECOVERY_THRESHOLD_KOBO,
-  DEBT_RECOVERY_PERCENTAGE,
-} from "@/constants/financial.constants";
 import { TRPCError } from "@trpc/server";
 import { koboToNaira } from "@/lib/utils/naira";
 import { getOrderModel } from "@/lib/db/models/order.model";
@@ -150,29 +146,12 @@ export const adminDisputeRouter = createTRPCRouter({
 
       // ----------------------------------------------------------------
       // STEP 3: Calculate penalty before opening the session
-      // Penalty is based on the gross amount of the disputed suborder
-      // Formula: 10% of gross amount, capped at ₦5,000
       // ----------------------------------------------------------------
       const { penaltyAmount } = calculatePenalty(breakdown.grossAmount);
 
-      // ----------------------------------------------------------------
-      // Determine debt recovery strategy upfront
-      // This requires knowing the current vendor wallet state — read it
-      // before the session to keep the session writes fast and focused
-      // ----------------------------------------------------------------
-
-      // NOTE: Import getVendorWalletByVendorId from vendor-wallet.model
-      // and use it here to fetch the current available balance
-      // e.g:
-      // const vendorWallet = await getVendorWalletByVendorId(dispute.vendorId.toString());
-      // const projectedAvailable = (vendorWallet?.balances.available ?? 0) - penaltyAmount;
-      // const wouldGoNegative = projectedAvailable < 0;
-      // const debtAmount = wouldGoNegative ? Math.abs(projectedAvailable) : 0;
-
       const vendorWallet = await getVendorWalletByVendorId(
         dispute.vendorId.toString(),
-      ); // (async () =>
-      // null)(); // NOTE: Replace with actual call
+      );
 
       if (!vendorWallet) {
         throw new TRPCError({
@@ -181,17 +160,6 @@ export const adminDisputeRouter = createTRPCRouter({
         });
       }
 
-      const currentAvailable = vendorWallet.balances.available;
-      const projectedAvailable = currentAvailable - penaltyAmount;
-      const wouldGoNegative = projectedAvailable < 0;
-      const debtAmount = wouldGoNegative ? Math.abs(projectedAvailable) : 0;
-
-      // Determine recovery strategy based on debt threshold
-      const debtRecoveryType =
-        debtAmount >= DEBT_RECOVERY_THRESHOLD_KOBO
-          ? DebtRecoveryType.FULL_BLOCK
-          : DebtRecoveryType.PERCENTAGE_DEDUCTION;
-
       // ----------------------------------------------------------------
       // STEP 4: All financial writes — atomic within a session
       // ----------------------------------------------------------------
@@ -199,50 +167,49 @@ export const adminDisputeRouter = createTRPCRouter({
       session.startTransaction();
 
       try {
+        // Wallet first: it computes and returns the penalty split (clamped so
+        // available never goes below zero) which the writer needs to keep the
+        // ledger's penalty split identical to the wallet's. Recovery policy is
+        // FULL_BLOCK for now, set only if the vendor has no policy yet (sticky).
+        const deduction = await applyDisputeUpheldDeductions(
+          dispute.vendorId.toString(),
+          dispute.frozenAmount,
+          penaltyAmount,
+          DebtRecoveryType.FULL_BLOCK,
+          0,
+          session,
+        );
+
+        if (!deduction) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Vendor wallet not found during deduction.",
+          });
+        }
+
+        const { penaltyFromAvailable } = deduction;
+
         // --- DISPUTE_UPHELD journal entry ---
-        // Produces six balanced ledger lines in one atomic entry (three pairs):
-        //
-        //   Pair 1 — Refund of frozen settle amount:
-        //     DEBIT   VENDOR_DISPUTED             frozenAmount
-        //     CREDIT  CUSTOMER_REFUND_PAYABLE     frozenAmount
-        //
-        //   Pair 2 — Commission reversed (student receives full amountPaid back):
-        //     DEBIT   PLATFORM_REVENUE_COMMISSION commission
-        //     CREDIT  CUSTOMER_REFUND_PAYABLE     commission
-        //
-        //   Pair 3 — Penalty:
-        //     DEBIT   VENDOR_AVAILABLE            penaltyAmount
-        //     CREDIT  PLATFORM_REVENUE_PENALTIES  penaltyAmount
+        // Penalty debit splits: penaltyFromAvailable out of VENDOR_AVAILABLE,
+        // remainder into VENDOR_DEBT_RECEIVABLE. Full penalty is still
+        // recognised as PLATFORM_REVENUE_PENALTIES revenue.
         const writer = await JournalEntryWriter.init();
 
         await writer.writeDisputeUpheld({
           vendorId: dispute.vendorId,
+          customerId: dispute.customerId,
           settleAmount: dispute.frozenAmount,
           commission: breakdown.commission,
           penaltyAmount,
+          penaltyFromAvailable,
           disputeId: new mongoose.Types.ObjectId(input.disputeId),
           session,
         });
 
-        // --- Update Vendor Wallet cache ---
-        // Removes frozen amount from disputed balance, deducts penalty from
-        // available balance (may go negative and create a debt record).
-        await applyDisputeUpheldDeductions(
-          dispute.vendorId.toString(),
-          dispute.frozenAmount,
-          penaltyAmount,
-          debtRecoveryType,
-          wouldGoNegative ? DEBT_RECOVERY_PERCENTAGE : 0,
-          session,
-        );
-
         // --- Update Platform Wallet cache ---
-        // Credits the penalty as platform penalty revenue.
-        // Mirrors the PLATFORM_REVENUE_PENALTIES CREDIT in writeDisputeUpheld.
-        // The commission is reversed since the student is refunded the full amountPaid.
+        // Commission reversed (student refunded full amountPaid); full penalty
+        // recognised as revenue regardless of the available/debt split.
         await debitPlatformCommission(breakdown.commission, session);
-
-        // Mirrors the PLATFORM_REVENUE_PENALTIES CREDIT in writeDisputeUpheld.
         await creditPlatformPenalty(penaltyAmount, session);
 
         // --- Update Dispute Record ---
@@ -265,6 +232,8 @@ export const adminDisputeRouter = createTRPCRouter({
 
         await session.commitTransaction();
 
+        const penaltyToDebt = penaltyAmount - penaltyFromAvailable;
+
         return {
           success: true,
           message: "Dispute resolved. Student will be refunded.",
@@ -273,16 +242,13 @@ export const adminDisputeRouter = createTRPCRouter({
             outcome: DisputeOutcome.UPHELD,
             refundAmount: dispute.frozenAmount + breakdown.commission,
             penaltyAmount,
-            vendorDebt: wouldGoNegative
-              ? {
-                  amount: debtAmount,
-                  recoveryType: debtRecoveryType,
-                  recoveryPercentage:
-                    debtRecoveryType === DebtRecoveryType.PERCENTAGE_DEDUCTION
-                      ? DEBT_RECOVERY_PERCENTAGE
-                      : null,
-                }
-              : null,
+            vendorDebt:
+              penaltyToDebt > 0
+                ? {
+                    amount: penaltyToDebt,
+                    recoveryType: DebtRecoveryType.FULL_BLOCK,
+                  }
+                : null,
           },
         };
       } catch (error) {
@@ -569,7 +535,8 @@ export const adminDisputeRouter = createTRPCRouter({
           data: {
             disputeId: input.disputeId,
             status: updatedDispute.status,
-            additionalEvidenceDeadline: updatedDispute.additionalEvidenceDeadline,
+            additionalEvidenceDeadline:
+              updatedDispute.additionalEvidenceDeadline,
           },
         };
       } catch (error) {

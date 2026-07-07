@@ -405,7 +405,7 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
   orderId: ObjectId,
   vendorId: ObjectId,
   customerId: ObjectId,
-  trigger: RefundTrigger,          // "ORDER_CANCELLED" | "FAILED_DELIVERY" | "DISPUTE_UPHELD" | "DISPUTE_AUTO_RESOLVED"
+  trigger: RefundTrigger,          // "ORDER_CANCELLED" | "FAILED_DELIVERY" | "DISPUTE_UPHELD"
   amountBreakdown: {
     amountRefunded: number,        // Amount returned to student (Kobo)
     settleAmount: number,          // Vendor's net settle amount for this suborder (Kobo)
@@ -1060,16 +1060,58 @@ Minimum refund amount: NGN 100. Soraxi's minimum order value means this is unlik
 
 ## 15. Reconciliation
 
+Eight reconciliation utility functions live in `reconciliation.util.ts`. Seven run automatically via two nightly cron jobs; one runs on-demand.
+
 ### Global Balance Check (`checkGlobalBalance`)
 
 Verifies that the sum of all CREDIT ledger lines equals the sum of all DEBIT ledger lines across the entire system. A non-zero delta indicates a data integrity problem — either a write bypassed `JournalEntryWriter`, or a ledger line was modified after creation (which should be impossible given the immutable schema).
-
-Can be scoped to a date range to avoid full-collection scans:
 
 ```typescript
 const result = await checkGlobalBalance(dateFrom, dateTo);
 // { totalCredits, totalDebits, isBalanced, delta }
 ```
+
+### Platform Wallet Reconciliation (`reconcilePlatformWallet`)
+
+Reconstructs expected `PlatformWallet` balances by aggregating `PLATFORM_REVENUE_COMMISSION` and `PLATFORM_REVENUE_PENALTIES` ledger lines and compares against the stored document. Closes the gap noted below in §16's history — vendor-side reconciliation existed first; this is the platform-side counterpart.
+
+```typescript
+const result = await reconcilePlatformWallet();
+// { stored, derived, isBalanced, discrepancies }
+```
+
+### Per-Entry Integrity Check (`verifyJournalEntryIntegrity`)
+
+`checkGlobalBalance` only proves system-wide credits equal system-wide debits — two unrelated broken entries whose errors cancel out would pass it silently. This function groups ledger lines by `journalId` and flags any entry where credits ≠ debits, or where an entry has fewer than 2 lines. Only broken entries are returned.
+
+```typescript
+const broken = await verifyJournalEntryIntegrity(dateFrom, dateTo);
+// UnbalancedJournalEntry[] — empty array means everything's balanced
+```
+
+### Ledger Structural Integrity (`checkLedgerStructuralIntegrity`)
+
+Cheap structural checks that don't require replaying balances:
+
+- Orphaned `LedgerLine`s whose `journalId` doesn't resolve to a `JournalEntry`
+- `VENDOR_*`/`CUSTOMER_*` lines missing `entityId` or `entityType`
+- Duplicate journal entries for the same `referenceId` + `referenceType` + `category` (not automatically a bug — some categories can legitimately repeat — but worth investigating)
+
+```typescript
+const result = await checkLedgerStructuralIntegrity(dateFrom, dateTo);
+// { orphanedLines, malformedEntityLines, duplicateJournalGroups }
+```
+
+### Escrow Solvency Check (`checkEscrowSolvency`)
+
+Verifies that cash the platform still directly controls (`PLATFORM_ESCROW + PAYOUT_PROCESSING`, both asset-convention — DEBIT increases) covers everything still owed to vendors and customers (`VENDOR_PENDING + VENDOR_AVAILABLE + VENDOR_DISPUTED + CUSTOMER_REFUND_PAYABLE`, liability-convention — CREDIT increases).
+
+```typescript
+const result = await checkEscrowSolvency();
+// { escrowBalance, payoutProcessing, platformHeldCash, liabilities, isSolvent, delta }
+```
+
+**Known caveat (unresolved — see §16):** `writePayoutCompleted`'s `PLATFORM_ESCROW` line direction may be inverted relative to `writePaymentReceived`'s documented convention. If so, this check's `delta` will show a spurious, growing surplus that tracks completed-payout volume rather than a real solvency issue. Confirmed present in production as of 2026-07-05 — see §16.
 
 ### Vendor Wallet Reconciliation (`reconcileVendorWallet`)
 
@@ -1093,10 +1135,38 @@ const result = await reconcileVendorWallet(vendorId);
 
 `total` is derived as `available + pending + disputed`.
 
+**Known caveat (unresolved — see §16):** `VENDOR_PENDING`'s direction above is confirmed correct against three independent `JournalEntryWriter` methods. `VENDOR_AVAILABLE`'s direction is _not_ consistently confirmed — six composer methods agree with the table above, three (`writeDisputeUpheld`'s penalty line, `writePayoutProcessingFee`, `writePayoutProcessingFeeReversal`) contradict it. `checkGlobalBalance` and `verifyJournalEntryIntegrity` cannot catch this class of bug — a line crediting the wrong account is still a balanced entry. Only this function, cross-referenced against the real `VendorWallet` document, can catch it.
+
+### Vendor Debt Reconciliation (`reconcileVendorDebt`)
+
+Reconciles `VendorWallet.debt.amount` against the ledger. Debt isn't tracked via a dedicated account — `DEBT_RECOVERY_CLEARING` nets to zero on every `writeDebtRecovery` call by design, so it can't be used to derive debt. Instead, debt is implicitly a negative `VENDOR_AVAILABLE` ledger balance (created by `writeDisputeUpheld`'s penalty line debiting past what the vendor can cover):
+
+```typescript
+const result = await reconcileVendorDebt(vendorId);
+// derived = max(0, -deriveLedgerAccountBalance(VENDOR_AVAILABLE, { entityId: vendorId }))
+```
+
+Inherits the same `VENDOR_AVAILABLE` direction caveat as `reconcileVendorWallet` above — arguably more exposed to it, since the penalty line is one of the three methods that disagrees with the documented convention.
+
+### Transaction Record Reconciliation (`reconcileTransactionRecord`)
+
+Cross-checks the commission/settleAmount captured on a `TransactionRecord` at payment time against the `VENDOR_SETTLEMENT` journal entry actually written for each suborder. The only reconciliation function that takes a specific identifier (`orderId`) rather than running system-wide — see "When to Run" below for why it isn't a cron job.
+
+```typescript
+const result = await reconcileTransactionRecord(orderId);
+// { orderId, isBalanced, suborderDiscrepancies }
+```
+
 ### When to Run
 
-- `checkGlobalBalance` — daily cron job, scoped to the previous 24 hours
-- `reconcileVendorWallet` — on-demand from admin routes, or triggered when a wallet discrepancy is suspected
+**Cron — `/api/cron/reconcile-financials`, daily at 3:00am:**
+`checkGlobalBalance`, `reconcilePlatformWallet`, `verifyJournalEntryIntegrity`, `checkLedgerStructuralIntegrity`, `checkEscrowSolvency` — all cheap, system-wide, no required input. Only discrepancies are logged/returned, not full healthy-state detail. Alerting (`notifyOpsOfDiscrepancies`) is currently a stub — logs only, not yet wired to Slack/email.
+
+**Cron — `/api/cron/reconcile-vendor-wallets`, daily at 3:30am:**
+`reconcileVendorWallet` + `reconcileVendorDebt`, looped across every vendor in bounded concurrent batches (25 at a time). Cost scales with vendor count; the loop-per-vendor approach is fine at current scale but should be replaced with a batched `$in`-aggregation version, or a checkpoint/cursor scheme, once vendor count grows enough that job duration risks the serverless execution window.
+
+**On-demand only — `reconcileTransactionRecord`:**
+Not cron-eligible — needs a specific `orderId`, and there's no batch of "all orders" worth reconciling nightly. Two intended call sites: (1) automatically, right after `writeOrderSettlement` runs, as a same-request sanity check; (2) manually, via a "Reconcile" action on the order's admin detail page when investigating a specific dispute, vendor complaint, or payout mismatch. Does not warrant a dedicated admin page.
 
 ---
 
@@ -1104,15 +1174,22 @@ const result = await reconcileVendorWallet(vendorId);
 
 ### Defined — Pending Business Decision
 
-| Item                               | Notes                                                                                                                                                                                                                                           |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Negative wallet recovery threshold | Kobo value that determines PERCENTAGE_DEDUCTION vs FULL_BLOCK                                                                                                                                                                                   |
-| Penalty amount structure           | Fixed fine, percentage of order value, or strike-based system                                                                                                                                                                                   |
-| Payout scheduling                  | Manual on-demand vs automated scheduled disbursements (e.g. weekly NET-7)                                                                                                                                                                       |
-| Platform revenue withdrawal        | Procedure for withdrawing accumulated platform wallet balance — not yet implemented                                                                                                                                                             |
-| Vercel IP whitelisting             | Migrate to static IP host or proxy to enable fully automated payout and refund API calls                                                                                                                                                        |
-| Flutterwave refund webhooks        | Must be requested from Flutterwave support — until enabled, only the manual admin path can close a refund                                                                                                                                       |
-| Platform wallet reconciliation     | No automated function yet to detect drift between `PLATFORM_REVENUE_COMMISSION` / `PLATFORM_REVENUE_PENALTIES` ledger balances and the `PlatformWallet` cache document — only vendor-side reconciliation (`reconcileVendorWallet`) exists today |
+| Item                               | Notes                                                                                                     |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Negative wallet recovery threshold | Kobo value that determines PERCENTAGE_DEDUCTION vs FULL_BLOCK                                             |
+| Penalty amount structure           | Fixed fine, percentage of order value, or strike-based system                                             |
+| Payout scheduling                  | Manual on-demand vs automated scheduled disbursements (e.g. weekly NET-7)                                 |
+| Platform revenue withdrawal        | Procedure for withdrawing accumulated platform wallet balance — not yet implemented                       |
+| Vercel IP whitelisting             | Migrate to static IP host or proxy to enable fully automated payout and refund API calls                  |
+| Flutterwave refund webhooks        | Must be requested from Flutterwave support — until enabled, only the manual admin path can close a refund |
+
+### Known Issues — Confirmed or Suspected, Needs Resolution
+
+| Item                                                            | Status                                               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VENDOR_AVAILABLE` debit/credit direction inconsistency         | Suspected — needs staging test                       | Six `JournalEntryWriter` methods agree "DEBIT increases," three disagree ("CREDIT increases," matching this doc's table). The three outliers are `writeDisputeUpheld`'s penalty line, `writePayoutProcessingFee`, `writePayoutProcessingFeeReversal` — notably, exactly the methods vendor debt tracking depends on. Test: seed a dispute uphold with a penalty exceeding available balance, compare `reconcileVendorWallet`/`reconcileVendorDebt` derived figures against the real `VendorWallet` document. |
+| `writePayoutCompleted` PLATFORM_ESCROW direction                | Suspected, likely confirmed in production 2026-07-05 | `writePaymentReceived` documents DEBIT as increasing `PLATFORM_ESCROW`; `writePayoutCompleted` also DEBITs it but comments describe this as funds _exiting_. A production cron run on 2026-07-05 found `checkEscrowSolvency` reporting `isSolvent: false, delta: 47960` (escrow larger than it should be) — consistent with this inversion. Needs confirmation: check whether a payout completed in the prior 24h with `netAmount` matching the delta.                                                       |
+| `CUSTOMER_REFUND_PAYABLE` lines missing `entityId`/`entityType` | Confirmed in production 2026-07-05                   | `checkLedgerStructuralIntegrity` found 2 ledger lines on `CUSTOMER_REFUND_PAYABLE` missing both fields. Likely a code path (guest checkout, retry, or missing customerId at call time) in whichever writer method credits this account without passing entity info. Affected lines: needs investigation via the writer call sites for those two `lineId`s.                                                                                                                                                   |
 
 ### Planned Future Features
 

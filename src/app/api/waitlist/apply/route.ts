@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { AppError } from "@/lib/errors/app-error";
 import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
-import { WaitlistService } from "@/services/waitlist-service";
+import { WaitlistService } from "@/services/waitlist.service";
 import { z } from "zod";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES } from "@/constants/image.constants";
