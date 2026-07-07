@@ -83,6 +83,9 @@ export enum LedgerAccountType {
   /** Vendor funds frozen due to an open dispute. */
   VENDOR_DISPUTED = "vendor_disputed",
 
+  /** Money a vendor owes the platform after a penalty exceeded their available balance. */
+  VENDOR_DEBT_RECEIVABLE = "vendor_debt_receivable",
+
   /** Commission income earned by the platform from sales. */
   PLATFORM_REVENUE_COMMISSION = "platform_revenue_commission",
 

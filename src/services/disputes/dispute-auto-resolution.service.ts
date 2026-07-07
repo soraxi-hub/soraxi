@@ -9,10 +9,7 @@ import {
   getTransactionRecordByOrderId,
   updateSuborderFinancialStatus,
 } from "@/lib/db/models/transaction-record.model";
-import {
-  applyDisputeUpheldDeductions,
-  getVendorWalletByVendorId,
-} from "@/lib/db/models/vendor-wallet.model";
+import { applyDisputeUpheldDeductions } from "@/lib/db/models/vendor-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
   SuborderFinancialStatus,
@@ -20,7 +17,6 @@ import {
   DisputeResolvedBy,
   DebtRecoveryType,
 } from "@/enums/financial.enums";
-import { DEBT_RECOVERY_THRESHOLD_KOBO } from "@/constants/financial.constants";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 // import { NotificationFactory, renderTemplate } from "@/domain/notification";
@@ -116,7 +112,7 @@ export class DisputeAutoResolutionService {
   /**
    * Auto-resolves a single overdue dispute.
    *
-   * Each dispute gets its own session — isolated from all other disputes
+   * Each dispute gets its own session, isolated from all other disputes
    * in the batch. If this dispute's writes fail, only this dispute is
    * rolled back. Others continue processing normally.
    *
@@ -165,24 +161,7 @@ export class DisputeAutoResolutionService {
         };
       }
 
-      // Fetch vendor wallet to determine debt recovery strategy upfront.
-      // No penalty is applied in this path, but the vendor may already have
-      // a negative available balance from a prior upheld dispute — if so,
-      // the existing debt recovery strategy must be preserved.
-      const vendorWallet = await getVendorWalletByVendorId(
-        dispute.vendorId.toString(),
-      );
-
-      const currentAvailable = vendorWallet?.balances.available ?? 0;
-      const wouldGoNegative = currentAvailable < 0;
-      const debtAmount = wouldGoNegative ? Math.abs(currentAvailable) : 0;
-
-      const debtRecoveryType =
-        debtAmount >= DEBT_RECOVERY_THRESHOLD_KOBO
-          ? DebtRecoveryType.FULL_BLOCK
-          : DebtRecoveryType.PERCENTAGE_DEDUCTION;
-
-      // All financial writes — isolated session per dispute
+      // All financial writes, isolated session per dispute
       session = await mongoose.startSession();
       session.startTransaction();
 
@@ -191,19 +170,20 @@ export class DisputeAutoResolutionService {
       // --- DISPUTE_AUTO_RESOLVED journal entry ---
       // Refunds the full amountPaid (settle + commission) to the customer with
       // no penalty to the vendor. The platform team failed to resolve within
-      // the deadline — the vendor is not penalised for the team's inaction.
+      // the deadline, so the vendor is not penalised for the team's inaction.
       //
-      //   Pair 1 — Refund of frozen settle amount:
+      //   Pair 1, Refund of frozen settle amount:
       //     DEBIT   VENDOR_DISPUTED          frozenAmount
       //     CREDIT  CUSTOMER_REFUND_PAYABLE  frozenAmount
       //
-      //   Pair 2 — Commission reversed (student receives full amountPaid back):
+      //   Pair 2, Commission reversed (customer receives full amountPaid back):
       //     DEBIT   PLATFORM_REVENUE_COMMISSION  commission
       //     CREDIT  CUSTOMER_REFUND_PAYABLE      commission
       const writer = await JournalEntryWriter.init();
 
       await writer.writeDisputeAutoResolved({
         vendorId: dispute.vendorId,
+        customerId: dispute.customerId,
         settleAmount: dispute.frozenAmount,
         commission: breakdown.commission,
         disputeId: dispute._id as mongoose.Types.ObjectId,
@@ -211,15 +191,15 @@ export class DisputeAutoResolutionService {
       });
 
       // --- Update Vendor Wallet cache ---
-      // Removes frozen amount from disputed balance — penalty is 0.
-      // debtRecoveryType is passed in case the vendor already had negative
-      // available balance from a prior penalty; it is not creating new debt here.
+      // Removes frozen amount from disputed balance. Penalty is 0, so the wallet
+      // method touches neither available nor debt. FULL_BLOCK and 0 satisfy the
+      // signature and have no effect at zero penalty (no policy is set).
       await applyDisputeUpheldDeductions(
         dispute.vendorId.toString(),
         dispute.frozenAmount,
-        0, // No penalty — platform team's failure, not the vendor's
-        debtRecoveryType,
-        0, // No new recovery percentage — no new debt is being created
+        0, // No penalty, platform team's failure, not the vendor's
+        DebtRecoveryType.FULL_BLOCK,
+        0,
         session,
       );
 
@@ -236,7 +216,7 @@ export class DisputeAutoResolutionService {
         DisputeResolvedBy.SYSTEM,
         0, // No penalty
         session,
-        "Auto-resolved by system — resolution deadline exceeded without team action.",
+        "Auto-resolved by system, resolution deadline exceeded without team action.",
       );
 
       // --- Update Transaction Record: suborder status → REFUNDED ---
@@ -265,7 +245,7 @@ export class DisputeAutoResolutionService {
 
       await session.commitTransaction();
 
-      // Send notifications outside the session — network calls don't belong in transactions
+      // Send notifications outside the session, network calls don't belong in transactions
       await this.sendAutoResolutionNotifications(dispute);
 
       return { disputeId, success: true };

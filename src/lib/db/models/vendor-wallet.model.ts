@@ -3,6 +3,20 @@ import { connectToDatabase } from "../mongoose";
 import { DebtRecoveryType } from "@/enums/financial.enums";
 
 /**
+ * Result of applying upheld-dispute deductions to a vendor wallet.
+ */
+export interface IDisputeUpheldDeductionResult {
+  wallet: IVendorWallet;
+  /**
+   * Portion of the penalty drawn from available balance.
+   * The caller passes this to writeDisputeUpheld so the ledger split matches
+   * the wallet split. The remainder (penaltyAmount - penaltyFromAvailable)
+   * became new debt.
+   */
+  penaltyFromAvailable: number;
+}
+
+/**
  * Represents the breakdown of a vendor's wallet balance across all states.
  * All values are in Kobo (1 Naira = 100 Kobo).
  */
@@ -80,7 +94,7 @@ const VendorWalletSchema = new Schema<IVendorWalletDocument>(
       },
       recoveryType: {
         type: String,
-        enum: Object.values(DebtRecoveryType),
+        enum: [...Object.values(DebtRecoveryType), null],
         default: null,
       },
       recoveryPercentage: {
@@ -262,55 +276,73 @@ export async function releaseVendorDisputedToAvailable(
 }
 
 /**
- * Deduct disputed funds and apply a penalty to the vendor's available balance.
- * Called when a dispute is upheld — the frozen amount is removed and a
- * penalty is deducted. The available balance may go negative, creating a debt.
+ * Apply the wallet-side effects of an upheld dispute.
+ *
+ * Removes the frozen amount from disputed, then splits the penalty so available
+ * never goes below zero: the covered portion (min of available and penalty)
+ * leaves available, and any shortfall accumulates onto debt.amount via $inc.
+ * Recovery policy is sticky: recoveryType/recoveryPercentage are set only when
+ * no policy is already in force (recoveryType is null).
+ *
+ * Computes and returns penaltyFromAvailable so the caller can keep the ledger
+ * entry's penalty split identical to the wallet's. Must be called before the
+ * writer so the caller has that figure.
  *
  * @param vendorId - The _id of the vendor
- * @param frozenAmountInKobo - The disputed amount to remove in Kobo
- * @param penaltyAmountInKobo - The penalty amount to deduct in Kobo
- * @param debtRecoveryType - Recovery strategy if wallet goes negative
- * @param recoveryPercentage - % per payout if PERCENTAGE_DEDUCTION strategy
- * @returns Updated vendor wallet document or null
+ * @param frozenAmountInKobo - The disputed amount to remove
+ * @param penaltyAmountInKobo - The penalty to apply (0 for no-penalty paths)
+ * @param debtRecoveryType - Recovery strategy, set only if no policy exists yet
+ * @param recoveryPercentage - % per payout, set only if no policy exists yet
+ * @param session - MongoDB client session
+ * @returns The updated wallet and the penaltyFromAvailable split, or null if no wallet
  */
 export async function applyDisputeUpheldDeductions(
   vendorId: string,
   frozenAmountInKobo: number,
   penaltyAmountInKobo: number,
   debtRecoveryType: DebtRecoveryType,
-  recoveryPercentage = 0,
+  recoveryPercentage: number,
   session: mongoose.ClientSession,
-): Promise<IVendorWallet | null> {
+): Promise<IDisputeUpheldDeductionResult | null> {
   await connectToDatabase();
   const VendorWallet = await getVendorWalletModel();
 
   const wallet = await VendorWallet.findOne({ vendorId }).session(session);
   if (!wallet) return null;
 
-  const newAvailable = wallet.balances.available - penaltyAmountInKobo;
-  const newDisputed = wallet.balances.disputed - frozenAmountInKobo;
-  const newTotal =
-    wallet.balances.total - frozenAmountInKobo - penaltyAmountInKobo;
+  const available = wallet.balances.available;
 
-  // If available goes negative, record it as a debt
-  const isNegative = newAvailable < 0;
+  // Clamp: never let available go below zero. The covered portion is whatever
+  // available can absorb; the rest becomes new debt.
+  const penaltyFromAvailable = Math.min(available, penaltyAmountInKobo);
+  const penaltyToDebt = penaltyAmountInKobo - penaltyFromAvailable;
 
-  return VendorWallet.findOneAndUpdate<IVendorWallet>(
+  // Sticky policy: only set recovery fields when no policy is already in force.
+  const hasExistingPolicy = wallet.debt.recoveryType != null;
+  const shouldSetPolicy = penaltyToDebt > 0 && !hasExistingPolicy;
+
+  const updated = await VendorWallet.findOneAndUpdate<IVendorWallet>(
     { vendorId },
     {
-      $set: {
-        "balances.available": newAvailable,
-        "balances.disputed": newDisputed,
-        "balances.total": newTotal,
-        ...(isNegative && {
-          "debt.amount": Math.abs(newAvailable),
+      $inc: {
+        "balances.available": -penaltyFromAvailable,
+        "balances.disputed": -frozenAmountInKobo,
+        "balances.total": -(frozenAmountInKobo + penaltyFromAvailable),
+        "debt.amount": penaltyToDebt,
+      },
+      ...(shouldSetPolicy && {
+        $set: {
           "debt.recoveryType": debtRecoveryType,
           "debt.recoveryPercentage": recoveryPercentage,
-        }),
-      },
+        },
+      }),
     },
     { new: true, session },
   );
+
+  if (!updated) return null;
+
+  return { wallet: updated, penaltyFromAvailable };
 }
 
 /**

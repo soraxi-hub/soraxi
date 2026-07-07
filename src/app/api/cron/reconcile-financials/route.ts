@@ -6,6 +6,7 @@ import {
   verifyJournalEntryIntegrity,
   checkLedgerStructuralIntegrity,
   checkEscrowSolvency,
+  checkLedgerAccountingIdentity,
 } from "@/lib/utils/reconciliation.util";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -26,9 +27,13 @@ import {
  *   previous 24 hours
  * - checkLedgerStructuralIntegrity — orphaned lines, malformed entity
  *   fields, duplicate journal entries, scoped to the previous 24 hours
- * - checkEscrowSolvency — PLATFORM_ESCROW vs total outstanding liabilities
+ * - checkEscrowSolvency: platform-controlled assets vs outstanding
+ *   third-party liabilities (a loose >= solvency signal)
+ * - checkLedgerAccountingIdentity: exact system-wide integrity identity
+ *   (assets minus third-party liabilities === retained earnings). A non-zero
+ *   delta means a malformed entry somewhere.
  *
- * All five checks are cheap relative to vendor-level reconciliation — each
+ * All six checks are cheap relative to vendor-level reconciliation, each
  * is a single indexed aggregation (or a handful of them) bounded by the
  * previous day's ledger activity, not total collection size. Vendor-level
  *
@@ -70,12 +75,14 @@ export async function GET(request: NextRequest) {
       unbalancedJournalEntries,
       structuralIntegrity,
       escrowSolvency,
+      accountingIdentity,
     ] = await Promise.all([
       checkGlobalBalance(dateFrom, dateTo),
       reconcilePlatformWallet(),
       verifyJournalEntryIntegrity(dateFrom, dateTo),
       checkLedgerStructuralIntegrity(dateFrom, dateTo),
       checkEscrowSolvency(),
+      checkLedgerAccountingIdentity(),
     ]);
 
     const hasDiscrepancies =
@@ -85,7 +92,8 @@ export async function GET(request: NextRequest) {
       structuralIntegrity.orphanedLines.length > 0 ||
       structuralIntegrity.malformedEntityLines.length > 0 ||
       structuralIntegrity.duplicateJournalGroups.length > 0 ||
-      !escrowSolvency.isSolvent;
+      !escrowSolvency.isSolvent ||
+      !accountingIdentity.isBalanced;
 
     const summary = {
       windowStart: dateFrom.toISOString(),
@@ -122,6 +130,17 @@ export async function GET(request: NextRequest) {
         isSolvent: escrowSolvency.isSolvent,
         delta: escrowSolvency.delta,
       },
+      accountingIdentity: {
+        isBalanced: accountingIdentity.isBalanced,
+        delta: accountingIdentity.delta,
+        assetsMinusLiabilities: accountingIdentity.assetsMinusLiabilities,
+        retainedEarnings: accountingIdentity.retainedEarnings,
+        // Full account breakdown only when the identity is off, to keep the
+        // healthy-run payload small (mirrors the MAX_SAMPLE_SIZE philosophy).
+        ...(accountingIdentity.isBalanced
+          ? {}
+          : { components: accountingIdentity.components }),
+      },
     };
 
     if (hasDiscrepancies) {
@@ -144,6 +163,7 @@ export async function GET(request: NextRequest) {
               `Platform wallet: ${platformWallet.isBalanced ? "balanced" : "off"}`,
               `Unbalanced journal entries: ${unbalancedJournalEntries.length}`,
               `Escrow: ${escrowSolvency.isSolvent ? "solvent" : "insolvent"}`,
+              `Accounting identity: ${accountingIdentity.isBalanced ? "balanced" : "off"}`,
             ],
             "ok",
           ),

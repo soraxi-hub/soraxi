@@ -65,6 +65,10 @@ export interface WritePaymentReceivedParams {
   orderId: mongoose.Types.ObjectId;
   /** Flutterwave transaction reference — stored in metadata. */
   flutterwaveReference: string;
+  /** The id of the entityType that made the payment */
+  entityId: mongoose.Types.ObjectId;
+  /** Is it a customer or vendor */
+  entityType: LedgerEntityType;
   session: mongoose.ClientSession;
 }
 
@@ -84,6 +88,29 @@ export interface WriteOrderSettlementParams {
   totalAmount: number;
   /** _id of the order. */
   orderId: mongoose.Types.ObjectId;
+  /** The id of the entityType that made the payment */
+  entityId: mongoose.Types.ObjectId;
+  /** Is it a customer or vendor */
+  entityType: LedgerEntityType;
+  session: mongoose.ClientSession;
+}
+
+export interface WriteSuborderSettlementParams {
+  /** The vendor (store) this suborder belongs to. */
+  vendorId: mongoose.Types.ObjectId;
+  /** The vendor's net settle amount for this suborder, in Kobo. */
+  settleAmount: number;
+  /** Platform commission earned on this suborder, in Kobo. */
+  commission: number;
+  /**
+   * The customer's payment for this suborder, in Kobo.
+   * Must equal settleAmount + commission.
+   */
+  amountPaid: number;
+  /** _id of the suborder (used as referenceId). */
+  suborderId: mongoose.Types.ObjectId;
+  /** The id of the customer that made the payment */
+  customerId: mongoose.Types.ObjectId;
   session: mongoose.ClientSession;
 }
 
@@ -110,6 +137,14 @@ export interface WriteDisputeRejectedParams {
 export interface WriteDisputeUpheldParams {
   /** The vendor whose funds are being forfeited. */
   vendorId: mongoose.Types.ObjectId;
+  /** The customer this disputed funds belongs to.  */
+  customerId: mongoose.Types.ObjectId;
+  /**
+   * Portion of penaltyAmount drawn from the vendor's available balance.
+   * The remainder (penaltyAmount - penaltyFromAvailable) becomes vendor debt.
+   * Computed by the caller from the same wallet snapshot used for the clamp.
+   */
+  penaltyFromAvailable: number;
   /** The frozen settle amount to be refunded to the customer, in Kobo. */
   settleAmount: number;
   /**
@@ -128,6 +163,8 @@ export interface WriteDisputeUpheldParams {
 export interface WriteDisputeAutoResolvedParams {
   /** The vendor whose frozen funds are being refunded to the customer. */
   vendorId: mongoose.Types.ObjectId;
+  /** The customer this disputed funds belongs to.  */
+  customerId: mongoose.Types.ObjectId;
   /** The frozen settle amount to be refunded to the customer, in Kobo. */
   settleAmount: number;
   /**
@@ -244,6 +281,8 @@ export interface WriteGatewayFeeReversalParams {
 export interface WriteOrderCancellationRefundParams {
   /** The vendor whose pending funds are being reversed. */
   vendorId: mongoose.Types.ObjectId;
+  /** The customer this pending funds belongs to.  */
+  customerId: mongoose.Types.ObjectId;
   /**
    * The vendor's net settle amount for this suborder, in Kobo.
    * Reversed out of VENDOR_PENDING.
@@ -271,6 +310,8 @@ export interface WriteOrderCancellationRefundParams {
 export interface WriteFailedDeliveryRefundParams {
   /** The vendor whose pending funds are being reversed. */
   vendorId: mongoose.Types.ObjectId;
+  /** The customer this pending funds belongs to.  */
+  customerId: mongoose.Types.ObjectId;
   /**
    * The vendor's net settle amount for this suborder, in Kobo.
    * This is the amount refunded to the student.
@@ -285,6 +326,8 @@ export interface WriteFailedDeliveryRefundParams {
 }
 
 export interface WriteRefundConfirmedParams {
+  /** The customer this returned funds belongs to.  */
+  customerId: mongoose.Types.ObjectId;
   /**
    * The amount Flutterwave confirmed was disbursed to the customer, in Kobo.
    * Closes the CUSTOMER_REFUND_PAYABLE liability and reduces PLATFORM_ESCROW.
@@ -441,7 +484,14 @@ export class JournalEntryWriter {
   async writePaymentReceived(
     params: WritePaymentReceivedParams,
   ): Promise<void> {
-    const { totalAmount, orderId, flutterwaveReference, session } = params;
+    const {
+      totalAmount,
+      orderId,
+      flutterwaveReference,
+      session,
+      entityId,
+      entityType,
+    } = params;
 
     assertValidKoboAmount(totalAmount, "totalAmount");
 
@@ -454,6 +504,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId,
+        entityType,
         amount: totalAmount,
       },
     ];
@@ -486,6 +538,7 @@ export class JournalEntryWriter {
    *
    * @param params - Order settlement parameters
    * @throws {Error} If settlement amounts do not sum to totalAmount
+   * @deprecated
    */
   async writeOrderSettlement(
     params: WriteOrderSettlementParams,
@@ -496,6 +549,8 @@ export class JournalEntryWriter {
       totalAmount,
       orderId,
       session,
+      entityId,
+      entityType,
     } = params;
 
     assertValidKoboAmount(totalAmount, "totalAmount");
@@ -528,6 +583,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId,
+        entityType,
         amount: totalAmount,
       },
       // One CREDIT line per vendor — each with their own entityId
@@ -564,17 +621,94 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record the freezing of a vendor's available funds when a dispute is opened.
+   * Record settlement of a single confirmed suborder. One balanced entry per
+   * suborder, so referenceId points at the suborder and per-suborder commission
+   * stays derivable from the ledger.
    *
    * Journal entry:
-   *   DEBIT   VENDOR_DISPUTED    settleAmount
-   *   CREDIT  VENDOR_AVAILABLE   settleAmount
+   *   DEBIT   CUSTOMER_REFUND_PAYABLE       amountPaid   (closes this suborder's share of escrow liability)
+   *   CREDIT  VENDOR_PENDING                settleAmount
+   *   CREDIT  PLATFORM_REVENUE_COMMISSION   commission
    *
-   * The DEBIT on VENDOR_DISPUTED marks the funds as frozen. The CREDIT on
-   * VENDOR_AVAILABLE records the corresponding reduction in the vendor's
-   * withdrawable balance.
+   * Summed across all suborders, the DEBITs close exactly the REFUND_PAYABLE
+   * opened by writePaymentReceived for the order gross.
    *
-   * @param params - Dispute opened parameters
+   * @param params - Suborder settlement parameters
+   * @throws {Error} If settleAmount + commission !== amountPaid
+   */
+  async writeSuborderSettlement(
+    params: WriteSuborderSettlementParams,
+  ): Promise<void> {
+    const {
+      vendorId,
+      settleAmount,
+      commission,
+      amountPaid,
+      suborderId,
+      session,
+      customerId,
+    } = params;
+
+    assertValidKoboAmount(settleAmount, "settleAmount");
+    assertValidKoboAmount(commission, "commission");
+    assertValidKoboAmount(amountPaid, "amountPaid");
+
+    if (settleAmount + commission !== amountPaid) {
+      throw new Error(
+        `writeSuborderSettlement: settleAmount (${settleAmount}) + commission (${commission}) ` +
+          `!== amountPaid (${amountPaid}). Amounts do not reconcile.`,
+      );
+    }
+
+    const lines: PendingLedgerLine[] = [
+      {
+        type: LedgerEntryType.DEBIT,
+        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
+        amount: amountPaid,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.VENDOR_PENDING,
+        entityId: vendorId,
+        entityType: LedgerEntityType.VENDOR,
+        amount: settleAmount,
+      },
+      {
+        type: LedgerEntryType.CREDIT,
+        accountType: LedgerAccountType.PLATFORM_REVENUE_COMMISSION,
+        amount: commission,
+      },
+    ];
+
+    await this.commitEntry(
+      {
+        category: LedgerEntryCategory.VENDOR_SETTLEMENT,
+        referenceType: LedgerReferenceType.SUBORDER,
+        referenceId: suborderId,
+        description: `Suborder ${suborderId} settled — ${settleAmount} Kobo to vendor ${vendorId}, ${commission} Kobo commission`,
+        metadata: {
+          vendorId,
+          suborderId,
+          settleAmount,
+          commission,
+          amountPaid,
+        },
+      },
+      lines,
+      session,
+    );
+  }
+
+  /**
+   * Freeze a vendor's available funds when a dispute opens. Funds are always in
+   * available at this point, since disputes can only be raised after the
+   * customer confirms receipt.
+   *
+   * Journal entry:
+   *   DEBIT   VENDOR_AVAILABLE   settleAmount
+   *   CREDIT  VENDOR_DISPUTED    settleAmount
    */
   async writeDisputeOpened(params: WriteDisputeOpenedParams): Promise<void> {
     const { vendorId, settleAmount, disputeId, session } = params;
@@ -584,14 +718,14 @@ export class JournalEntryWriter {
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.VENDOR_DISPUTED,
+        accountType: LedgerAccountType.VENDOR_AVAILABLE,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.VENDOR_AVAILABLE,
+        accountType: LedgerAccountType.VENDOR_DISPUTED,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
@@ -612,17 +746,12 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record the return of frozen funds to a vendor when a dispute is rejected.
+   * Return frozen funds to a vendor when a dispute is rejected. Reverses
+   * writeDisputeOpened.
    *
    * Journal entry:
-   *   DEBIT   VENDOR_AVAILABLE   settleAmount
-   *   CREDIT  VENDOR_DISPUTED    settleAmount
-   *
-   * This reverses the writeDisputeOpened entry — VENDOR_DISPUTED is credited
-   * (cleared) and VENDOR_AVAILABLE is debited (increased), returning the funds
-   * to the vendor's withdrawable balance.
-   *
-   * @param params - Dispute rejected parameters
+   *   DEBIT   VENDOR_DISPUTED    settleAmount
+   *   CREDIT  VENDOR_AVAILABLE   settleAmount
    */
   async writeDisputeRejected(
     params: WriteDisputeRejectedParams,
@@ -634,14 +763,14 @@ export class JournalEntryWriter {
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.VENDOR_AVAILABLE,
+        accountType: LedgerAccountType.VENDOR_DISPUTED,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.VENDOR_DISPUTED,
+        accountType: LedgerAccountType.VENDOR_AVAILABLE,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
@@ -662,37 +791,25 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record the outcome of an upheld dispute — a full refund of amountPaid
-   * owed to the customer (settle + commission reversed) plus a penalty
-   * deducted from the vendor.
+   * Record an upheld dispute: full refund of amountPaid to the customer (settle
+   * plus commission reversed) and a penalty recognised as platform revenue.
    *
-   * This produces six ledger lines sharing one journal entry (three balanced pairs):
+   * The penalty debit splits so available never goes below zero: the covered
+   * portion comes from VENDOR_AVAILABLE, the shortfall becomes VENDOR_DEBT_RECEIVABLE.
    *
-   *   Pair 1 — Frozen settle amount becomes a refund liability:
-   *     DEBIT   VENDOR_DISPUTED               settleAmount
-   *     CREDIT  CUSTOMER_REFUND_PAYABLE       settleAmount
-   *
-   *   Pair 2 — Commission reversed into refund liability:
-   *     DEBIT   PLATFORM_REVENUE_COMMISSION   commission
-   *     CREDIT  CUSTOMER_REFUND_PAYABLE       commission
-   *
-   *   Pair 3 — Penalty:
-   *     DEBIT   VENDOR_AVAILABLE              penaltyAmount
-   *     CREDIT  PLATFORM_REVENUE_PENALTIES    penaltyAmount
-   *
-   * Total CUSTOMER_REFUND_PAYABLE credit = settleAmount + commission = amountPaid.
-   *
-   * The invariant check verifies total credits === total debits across all
-   * six lines before any DB write occurs.
-   *
-   * @param params - Dispute upheld parameters
+   *   Pair 1:  DEBIT VENDOR_DISPUTED settle / CREDIT CUSTOMER_REFUND_PAYABLE settle
+   *   Pair 2:  DEBIT PLATFORM_REVENUE_COMMISSION commission / CREDIT CUSTOMER_REFUND_PAYABLE commission
+   *   Pair 3:  DEBIT VENDOR_AVAILABLE covered (+ DEBIT VENDOR_DEBT_RECEIVABLE shortfall)
+   *            / CREDIT PLATFORM_REVENUE_PENALTIES penaltyAmount
    */
   async writeDisputeUpheld(params: WriteDisputeUpheldParams): Promise<void> {
     const {
       vendorId,
+      customerId,
       settleAmount,
       commission,
       penaltyAmount,
+      penaltyFromAvailable,
       disputeId,
       session,
     } = params;
@@ -701,6 +818,17 @@ export class JournalEntryWriter {
     assertValidKoboAmount(commission, "commission");
     assertValidKoboAmount(penaltyAmount, "penaltyAmount");
 
+    if (
+      !Number.isInteger(penaltyFromAvailable) ||
+      penaltyFromAvailable < 0 ||
+      penaltyFromAvailable > penaltyAmount
+    ) {
+      throw new Error(
+        `Invalid penaltyFromAvailable: expected an integer in [0, ${penaltyAmount}], got ${penaltyFromAvailable}.`,
+      );
+    }
+
+    const penaltyToDebt = penaltyAmount - penaltyFromAvailable;
     const amountPaid = settleAmount + commission;
 
     const lines: PendingLedgerLine[] = [
@@ -715,9 +843,11 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: settleAmount,
       },
-      // Pair 2: platform commission reversed — student gets full amountPaid back
+      // Pair 2: commission reversed so student gets full amountPaid back
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.PLATFORM_REVENUE_COMMISSION,
@@ -726,16 +856,33 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: commission,
       },
-      // Pair 3: penalty deducted from vendor available, credited to platform
-      {
-        type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.VENDOR_AVAILABLE,
-        entityId: vendorId,
-        entityType: LedgerEntityType.VENDOR,
-        amount: penaltyAmount,
-      },
+      // Pair 3: penalty recognised as revenue, debit split between available and debt
+      ...(penaltyFromAvailable > 0
+        ? [
+            {
+              type: LedgerEntryType.DEBIT,
+              accountType: LedgerAccountType.VENDOR_AVAILABLE,
+              entityId: vendorId,
+              entityType: LedgerEntityType.VENDOR,
+              amount: penaltyFromAvailable,
+            } as PendingLedgerLine,
+          ]
+        : []),
+      ...(penaltyToDebt > 0
+        ? [
+            {
+              type: LedgerEntryType.DEBIT,
+              accountType: LedgerAccountType.VENDOR_DEBT_RECEIVABLE,
+              entityId: vendorId,
+              entityType: LedgerEntityType.VENDOR,
+              amount: penaltyToDebt,
+            } as PendingLedgerLine,
+          ]
+        : []),
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.PLATFORM_REVENUE_PENALTIES,
@@ -749,8 +896,8 @@ export class JournalEntryWriter {
         referenceType: LedgerReferenceType.DISPUTE,
         referenceId: disputeId,
         description:
-          `Dispute ${disputeId} upheld — full refund of ${amountPaid} Kobo (settle: ${settleAmount}, commission: ${commission}) ` +
-          `issued to customer and penalty of ${penaltyAmount} Kobo applied to vendor ${vendorId}`,
+          `Dispute ${disputeId} upheld: refund of ${amountPaid} Kobo to customer, ` +
+          `penalty ${penaltyAmount} Kobo (${penaltyFromAvailable} from available, ${penaltyToDebt} to debt) on vendor ${vendorId}`,
         metadata: {
           vendorId,
           disputeId,
@@ -758,6 +905,8 @@ export class JournalEntryWriter {
           commission,
           amountPaid,
           penaltyAmount,
+          penaltyFromAvailable,
+          penaltyToDebt,
         },
       },
       lines,
@@ -791,7 +940,14 @@ export class JournalEntryWriter {
   async writeDisputeAutoResolved(
     params: WriteDisputeAutoResolvedParams,
   ): Promise<void> {
-    const { vendorId, settleAmount, commission, disputeId, session } = params;
+    const {
+      vendorId,
+      settleAmount,
+      commission,
+      disputeId,
+      session,
+      customerId,
+    } = params;
 
     assertValidKoboAmount(settleAmount, "settleAmount");
     assertValidKoboAmount(commission, "commission");
@@ -810,6 +966,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: settleAmount,
       },
       // Pair 2: platform commission reversed — student gets full amountPaid back
@@ -821,6 +979,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: commission,
       },
     ];
@@ -881,6 +1041,7 @@ export class JournalEntryWriter {
   ): Promise<void> {
     const {
       vendorId,
+      customerId,
       settleAmount,
       commission,
       amountPaid,
@@ -913,6 +1074,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: settleAmount,
       },
       // Pair 2: commission reversed — platform gives back what it earned
@@ -924,6 +1087,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: commission,
       },
     ];
@@ -972,7 +1137,14 @@ export class JournalEntryWriter {
   async writeFailedDeliveryRefund(
     params: WriteFailedDeliveryRefundParams,
   ): Promise<void> {
-    const { vendorId, settleAmount, refundId, suborderId, session } = params;
+    const {
+      vendorId,
+      customerId,
+      settleAmount,
+      refundId,
+      suborderId,
+      session,
+    } = params;
 
     assertValidKoboAmount(settleAmount, "settleAmount");
 
@@ -987,6 +1159,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: settleAmount,
       },
     ];
@@ -1027,7 +1201,7 @@ export class JournalEntryWriter {
   async writeRefundConfirmed(
     params: WriteRefundConfirmedParams,
   ): Promise<void> {
-    const { amountRefunded, refundId, session } = params;
+    const { customerId, amountRefunded, refundId, session } = params;
 
     assertValidKoboAmount(amountRefunded, "amountRefunded");
 
@@ -1035,6 +1209,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
+        entityId: customerId,
+        entityType: LedgerEntityType.CUSTOMER,
         amount: amountRefunded,
       },
       {
@@ -1060,18 +1236,12 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record a vendor withdrawal request — available funds move into the
-   * in-flight PAYOUT_PROCESSING account.
+   * Move available funds into the in-flight PAYOUT_PROCESSING account on a
+   * withdrawal request. netPayoutAmount is already net of any debt recovery.
    *
    * Journal entry:
-   *   DEBIT   PAYOUT_PROCESSING   netPayoutAmount
-   *   CREDIT  VENDOR_AVAILABLE    netPayoutAmount
-   *
-   * `netPayoutAmount` is the amount after any debt recovery deduction has
-   * already been calculated by the caller. Debt recovery itself is recorded
-   * separately via writeDebtRecovery.
-   *
-   * @param params - Payout initiated parameters
+   *   DEBIT   VENDOR_AVAILABLE    netPayoutAmount
+   *   CREDIT  PAYOUT_PROCESSING   netPayoutAmount
    */
   async writePayoutInitiated(
     params: WritePayoutInitiatedParams,
@@ -1083,14 +1253,14 @@ export class JournalEntryWriter {
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.PAYOUT_PROCESSING,
+        accountType: LedgerAccountType.VENDOR_AVAILABLE,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: netPayoutAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.VENDOR_AVAILABLE,
+        accountType: LedgerAccountType.PAYOUT_PROCESSING,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: netPayoutAmount,
@@ -1111,19 +1281,18 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record a successfully completed payout — the PAYOUT_PROCESSING account
-   * is closed and any gateway fee is recognised as an expense.
+   * Complete a payout. Closes PAYOUT_PROCESSING for the net that entered it at
+   * initiation, recognises the transfer fee as an expense, and reduces escrow
+   * by the total cash that left the platform (net + fee).
    *
    * Journal entry (with gateway fee):
-   *   DEBIT   PLATFORM_ESCROW       netAmount                  ← funds exit the platform
-   *   DEBIT   GATEWAY_FEES_EXPENSE  gatewayFee                 ← fee recognised as expense
-   *   CREDIT  PAYOUT_PROCESSING     netAmount + gatewayFee     ← processing account closed
+   *   DEBIT   PAYOUT_PROCESSING     netAmount
+   *   DEBIT   GATEWAY_FEES_EXPENSE  gatewayFee
+   *   CREDIT  PLATFORM_ESCROW       netAmount + gatewayFee
    *
    * Journal entry (no gateway fee):
-   *   DEBIT   PLATFORM_ESCROW       netAmount
-   *   CREDIT  PAYOUT_PROCESSING     netAmount
-   *
-   * @param params - Payout completed parameters
+   *   DEBIT   PAYOUT_PROCESSING   netAmount
+   *   CREDIT  PLATFORM_ESCROW     netAmount
    */
   async writePayoutCompleted(
     params: WritePayoutCompletedParams,
@@ -1138,20 +1307,20 @@ export class JournalEntryWriter {
       );
     }
 
-    const totalProcessingAmount = netAmount + gatewayFee;
+    const totalCashOut = netAmount + gatewayFee;
 
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.PLATFORM_ESCROW,
+        accountType: LedgerAccountType.PAYOUT_PROCESSING,
+        entityId: vendorId,
+        entityType: LedgerEntityType.VENDOR,
         amount: netAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.PAYOUT_PROCESSING,
-        entityId: vendorId,
-        entityType: LedgerEntityType.VENDOR,
-        amount: totalProcessingAmount,
+        accountType: LedgerAccountType.PLATFORM_ESCROW,
+        amount: totalCashOut,
       },
       ...(gatewayFee > 0
         ? [
@@ -1180,14 +1349,11 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record a failed payout — reverse the PAYOUT_PROCESSING deduction so the
-   * vendor's available balance is restored.
+   * Reverse a failed payout — restore the vendor's available balance.
    *
    * Journal entry:
-   *   DEBIT   VENDOR_AVAILABLE    requestedAmount
-   *   CREDIT  PAYOUT_PROCESSING   requestedAmount
-   *
-   * @param params - Payout failed parameters
+   *   DEBIT   PAYOUT_PROCESSING   requestedAmount
+   *   CREDIT  VENDOR_AVAILABLE    requestedAmount
    */
   async writePayoutFailed(params: WritePayoutFailedParams): Promise<void> {
     const { vendorId, requestedAmount, payoutId, session } = params;
@@ -1197,14 +1363,14 @@ export class JournalEntryWriter {
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.VENDOR_AVAILABLE,
+        accountType: LedgerAccountType.PAYOUT_PROCESSING,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: requestedAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.PAYOUT_PROCESSING,
+        accountType: LedgerAccountType.VENDOR_AVAILABLE,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: requestedAmount,
@@ -1225,20 +1391,13 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record a debt recovery deduction withheld from a vendor's payout.
+   * Collect vendor debt withheld from a payout. The penalty was already
+   * recognised as revenue at upheld time, so recovery only moves the vendor's
+   * available funds against the outstanding receivable.
    *
-   * Uses a DEBT_RECOVERY_CLEARING intermediate account to produce two
-   * balanced pairs within one journal entry:
-   *
-   *   Pair 1 — Withhold from vendor:
-   *     DEBIT   DEBT_RECOVERY_CLEARING   recoveredAmount
-   *     CREDIT  VENDOR_AVAILABLE         recoveredAmount
-   *
-   *   Pair 2 — Credit to platform as penalty revenue:
-   *     DEBIT   PLATFORM_REVENUE_PENALTIES   recoveredAmount
-   *     CREDIT  DEBT_RECOVERY_CLEARING       recoveredAmount
-   *
-   * @param params - Debt recovery parameters
+   * Journal entry:
+   *   DEBIT   VENDOR_AVAILABLE          recoveredAmount
+   *   CREDIT  VENDOR_DEBT_RECEIVABLE    recoveredAmount
    */
   async writeDebtRecovery(params: WriteDebtRecoveryParams): Promise<void> {
     const { vendorId, recoveredAmount, payoutId, session } = params;
@@ -1248,24 +1407,16 @@ export class JournalEntryWriter {
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.DEBT_RECOVERY_CLEARING,
-        amount: recoveredAmount,
-      },
-      {
-        type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.VENDOR_AVAILABLE,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: recoveredAmount,
       },
       {
-        type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.PLATFORM_REVENUE_PENALTIES,
-        amount: recoveredAmount,
-      },
-      {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.DEBT_RECOVERY_CLEARING,
+        accountType: LedgerAccountType.VENDOR_DEBT_RECEIVABLE,
+        entityId: vendorId,
+        entityType: LedgerEntityType.VENDOR,
         amount: recoveredAmount,
       },
     ];
@@ -1324,14 +1475,11 @@ export class JournalEntryWriter {
   }
 
   /**
-   * Record the release of a vendor's pending funds to their available balance
-   * following a confirmed delivery.
+   * Release a vendor's pending funds to available on confirmed delivery.
    *
    * Journal entry:
-   *   DEBIT   VENDOR_AVAILABLE   settleAmount
-   *   CREDIT  VENDOR_PENDING     settleAmount
-   *
-   * @param params - Funds released parameters
+   *   DEBIT   VENDOR_PENDING     settleAmount
+   *   CREDIT  VENDOR_AVAILABLE   settleAmount
    */
   async writeFundsReleased(params: WriteFundsReleasedParams): Promise<void> {
     const { vendorId, settleAmount, suborderId, triggeredBy, session } = params;
@@ -1341,14 +1489,14 @@ export class JournalEntryWriter {
     const lines: PendingLedgerLine[] = [
       {
         type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.VENDOR_AVAILABLE,
+        accountType: LedgerAccountType.VENDOR_PENDING,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.VENDOR_PENDING,
+        accountType: LedgerAccountType.VENDOR_AVAILABLE,
         entityId: vendorId,
         entityType: LedgerEntityType.VENDOR,
         amount: settleAmount,
