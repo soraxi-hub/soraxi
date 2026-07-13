@@ -1,6 +1,7 @@
 import { IUser } from "@/lib/db/models/user.model";
 import { Types } from "mongoose";
 import { BaseUser } from "./user";
+import { StoreStatusEnum } from "@/enums";
 
 export interface IUserInfo {
   userId: string | undefined;
@@ -94,3 +95,12 @@ export type PublicToJSONUserType = Omit<
 
   isOtpBlocked: boolean;
 };
+
+export interface UserStoreSummary {
+  storeId: string;
+  storeName: string;
+  status: StoreStatusEnum;
+  isActive: boolean;
+  truncatedStoreName: string;
+  truncatedStoreId: string;
+}

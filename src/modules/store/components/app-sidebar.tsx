@@ -46,7 +46,7 @@ export function StoreSidebar({ store }: { store: StoreTokenPayload }) {
       variant={`inset`}
       collapsible={`offcanvas`}
       // className="absolute top-[4rem]"
-      className="fixed top-[4rem] h-[calc(100vh-4rem)]"
+      className="fixed top-[4rem] h-[calc(100vh-4rem)] p-0"
     >
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center space-x-2">

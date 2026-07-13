@@ -9,30 +9,30 @@ import {
   Phone,
   MapPin,
   ShieldCheck,
-  // Store,
-  // Plus,
-  // Settings,
+  Store,
+  Plus,
+  LayoutDashboard,
+  ExternalLink,
 } from "lucide-react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
-// import { StoreStatusEnum } from "@/enums";
-// import {
-//   Card,
-//   CardContent,
-//   CardFooter,
-//   CardHeader,
-// } from "@/components/ui/card";
+import { StoreStatusEnum } from "@/enums";
 import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
+import { cn } from "@/lib/utils";
+import { UserStoreSummary } from "@/domain/users/user-interface";
 // import { RecentlyViewed } from "@/modules/products/product-detail/recently-viewed";
 
 const Profile = () => {
   const trpc = useTRPC();
-  const { data: user, isLoading } = useSuspenseQuery(
+  const { data, isLoading } = useSuspenseQuery(
     trpc.user.getById.queryOptions(),
   );
 
   if (isLoading) return <ProfileSkeleton />;
+
+  const user = data.user;
+  const userStores = data.userStoreSummary;
 
   return (
     <FeedbackWrapper page={`user`} delay={120000}>
@@ -91,7 +91,7 @@ const Profile = () => {
         {/* Verification Section */}
         {!user.isVerified && <VerificationSection />}
 
-        {/* <UserStores stores={user.getUserStores()} /> */}
+        <UserStores stores={userStores} />
 
         {/* Recently Viewed */}
         {/* <div className="mt-12">
@@ -157,106 +157,154 @@ const VerificationSection = () => (
   </section>
 );
 
-// const UserStores = ({
-//   stores,
-// }: {
-//   stores: Array<{ storeId: string; name: string; status: StoreStatusEnum }>;
-// }) => (
-//   <section className="space-y-4">
-//     <div className="flex items-center justify-between">
-//       <h2 className="text-xl font-bold flex items-center gap-2">
-//         <Store className="w-5 h-5 text-soraxi-blue" />
-//         My Stores
-//       </h2>
-//       <Button asChild className="bg-soraxi-blue hover:bg-soraxi-blue/90">
-//         <Link href="/stores/create">
-//           <Plus className="w-4 h-4 mr-2" />
-//           Add Store
-//         </Link>
-//       </Button>
-//     </div>
+const UserStores = ({ stores }: { stores: UserStoreSummary[] }) => (
+  <section className="space-y-4">
+    <h2 className="text-xl font-bold flex items-center gap-2">
+      <Store className="w-5 h-5" />
+      My Storefront
+    </h2>
 
-//     <div className="bg-card dark:bg-muted/50 rounded-lg p-6 shadow-xs border border-soraxi-blue/20">
-//       {stores.length > 0 ? (
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-//           {stores.map((store, index) => (
-//             <StoreCard key={store.storeId} store={store} index={index} />
-//           ))}
-//         </div>
-//       ) : (
-//         <EmptyStoresState />
-//       )}
-//     </div>
-//   </section>
-// );
+    {stores.length > 0 ? (
+      <div className="space-y-3">
+        {stores.map((store) => (
+          <StoreCard key={store.storeId} store={store} />
+        ))}
+      </div>
+    ) : (
+      <EmptyStoresState />
+    )}
+  </section>
+);
 
-// // Store Card Component
-// const StoreCard = ({
-//   store,
-// }: {
-//   store: { storeId: string; name: string; status: StoreStatusEnum };
-//   index: number;
-// }) => (
-//   <Card className="gap-1">
-//     <CardHeader className="flex items-start justify-between mb-3">
-//       <div className="bg-soraxi-green p-2 rounded-lg">
-//         <Store className="w-4 h-4 text-white" />
-//       </div>
-//       <Badge
-//         className={cn(
-//           `text-white`,
-//           store.status === StoreStatusEnum.Active && "bg-soraxi-green",
-//           store.status === StoreStatusEnum.Pending && "bg-soraxi-warning",
-//           (store.status === StoreStatusEnum.Rejected ||
-//             store.status === StoreStatusEnum.Suspended) &&
-//             "bg-soraxi-error",
-//         )}
-//       >
-//         {store.status.charAt(0).toUpperCase() + store.status.slice(1)}
-//       </Badge>
-//     </CardHeader>
+// Status dot + label shown inline next to the store name
+const StatusIndicator = ({ status }: { status: StoreStatusEnum }) => {
+  const config = {
+    [StoreStatusEnum.Active]: { label: "Active", dot: "bg-soraxi-green" },
+    [StoreStatusEnum.Pending]: {
+      label: "Under Review",
+      dot: "bg-soraxi-warning",
+    },
+    [StoreStatusEnum.Rejected]: {
+      label: "Not Approved",
+      dot: "bg-soraxi-error",
+    },
+    [StoreStatusEnum.Suspended]: { label: "Suspended", dot: "bg-soraxi-error" },
+  }[status];
 
-//     <CardContent>
-//       <h3 className="font-semibold text-lg mb-2 group-hover:text-soraxi-blue transition-colors">
-//         {truncateText(store.name)}
-//       </h3>
+  return (
+    <span className="flex items-center gap-1.5 shrink-0">
+      <span className={cn("w-2 h-2 rounded-full", config.dot)} />
+      <span className="text-sm font-medium text-muted-foreground">
+        {config.label}
+      </span>
+    </span>
+  );
+};
 
-//       <p className="text-sm text-muted-foreground mb-4">
-//         Store ID: {truncateText(store.storeId, 12)}
-//       </p>
-//     </CardContent>
-//     <CardFooter className="flex gap-2">
-//       <Button asChild variant="outline" size="sm" className="flex-1">
-//         <Link href={`/store/${store.storeId}/dashboard`}>
-//           <Settings className="w-3 h-3 mr-1" />
-//           Manage
-//         </Link>
-//       </Button>
-//     </CardFooter>
-//   </Card>
-// );
+// Store Card Component
+const StoreCard = ({ store }: { store: UserStoreSummary }) => {
+  const isActive = store.status === StoreStatusEnum.Active;
+  const isPending = store.status === StoreStatusEnum.Pending;
+  const isRejected = store.status === StoreStatusEnum.Rejected;
+  const isSuspended = store.status === StoreStatusEnum.Suspended;
 
-// // Empty State Component
-// const EmptyStoresState = () => (
-//   <div className="text-center py-8">
-//     <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-//       <Store className="w-8 h-8 text-muted-foreground" />
-//     </div>
-//     <h3 className="font-semibold text-lg mb-2">No stores yet</h3>
-//     <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
-//       Start listing your products by creating your first store and reach
-//       thousands of customers.
-//     </p>
-//     <Button
-//       asChild
-//       className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-//     >
-//       <Link href="/store/onboarding/">
-//         <Plus className="w-4 h-4 mr-2" />
-//         Create Your First Store
-//       </Link>
-//     </Button>
-//   </div>
-// );
+  return (
+    <div className={cn("border rounded-lg p-5")}>
+      {/* Identity row */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="font-semibold text-base">{store.storeName}</h3>
+            <StatusIndicator status={store.status} />
+          </div>
+          <p className="text-sm text-muted-foreground mt-1.5">
+            {isActive && "Your storefront is live and accepting orders."}
+            {isPending &&
+              "Your application is under review. We'll notify you by email once a decision is made."}
+            {isRejected &&
+              "Your application was not approved. You're welcome to submit a new one."}
+            {isSuspended &&
+              "Your store has been suspended. Contact support for assistance."}
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t my-4" />
+
+      {/* Status-aware actions */}
+      <div className="flex gap-2 flex-wrap">
+        {isActive && (
+          <>
+            <Button
+              asChild
+              size="sm"
+              className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+            >
+              <Link href={`/store/${store.storeId}/dashboard`}>
+                <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                Dashboard
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link
+                href={`/brand/${store.storeId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4 mr-1.5" />
+                View Storefront
+              </Link>
+            </Button>
+          </>
+        )}
+        {isPending && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/store/waitlist/status">View Application Status</Link>
+          </Button>
+        )}
+        {isRejected && (
+          <Button
+            asChild
+            size="sm"
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+          >
+            <Link href="/store/onboarding">
+              <Plus className="w-4 h-4 mr-1.5" />
+              Apply Again
+            </Link>
+          </Button>
+        )}
+        {isSuspended && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/support">Contact Support</Link>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Empty State Component
+const EmptyStoresState = () => (
+  <div className="text-center py-8">
+    <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+      <Store className="w-8 h-8 text-muted-foreground" />
+    </div>
+    <h3 className="font-semibold text-lg mb-2">No stores yet</h3>
+    <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+      Start listing your products by creating your first store and reach
+      thousands of customers.
+    </p>
+    <Button
+      asChild
+      className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+    >
+      <Link href="/store/onboarding/">
+        <Plus className="w-4 h-4 mr-2" />
+        Create Your First Store
+      </Link>
+    </Button>
+  </div>
+);
 
 export default Profile;

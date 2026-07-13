@@ -2,6 +2,7 @@ import { StoreStatusEnum, StoreVerificationStatusEnum } from "@/enums";
 import { Store, StoreProps } from "./store";
 import { AuthenticatedStore } from "./auth-store";
 import { IStore } from "@/lib/db/models/store.model";
+import { userStoreSummary } from "../users/user-store-summary";
 
 export type BuildStoreInput = {
   storeName: string;
@@ -33,5 +34,11 @@ export class StoreFactory {
 
   static store(props: StoreProps) {
     return new Store(props);
+  }
+
+  static buildSummary(
+    store: Pick<IStore, "_id" | "name" | "status">,
+  ): userStoreSummary {
+    return new userStoreSummary(store._id.toString(), store.name, store.status);
   }
 }

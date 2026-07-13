@@ -16,6 +16,7 @@ import {
   type WaitlistFormData,
 } from "@/types/waitlist-wizard.types";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
+import { normalizeInstagramHandle } from "@/lib/utils/normalize-instagram-handle";
 import Link from "next/link";
 
 const TOTAL_STEPS = 3;
@@ -98,8 +99,9 @@ export function VendorWaitlistWizard() {
     payload.append("stateOfApplicant", formData.stateOfApplicant);
     payload.append("cityOfApplicant", formData.cityOfApplicant);
     if (formData.cacNumber) payload.append("cacNumber", formData.cacNumber);
-    if (formData.instagramHandle)
-      payload.append("instagramHandle", formData.instagramHandle);
+    const normalizedHandle = normalizeInstagramHandle(formData.instagramHandle);
+    if (normalizedHandle)
+      payload.append("instagramHandle", normalizedHandle);
     if (formData.otherProofUrl)
       payload.append("otherProofUrl", formData.otherProofUrl);
 

@@ -20,9 +20,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import type { ReviewPublishStepProps } from "../../../../types/upload-wizard.types";
+import type { ReviewPublishStepProps } from "@/types/upload-wizard.types";
 import { renderRichText } from "@/modules/products/product-detail/product-tabs";
+import { formatNaira, nairaToKobo } from "@/lib/utils/naira";
 
 /**
  * Review & Publish Step Component
@@ -40,7 +40,6 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
   formData,
   imageFiles,
   errors,
-  uploadProgress,
   isLoading,
   isLoadingDraft,
   draftProductId,
@@ -78,27 +77,6 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
           Review your product information and publish to the marketplace
         </p>
       </div>
-
-      {/* Progress Indicator */}
-      {(isLoading || isLoadingDraft) && (
-        <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {isLoadingDraft ? "Saving Draft..." : "Publishing Product..."}
-                </span>
-                <span className="text-sm text-gray-500">{uploadProgress}%</span>
-              </div>
-              <Progress
-                value={uploadProgress}
-                indicatorClassName="bg-[#14a800]"
-                className="h-2"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Main Cards */}
       <div className="space-y-6">
@@ -150,7 +128,7 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
                 <div className="rounded p-3">
                   <p className="text-gray-500 text-xs">Price</p>
                   <p className="text-gray-900 dark:text-white font-medium">
-                    ₦{(formData.price ?? 0).toLocaleString()}
+                    {formatNaira(nairaToKobo(formData.price ?? 0))}
                   </p>
                 </div>
                 <div className="rounded p-3">
@@ -172,19 +150,17 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Category:</span>
-                  <Badge variant="secondary">{formData.category?.[0]}</Badge>
+                  {formData.category?.[0]}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Subcategory:</span>
-                  <Badge variant="secondary">{formData.subCategory?.[0]}</Badge>
+                  {formData.subCategory?.[0]}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">
                     Target Audience:
                   </span>
-                  <Badge variant="secondary">
-                    {formData.targetAudience?.[0]}
-                  </Badge>
+                  {formData.targetAudience?.[0]}
                 </div>
               </div>
             </div>

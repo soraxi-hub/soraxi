@@ -41,9 +41,9 @@ const EditProfile = () => {
   });
 
   const trpc = useTRPC();
-  const { data: user, refetch } = useSuspenseQuery(
-    trpc.user.getById.queryOptions()
-  );
+  const { data, refetch } = useSuspenseQuery(trpc.user.getById.queryOptions());
+
+  const user = data.user;
 
   useEffect(() => {
     if (user) {
@@ -61,7 +61,7 @@ const EditProfile = () => {
       onError: () => {
         toast.error(`Failed to update profile`);
       },
-    })
+    }),
   );
 
   /**
