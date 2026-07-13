@@ -44,7 +44,7 @@ export default async function Page() {
    */
   const initialCheckoutState = {
     cartData: cartData,
-    userData: userData,
+    userData: userData.user,
   };
 
   return (

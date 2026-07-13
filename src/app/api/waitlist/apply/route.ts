@@ -11,6 +11,7 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
+import { normalizeInstagramHandle } from "@/lib/utils/normalize-instagram-handle";
 
 const vendorApplicationRepository = new VendorApplicationRepository();
 const waitlistService = new WaitlistService(vendorApplicationRepository);
@@ -57,6 +58,13 @@ export async function POST(request: NextRequest) {
       if (key !== "productSamples" && typeof value === "string") {
         rawFields[key] = value;
       }
+    }
+
+    // Normalize before validation so any supported Instagram format is accepted
+    if (typeof rawFields.instagramHandle === "string") {
+      rawFields.instagramHandle = normalizeInstagramHandle(
+        rawFields.instagramHandle,
+      );
     }
 
     const validatedFields = formDataSchema.parse(rawFields);

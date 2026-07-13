@@ -173,7 +173,6 @@ export interface ReviewPublishStepProps {
   formData: ProductFormData;
   imageFiles: File[];
   errors: Partial<Record<keyof ProductFormData, string>>;
-  uploadProgress: number;
   isLoading: boolean;
   isLoadingDraft: boolean;
   draftProductId: string | null;

@@ -98,9 +98,6 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
 
-  // Upload progress
-  const [uploadProgress, setUploadProgress] = useState(0);
-
   // Draft product ID
   const [draftProductId, setDraftProductId] = useState<string | null>(null);
 
@@ -253,7 +250,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             formData.storePassword,
           );
 
-          if (!validation.isValid) {
+          if (validation.isValid) {
             toast.error("Please fix validation errors before publishing");
             return;
           }
@@ -266,12 +263,8 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             setIsLoading(true);
           }
 
-          setUploadProgress(20);
-
           const result = await submitProduct(action);
           setDraftProductId(result?.data?.productId);
-
-          setUploadProgress(100);
 
           if (action === "publish") {
             toast.success(
@@ -291,7 +284,6 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
         } finally {
           setIsLoading(false);
           setIsLoadingDraft(false);
-          setUploadProgress(0);
         }
       },
       [formData, imageFiles, validatePublish, resetDirtyState, router],
@@ -366,7 +358,6 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             formData={formData}
             imageFiles={imageFiles}
             errors={errors}
-            uploadProgress={uploadProgress}
             isLoading={isLoading}
             isLoadingDraft={isLoadingDraft}
             draftProductId={draftProductId}

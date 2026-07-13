@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AlertCircle, CheckCircle, ChevronLeft } from "lucide-react";
 import {
   Card,
@@ -19,6 +20,10 @@ import type {
 } from "@/types/edit-wizard.types";
 import { calculateCommission } from "@/lib/utils/calculate-commission";
 import { formatNaira, nairaToKobo } from "@/lib/utils/naira";
+import {
+  makeDecimalChangeHandler,
+  makeIntegerChangeHandler,
+} from "@/lib/utils/numeric-input";
 
 interface PricingInventoryStepProps {
   formData: EditProductFormData;
@@ -48,6 +53,16 @@ export function PricingInventoryStep({
     }
     return null;
   };
+
+  // Local display strings so intermediate input like "100." isn't clobbered
+  // by the number→string round-trip. The parsed number is still synced to
+  // formData on every keystroke so validation and the summary stay live.
+  const [priceDisplay, setPriceDisplay] = useState<string>(
+    formData.price === 0 ? "" : String(formData.price),
+  );
+  const [quantityDisplay, setQuantityDisplay] = useState<string>(
+    formData.productQuantity === 0 ? "" : String(formData.productQuantity),
+  );
 
   const isChanged = (field: keyof ProductChanges) => hasChanges[field] || false;
 
@@ -96,13 +111,13 @@ export function PricingInventoryStep({
               </span>
               <Input
                 id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) =>
-                  onFieldChange("price", parseFloat(e.target.value) || 0)
-                }
+                type="text"
+                inputMode="decimal"
+                value={priceDisplay}
+                onChange={makeDecimalChangeHandler(
+                  setPriceDisplay,
+                  (val) => onFieldChange("price", val),
+                )}
                 placeholder="0.00"
                 disabled={isLoading}
                 className="h-11 pl-8 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
@@ -138,15 +153,13 @@ export function PricingInventoryStep({
             </div>
             <Input
               id="quantity"
-              type="number"
-              min="1"
-              value={formData.productQuantity}
-              onChange={(e) =>
-                onFieldChange(
-                  "productQuantity",
-                  parseInt(e.target.value, 10) || 0,
-                )
-              }
+              type="text"
+              inputMode="numeric"
+              value={quantityDisplay}
+              onChange={makeIntegerChangeHandler(
+                setQuantityDisplay,
+                (val) => onFieldChange("productQuantity", val),
+              )}
               placeholder="0"
               disabled={isLoading}
               className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"

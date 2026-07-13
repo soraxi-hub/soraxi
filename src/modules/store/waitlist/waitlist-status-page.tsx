@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   AlertCircle,
@@ -7,6 +8,7 @@ import {
   Clock,
   XCircle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import {
   Card,
@@ -46,15 +48,15 @@ const STATUS_CONFIG: Record<
     label: "Approved",
     icon: CheckCircle,
     description:
-      "Congratulations! Your application has been approved. Check your email for your invite link to create your store.",
+      "Congratulations! Your application has been approved and your store has been created. We sent your login credentials to your email — sign in to access your store dashboard.",
     color: "text-[#14a800]",
     badgeVariant: "default",
   },
   invited: {
-    label: "Invite Sent",
+    label: "Active",
     icon: CheckCircle,
     description:
-      "Your invite link has been sent. If you haven't set up your store yet, check your email for the onboarding link.",
+      "Your store is set up and ready to go. Sign in to your account to manage your store, add products, and start selling.",
     color: "text-[#14a800]",
     badgeVariant: "default",
   },
@@ -62,7 +64,7 @@ const STATUS_CONFIG: Record<
     label: "Not Approved",
     icon: XCircle,
     description:
-      "Unfortunately your application was not approved at this time. For further clarification, feel free to reach out to our support team.",
+      "Unfortunately your application was not approved at this time. You're welcome to address any feedback below and submit a new application.",
     color: "text-red-500",
     badgeVariant: "destructive",
   },
@@ -189,7 +191,7 @@ export function WaitlistStatusPage() {
               <Card>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {status.businessName}
                     </p>
                     <Badge variant={config.badgeVariant}>{config.label}</Badge>
@@ -204,17 +206,16 @@ export function WaitlistStatusPage() {
                     </p>
                   </div>
 
-                  {/* Rejection reason */}
-                  {/* {status.status === "rejected" && status.rejectionReason && (
+                  {status.status === "rejected" && status.rejectionReason && (
                     <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                       <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
-                        Reason:
+                        Feedback from our team:
                       </p>
                       <p className="text-sm text-red-700 dark:text-red-300">
                         {status.rejectionReason}
                       </p>
                     </div>
-                  )} */}
+                  )}
 
                   <p className="text-xs text-gray-400">
                     Applied{" "}
@@ -224,6 +225,36 @@ export function WaitlistStatusPage() {
                       year: "numeric",
                     })}
                   </p>
+
+                  {/* Status-aware CTAs */}
+                  {(status.status === "approved" ||
+                    status.status === "invited") && (
+                    <div className="pt-1 border-t">
+                      <Button
+                        asChild
+                        className="w-full bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+                      >
+                        <Link href="/login">Sign In to Your Store</Link>
+                      </Button>
+                    </div>
+                  )}
+
+                  {status.status === "rejected" && (
+                    <div className="pt-1 border-t flex flex-col sm:flex-row gap-2">
+                      <Button
+                        asChild
+                        className="flex-1 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+                      >
+                        <Link href="/store/onboarding">
+                          <RefreshCw className="w-4 h-4 mr-1.5" />
+                          Apply Again
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline" className="flex-1">
+                        <Link href="/support">Contact Support</Link>
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

@@ -41,7 +41,6 @@ export function ProductEditWizard({
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [resError, setResError] = useState<Record<string, string> | null>(null);
 
   // Form state
@@ -242,10 +241,8 @@ export function ProductEditWizard({
     try {
       setResError(null);
       setIsLoading(true);
-      setUploadProgress(20);
 
       await submitProduct(action);
-      setUploadProgress(100);
 
       toast.success(
         action === "draft"
@@ -262,7 +259,6 @@ export function ProductEditWizard({
       toast.error(message);
     } finally {
       setIsLoading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -340,7 +336,6 @@ export function ProductEditWizard({
               previewUrls: imagePreviews,
             }}
             errors={errors}
-            uploadProgress={uploadProgress}
             isLoading={isLoading}
             onFormDataChange={handleFieldChange}
             onPublish={() => handleSubmit("publish")}

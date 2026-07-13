@@ -19,18 +19,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import type {
   EditProductFormData,
   EditProductImages,
-} from "../../../../types/edit-wizard.types";
+} from "@/types/edit-wizard.types";
 import { renderRichText } from "@/modules/products/product-detail/product-tabs";
+import { formatNaira, nairaToKobo } from "@/lib/utils/naira";
 
 interface ReviewPublishStepProps {
   formData: EditProductFormData;
   images: EditProductImages;
   errors: Partial<Record<keyof EditProductFormData, string>>;
-  uploadProgress: number;
   isLoading?: boolean;
   onFormDataChange: (field: keyof EditProductFormData, value: string) => void;
   onPublish: () => Promise<void>;
@@ -41,7 +40,6 @@ export function ReviewPublishStep({
   formData,
   images,
   errors,
-  uploadProgress,
   isLoading = false,
   onFormDataChange,
   onPublish,
@@ -68,27 +66,6 @@ export function ReviewPublishStep({
           Review your changes and publish the updated product
         </p>
       </div>
-
-      {/* Progress Indicator – matches upload step style */}
-      {isLoading && (
-        <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Publishing Product...
-                </span>
-                <span className="text-sm text-gray-500">{uploadProgress}%</span>
-              </div>
-              <Progress
-                value={uploadProgress}
-                indicatorClassName="bg-[#14a800]"
-                className="h-2"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="space-y-6">
         {/* Product Summary Card – matches upload step styling */}
@@ -137,7 +114,7 @@ export function ReviewPublishStep({
                 <div className="rounded p-3">
                   <p className="text-gray-500 text-xs">Price</p>
                   <p className="font-medium">
-                    ₦{(formData.price ?? 0).toLocaleString()}
+                    {formatNaira(nairaToKobo(formData.price ?? 0))}
                   </p>
                 </div>
                 <div className="rounded p-3">

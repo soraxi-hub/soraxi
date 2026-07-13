@@ -19,6 +19,8 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
+import { getStoreModel, IStore } from "@/lib/db/models/store.model";
+import { StoreFactory } from "@/domain/stores/store-factory";
 
 /**
  * @module userRouter
@@ -55,7 +57,7 @@ export const userRouter = createTRPCRouter({
         });
 
       const User = await getUserModel();
-      // const StoreModel = await getStoreModel();
+      const StoreModel = await getStoreModel();
 
       const userDoc = await QueryBuilderFactory.queryBuilder<
         IUser,
@@ -72,16 +74,20 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      // coming up later
-      // const storeIds = (user.stores ?? []).map((s) => s.storeId);
+      const storeIds = (userDoc.stores ?? []).map((s) => s.storeId);
 
-      // const stores = await StoreModel.find({
-      //   _id: { $in: storeIds },
-      // }).lean<IStore>();
+      const stores = await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
+        .whereIn("_id", storeIds)
+        .select("name", "status")
+        .execute();
 
       const user = UserFactory.createBaseUser(userDoc).toJSON();
 
-      return user;
+      const userStoreSummary = stores.map((s) =>
+        StoreFactory.buildSummary(s).toPublicJSON(),
+      );
+
+      return { user, userStoreSummary };
     } catch (error) {
       console.error("Error fetching user by ID:", error);
       if (isReportableError(error)) {
