@@ -232,20 +232,25 @@ const StoreCard = ({ store }: { store: UserStoreSummary }) => {
       <div className="border-t my-4" />
 
       {/* Status-aware actions */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-2">
         {isActive && (
           <>
             <Button
               asChild
               size="sm"
-              className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+              className="w-full sm:w-auto bg-soraxi-green hover:bg-soraxi-green-hover text-white"
             >
               <Link href={`/store/${store.storeId}/dashboard`}>
                 <LayoutDashboard className="w-4 h-4 mr-1.5" />
                 Dashboard
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+            >
               <Link
                 href={`/brand/${store.storeId}`}
                 target="_blank"
@@ -258,7 +263,12 @@ const StoreCard = ({ store }: { store: UserStoreSummary }) => {
           </>
         )}
         {isPending && (
-          <Button asChild variant="outline" size="sm">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+          >
             <Link href="/store/waitlist/status">View Application Status</Link>
           </Button>
         )}
@@ -266,7 +276,7 @@ const StoreCard = ({ store }: { store: UserStoreSummary }) => {
           <Button
             asChild
             size="sm"
-            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+            className="w-full sm:w-auto bg-soraxi-green hover:bg-soraxi-green-hover text-white"
           >
             <Link href="/store/onboarding">
               <Plus className="w-4 h-4 mr-1.5" />
@@ -275,7 +285,12 @@ const StoreCard = ({ store }: { store: UserStoreSummary }) => {
           </Button>
         )}
         {isSuspended && (
-          <Button asChild variant="outline" size="sm">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+          >
             <Link href="/support">Contact Support</Link>
           </Button>
         )}

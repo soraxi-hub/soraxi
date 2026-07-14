@@ -18,6 +18,7 @@ export interface ProductDescriptionContext {
 
 export interface GenerateDescriptionResult {
   success: true;
+  /** Quill-compatible HTML (<p> and <strong> tags only) — safe to load directly into ReactQuill */
   description: string;
   /** Approximate token cost for observability / future rate-limit tracking */
   tokensUsed: number;
@@ -57,6 +58,22 @@ function stripHtml(html: string): string {
 /** Convert Kobo integer to Naira display string */
 function koboToNaira(kobo: number): string {
   return `₦${(kobo / 100).toLocaleString("en-NG")}`;
+}
+
+/**
+ * Extract the description content from between <description> tags.
+ *
+ * Acts as a safety net for cases where the model still slips in a preamble
+ * or trailing remark despite the system prompt instruction. Falls back to
+ * the raw trimmed text if the tags are missing, so a malformed response
+ * still degrades gracefully instead of returning nothing.
+ */
+function extractDescription(rawText: string): string {
+  const match = rawText.match(/<description>([\s\S]*?)<\/description>/i);
+  if (match) {
+    return match[1].trim();
+  }
+  return rawText.trim();
 }
 
 /**
@@ -119,24 +136,19 @@ EDGE CASES
 - No specs provided at all, only a product name: search the web. If nothing useful is found, proceed with available info and do not invent details.
 - Multiple variants (colors, sizes): write one base description that works across all variants. Only mention a specific color or size if it is the main selling point.
 - No warranty or delivery info provided: leave those lines out entirely. Do not guess or use placeholders.
-- Very niche product: prioritize clarity. The buyer needs to understand what it is before anything else.`;
+- Very niche product: prioritize clarity. The buyer needs to understand what it is before anything else.
+
+OUTPUT FORMAT
+Write the description in 2 to 3 short paragraphs. Format the output as HTML compatible with the Quill rich text editor:
+- Wrap each paragraph in <p></p> tags.
+- You may bold one or two key phrases for emphasis using <strong></strong> tags. Use this sparingly. Do not bold entire sentences, and do not bold anything in every paragraph.
+- Do not use headers (<h1>, <h2>, <h3>), lists (<ul>, <ol>, <li>), italics, underline, strikethrough, links, or colored text.
+- Do not use markdown syntax such as **, #, or -. Use HTML tags only.
+
+Do not include any preamble, meta-commentary, or explanation of your process. Do not write things like "Here is a product description" or "Looking at the input, I can see..." or any sentence describing what you are about to do. Go straight into the description itself.
+
+Wrap the entire HTML output, and only the HTML output, in <description> and </description> tags. Nothing should appear before the opening tag or after the closing tag.`;
 }
-
-// OUTPUT FORMAT
-// Return ONLY valid JSON, with no markdown formatting, no code fences, and no commentary before or after. Use this exact structure:
-
-// {
-//   "description": "approximately 200 words, three paragraphs: opening (what it does and the problem it solves), middle (specs translated into benefits), closing (remaining benefits plus warranty and delivery info if provided)",
-//   "highlights": [
-//     "Bolded benefit label in markdown bold, then a plain explanation",
-//     "..."
-//   ],
-//   "seo_title": "50-60 characters, product name plus primary keyword",
-//   "meta_description": "140-160 characters, benefit-focused summary",
-//   "suggested_tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
-// }
-
-// Include 4 to 6 items in highlights. Each highlight should bold the benefit label using markdown (**like this**) followed by a plain explanation of what it means for the buyer.
 
 /**
  * Build the user prompt from available product context.
@@ -266,7 +278,7 @@ export class ProductDescriptionService {
 
     return {
       success: true,
-      description: textBlock.text.trim(),
+      description: extractDescription(textBlock.text),
       tokensUsed: message.usage.input_tokens + message.usage.output_tokens,
     };
   }

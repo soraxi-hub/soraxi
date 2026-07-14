@@ -189,15 +189,18 @@ export function StoreProductsManagement({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Products</h1>
           <p className="text-muted-foreground">
             Manage your store&#39;s product catalog
           </p>
         </div>
-        <Link href={`/store/${store_id}/products/upload`}>
-          <Button className="bg-soraxi-green hover:bg-soraxi-green-hover text-white">
+        <Link
+          href={`/store/${store_id}/products/upload`}
+          className="w-full sm:w-auto"
+        >
+          <Button className="w-full sm:w-auto bg-soraxi-green hover:bg-soraxi-green-hover text-white">
             <Plus className="w-4 h-4 mr-2" />
             Add Product
           </Button>
