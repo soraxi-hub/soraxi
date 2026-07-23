@@ -71,8 +71,8 @@ export interface EditProductImages {
  * Step definitions for edit wizard
  */
 export enum EditWizardStep {
-  CategoryAudience = 0,
-  PricingInventory = 1,
+  CategoryAudience = 1,
+  PricingInventory = 0,
   BasicInfo = 2,
   ProductImages = 3,
   ReviewPublish = 4,
@@ -144,7 +144,7 @@ export interface EditProductResponse {
  * Hook return types
  */
 export interface UseWizardNavigationReturn {
-  currentStep: EditWizardStep;
+  currentStep: number;
   nextStep: (validate?: boolean) => Promise<boolean>;
   previousStep: () => Promise<boolean>;
   goToStep: (step: EditWizardStep | number) => Promise<boolean>;

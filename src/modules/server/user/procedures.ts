@@ -4,7 +4,6 @@ import {
   getUserModel,
   IUser,
   IUserDocument,
-  // IUser,
 } from "@/lib/db/models/user.model";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
@@ -26,17 +25,14 @@ import { StoreFactory } from "@/domain/stores/store-factory";
  * @module userRouter
  * @description
  * Handles user-related operations such as fetching user data by ID or email,
- * and updating user profiles. Each procedure includes input validation,
- * authentication checks, and error handling to ensure robust communication
- * between client and server.
+ * and updating user profiles.
  */
 export const userRouter = createTRPCRouter({
   /**
    * @procedure getById
    * @description
    * Fetches a user’s public profile data using the authenticated user ID
-   * stored in the request context. Ensures the user is authenticated before
-   * performing the query. Returns a serialized user object or an error if not found.
+   * stored in the request context.
    */
   getById: baseProcedure.query(async ({ ctx }) => {
     try {
@@ -76,10 +72,13 @@ export const userRouter = createTRPCRouter({
 
       const storeIds = (userDoc.stores ?? []).map((s) => s.storeId);
 
-      const stores = await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
-        .whereIn("_id", storeIds)
-        .select("name", "status")
-        .execute();
+      const stores =
+        storeIds.length > 0
+          ? await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
+              .whereIn("_id", storeIds)
+              .select("name", "status")
+              .execute()
+          : [];
 
       const user = UserFactory.createBaseUser(userDoc).toJSON();
 

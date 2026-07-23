@@ -9,12 +9,12 @@ import {
   SaveIcon,
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ import { formatNaira, nairaToKobo } from "@/lib/utils/naira";
 /**
  * Review & Publish Step Component
  *
- * Step 5 (Final) of the product upload wizard
  * Reviews all product information and handles final submission
  * Allows saving as draft or publishing
  *
@@ -81,13 +80,17 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
       {/* Main Cards */}
       <div className="space-y-6">
         {/* Product Summary Card */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Product Summary</CardTitle>
-            <CardDescription>Review your product details</CardDescription>
-          </CardHeader>
+        <SoraxiCard>
+          <SoraxiCardHeader className="pb-4">
+            <SoraxiCardTitle className="text-xl">
+              Product Summary
+            </SoraxiCardTitle>
+            <SoraxiCardDescription>
+              Review your product details
+            </SoraxiCardDescription>
+          </SoraxiCardHeader>
 
-          <CardContent className="space-y-6">
+          <SoraxiCardContent className="space-y-6">
             {/* Basic Info Section */}
             <div>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
@@ -177,19 +180,21 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
                 ready
               </Badge>
             </div>
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
 
         {/* Security Card */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Security & Publishing</CardTitle>
-            <CardDescription>
+        <SoraxiCard>
+          <SoraxiCardHeader className="pb-4">
+            <SoraxiCardTitle className="text-xl">
+              Security & Publishing
+            </SoraxiCardTitle>
+            <SoraxiCardDescription>
               Enter your store password to secure this submission
-            </CardDescription>
-          </CardHeader>
+            </SoraxiCardDescription>
+          </SoraxiCardHeader>
 
-          <CardContent className="space-y-6">
+          <SoraxiCardContent className="space-y-6">
             {/* Store Password Field */}
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
@@ -232,20 +237,20 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
 
         {/* Important Notes Card */}
-        <Card>
-          <CardContent>
+        <SoraxiCard>
+          <SoraxiCardContent>
             <h4 className="text-sm font-semibold pb-3">Before you publish:</h4>
             <ul className="text-sm space-y-1">
               <li>• Product will be pending marketplace review</li>
               <li>• Ensure all details are accurate before publishing</li>
               <li>• You can save as draft to complete later</li>
             </ul>
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
       </div>
 
       {/* Navigation & Action Buttons */}

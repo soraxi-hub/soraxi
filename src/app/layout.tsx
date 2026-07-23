@@ -132,7 +132,8 @@ export default function RootLayout({
         <TRPCReactProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            // defaultTheme="system"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange // Helps prevent flash of unstyled content
           >

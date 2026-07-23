@@ -26,15 +26,6 @@ export function useStepValidation(): UseStepValidationReturn {
     (formData: EditProductFormData): StepValidationResult => {
       const stepErrors: Partial<Record<keyof EditProductFormData, string>> = {};
 
-      // Name validation
-      if (!formData.name || formData.name.trim().length === 0) {
-        stepErrors.name = "Product name is required";
-      } else if (formData.name.length < 3) {
-        stepErrors.name = "Product name must be at least 3 characters";
-      } else if (formData.name.length > 100) {
-        stepErrors.name = "Product name cannot exceed 100 characters";
-      }
-
       // Description validation (optional field)
       if (formData.description && formData.description.length > 10000) {
         stepErrors.description =
@@ -61,6 +52,15 @@ export function useStepValidation(): UseStepValidationReturn {
   const validatePricingInventoryStep = useCallback(
     (formData: EditProductFormData): StepValidationResult => {
       const stepErrors: Partial<Record<keyof EditProductFormData, string>> = {};
+
+      // Name validation
+      if (!formData.name || formData.name.trim().length === 0) {
+        stepErrors.name = "Product name is required";
+      } else if (formData.name.length < 5) {
+        stepErrors.name = "Product name must be at least 5 characters";
+      } else if (formData.name.length > 100) {
+        stepErrors.name = "Product name cannot exceed 100 characters";
+      }
 
       // Price validation
       if (formData.price === undefined || formData.price === null) {

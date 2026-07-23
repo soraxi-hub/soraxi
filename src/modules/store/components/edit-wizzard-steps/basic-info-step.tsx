@@ -7,15 +7,14 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Separator } from "@/components/ui/separator";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
@@ -35,6 +34,7 @@ interface BasicInfoStepProps {
   isLoading?: boolean;
   onGenerateDescription: () => Promise<void>;
   isGeneratingDescription: boolean;
+  currentStep: number;
 }
 
 /**
@@ -50,6 +50,7 @@ export function BasicInfoStep({
   isLoading = false,
   onGenerateDescription,
   isGeneratingDescription,
+  currentStep,
 }: BasicInfoStepProps) {
   const getValidationIcon = (fieldName: keyof EditProductFormData) => {
     if (errors[fieldName]) {
@@ -76,47 +77,17 @@ export function BasicInfoStep({
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
-            Step 3 of 5: Basic Information
-          </CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Basic Information
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Update your product name and core details
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
-          {/* Product Name Field */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="product-name" className="text-sm font-medium">
-                Product Name <span className="text-red-500">*</span>
-              </Label>
-              {getValidationIcon("name")}
-            </div>
-            <Input
-              id="product-name"
-              value={formData.name}
-              onChange={(e) => onFieldChange("name", e.target.value)}
-              placeholder="Enter a descriptive product name"
-              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500 flex items-center mt-1">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {errors.name}
-              </p>
-            )}
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-gray-500">
-                {formData.name.length}/100 characters
-              </p>
-            </div>
-          </div>
-
-          <Separator />
-
+        <SoraxiCardContent className="space-y-6">
           {/* Product Specifications Field */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -207,8 +178,8 @@ export function BasicInfoStep({
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation Buttons - matches upload step layout (single button) */}
       <div className="flex justify-between gap-3 pt-4">

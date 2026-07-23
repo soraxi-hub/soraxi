@@ -15,13 +15,13 @@ export async function parseErrorFromResponse(
 ): Promise<ParsedApiError> {
   try {
     const data = await response.json();
-    console.log("data", data);
+    // console.log("data", data);
 
     return {
       message: data?.error?.message || "An unknown error occurred.",
       code: data?.error?.code,
       cause: data?.error?.cause,
-      errors: data?.error?.errors,
+      errors: data?.error?.meta.errors,
     };
   } catch {
     return {

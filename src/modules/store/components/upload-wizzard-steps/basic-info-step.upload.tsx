@@ -12,13 +12,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -31,11 +30,9 @@ import {
 /**
  * Basic Info Step Component
  *
- * Step 1 of the product upload wizard
- * Collects product name, description, and specifications
+ * Collects description, and specifications
  *
  * Fields:
- * - Product Name (required)
  * - Description (optional, rich text)
  * - Specifications (optional, rich text)
  */
@@ -50,6 +47,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   onSaveDraft,
   onGenerateDescription,
   isGeneratingDescription,
+  currentStep,
 }) => {
   // ============================================================================
   // VALIDATION ICON HELPER
@@ -85,46 +83,17 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
-            Step 3 of 5: Basic Information
-          </CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Basic Information
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Add product name, description, and specifications
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
-          {/* Product Name Field */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="product-name" className="text-sm font-medium">
-                Product Name <span className="text-red-500">*</span>
-              </Label>
-              {getValidationIcon("name")}
-            </div>
-            <Input
-              id="product-name"
-              value={formData.name}
-              onChange={(e) => onFormDataChange("name", e.target.value)}
-              placeholder="Enter a descriptive product name"
-              disabled={anyLoading}
-              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500 flex items-center">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {errors.name}
-              </p>
-            )}
-            <p className="text-xs text-gray-500">
-              {formData.name.length}/100 characters
-            </p>
-          </div>
-
-          <Separator />
-
+        <SoraxiCardContent className="space-y-6">
           {/* Product Specifications Field */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -207,8 +176,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation & Action Buttons — unchanged from original */}
       <div className="flex flex-col gap-3 pt-4">

@@ -2,25 +2,31 @@
 
 import React from "react";
 import Image from "next/image";
-import { ChevronLeft, Loader2, SaveIcon, Upload, X } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AlertCircle,
+  ChevronLeft,
+  Loader2,
+  SaveIcon,
+  Upload,
+  X,
+} from "lucide-react";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
-import type { ProductImagesStepProps } from "../../../../types/upload-wizard.types";
+import type { ProductImagesStepProps } from "@/types/upload-wizard.types";
 import { toast } from "sonner";
 
 /**
  * Product Images Step Component
  *
- * Step 4 of the product upload wizard
  * Handles image upload with drag/drop, preview, and removal
  *
  * Fields:
@@ -41,6 +47,8 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
   isLoading,
   isLoadingDraft,
   onSaveDraft,
+  currentStep,
+  errors,
 }) => {
   // ============================================================================
   // EVENT HANDLERS
@@ -126,15 +134,17 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">Step 4 of 5: Product Images</CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Product Images
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Upload images with drag & drop or file selection
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Upload Area */}
           <div
             onDragEnter={handleDrag}
@@ -172,14 +182,14 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
           </div>
 
           {/* Error Message */}
-          {/* {errors.images && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+          {errors.images && (
+            <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
               <p className="text-sm text-red-700 dark:text-red-200">
                 {errors.images}
               </p>
             </div>
-          )} */}
+          )}
 
           {/* Image Count Info */}
           {imageFiles.length > 0 && (
@@ -251,8 +261,8 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
               <li>• Include product in use if possible</li>
             </ul>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation & Action Buttons */}
       <div className="flex flex-col gap-3 pt-4">

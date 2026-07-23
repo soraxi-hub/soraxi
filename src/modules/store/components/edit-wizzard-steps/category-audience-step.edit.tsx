@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronLeft } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -32,7 +32,9 @@ interface CategoryAudienceStepProps {
   errors: Partial<Record<keyof EditProductFormData, string>>;
   onFieldChange: (field: keyof EditProductFormData, value: string[]) => void;
   onNext: () => Promise<void>;
+  onPrevious: () => Promise<void>;
   isLoading?: boolean;
+  currentStep: number;
   hasChanges?: ProductChanges;
 }
 
@@ -43,6 +45,8 @@ export function CategoryAudienceStep({
   onNext,
   isLoading = false,
   hasChanges = {},
+  currentStep,
+  onPrevious,
 }: CategoryAudienceStepProps) {
   const availableSubcategories = useMemo(() => {
     if (!formData.category || formData.category.length === 0) {
@@ -103,17 +107,17 @@ export function CategoryAudienceStep({
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
-            Step 1 of 5: Category & Audience
-          </CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Category & Audience
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Select category, subcategory, and target audience
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Category Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -312,19 +316,22 @@ export function CategoryAudienceStep({
                 </div>
               </>
             )}
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
-      {/* Navigation – same style as upload step (Previous + Next) */}
-      <div className="flex flex-col gap-3 pt-4">
-        <div className="flex justify-end">
-          <Button
-            onClick={onNext}
-            className="bg-[#14a800] hover:bg-[#14a800]/90 text-white"
-          >
-            Next Step
-          </Button>
-        </div>
+      {/* Navigation Buttons*/}
+      <div className="flex justify-between gap-3 pt-4">
+        <Button onClick={onPrevious} disabled={isLoading} variant="outline">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Previous
+        </Button>
+        <Button
+          onClick={onNext}
+          disabled={isLoading}
+          className="bg-[#14a800] hover:bg-[#14a800]/90 text-white"
+        >
+          Next Step
+        </Button>
       </div>
     </div>
   );

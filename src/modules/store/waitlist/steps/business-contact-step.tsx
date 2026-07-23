@@ -3,16 +3,15 @@
 import React from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import type { FirstStepProps } from "@/types/waitlist-wizard.types";
 import {
   Select,
@@ -50,17 +49,17 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
             Step 1 of 3: Business & Contact
-          </CardTitle>
-          <CardDescription>
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Your personal details and business name
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Business Name */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -88,8 +87,6 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
             </p>
           </div>
 
-          <Separator />
-
           {/* Owner Name */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -113,8 +110,6 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
               </p>
             )}
           </div>
-
-          <Separator />
 
           {/* Email */}
           <div className="space-y-2">
@@ -144,8 +139,6 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
             </p>
           </div>
 
-          <Separator />
-
           {/* Phone */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -170,8 +163,6 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
               </p>
             )}
           </div>
-
-          <Separator />
 
           {/* Institution */}
           <div className="space-y-2">
@@ -211,8 +202,6 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
             </p>
           </div>
 
-          <Separator />
-
           {/* State */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -239,8 +228,6 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
             )}
           </div>
 
-          <Separator />
-
           {/* City */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -266,8 +253,8 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation */}
       <div className="flex flex-col gap-3 pt-4">

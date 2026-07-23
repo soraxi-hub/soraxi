@@ -3,17 +3,15 @@
 import React, { useMemo } from "react";
 import { AlertCircle, CheckCircle, ChevronLeft } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -73,17 +71,17 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
             Step 2 of 3: Category & Model
-          </CardTitle>
-          <CardDescription>
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Category, inventory range, pricing, and dropship status
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Category */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -115,8 +113,6 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
               </p>
             )}
           </div>
-
-          <Separator />
 
           {/* Subcategory */}
           <div className="space-y-2">
@@ -155,8 +151,6 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
               </p>
             )}
           </div>
-
-          <Separator />
 
           {/* Inventory Size */}
           <div className="space-y-3">
@@ -204,8 +198,6 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
               </p>
             )}
           </div>
-
-          <Separator />
 
           {/* Price Range */}
           <div className="space-y-3">
@@ -277,8 +269,6 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
             </div>
           </div>
 
-          <Separator />
-
           {/* Dropship toggle */}
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
@@ -286,7 +276,7 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
                 Are you a dropshipper? <span className="text-red-500">*</span>
               </Label>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(
                 [
                   {
@@ -335,38 +325,8 @@ export const CategoryModelStep: React.FC<StepWithNavProps> = ({
               </p>
             )}
           </div>
-
-          {/* Summary */}
-          {formData.categoryId &&
-            formData.subCategory &&
-            formData.estimatedInventorySize &&
-            formData.isDropshipper !== null && (
-              <>
-                <Separator />
-                <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
-                  <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-3">
-                    Summary
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{formData.categoryName}</Badge>
-                    <Badge variant="secondary">{formData.subCategory}</Badge>
-                    <Badge variant="secondary">
-                      {
-                        INVENTORY_SIZES.find(
-                          (s) => s.value === formData.estimatedInventorySize,
-                        )?.label
-                      }{" "}
-                      inventory
-                    </Badge>
-                    <Badge variant="secondary">
-                      {formData.isDropshipper ? "Dropshipper" : "Holds stock"}
-                    </Badge>
-                  </div>
-                </div>
-              </>
-            )}
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation */}
       <div className="flex flex-col gap-3 pt-4">
