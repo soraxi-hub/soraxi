@@ -24,16 +24,19 @@ function ArrowRightIcon({ className = "" }: { className?: string }) {
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-soraxi-darkmode-background transition-colors">
       {/* Hero */}
-      <main className="flex flex-1 flex-col justify-center px-6 pb-16 pt-6 mx-auto">
+      <div className="flex flex-1 flex-col justify-center px-6 pb-16 pt-6 mx-auto">
         <div className="max-w-2xl">
-          <h1 className="text-[2.5rem] font-extrabold leading-[1.08] tracking-tight text-[#0B1A10] sm:text-5xl lg:text-6xl">
+          <h1 className="text-[2.5rem] font-extrabold leading-[1.08] tracking-tight text-[#0B1A10] dark:text-[#F3F7F4] sm:text-5xl lg:text-6xl">
             Your campus is about to get a{" "}
-            <span className="bg-soraxi-green/20 px-1">marketplace</span>.
+            <span className="bg-soraxi-green/20 dark:bg-soraxi-green/25 px-1">
+              marketplace
+            </span>
+            .
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-[#6B7A70] sm:text-lg">
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-[#6B7A70] dark:text-[#9AA79E] sm:text-lg">
             SoraxiHub connects students with trusted vendors around campus.
             We&apos;re live and onboarding our founding vendors now. Doors open
             to everyone soon, and the people on our list hear about it first.
@@ -60,29 +63,29 @@ export default function Home() {
 
             <Link
               href={VENDOR_APPLICATION_URL}
-              className="group flex items-center justify-between rounded-2xl border border-[#E3E8E4] bg-white px-7 py-5 transition-colors hover:border-[#C9D1CB]"
+              className="group flex items-center justify-between rounded-2xl border border-[#E3E8E4] dark:border-[#243027] bg-white dark:bg-soraxi-darkmode-background px-7 py-5 transition-colors hover:border-[#C9D1CB] dark:hover:border-[#31402F]"
             >
               <span>
-                <span className="block text-lg font-bold text-[#0B1A10]">
+                <span className="block text-lg font-bold text-[#0B1A10] dark:text-[#F3F7F4]">
                   I sell on or around campus
                 </span>
-                <span className="mt-1 block text-sm text-[#7A8880]">
+                <span className="mt-1 block text-sm text-[#7A8880] dark:text-[#8C978F]">
                   Apply to become a founding vendor before we open
                 </span>
               </span>
-              <ArrowRightIcon className="h-5 w-5 shrink-0 text-[#0B1A10] transition-transform group-hover:translate-x-1" />
+              <ArrowRightIcon className="h-5 w-5 shrink-0 text-[#0B1A10] dark:text-[#F3F7F4] transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 
-          <p className="mt-6 text-sm text-[#8C978F]">
+          <p className="mt-6 text-sm text-[#8C978F] dark:text-[#6B7A70]">
             No spam. Just one message when it matters.
           </p>
         </div>
-      </main>
+      </div>
 
       {/* Footer */}
-      <footer className="border-t border-[#E3E8E4] px-6 py-6 sm:px-12 lg:px-24">
-        <div className="flex gap-1 text-sm text-[#8C978F] flex-row items-center justify-between">
+      <footer className="border-t border-[#E3E8E4] dark:border-[#1F2A22] px-6 py-6 sm:px-12 lg:px-24">
+        <div className="flex gap-1 text-sm text-[#8C978F] dark:text-[#6B7A70] flex-row items-center justify-between">
           <span>© 2026 SoraxiHub</span>
           <span>Calabar, Nigeria</span>
         </div>
