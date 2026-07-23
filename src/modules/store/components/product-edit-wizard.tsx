@@ -135,6 +135,7 @@ export function ProductEditWizard({
 
     clearErrors();
     await nextStep(false);
+    scrollToTop();
   };
 
   /**
@@ -276,7 +277,17 @@ export function ProductEditWizard({
    */
   const renderStepContent = () => {
     switch (currentStep) {
-      case EditWizardStep.CategoryAudience:
+      case 0:
+        return (
+          <PricingInventoryStep
+            formData={formData}
+            errors={errors}
+            onFieldChange={handleFieldChange}
+            onNext={handleNextStep}
+            currentStep={currentStep}
+          />
+        );
+      case 1:
         return (
           <CategoryAudienceStep
             formData={formData}
@@ -288,19 +299,11 @@ export function ProductEditWizard({
               }));
             }}
             onNext={handleNextStep}
-          />
-        );
-      case EditWizardStep.PricingInventory:
-        return (
-          <PricingInventoryStep
-            formData={formData}
-            errors={errors}
-            onFieldChange={handleFieldChange}
-            onNext={handleNextStep}
             onPrevious={handlePreviousStep}
+            currentStep={currentStep}
           />
         );
-      case EditWizardStep.BasicInfo:
+      case 2:
         return (
           <BasicInfoStep
             formData={formData}
@@ -310,9 +313,10 @@ export function ProductEditWizard({
             onPrevious={handlePreviousStep}
             onGenerateDescription={generateDescription}
             isGeneratingDescription={isGeneratingDescription}
+            currentStep={currentStep}
           />
         );
-      case EditWizardStep.ProductImages:
+      case 3:
         return (
           <ProductImagesStep
             images={imagesState}
@@ -324,6 +328,7 @@ export function ProductEditWizard({
             onPrevious={handlePreviousStep}
             isLoading={isLoading}
             errors={errors}
+            currentStep={currentStep}
           />
         );
       case EditWizardStep.ReviewPublish:

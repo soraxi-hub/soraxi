@@ -95,12 +95,12 @@ export class ProductValidation extends ProductDecorator {
     const errors: ProductValidationErrors = {};
 
     // name
-    this.validateOptionalField(
+    this.validateRequiredField(
       this.name,
       productName,
       "name",
       errors,
-      !!this.name,
+      "Product name is required",
     );
 
     // description

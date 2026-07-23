@@ -19,7 +19,7 @@ interface UseWizardNavigationProps {
 export function useWizardNavigation({
   onValidate,
 }: UseWizardNavigationProps = {}): UseWizardNavigationReturn {
-  const [currentStep, setCurrentStep] = useState<EditWizardStep>(0);
+  const [currentStep, setCurrentStep] = useState<number>(0);
   const [_completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const getErrorStep = (value: keyof EditProductFormData) => {
@@ -72,7 +72,7 @@ export function useWizardNavigation({
 
       // Mark current step as completed and move to next
       markStepCompleted(currentStep);
-      setCurrentStep((prev) => (prev + 1) as EditWizardStep);
+      setCurrentStep((prev) => prev + 1);
       return true;
     },
     [currentStep, onValidate, markStepCompleted],
@@ -86,7 +86,7 @@ export function useWizardNavigation({
       return false;
     }
 
-    setCurrentStep((prev) => (prev - 1) as EditWizardStep);
+    setCurrentStep((prev) => prev - 1);
     return true;
   }, [currentStep]);
 
@@ -104,7 +104,7 @@ export function useWizardNavigation({
 
       // If moving backward, allow directly
       if (targetStep < currentStep) {
-        setCurrentStep(targetStep as EditWizardStep);
+        setCurrentStep(targetStep);
         return true;
       }
 
@@ -119,7 +119,7 @@ export function useWizardNavigation({
         }
       }
 
-      setCurrentStep(targetStep as EditWizardStep);
+      setCurrentStep(targetStep);
       return true;
     },
     [currentStep, onValidate, markStepCompleted],

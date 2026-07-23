@@ -1,20 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { AlertCircle, CheckCircle, Loader2, SaveIcon } from "lucide-react";
 import {
-  AlertCircle,
-  CheckCircle,
-  ChevronLeft,
-  Loader2,
-  SaveIcon,
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -30,10 +24,10 @@ import {
 /**
  * Pricing & Inventory Step Component
  *
- * Step 2 of the product upload wizard
- * Collects product pricing and inventory quantity
+ * Collects product name, pricing and inventory quantity
  *
  * Fields:
+ * - Product Name (required)
  * - Price (required, must be > 0)
  * - Quantity (required, must be > 0)
  */
@@ -42,10 +36,10 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
   errors,
   onFormDataChange,
   onNext,
-  onPrevious,
   isLoading,
   isLoadingDraft,
   onSaveDraft,
+  currentStep,
 }) => {
   // ============================================================================
   // VALIDATION ICON HELPER
@@ -80,25 +74,53 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Pricing & Inventory
+          Product Name, Pricing & Inventory
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Set the price and quantity available for your product
+          Set the name, price, and quantity available for your product
         </p>
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
-            Step 2 of 5: Pricing & Inventory
-          </CardTitle>
-          <CardDescription>
-            Set your product price and available quantity
-          </CardDescription>
-        </CardHeader>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Pricing & Inventory
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
+            Set your product name, price, and available quantity
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
+          {/* Product Name Field */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="product-name" className="text-sm font-medium">
+                Product Name <span className="text-red-500">*</span>
+              </Label>
+              {getValidationIcon("name")}
+            </div>
+            <Input
+              id="product-name"
+              value={formData.name}
+              onChange={(e) => onFormDataChange("name", e.target.value)}
+              placeholder="Enter a descriptive product name"
+              disabled={isLoading}
+              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
+            />
+            {errors.name && (
+              <p className="text-sm text-red-500 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {errors.name}
+              </p>
+            )}
+            <p className="text-xs text-gray-500">
+              {formData.name.length}/100 characters
+            </p>
+          </div>
+
+          <Separator />
           {/* Price Field */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -116,9 +138,8 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
                 type="text"
                 inputMode="decimal"
                 value={priceDisplay}
-                onChange={makeDecimalChangeHandler(
-                  setPriceDisplay,
-                  (val) => onFormDataChange("price", val),
+                onChange={makeDecimalChangeHandler(setPriceDisplay, (val) =>
+                  onFormDataChange("price", val),
                 )}
                 placeholder="0.00"
                 disabled={isLoading}
@@ -151,9 +172,8 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
               type="text"
               inputMode="numeric"
               value={quantityDisplay}
-              onChange={makeIntegerChangeHandler(
-                setQuantityDisplay,
-                (val) => onFormDataChange("productQuantity", val),
+              onChange={makeIntegerChangeHandler(setQuantityDisplay, (val) =>
+                onFormDataChange("productQuantity", val),
               )}
               placeholder="0"
               disabled={isLoading}
@@ -235,41 +255,28 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
                 </>
               );
             })()}
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation & Action Buttons */}
       <div className="flex flex-col gap-3 pt-4">
         {/* Main Actions - Desktop Layout */}
         <div className="hidden md:flex justify-between gap-3">
-          <Button
-            onClick={onPrevious}
-            disabled={isLoading || isLoadingDraft}
-            variant="outline"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Previous
+          <Button onClick={onSaveDraft} disabled={isLoading} variant="outline">
+            {isLoadingDraft ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving Draft...
+              </>
+            ) : (
+              <>
+                <SaveIcon className="mr-2 h-4 w-4" />
+                Save as Draft
+              </>
+            )}
           </Button>
 
           <div className="flex gap-3">
-            <Button
-              onClick={onSaveDraft}
-              disabled={isLoading}
-              variant="outline"
-            >
-              {isLoadingDraft ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving Draft...
-                </>
-              ) : (
-                <>
-                  <SaveIcon className="mr-2 h-4 w-4" />
-                  Save as Draft
-                </>
-              )}
-            </Button>
-
             <Button
               onClick={onNext}
               disabled={isLoading}
@@ -282,23 +289,6 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
 
         {/* Mobile Layout */}
         <div className="flex md:hidden flex-col gap-2">
-          <Button
-            onClick={onNext}
-            disabled={isLoading}
-            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-          >
-            Next Step
-          </Button>
-
-          <Button
-            onClick={onPrevious}
-            disabled={isLoading || isLoadingDraft}
-            variant="outline"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Previous
-          </Button>
-
           <Button
             onClick={onSaveDraft}
             disabled={isLoading}
@@ -316,6 +306,14 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
                 Save as Draft
               </>
             )}
+          </Button>
+
+          <Button
+            onClick={onNext}
+            disabled={isLoading}
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+          >
+            Next Step
           </Button>
         </div>
       </div>

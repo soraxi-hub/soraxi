@@ -4,16 +4,15 @@ import React from "react";
 import Image from "next/image";
 import { AlertCircle, ChevronLeft, Loader2, Upload, X } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { ProofStepProps } from "@/types/waitlist-wizard.types";
@@ -107,15 +106,17 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
       </div>
 
       {/* Business Proof Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">Step 3 of 3: Business Proof</CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step 3 of 3: Business Proof
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Provide at least one of the following to verify your business
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Proof error banner (top-level) */}
           {errors.cacNumber && (
             <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
@@ -144,8 +145,6 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
             </p>
           </div>
 
-          <Separator />
-
           {/* Instagram */}
           <div className="space-y-2">
             <Label htmlFor="instagram" className="text-sm font-medium">
@@ -171,8 +170,6 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
             </p>
           </div>
 
-          <Separator />
-
           {/* Other proof URL */}
           <div className="space-y-2">
             <Label htmlFor="otherProofUrl" className="text-sm font-medium">
@@ -193,20 +190,20 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
               Any other link that shows your business is active
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Product Samples Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">Product Samples</CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">Product Samples</SoraxiCardTitle>
+          <SoraxiCardDescription>
             Upload photos of products you plan to sell (min 1, max{" "}
             {MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES})
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Sample error */}
           {errors.productSamples && (
             <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
@@ -273,7 +270,6 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
           {/* Previews — same grid as ProductImagesStep */}
           {productSamplePreviews.length > 0 && (
             <>
-              <Separator />
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {productSamplePreviews.map((preview, index) => (
                   <div
@@ -315,8 +311,8 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
               <li>• Multiple angles help us understand your range</li>
             </ul>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation */}
       <div className="flex flex-col gap-3 pt-4">

@@ -1,5 +1,5 @@
 import "../globals.css";
-import { HomeFooter } from "@/components/layout/home/home-footer";
+// import { HomeFooter } from "@/components/layout/home/home-footer";
 import { HomeHeader } from "@/components/layout/home/home-nav";
 import { Fragment } from "react";
 
@@ -12,7 +12,7 @@ export default function RootLayout({
     <Fragment>
       <HomeHeader />
       <main className="min-h-screen">{children}</main>
-      <HomeFooter />
+      {/* <HomeFooter /> */}
     </Fragment>
   );
 }

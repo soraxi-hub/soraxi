@@ -104,9 +104,10 @@ export interface BasicInfoStepProps {
   onPrevious: () => void;
   onSaveDraft: () => void;
   isLoadingDraft: boolean;
-  isLoading?: boolean;
   onGenerateDescription: () => Promise<void>;
   isGeneratingDescription: boolean;
+  currentStep: number;
+  isLoading?: boolean;
 }
 
 /**
@@ -120,9 +121,9 @@ export interface PricingInventoryStepProps {
     value: string | number,
   ) => void;
   onNext: () => void;
-  onPrevious: () => void;
   onSaveDraft: () => void;
   isLoadingDraft: boolean;
+  currentStep: number;
   isLoading?: boolean;
 }
 
@@ -138,7 +139,9 @@ export interface CategoryAudienceStepProps {
   ) => void;
   onNext: () => void;
   onSaveDraft: () => void;
+  onPrevious: () => void;
   isLoadingDraft: boolean;
+  currentStep: number;
   isLoading?: boolean;
 }
 
@@ -149,7 +152,7 @@ export interface ProductImagesStepProps {
   imageFiles: File[];
   imagePreviews: string[];
   dragActive: boolean;
-  errors: Partial<Record<keyof ProductFormData, string>>;
+  errors: Partial<Record<keyof ProductFormData | "images", string>>;
   onImageFilesChange: (files: File[]) => void;
   onImagePreviewsChange: (previews: string[]) => void;
   onDragActiveChange: (active: boolean) => void;
@@ -158,6 +161,7 @@ export interface ProductImagesStepProps {
   onPrevious: () => void;
   onSaveDraft: () => void;
   isLoadingDraft: boolean;
+  currentStep: number;
   isLoading?: boolean;
 }
 

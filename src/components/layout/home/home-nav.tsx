@@ -1,14 +1,14 @@
-import { Suspense } from "react";
+// import { Suspense } from "react";
 import Link from "next/link";
 
-import CartCount from "@/components/cart-count";
+// import CartCount from "@/components/cart-count";
 import UserAvatar from "@/components/user-avater";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
-import SearchBar from "@/components/search-bar";
+// import SearchBar from "@/components/search-bar";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import Image from "next/image";
-import { RouteBasedCategories } from "@/components/route-based-categories";
+// import { RouteBasedCategories } from "@/components/route-based-categories";
 import { CreateYourStore } from "@/modules/store/components/create-your-store";
 
 /**
@@ -48,7 +48,7 @@ export async function HomeHeader() {
           </div>
 
           {/* Desktop Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          {/* <div className="hidden md:flex flex-1 max-w-md mx-8">
             <Suspense
               fallback={
                 <div className="w-full h-10 bg-muted animate-pulse rounded-md" />
@@ -56,18 +56,18 @@ export async function HomeHeader() {
             >
               <SearchBar />
             </Suspense>
-          </div>
+          </div> */}
 
           {/* User Actions */}
           <div className="flex items-center gap-2">
             <CreateYourStore />
-            <CartCount />
+            {/* <CartCount /> */}
             <UserAvatar userName={user?.firstName} />
           </div>
         </div>
 
         {/* Mobile Search Bar */}
-        <div className="md:hidden mt-4">
+        {/* <div className="md:hidden mt-4">
           <Suspense
             fallback={
               <div className="w-full h-10 bg-muted animate-pulse rounded-md" />
@@ -75,11 +75,11 @@ export async function HomeHeader() {
           >
             <SearchBar />
           </Suspense>
-        </div>
+        </div> */}
       </div>
 
       {/* Category Navigation */}
-      <RouteBasedCategories />
+      {/* <RouteBasedCategories /> */}
     </header>
   );
 }

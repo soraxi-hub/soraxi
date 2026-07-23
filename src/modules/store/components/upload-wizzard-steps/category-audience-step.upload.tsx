@@ -1,14 +1,20 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { AlertCircle, CheckCircle, Loader2, SaveIcon } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AlertCircle,
+  CheckCircle,
+  ChevronLeft,
+  Loader2,
+  SaveIcon,
+} from "lucide-react";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -22,12 +28,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { categories, getSubcategoryNames } from "@/constants/constant";
 import { targetAudience as targetAudienceConstant } from "@/constants/fields-constants";
-import type { CategoryAudienceStepProps } from "../../../../types/upload-wizard.types";
+import type { CategoryAudienceStepProps } from "@/types/upload-wizard.types";
 
 /**
  * Category & Audience Step Component
  *
- * Step 3 of the product upload wizard
  * Collects product category, subcategory, and target audience
  *
  * Fields:
@@ -39,10 +44,12 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
   formData,
   errors,
   onFormDataChange,
+  onPrevious,
   onNext,
   isLoading,
   isLoadingDraft,
   onSaveDraft,
+  currentStep,
 }) => {
   // ============================================================================
   // STATE & COMPUTED VALUES
@@ -121,17 +128,17 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
-            Step 1 of 5: Category & Audience
-          </CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Category & Audience
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Select category, subcategory, and target audience
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Category Field */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -309,28 +316,41 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
                 </div>
               </>
             )}
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation & Action Buttons */}
       <div className="flex flex-col gap-3 pt-4">
         {/* Main Actions - Desktop Layout */}
         <div className="hidden md:flex justify-between gap-3">
-          <Button onClick={onSaveDraft} disabled={isLoading} variant="outline">
-            {isLoadingDraft ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving Draft...
-              </>
-            ) : (
-              <>
-                <SaveIcon className="mr-2 h-4 w-4" />
-                Save as Draft
-              </>
-            )}
+          <Button
+            onClick={onPrevious}
+            disabled={isLoading || isLoadingDraft}
+            variant="outline"
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Previous
           </Button>
 
           <div className="flex gap-3">
+            <Button
+              onClick={onSaveDraft}
+              disabled={isLoading}
+              variant="outline"
+            >
+              {isLoadingDraft ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving Draft...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  Save as Draft
+                </>
+              )}
+            </Button>
+
             <Button
               onClick={onNext}
               disabled={isLoading}
@@ -343,6 +363,23 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
 
         {/* Mobile Layout */}
         <div className="flex md:hidden flex-col gap-2">
+          <Button
+            onClick={onNext}
+            disabled={isLoading}
+            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
+          >
+            Next Step
+          </Button>
+
+          <Button
+            onClick={onPrevious}
+            disabled={isLoading || isLoadingDraft}
+            variant="outline"
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Previous
+          </Button>
+
           <Button
             onClick={onSaveDraft}
             disabled={isLoading}
@@ -360,14 +397,6 @@ export const CategoryAudienceStep: React.FC<CategoryAudienceStepProps> = ({
                 Save as Draft
               </>
             )}
-          </Button>
-
-          <Button
-            onClick={onNext}
-            disabled={isLoading}
-            className="bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-          >
-            Next Step
           </Button>
         </div>
       </div>

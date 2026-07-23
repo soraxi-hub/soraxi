@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import { ProductFactory } from "@/domain/products/product-factory";
 import type { ProductFormData } from "@/validators/product-validators";
 import type { StepValidationResult } from "../types/upload-wizard.types";
-import { toast } from "sonner";
 import { scrollToTop } from "@/lib/utils";
 
 /**
@@ -40,6 +39,7 @@ export interface UseStepValidationReturn {
     formData: ProductFormData,
     imageFiles: File[],
     storePassword: string,
+    action: "draft" | "publish",
   ) => StepValidationResult;
   validateField: (field: keyof ProductFormData) => void;
   clearFieldError: (field: keyof ProductFormData) => void;
@@ -58,18 +58,8 @@ export function useStepValidation(
    * Validates: name, description, specifications
    */
   const validateBasicInfo = useCallback(
-    (formData: ProductFormData): StepValidationResult => {
+    (_formData: ProductFormData): StepValidationResult => {
       const stepErrors: Partial<Record<keyof ProductFormData, string>> = {};
-
-      // Product name is required
-      if (!formData.name || formData.name.trim().length === 0) {
-        stepErrors.name = "Product name is required";
-      }
-
-      // Product name max length
-      if (formData.name && formData.name.length > 100) {
-        stepErrors.name = "Product name cannot exceed 100 characters";
-      }
 
       return {
         isValid: Object.keys(stepErrors).length === 0,
@@ -86,6 +76,16 @@ export function useStepValidation(
   const validatePricingInventory = useCallback(
     (formData: ProductFormData): StepValidationResult => {
       const stepErrors: Partial<Record<keyof ProductFormData, string>> = {};
+
+      // Product name is required
+      if (!formData.name || formData.name.trim().length === 0) {
+        stepErrors.name = "Product name is required";
+      }
+
+      // Product name max length
+      if (formData.name && formData.name.length > 100) {
+        stepErrors.name = "Product name cannot exceed 100 characters";
+      }
 
       // Price is required and must be positive
       if (formData.price && formData.price <= 0) {
@@ -142,11 +142,13 @@ export function useStepValidation(
    */
   const validateProductImages = useCallback(
     (imageFiles: File[]): StepValidationResult => {
-      const stepErrors: Partial<Record<keyof ProductFormData, string>> = {};
+      const stepErrors: Partial<
+        Record<keyof ProductFormData | "images", string>
+      > = {};
 
       // At least one image is required
       if (imageFiles.length === 0) {
-        toast.info("At least one product image is required");
+        stepErrors.images = "At least one product image is required";
       }
 
       return {
@@ -195,10 +197,10 @@ export function useStepValidation(
 
       switch (step) {
         case 0:
-          result = validateCategoryAudience(formData);
+          result = validatePricingInventory(formData);
           break;
         case 1:
-          result = validatePricingInventory(formData);
+          result = validateCategoryAudience(formData);
           break;
         case 2:
           result = validateBasicInfo(formData);
@@ -240,11 +242,29 @@ export function useStepValidation(
       formData: ProductFormData,
       imageFiles: File[],
       storePassword: string,
+      action: "draft" | "publish",
     ): StepValidationResult => {
       try {
         // Create product with validation decorator
         const productToUpload =
           ProductFactory.createProductWithValidationDecorator(formData);
+
+        if (action === "draft") {
+          const validationResult = productToUpload.validateDraft(storePassword);
+
+          // Extract errors from validation result
+          const publishErrors = validationResult.errors || {};
+
+          // Update errors state if validation failed
+          if (Object.keys(publishErrors).length > 0) {
+            setErrors(publishErrors);
+          }
+
+          return {
+            isValid: !validationResult.isValid,
+            errors: publishErrors,
+          };
+        }
 
         // Perform full publish validation
         const validationResult = productToUpload.validatePublish(

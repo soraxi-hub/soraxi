@@ -17,14 +17,14 @@ interface WizardProgressIndicatorProps {
 
 const STEP_CONFIG = [
   {
+    title: "Product Name & Inventory",
+    description: "Name, Price & quantity",
+    icon: DollarSign,
+  },
+  {
     title: "Category & Audience",
     description: "Category & audience",
     icon: Grid3X3,
-  },
-  {
-    title: "Pricing & Inventory",
-    description: "Price & quantity",
-    icon: DollarSign,
   },
   {
     title: "Product Details",
@@ -106,7 +106,7 @@ export function WizardProgressIndicator({
                 >
                   {step.title}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-500 hidden lg:inline-flex">
                   {step.description}
                 </p>
               </div>

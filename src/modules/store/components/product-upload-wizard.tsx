@@ -223,6 +223,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
       const { message, errors } = await parseErrorFromResponse(response);
       if (errors) {
         setErrors(errors);
+        scrollToTop();
       }
       throw new Error(message);
     }
@@ -242,18 +243,17 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
   const handlePublish: (action: "draft" | "publish") => Promise<void> =
     useCallback(
       async (action: "draft" | "publish") => {
-        // Validate all fields before publishing
-        if (action === "publish") {
-          const validation = validatePublish(
-            formData,
-            imageFiles,
-            formData.storePassword,
-          );
+        // Validate fields before publishing or saving as draft
+        const validation = validatePublish(
+          formData,
+          imageFiles,
+          formData.storePassword,
+          action,
+        );
 
-          if (validation.isValid) {
-            toast.error("Please fix validation errors before publishing");
-            return;
-          }
+        if (validation.isValid) {
+          toast.error("Please fix validation errors");
+          return;
         }
 
         try {
@@ -296,27 +296,29 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
     switch (currentStep) {
       case 0:
         return (
-          <CategoryAudienceStep
-            formData={formData}
-            errors={errors}
-            onFormDataChange={handleFormDataChange}
-            onNext={handleNextStep}
-            isLoading={isLoading}
-            isLoadingDraft={isLoadingDraft}
-            onSaveDraft={() => handlePublish("draft")}
-          />
-        );
-      case 1:
-        return (
           <PricingInventoryStep
             formData={formData}
             errors={errors}
             onFormDataChange={handleFormDataChange}
             onNext={handleNextStep}
-            onPrevious={handlePreviousStep}
             isLoading={isLoading}
             isLoadingDraft={isLoadingDraft}
             onSaveDraft={() => handlePublish("draft")}
+            currentStep={currentStep}
+          />
+        );
+      case 1:
+        return (
+          <CategoryAudienceStep
+            formData={formData}
+            errors={errors}
+            onFormDataChange={handleFormDataChange}
+            onPrevious={handlePreviousStep}
+            onNext={handleNextStep}
+            isLoading={isLoading}
+            isLoadingDraft={isLoadingDraft}
+            onSaveDraft={() => handlePublish("draft")}
+            currentStep={currentStep}
           />
         );
       case 2:
@@ -332,6 +334,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             onSaveDraft={() => handlePublish("draft")}
             onGenerateDescription={generateDescription}
             isGeneratingDescription={isGeneratingDescription}
+            currentStep={currentStep}
           />
         );
       case 3:
@@ -350,6 +353,7 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             isLoading={isLoading}
             isLoadingDraft={isLoadingDraft}
             onSaveDraft={() => handlePublish("draft")}
+            currentStep={currentStep}
           />
         );
       case 4:

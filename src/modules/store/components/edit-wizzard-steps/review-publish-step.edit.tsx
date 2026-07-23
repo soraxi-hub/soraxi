@@ -8,12 +8,12 @@ import {
   SaveIcon,
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -69,13 +69,17 @@ export function ReviewPublishStep({
 
       <div className="space-y-6">
         {/* Product Summary Card – matches upload step styling */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Product Summary</CardTitle>
-            <CardDescription>Current product details</CardDescription>
-          </CardHeader>
+        <SoraxiCard>
+          <SoraxiCardHeader className="pb-4">
+            <SoraxiCardTitle className="text-xl">
+              Product Summary
+            </SoraxiCardTitle>
+            <SoraxiCardDescription>
+              Current product details
+            </SoraxiCardDescription>
+          </SoraxiCardHeader>
 
-          <CardContent className="space-y-6">
+          <SoraxiCardContent className="space-y-6">
             {/* Basic Info Section */}
             <div>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
@@ -169,19 +173,21 @@ export function ReviewPublishStep({
                 </span>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
 
         {/* Security Card – matches upload step */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Security & Publishing</CardTitle>
-            <CardDescription>
+        <SoraxiCard>
+          <SoraxiCardHeader className="pb-4">
+            <SoraxiCardTitle className="text-xl">
+              Security & Publishing
+            </SoraxiCardTitle>
+            <SoraxiCardDescription>
               Enter your store password to secure this submission
-            </CardDescription>
-          </CardHeader>
+            </SoraxiCardDescription>
+          </SoraxiCardHeader>
 
-          <CardContent className="space-y-6">
+          <SoraxiCardContent className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Label htmlFor="store-password" className="text-sm font-medium">
@@ -210,12 +216,12 @@ export function ReviewPublishStep({
                 Your password is required for security verification
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
 
         {/* Important Notes Card – matches upload step (no amber background) */}
-        <Card>
-          <CardContent className="pt-6">
+        <SoraxiCard>
+          <SoraxiCardContent className="pt-6">
             <h4 className="text-sm font-semibold pb-3">Before you publish:</h4>
             <ul className="text-sm space-y-1">
               <li>• Review all changes carefully</li>
@@ -223,8 +229,8 @@ export function ReviewPublishStep({
               <li>• Ensure all details are accurate</li>
               <li>• Your password is required for security</li>
             </ul>
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
       </div>
 
       {/* Navigation Buttons – matches upload step layout */}

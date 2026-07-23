@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, CheckCircle, ChevronLeft } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,13 @@ import {
 interface PricingInventoryStepProps {
   formData: EditProductFormData;
   errors: Partial<Record<keyof EditProductFormData, string>>;
-  onFieldChange: (field: keyof EditProductFormData, value: number) => void;
+  onFieldChange: (
+    field: keyof EditProductFormData,
+    value: number | string,
+  ) => void;
   onNext: () => Promise<void>;
-  onPrevious: () => Promise<void>;
+
+  currentStep: number;
   isLoading?: boolean;
   hasChanges?: ProductChanges;
 }
@@ -40,9 +44,9 @@ export function PricingInventoryStep({
   errors,
   onFieldChange,
   onNext,
-  onPrevious,
   isLoading = false,
   hasChanges = {},
+  currentStep,
 }: PricingInventoryStepProps) {
   const getValidationIcon = (fieldName: keyof EditProductFormData) => {
     if (errors[fieldName]) {
@@ -71,25 +75,55 @@ export function PricingInventoryStep({
       {/* Header (matches upload step style) */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Pricing & Inventory
+          Product Name, Pricing & Inventory
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Update your product price and available quantity
+          Update your product name, price, and available quantity
         </p>
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
-            Step 2 of 5: Pricing & Inventory
-          </CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Pricing & Inventory
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Edit your product price and inventory
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
+          {/* Product Name Field */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="product-name" className="text-sm font-medium">
+                Product Name <span className="text-red-500">*</span>
+              </Label>
+              {getValidationIcon("name")}
+            </div>
+            <Input
+              id="product-name"
+              value={formData.name}
+              onChange={(e) => onFieldChange("name", e.target.value)}
+              placeholder="Enter a descriptive product name"
+              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
+            />
+            {errors.name && (
+              <p className="text-sm text-red-500 flex items-center mt-1">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {errors.name}
+              </p>
+            )}
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-gray-500">
+                {formData.name.length}/100 characters
+              </p>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Price Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -114,9 +148,8 @@ export function PricingInventoryStep({
                 type="text"
                 inputMode="decimal"
                 value={priceDisplay}
-                onChange={makeDecimalChangeHandler(
-                  setPriceDisplay,
-                  (val) => onFieldChange("price", val),
+                onChange={makeDecimalChangeHandler(setPriceDisplay, (val) =>
+                  onFieldChange("price", val),
                 )}
                 placeholder="0.00"
                 disabled={isLoading}
@@ -156,9 +189,8 @@ export function PricingInventoryStep({
               type="text"
               inputMode="numeric"
               value={quantityDisplay}
-              onChange={makeIntegerChangeHandler(
-                setQuantityDisplay,
-                (val) => onFieldChange("productQuantity", val),
+              onChange={makeIntegerChangeHandler(setQuantityDisplay, (val) =>
+                onFieldChange("productQuantity", val),
               )}
               placeholder="0"
               disabled={isLoading}
@@ -240,22 +272,19 @@ export function PricingInventoryStep({
                 </>
               );
             })()}
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
-      {/* Navigation Buttons – matches upload step layout */}
-      <div className="flex justify-between gap-3 pt-4">
-        <Button onClick={onPrevious} disabled={isLoading} variant="outline">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Previous
-        </Button>
-        <Button
-          onClick={onNext}
-          disabled={isLoading}
-          className="bg-[#14a800] hover:bg-[#14a800]/90 text-white"
-        >
-          Next Step
-        </Button>
+      {/* Navigation */}
+      <div className="flex flex-col gap-3 pt-4">
+        <div className="flex justify-end">
+          <Button
+            onClick={onNext}
+            className="bg-[#14a800] hover:bg-[#14a800]/90 text-white"
+          >
+            Next Step
+          </Button>
+        </div>
       </div>
     </div>
   );

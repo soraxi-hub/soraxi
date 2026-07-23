@@ -4,16 +4,16 @@ import React from "react";
 import Image from "next/image";
 import { AlertCircle, ChevronLeft, Upload, X } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { EditProductFormData } from "../../../../types/edit-wizard.types";
+import type { EditProductFormData } from "@/types/edit-wizard.types";
 import { useProductImages } from "@/hooks/use-product-images.edit";
 import { MAX_PRODUCT_IMAGES } from "@/constants/image.constants";
 
@@ -27,8 +27,9 @@ interface ProductImagesStepProps {
   onImagesChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onNext: () => Promise<void>;
   onPrevious: () => Promise<void>;
-  isLoading?: boolean;
+  currentStep: number;
   errors: Partial<Record<keyof EditProductFormData, string>>;
+  isLoading?: boolean;
 }
 
 export function ProductImagesStep({
@@ -39,6 +40,7 @@ export function ProductImagesStep({
   onPrevious,
   isLoading = false,
   errors,
+  currentStep,
 }: ProductImagesStepProps) {
   // Hook provides drag & drop and file handling logic
   const { imageFiles, dragActive, handleDrag, handleDrop, handleImageChange } =
@@ -59,15 +61,17 @@ export function ProductImagesStep({
       </div>
 
       {/* Main Card */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">Step 4 of 5: Product Images</CardTitle>
-          <CardDescription>
+      <SoraxiCard>
+        <SoraxiCardHeader className="pb-4">
+          <SoraxiCardTitle className="text-xl">
+            Step {currentStep + 1} of 5: Product Images
+          </SoraxiCardTitle>
+          <SoraxiCardDescription>
             Upload new images or manage existing ones
-          </CardDescription>
-        </CardHeader>
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-        <CardContent className="space-y-6">
+        <SoraxiCardContent className="space-y-6">
           {/* Drag & Drop Upload Area */}
           <div
             onDragEnter={handleDrag}
@@ -231,8 +235,8 @@ export function ProductImagesStep({
               <li>• You can have up to {MAX_PRODUCT_IMAGES} images total</li>
             </ul>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Navigation Buttons – consistent with upload step */}
       <div className="flex justify-between gap-3 pt-4">

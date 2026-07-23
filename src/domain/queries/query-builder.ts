@@ -79,23 +79,25 @@ export class QueryBuilder<
 
   /**
    * Adds a `$in` filter — matches documents where `field` is one of the given values.
-   * Silently skips empty arrays.
+   * If the array is empty, sets `{ $in: [] }`, which matches **no** documents.
    */
   whereIn<K extends keyof TLean>(field: K, values: TLean[K][]): this {
-    if (values?.length) {
-      this.filters = { ...this.filters, [field as string]: { $in: values } };
-    }
+    this.filters = {
+      ...this.filters,
+      [field as string]: { $in: values ?? [] },
+    };
     return this;
   }
 
   /**
    * Adds a `$nin` filter — excludes documents where `field` is one of the given values.
-   * Silently skips empty arrays.
+   * If the array is empty, sets `{ $nin: [] }`, which matches **all** documents.
    */
   whereNotIn<K extends keyof TLean>(field: K, values: TLean[K][]): this {
-    if (values?.length) {
-      this.filters = { ...this.filters, [field as string]: { $nin: values } };
-    }
+    this.filters = {
+      ...this.filters,
+      [field as string]: { $nin: values ?? [] },
+    };
     return this;
   }
 
