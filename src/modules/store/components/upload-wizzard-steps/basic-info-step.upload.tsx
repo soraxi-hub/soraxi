@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/soraxi-card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   quillFormats,
   quillModules,
@@ -122,8 +121,6 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               List key specifications, features, and technical details
             </p>
           </div>
-
-          <Separator />
 
           {/* Product Description Field */}
           <div className="space-y-2">

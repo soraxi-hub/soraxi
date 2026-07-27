@@ -22,7 +22,7 @@ export class StoreFactory {
       uniqueId: input.uniqueId,
       status: StoreStatusEnum.Pending,
       verification: {
-        isVerified: false,
+        isVerified: true,
         method: StoreVerificationStatusEnum.Email,
       },
     } as StoreProps);

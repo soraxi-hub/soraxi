@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/soraxi-card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -163,8 +162,6 @@ export function CategoryAudienceStep({
             </p>
           </div>
 
-          <Separator />
-
           {/* Subcategory Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -219,8 +216,6 @@ export function CategoryAudienceStep({
               Choose a more specific subcategory
             </p>
           </div>
-
-          <Separator />
 
           {/* Target Audience Field */}
           <div className="space-y-2">
@@ -284,7 +279,6 @@ export function CategoryAudienceStep({
             formData.targetAudience &&
             formData.targetAudience.length > 0 && (
               <>
-                <Separator />
                 <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
                   <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-3">
                     Summary

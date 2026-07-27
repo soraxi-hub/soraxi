@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/soraxi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import type { EditProductFormData } from "@/types/edit-wizard.types";
 import { useProductImages } from "@/hooks/use-product-images.edit";
 import { MAX_PRODUCT_IMAGES } from "@/constants/image.constants";
@@ -138,7 +137,6 @@ export function ProductImagesStep({
           {/* Existing Images Section */}
           {images.existingUrls.length > 0 && (
             <>
-              <Separator />
               <div>
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
                   Existing Images
@@ -176,7 +174,6 @@ export function ProductImagesStep({
           {/* New Images Section */}
           {imageFiles.length > 0 && (
             <>
-              <Separator />
               <div>
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
                   New Images

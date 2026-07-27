@@ -1,7 +1,6 @@
 export interface ParsedApiError {
   message: string;
   code?: string;
-  cause?: string;
   errors?: any;
 }
 
@@ -20,8 +19,7 @@ export async function parseErrorFromResponse(
     return {
       message: data?.error?.message || "An unknown error occurred.",
       code: data?.error?.code,
-      cause: data?.error?.cause,
-      errors: data?.error?.meta.errors,
+      errors: data?.error?.meta?.errors,
     };
   } catch {
     return {
