@@ -122,8 +122,6 @@ export function PricingInventoryStep({
             </div>
           </div>
 
-          <Separator />
-
           {/* Price Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -166,8 +164,6 @@ export function PricingInventoryStep({
               Enter the price customers will pay for this product
             </p>
           </div>
-
-          <Separator />
 
           {/* Quantity Field */}
           <div className="space-y-2">
@@ -219,7 +215,6 @@ export function PricingInventoryStep({
 
               return (
                 <>
-                  <Separator />
                   <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
                     <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-2">
                       Summary

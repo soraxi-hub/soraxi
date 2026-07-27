@@ -19,6 +19,7 @@ export async function proxy(request: NextRequest) {
   const isAdminPath = proxyUtils.isAdminPath();
   const isProtectedStoreOnboardingPath =
     proxyUtils.isProtectedStoreOnboardingPath();
+  const isStorePath = proxyUtils.isStorePath(pathname);
   console.log("proxy triggered for path:", pathname);
 
   // Authenticated users should not access sign-in or sign-up
@@ -26,11 +27,11 @@ export async function proxy(request: NextRequest) {
     return proxyUtils.createRedirect("/");
   }
 
-  // Unauthenticated users trying to access protected routes
-  if (!proxyUtils.isUserAuthenticated() && !isPublic) {
-    // Redirect to sign-in page with redirect parameter
-    return proxyUtils.createRedirectWithReturn("/sign-in", pathname);
-  }
+  // ---------------------------------------------------------------------
+  // STORE ROUTES — evaluated independently of user auth, using the store
+  // token only. Must run BEFORE the generic user-auth gate below, or a
+  // store owner with no user token gets bounced to /sign-in first.
+  // ---------------------------------------------------------------------
 
   // If your token payload includes storeId, extract and redirect dynamically
   // Redirect the store to its dashboard
@@ -54,20 +55,20 @@ export async function proxy(request: NextRequest) {
     return proxyUtils.createRedirect(target);
   }
 
-  // If the user is authenticated but does not have a store token, redirect to store login
-  if (
-    !proxyUtils.isStoreAuthenticated() &&
-    (proxyUtils.isStorePath(pathname) || isProtectedStoreOnboardingPath)
-  ) {
-    return proxyUtils.createRedirectWithReturn("/login", pathname);
-  }
+  if (isStorePath || isProtectedStoreOnboardingPath) {
+    // No store token — send to store login, not the general sign-in page
+    if (!proxyUtils.isStoreAuthenticated()) {
+      return proxyUtils.createRedirectWithReturn("/login", pathname);
+    }
 
-  // If the user is authenticated and trying to access a store path, allow access
-  if (proxyUtils.isStoreAuthenticated() && proxyUtils.isStorePath(pathname)) {
+    // Store token present — allow access on its own, no user token required
     return NextResponse.next();
   }
 
-  // Handle admin routes with RBAC
+  // ---------------------------------------------------------------------
+  // ADMIN ROUTES — evaluated independently of user auth, using the admin
+  // token only. Also must run BEFORE the generic user-auth gate below.
+  // ---------------------------------------------------------------------
   if (isAdminPath && pathname !== "/admin-sign-in") {
     // If no admin token, redirect to admin sign-in
     if (!adminToken) {
@@ -90,6 +91,18 @@ export async function proxy(request: NextRequest) {
       // Admin doesn't have permission, redirect to forbidden page
       return proxyUtils.createRedirectWithReturn("/admin/forbidden", pathname);
     }
+
+    // Admin token valid and permitted — allow access, no user token required
+    return NextResponse.next();
+  }
+
+  // ---------------------------------------------------------------------
+  // EVERYTHING ELSE — regular user-facing routes still require a user
+  // token unless the path is public. Store/admin paths never reach here.
+  // ---------------------------------------------------------------------
+  if (!proxyUtils.isUserAuthenticated() && !isPublic) {
+    // Redirect to sign-in page with redirect parameter
+    return proxyUtils.createRedirectWithReturn("/sign-in", pathname);
   }
 
   // Everything else is allowed

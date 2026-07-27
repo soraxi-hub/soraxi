@@ -18,7 +18,6 @@ import {
   SoraxiCardTitle,
 } from "@/components/ui/soraxi-card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
 import type { ProductImagesStepProps } from "@/types/upload-wizard.types";
@@ -185,9 +184,7 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
           {errors.images && (
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-700 dark:text-red-200">
-                {errors.images}
-              </p>
+              <p className="text-sm text-soraxi-error">{errors.images}</p>
             </div>
           )}
 
@@ -208,7 +205,6 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
           {/* Image Previews */}
           {imagePreviews.length > 0 && (
             <>
-              <Separator />
               <div>
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
                   Image Preview

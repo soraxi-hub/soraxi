@@ -15,7 +15,6 @@ import {
   SoraxiCardHeader,
   SoraxiCardTitle,
 } from "@/components/ui/soraxi-card";
-import { Separator } from "@/components/ui/separator";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import type { EditProductFormData } from "@/types/edit-wizard.types";
@@ -83,7 +82,7 @@ export function BasicInfoStep({
             Step {currentStep + 1} of 5: Basic Information
           </SoraxiCardTitle>
           <SoraxiCardDescription>
-            Update your product name and core details
+            Update your core details
           </SoraxiCardDescription>
         </SoraxiCardHeader>
 
@@ -117,8 +116,6 @@ export function BasicInfoStep({
               </p>
             </div>
           </div>
-
-          <Separator />
 
           {/* Product Description Field */}
           <div className="space-y-2">

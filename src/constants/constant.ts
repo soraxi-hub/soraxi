@@ -9,6 +9,7 @@ export const publicPaths = [
   "/",
   "/sign-in",
   "/sign-up",
+  "/login",
   "/about",
   "/privacy-policy",
   "/shipping-return-policy",

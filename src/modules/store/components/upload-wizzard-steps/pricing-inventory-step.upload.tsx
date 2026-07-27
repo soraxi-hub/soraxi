@@ -120,7 +120,6 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
             </p>
           </div>
 
-          <Separator />
           {/* Price Field */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -156,8 +155,6 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
               Enter the price customers will pay for this product
             </p>
           </div>
-
-          <Separator />
 
           {/* Quantity Field */}
           <div className="space-y-2">
@@ -202,7 +199,6 @@ export const PricingInventoryStep: React.FC<PricingInventoryStepProps> = ({
 
               return (
                 <>
-                  <Separator />
                   <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
                     <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-2">
                       Summary

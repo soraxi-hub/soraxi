@@ -114,8 +114,7 @@ export default function StoreLoginPage() {
       });
 
       if (!response.ok) {
-        const { message, code, cause } = await parseErrorFromResponse(response);
-        console.error("Login error:", { message, code, cause });
+        const { message } = await parseErrorFromResponse(response);
         setLoginError(message);
         toast.error(message);
         return;

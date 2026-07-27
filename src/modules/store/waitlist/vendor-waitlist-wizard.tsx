@@ -100,8 +100,7 @@ export function VendorWaitlistWizard() {
     payload.append("cityOfApplicant", formData.cityOfApplicant);
     if (formData.cacNumber) payload.append("cacNumber", formData.cacNumber);
     const normalizedHandle = normalizeInstagramHandle(formData.instagramHandle);
-    if (normalizedHandle)
-      payload.append("instagramHandle", normalizedHandle);
+    if (normalizedHandle) payload.append("instagramHandle", normalizedHandle);
     if (formData.otherProofUrl)
       payload.append("otherProofUrl", formData.otherProofUrl);
 

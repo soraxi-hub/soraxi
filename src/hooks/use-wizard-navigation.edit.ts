@@ -24,19 +24,19 @@ export function useWizardNavigation({
 
   const getErrorStep = (value: keyof EditProductFormData) => {
     switch (value) {
-      case "name":
       case "description":
       case "specifications":
-        return 0;
+        return 2;
 
+      case "name":
       case "price":
       case "productQuantity":
-        return 1;
+        return 0;
 
       case "category":
       case "subCategory":
       case "targetAudience":
-        return 2;
+        return 1;
 
       case "images":
         return 3;
