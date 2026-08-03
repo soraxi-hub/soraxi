@@ -169,6 +169,21 @@ export class DateFormatter {
   }
 
   /**
+   * Returns date in: `December 2025`
+   *
+   * Used where only the month a thing started matters — e.g. the
+   * "Member since" line on a public storefront.
+   */
+  public static monthYear(input: Date | string | number): string {
+    const date = this.parse(input);
+
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  /**
    * Returns a formatted date and time string.
    *
    * @param input - A Date object, timestamp number, or date string.

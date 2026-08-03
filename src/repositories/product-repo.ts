@@ -105,10 +105,16 @@ export class ProductRepository {
     const ProductModel = await getProductModel();
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
+    // Newest first: `$in` returns index order, which callers would otherwise
+    // present as an arbitrary ordering. The public storefront's default sort
+    // relies on this order, since the public product projection carries no
+    // date field for the client to sort on.
     const products = await ProductModel.find({
       _id: { $in: objectIds },
       isVerifiedProduct: true,
-    }).lean<IProduct[]>();
+    })
+      .sort({ createdAt: -1 })
+      .lean<IProduct[]>();
 
     return products.map((p) => {
       return {

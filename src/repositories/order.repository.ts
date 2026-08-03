@@ -149,6 +149,35 @@ export class OrderRepository {
   }
 
   /**
+   * Counts the orders a store has successfully fulfilled — i.e. orders holding
+   * a sub-order for this store that reached `delivered`.
+   *
+   * Orders are split into one sub-order per store, so an order contributes at
+   * most one delivered sub-order per store and this count is an order count.
+   * The `$elemMatch` keeps both conditions on the *same* sub-order, and is
+   * served by the `subOrders.storeId` / `subOrders.deliveryStatus` compound
+   * index declared on the order schema.
+   *
+   * Surfaced publicly on the storefront, so it must never leak counts for
+   * orders that were cancelled, returned or refunded.
+   *
+   * @param storeId - The store whose fulfilled orders to count
+   * @returns The number of orders delivered by this store
+   */
+  static async countFulfilledOrdersForStore(storeId: string): Promise<number> {
+    const Order = await getOrderModel();
+
+    return Order.countDocuments({
+      subOrders: {
+        $elemMatch: {
+          storeId: new mongoose.Types.ObjectId(storeId),
+          deliveryStatus: DeliveryStatus.Delivered,
+        },
+      },
+    });
+  }
+
+  /**
    * Checks if an order already exists for a given idempotency key.
    *
    * @param idempotencyKey - The key to look up

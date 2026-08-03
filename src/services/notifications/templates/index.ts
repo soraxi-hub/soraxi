@@ -34,3 +34,8 @@ export { StoreApprovedEmail } from "../templates/store/store-approved-email";
 export { StoreReactivatedEmail } from "../templates/store/store-reactivated-email";
 export { StoreRejectedEmail } from "../templates/store/store-rejected-email";
 export { StoreSuspendedEmail } from "../templates/store/store-suspended-email";
+export { DisputeAutoResolvedCustomerEmail } from "./dispute-auto-resolved-customer-email";
+export { DisputeAutoResolvedVendorEmail } from "./dispute-auto-resolved-vendor-email";
+export { DisputeAutoResolvedAdminEmail } from "./dispute-auto-resolved-admin-email";
+export { DisputeEvidenceExpiredCustomerEmail } from "./dispute-evidence-expired-customer-email";
+export { DisputeEvidenceExpiredVendorEmail } from "./dispute-evidence-expired-vendor-email";
