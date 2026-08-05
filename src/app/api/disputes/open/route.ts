@@ -22,6 +22,7 @@ import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
+import { MessagingEvents } from "@/services/messaging/messaging-events";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -254,6 +255,15 @@ export async function POST(req: NextRequest) {
       );
 
       await session.commitTransaction();
+
+      // Announce to the messaging module, after the commit. This route knows
+      // nothing about conversations — a registered handler adds a notice to
+      // the order's thread if one already exists. Never throws, so it cannot
+      // affect the dispute that was just opened.
+      await MessagingEvents.disputeOpened({
+        subOrderId,
+        disputeId: (disputeRecord._id as mongoose.Types.ObjectId).toString(),
+      });
 
       return NextResponse.json(
         {

@@ -40,6 +40,17 @@ export const PERMISSIONS = {
   // Disputes
   RESOLVE_DISPUTES: "resolve_dispuptes",
 
+  // Message moderation.
+  //
+  // VIEW_MODERATION_QUEUE grants the queue and flag metadata only. Reading the
+  // conversation itself needs READ_REPORTED_THREAD, which is separate on
+  // purpose: opening two private individuals' messages is a materially bigger
+  // step than seeing that a thread was flagged, and it should be grantable to
+  // fewer people.
+  VIEW_MODERATION_QUEUE: "view_moderation_queue",
+  READ_REPORTED_THREAD: "read_reported_thread",
+  MODERATE_CONVERSATIONS: "moderate_conversations",
+
   // Store creation waitlist
   VIEW_WAITLIST: "view_waitlist",
   MANAGE_WAITLIST: "manage_waitlist",

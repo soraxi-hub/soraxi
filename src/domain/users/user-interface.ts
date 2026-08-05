@@ -78,6 +78,9 @@ export type PublicToJSONUserType = Omit<
   | "stores"
   | "cityOfResidence"
   | "stateOfResidence"
+  // Presence data, not profile data — it belongs to messaging and has no place
+  // in the profile payload.
+  | "lastSeenAt"
   | "createdAt"
   | "updatedAt"
   | "followingStores"

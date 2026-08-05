@@ -3,6 +3,7 @@ import {
   MapPinIcon,
   CreditCardIcon,
   MailIcon,
+  MessageSquareIcon,
   BriefcaseIcon,
   WalletIcon,
   UserIcon,
@@ -27,6 +28,11 @@ export const storeSidebarItems = (storeId: string) => [
         title: "Orders",
         url: `/store/${storeId}/orders`,
         icon: CreditCardIcon,
+      },
+      {
+        title: "Messages",
+        url: `/store/${storeId}/messages`,
+        icon: MessageSquareIcon,
       },
       // {
       //   title: "Disputes",

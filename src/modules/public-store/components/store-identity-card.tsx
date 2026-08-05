@@ -87,19 +87,20 @@ function StoreStat({
 }
 
 /**
- * A CTA that is designed but not yet wired to a backend.
- *
- * Shown disabled with a tooltip rather than hidden, so the layout is final and
- * turning the feature on later is a one-line change here.
+ * A CTA that is designed but not yet actionable, shown disabled with an
+ * explanation rather than hidden — the layout stays final, and enabling it
+ * later is a one-line change here.
  */
 function ComingSoonAction({
   children,
   variant,
   className,
+  reason = "Coming soon",
 }: {
   children: React.ReactNode;
   variant: "default" | "outline";
   className?: string;
+  reason?: string;
 }) {
   return (
     <Tooltip>
@@ -118,7 +119,7 @@ function ComingSoonAction({
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        <p>Coming soon</p>
+        <p className="max-w-56 text-center">{reason}</p>
       </TooltipContent>
     </Tooltip>
   );
@@ -161,6 +162,11 @@ export function StoreIdentityCard({ store }: StoreIdentityCardProps) {
             <h1 className="text-2xl font-bold leading-tight break-words sm:text-3xl">
               {store.storeName}
             </h1>
+            {store.institution && (
+              <p className="mt-1 text-sm text-muted-foreground break-words">
+                {store.institution}
+              </p>
+            )}
           </div>
         </div>
 
@@ -208,7 +214,15 @@ export function StoreIdentityCard({ store }: StoreIdentityCardProps) {
             Follow store
           </ComingSoonAction>
 
-          <ComingSoonAction variant="outline">Message vendor</ComingSoonAction>
+          {/* Conversations are scoped to a product or an order, so there is
+              nothing for a store-level enquiry to attach to. Rather than a
+              dead button, this points at the action that does exist. */}
+          <ComingSoonAction
+            variant="outline"
+            reason="Open a product below and choose “Ask about this product” to message this vendor."
+          >
+            Message vendor
+          </ComingSoonAction>
 
           <Button
             variant="ghost"

@@ -24,6 +24,8 @@ export interface StorefrontStoreView {
   storeName: string;
   /** Up to two letters derived from the store name, for the avatar fallback. */
   initials: string;
+  /** e.g. `University of Calabar (UNICAL)`. Absent until backfilled. */
+  institution?: string;
   description: string;
   statusLabel: string;
   statusTone: StoreStatusTone;
@@ -153,6 +155,7 @@ export class StoreProfileManagerPublic {
       storeId: this.store.storeId,
       storeName: this.store.storeName,
       initials: this.storeInitials,
+      institution: this.store.institution,
       description: this.store.description,
       statusLabel: displayText,
       statusTone: tone,

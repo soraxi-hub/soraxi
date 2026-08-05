@@ -77,10 +77,20 @@ export const userSignUpInfoValidation = z.object({
     .max(10),
 });
 
-export const editProfileValidation = userSignUpInfoValidation.omit({
-  password: true,
-  confirmPassword: true,
-});
+/**
+ * Institution is editable but not collected at signup — adding a required
+ * field to the signup schema would block every new account on a value we can
+ * ask for later. Optional here too, so existing users are never forced through
+ * a profile edit before they can use the site.
+ */
+export const editProfileValidation = userSignUpInfoValidation
+  .omit({
+    password: true,
+    confirmPassword: true,
+  })
+  .extend({
+    institution: z.string().max(100).optional().or(z.literal("")),
+  });
 
 export const resetPasswordSchema = userSignUpInfoValidation
   .pick({

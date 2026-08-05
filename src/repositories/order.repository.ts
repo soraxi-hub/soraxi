@@ -149,6 +149,36 @@ export class OrderRepository {
   }
 
   /**
+   * Finds the order containing a given sub-order, together with that sub-order.
+   *
+   * Sub-orders have no collection of their own — they are embedded in orders —
+   * so anything that addresses one by id has to come through here.
+   *
+   * @returns The parent order and its matching sub-order, or null
+   */
+  static async findSubOrderById(subOrderId: string): Promise<{
+    order: IOrder;
+    subOrder: ISubOrder;
+  } | null> {
+    const Order = await getOrderModel();
+    const subOrderObjectId = new mongoose.Types.ObjectId(subOrderId);
+
+    const order = await Order.findOne({
+      "subOrders._id": subOrderObjectId,
+    }).lean<IOrder>();
+
+    if (!order) return null;
+
+    const subOrder = order.subOrders.find(
+      (s) => s._id.toString() === subOrderId,
+    );
+
+    if (!subOrder) return null;
+
+    return { order, subOrder };
+  }
+
+  /**
    * Counts the orders a store has successfully fulfilled — i.e. orders holding
    * a sub-order for this store that reached `delivered`.
    *

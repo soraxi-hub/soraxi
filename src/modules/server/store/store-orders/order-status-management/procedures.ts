@@ -17,6 +17,7 @@ import {
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 import { OrderRepository } from "@/repositories/order.repository";
+import { MessagingEvents } from "@/services/messaging/messaging-events";
 
 export const orderStatusRouter = createTRPCRouter({
   /**
@@ -138,6 +139,17 @@ export const orderStatusRouter = createTRPCRouter({
         } finally {
           session.endSession();
         }
+
+        // ==================== Messaging Event ====================
+        // Published after the commit, never inside it: an event for a
+        // rolled-back status change would announce something that never
+        // happened. This module knows nothing about conversations — a
+        // registered handler appends a notice if a thread already exists.
+        await MessagingEvents.orderStatusChanged({
+          subOrderId: input.subOrderId,
+          orderId: input.orderId,
+          statusLabel: deliveryStatusLabel(input.deliveryStatus),
+        });
 
         // ==================== Email Notifications ====================
         try {

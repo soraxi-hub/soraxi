@@ -17,6 +17,7 @@ import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { getStoreEmailTemplates } from "@/services/notifications/utils/utils";
 import { NotificationFactory } from "@/domain/notification";
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { MessagingEvents } from "@/services/messaging/messaging-events";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -379,6 +380,17 @@ export const adminStoreRouter = createTRPCRouter({
 
         // commit transaction
         await session.commitTransaction();
+
+        // Announce to messaging, after the commit. The handler locks this
+        // store's *product* threads only — order threads stay open, because
+        // the public storefront promises that placed orders are unaffected by
+        // a suspension, and a customer with money in escrow still needs to be
+        // able to chase their delivery. Never throws.
+        if (action === "suspend") {
+          await MessagingEvents.storeSuspended({ storeId });
+        } else if (action === "reactivate") {
+          await MessagingEvents.storeReinstated({ storeId });
+        }
 
         // Log admin action
         try {
