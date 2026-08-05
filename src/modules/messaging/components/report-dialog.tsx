@@ -109,10 +109,10 @@ export function ReportDialog({
                 setReason(value as MessageReportReasonEnum)
               }
             >
-              <SelectTrigger id="report-reason">
+              <SelectTrigger id="report-reason" className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-muted">
                 {Object.entries(REASON_LABELS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>
                     {label}

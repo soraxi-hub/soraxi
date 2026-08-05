@@ -10,10 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  ModerationFlagReasonEnum,
-  ModerationReviewStatusEnum,
-} from "@/enums";
+import { ModerationFlagReasonEnum, ModerationReviewStatusEnum } from "@/enums";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 
@@ -96,7 +93,7 @@ export function ModerationQueue() {
   const items = queue.data?.items ?? [];
 
   return (
-    <div className="space-y-4 p-4 sm:p-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Message moderation</h1>

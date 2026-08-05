@@ -133,7 +133,7 @@ function ContextThumbnail({
 
   return (
     <span
-      className="flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted"
+      className="flex size-4 shrink-0 items-center justify-center overflow-hidden rounded bg-muted"
       aria-hidden
     >
       {src ? (
@@ -209,7 +209,7 @@ export function MessagesInbox({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="space-y-3 border-b border-border p-0 sm:p-4">
+      <div className="space-y-3 border-b border-border py-3 sm:p-4">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-xl font-bold sm:text-2xl">Messages</h1>
           {unreadTotal > 0 && (

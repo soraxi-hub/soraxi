@@ -20,7 +20,8 @@ import {
  * job does the slow work off the request path, so send latency is never bound
  * by an SMTP handshake and a mail failure can never lose a message.
  *
- * Schedule: every minute (see vercel.json)
+ * Schedule: [every minute (My free plan does not allow this)].
+ * Hence, I switched to once per day at around 11 am to 12 noon (see vercel.json)
  * Security: Vercel CRON_SECRET header verification
  *
  * Runs far more often than the other jobs because it sits in a user-visible
