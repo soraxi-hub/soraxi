@@ -68,6 +68,14 @@ export class Store implements StoreInterface {
     return this.props.description ?? "";
   }
 
+  /**
+   * Institution this store trades at. Undefined until backfilled from the
+   * vendor application — see the field's note on the store model.
+   */
+  get institution(): string | undefined {
+    return this.props.institution;
+  }
+
   // -------------------------
   // VERIFICATION
   // -------------------------

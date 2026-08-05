@@ -11,7 +11,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { INSTITUTIONS } from "@/constants/constant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { User, Mail, Phone, MapPin } from "lucide-react";
@@ -37,6 +45,7 @@ const EditProfile = () => {
       cityOfResidence: "",
       stateOfResidence: "",
       postalCode: "",
+      institution: "",
     },
   });
 
@@ -219,6 +228,34 @@ const EditProfile = () => {
                     <FormControl>
                       <Input placeholder="10001" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="institution"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Institution (optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select your school" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {INSTITUTIONS.map((institution) => (
+                          <SelectItem key={institution} value={institution}>
+                            {institution}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

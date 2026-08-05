@@ -35,6 +35,9 @@ import { adminPayoutRouter } from "@/modules/server/admin/payouts/procedures";
 import { waitlistRouter } from "@/modules/server/waitlist/procedure";
 import { adminFinancialMetricsRouter } from "@/modules/server/admin/financials/procedures";
 import { adminRefundRouter } from "@/modules/server/admin/refunds/procedures";
+import { adminModerationRouter } from "@/modules/server/admin/moderation/procedures";
+import { customerMessagingRouter } from "@/modules/server/messaging/customer.procedures";
+import { vendorMessagingRouter } from "@/modules/server/messaging/vendor.procedures";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -67,6 +70,9 @@ export const appRouter = createTRPCRouter({
   storeProducts: storeProductRouter,
   storeShipping: storeShippingRouter,
   vendorDispute: vendorDisputeRouter,
+  vendorMessaging: vendorMessagingRouter,
+  adminModeration: adminModerationRouter,
+  customerMessaging: customerMessagingRouter,
   productReview: productReviewRouter,
   platformWallet: platformWalletRouter,
   adminManagement: adminManagementRouter,

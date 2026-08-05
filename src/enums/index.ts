@@ -220,3 +220,105 @@ export enum StoreBusinessInfoEnum {
   Individual = "individual",
   Company = "company",
 }
+
+// ---------------------------------------------------------------------------
+// Messaging
+// ---------------------------------------------------------------------------
+
+/**
+ * Who a conversation participant or message sender is.
+ *
+ * A pair of (kind, id) rather than a bare user id: a vendor is also a user on
+ * this platform, and the tRPC context resolves user, store and admin from three
+ * separate cookies. `Admin` exists so support can join a thread for dispute
+ * mediation without a schema change.
+ */
+export enum MessageParticipantKindEnum {
+  User = "user",
+  Store = "store",
+  Admin = "admin",
+}
+
+/**
+ * What a conversation is about. Drives the Products / Orders inbox filters.
+ */
+export enum MessageScopeKindEnum {
+  Product = "product",
+  Order = "order",
+}
+
+export enum ConversationStatusEnum {
+  Open = "open",
+  /** Readable, but the composer is replaced by `lockedReason`. */
+  Locked = "locked",
+  Archived = "archived",
+}
+
+/**
+ * Platform-generated messages, rendered as centred notices rather than bubbles.
+ *
+ * These originate in the order and dispute modules, which publish events; a
+ * messaging handler appends the message. Those modules never import messaging.
+ */
+export enum SystemMessageTypeEnum {
+  ThreadOpened = "thread_opened",
+  EscrowNotice = "escrow_notice",
+  DisputeOpened = "dispute_opened",
+  OrderStatusChanged = "order_status_changed",
+  StoreSuspended = "store_suspended",
+}
+
+/**
+ * Outbox event types. Each maps to one or more registered handlers; adding a
+ * consumer means adding a handler, never editing the message send path.
+ */
+export enum MessageOutboxEventEnum {
+  MessageSent = "message.sent",
+  ThreadOpened = "thread.opened",
+  /**
+   * Published by the order, dispute and admin modules — never by messaging.
+   * A registered handler turns these into system notices inside any thread
+   * that already exists for the affected order or store.
+   */
+  OrderStatusChanged = "order.status_changed",
+  DisputeOpened = "dispute.opened",
+  StoreSuspended = "store.suspended",
+  StoreReinstated = "store.reinstated",
+}
+
+export enum MessageOutboxStatusEnum {
+  Pending = "pending",
+  Processing = "processing",
+  Done = "done",
+  Failed = "failed",
+}
+
+/**
+ * Why a conversation was flagged for moderator attention.
+ *
+ * `contact_details` is machine-detected and silent — the sender is not told,
+ * and the message still sends. It exists because the platform's most costly
+ * abuse (moving a deal off-platform, which strips escrow and commission) is
+ * one both parties are happy to keep quiet about, so user reports are
+ * structurally blind to it.
+ */
+export enum ModerationFlagReasonEnum {
+  ContactDetails = "contact_details",
+  UserReport = "user_report",
+}
+
+/** What a reporting user says is wrong. Fixed set, so triage can be sorted. */
+export enum MessageReportReasonEnum {
+  Harassment = "harassment",
+  Scam = "scam",
+  OffPlatformPayment = "off_platform_payment",
+  Spam = "spam",
+  Other = "other",
+}
+
+/** Moderator disposition of a flagged conversation. */
+export enum ModerationReviewStatusEnum {
+  Pending = "pending",
+  Reviewed = "reviewed",
+  Dismissed = "dismissed",
+}

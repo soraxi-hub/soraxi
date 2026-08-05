@@ -12,6 +12,7 @@ import {
   Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MessageAboutOrderButton } from "@/modules/messaging/components/message-about-order-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -209,6 +210,15 @@ export function StoreAccordion({
                             value={"Delivery Confirmed"}
                           />
                         )}
+
+                        {/* Message the vendor about this sub-order. Offered
+                            before the dispute action deliberately: most
+                            "where is my order?" questions are answered by
+                            asking, not by opening a case. */}
+                        <MessageAboutOrderButton
+                          subOrderId={subOrderId.toString()}
+                          role="customer"
+                        />
 
                         {/* Raise Dispute button */}
                         {canRaiseDispute && (

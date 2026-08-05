@@ -39,6 +39,18 @@ export const AUDIT_ACTIONS = {
   STORE_REACTIVATED: "store_reactivated",
   STORE_NOTE_ADDED: "store_note_added",
 
+  // Message moderation.
+  //
+  // CONVERSATION_READ is the important one: it is the accountability record
+  // for an admin opening two people's private messages. Participants are not
+  // notified, so this log is the only thing standing behind the promise that
+  // access is limited to reported threads.
+  MODERATION_QUEUE_VIEWED: "moderation_queue_viewed",
+  CONVERSATION_READ: "conversation_read",
+  CONVERSATION_LOCKED: "conversation_locked",
+  CONVERSATION_UNLOCKED: "conversation_unlocked",
+  MODERATION_FLAG_RESOLVED: "moderation_flag_resolved",
+
   // Product Management
   PRODUCT_VIEWED: "product_viewed",
   PRODUCT_APPROVED: "product_approved",
@@ -107,6 +119,7 @@ export const AUDIT_MODULES = {
   AUTH: "auth",
   DASHBOARD: "dashboard",
   DELIVERIES: "deliveries",
+  MODERATION: "moderation",
 } as const;
 
 /**

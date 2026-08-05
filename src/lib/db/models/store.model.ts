@@ -93,9 +93,27 @@ export interface IStore {
   // Legal Agreement
   agreedToTermsAt?: Date;
 
+  /**
+   * The institution this store trades at, shown on the public storefront and
+   * in messaging headers.
+   *
+   * Optional because it is not yet populated: the value is collected on the
+   * vendor application (`vendor-application.model.ts`) but was never copied
+   * onto the store at approval time, so existing stores have nothing here
+   * until a backfill runs. Render it only when present.
+   */
+  institution?: string;
+
   // Security
   lastOtpRequestAt?: Date; // NEW: Prevent OTP spam
   otpRequestBlockedUntil?: Date; // NEW: Prevent a user from requesting many OTPs within a short period of time
+
+  /**
+   * Last time this store made an authenticated request. Powers the approximate
+   * "online" dot in messaging — writes are throttled to at most one per minute
+   * per store, so this is accurate to within a few minutes by design.
+   */
+  lastSeenAt?: Date;
 
   // Financials
   walletId: mongoose.Schema.Types.ObjectId;
@@ -246,11 +264,19 @@ const StoreSchema = new Schema<IStoreDocument>(
     // Terms/legal agreement
     agreedToTermsAt: Date,
 
+    institution: {
+      type: String,
+      trim: true,
+    },
+
     // Security
     lastOtpRequestAt: {
       type: Date,
     },
     otpRequestBlockedUntil: {
+      type: Date,
+    },
+    lastSeenAt: {
       type: Date,
     },
 

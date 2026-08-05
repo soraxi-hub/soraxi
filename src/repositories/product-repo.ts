@@ -101,14 +101,38 @@ export class ProductRepository {
       .executeOne();
   }
 
+  /**
+   * The fields needed to freeze a product into a snapshot — its name, price,
+   * lead image and owning store.
+   *
+   * Distinct from `findById`, which only returns images. Kept deliberately
+   * narrow: callers snapshotting a product should not receive the whole
+   * document and decide for themselves what to copy.
+   */
+  static async findSnapshotById(productId: string) {
+    const ProductModel = await getProductModel();
+
+    return ProductModel.findById(productId)
+      .select("_id name price images storeId")
+      .lean<
+        Pick<IProduct, "_id" | "name" | "price" | "images" | "storeId">
+      >();
+  }
+
   static async findByIds(ids: string[]) {
     const ProductModel = await getProductModel();
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
+    // Newest first: `$in` returns index order, which callers would otherwise
+    // present as an arbitrary ordering. The public storefront's default sort
+    // relies on this order, since the public product projection carries no
+    // date field for the client to sort on.
     const products = await ProductModel.find({
       _id: { $in: objectIds },
       isVerifiedProduct: true,
-    }).lean<IProduct[]>();
+    })
+      .sort({ createdAt: -1 })
+      .lean<IProduct[]>();
 
     return products.map((p) => {
       return {

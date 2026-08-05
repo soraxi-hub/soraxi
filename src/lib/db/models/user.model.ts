@@ -21,6 +21,18 @@ export interface IUser {
   stateOfResidence: string;
   postalCode: string;
   isVerified: boolean;
+  /**
+   * The university this student belongs to, chosen from the INSTITUTIONS list.
+   * Optional: existing accounts predate the field, and it is surfaced publicly
+   * (messaging headers, storefronts) only when set.
+   */
+  institution?: string;
+  /**
+   * Last time this user made an authenticated request. Powers the approximate
+   * "online" dot in messaging — writes are throttled to at most one per minute
+   * per user, so this is accurate to within a few minutes by design.
+   */
+  lastSeenAt?: Date;
   followingStores: mongoose.Types.ObjectId[];
   stores?: {
     storeId: mongoose.Types.ObjectId;
@@ -95,6 +107,13 @@ const UserSchema = new Schema<IUserDocument>(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    institution: {
+      type: String,
+      trim: true,
+    },
+    lastSeenAt: {
+      type: Date,
     },
     followingStores: [
       {

@@ -68,6 +68,11 @@ function UserAvatar({ userName }: { userName?: string }) {
                   Orders
                 </DropdownMenuItem>
               </Link>
+              <Link href={`/messages`}>
+                <DropdownMenuItem className=" cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
+                  My Inbox
+                </DropdownMenuItem>
+              </Link>
               <Link href={"/store/onboarding/"} className="lg:hidden">
                 <DropdownMenuItem className="cursor-pointer hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!">
                   Create Your Store

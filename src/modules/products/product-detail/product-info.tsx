@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Star, Shield, RotateCcw } from "lucide-react";
 import { useProductInfo } from "@/hooks/use-product-info";
+import { MessageVendorButton } from "@/modules/messaging/components/message-vendor-button";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 import Link from "next/link";
@@ -118,6 +119,14 @@ export function ProductInfo({ product }: ProductInfoProps) {
         >
           {isCopied ? "Copied!" : "Share Product"}
         </Button>
+
+        {/* Pre-purchase enquiry. Full width beneath the other actions: it's a
+            question, not a purchase, and shouldn't compete with Add to Cart. */}
+        <MessageVendorButton
+          productId={product.productId}
+          label="Ask about this product"
+          className="col-span-2 w-full"
+        />
       </div>
 
       <Separator />

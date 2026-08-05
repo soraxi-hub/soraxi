@@ -19,12 +19,22 @@ import {
 } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
-// import { NotificationFactory, renderTemplate } from "@/domain/notification";
-// import React from "react";
-// NOTE: Create these email templates following your existing template pattern
-// import { DisputeAutoResolvedStudentEmail } from "@/services/notifications/templates/dispute-auto-resolved-student-email";
-// import { DisputeAutoResolvedVendorEmail } from "@/services/notifications/templates/dispute-auto-resolved-vendor-email";
-// import { DisputeAutoResolvedAdminEmail } from "@/services/notifications/templates/dispute-auto-resolved-admin-email";
+import {
+  NotificationFactory,
+  renderTemplate,
+  DisputeAutoResolvedCustomerEmail,
+  DisputeAutoResolvedVendorEmail,
+  DisputeAutoResolvedAdminEmail,
+  AdminNotificationEmail,
+} from "@/domain/notification";
+import React from "react";
+import { getUserModel } from "@/lib/db/models/user.model";
+import { formatNaira } from "@/lib/utils/naira";
+import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
+import {
+  formatErrorReport,
+  isReportableError,
+} from "@/lib/utils/telegram/format-error-report";
 
 /**
  * Result of processing a single auto-resolution.
@@ -246,7 +256,10 @@ export class DisputeAutoResolutionService {
       await session.commitTransaction();
 
       // Send notifications outside the session, network calls don't belong in transactions
-      await this.sendAutoResolutionNotifications(dispute);
+      await this.sendAutoResolutionNotifications(
+        dispute,
+        dispute.frozenAmount + breakdown.commission,
+      );
 
       return { disputeId, success: true };
     } catch (error: any) {
@@ -273,27 +286,25 @@ export class DisputeAutoResolutionService {
 
   /**
    * Sends notifications to all three parties after a successful auto-resolution:
-   * - Student: their dispute was upheld and a refund is on the way
-   * - Vendor: their funds were released to the student due to inaction
+   * - Customer: their dispute was upheld and a refund is on the way
+   * - Vendor: their funds were released to the customer due to inaction
    * - Admin team: a dispute was auto-resolved due to their inaction
    *
    * Notifications are fire-and-forget — a notification failure must never
    * cause a financial rollback.
    *
-   * NOTE: Implement the three email templates and uncomment the notification
-   * calls below. Follow the same pattern as your existing email templates.
-   *
    * @param dispute - The auto-resolved dispute record
+   * @param totalRefunded - Full amount refunded to the customer (settle + commission), in Kobo
    */
   private static async sendAutoResolutionNotifications(
     dispute: IDisputeRecordDocument,
+    totalRefunded: number,
   ): Promise<void> {
     try {
       await Promise.allSettled([
-        // NOTE: Uncomment and implement once templates are created
-        // this.notifyStudent(dispute),
-        // this.notifyVendor(dispute),
-        // this.notifyAdminTeam(dispute),
+        this.notifyCustomer(dispute, totalRefunded),
+        this.notifyVendor(dispute, totalRefunded),
+        this.notifyAdminTeam(dispute, totalRefunded),
       ]);
     } catch (error) {
       // Swallow notification errors — financial writes already committed
@@ -301,6 +312,145 @@ export class DisputeAutoResolutionService {
         `[DisputeAutoResolutionService] Notification failed for dispute ${(dispute._id as mongoose.Types.ObjectId).toString()}:`,
         error,
       );
+    }
+  }
+
+  /**
+   * Notifies the customer that their dispute was auto-resolved in their
+   * favour and a full refund has been issued.
+   *
+   * @param dispute - The auto-resolved dispute record
+   * @param totalRefunded - Full amount refunded to the customer, in Kobo
+   */
+  private static async notifyCustomer(
+    dispute: IDisputeRecordDocument,
+    totalRefunded: number,
+  ): Promise<void> {
+    try {
+      const User = await getUserModel();
+      const customer = await User.findById(dispute.customerId).select(
+        "email firstName",
+      );
+
+      if (!customer) return;
+
+      const html = await renderTemplate(
+        React.createElement(DisputeAutoResolvedCustomerEmail, {
+          customerName: customer.firstName,
+          orderId: dispute.orderId.toString(),
+          suborderId: dispute.suborderId.toString(),
+          refundAmount: formatNaira(totalRefunded),
+        }),
+      );
+
+      const notification = NotificationFactory.create("email", {
+        recipient: customer.email,
+        subject: "Your dispute has been resolved in your favour",
+        emailType: "noreply",
+        fromAddress: "noreply@soraxihub.com",
+        html,
+        text: `Your dispute was auto-resolved in your favour. A refund of ${formatNaira(totalRefunded)} has been issued.`,
+      });
+
+      await notification.send();
+    } catch (error) {
+      console.error(
+        `[DisputeAutoResolutionService] Customer notification failed for dispute ${(dispute._id as mongoose.Types.ObjectId).toString()}:`,
+        error,
+      );
+      await this.reportNotificationError(error, "notifyCustomer");
+    }
+  }
+
+  /**
+   * Notifies the vendor that funds were released to the customer because the
+   * platform team missed the resolution deadline — not due to any vendor fault.
+   *
+   * @param dispute - The auto-resolved dispute record
+   * @param totalRefunded - Full amount refunded to the customer, in Kobo
+   */
+  private static async notifyVendor(
+    dispute: IDisputeRecordDocument,
+    totalRefunded: number,
+  ): Promise<void> {
+    try {
+      const Store = await getStoreModel();
+      const store = await Store.findById(dispute.vendorId).select(
+        "storeEmail name",
+      );
+
+      if (!store) return;
+
+      const html = await renderTemplate(
+        React.createElement(DisputeAutoResolvedVendorEmail, {
+          storeName: store.name,
+          orderId: dispute.orderId.toString(),
+          suborderId: dispute.suborderId.toString(),
+          amountReleased: formatNaira(totalRefunded),
+        }),
+      );
+
+      const notification = NotificationFactory.create("email", {
+        recipient: store.storeEmail,
+        subject: "Dispute auto-resolved — funds released to customer",
+        emailType: "noreply",
+        fromAddress: "noreply@soraxihub.com",
+        html,
+        text: `A dispute on one of your orders was auto-resolved and ${formatNaira(totalRefunded)} was refunded to the customer. No penalty was applied to your account.`,
+      });
+
+      await notification.send();
+    } catch (error) {
+      console.error(
+        `[DisputeAutoResolutionService] Vendor notification failed for dispute ${(dispute._id as mongoose.Types.ObjectId).toString()}:`,
+        error,
+      );
+      await this.reportNotificationError(error, "notifyVendor");
+    }
+  }
+
+  /**
+   * Notifies the admin/platform team that a dispute was auto-resolved due
+   * to the team missing the resolution deadline. Fires for every successful
+   * auto-resolution so the team is aware their SLA was missed.
+   *
+   * @param dispute - The auto-resolved dispute record
+   * @param totalRefunded - Full amount refunded to the customer, in Kobo
+   */
+  private static async notifyAdminTeam(
+    dispute: IDisputeRecordDocument,
+    totalRefunded: number,
+  ): Promise<void> {
+    try {
+      const Store = await getStoreModel();
+      const store = await Store.findById(dispute.vendorId).select("name");
+
+      const html = await renderTemplate(
+        React.createElement(DisputeAutoResolvedAdminEmail, {
+          disputeId: (dispute._id as mongoose.Types.ObjectId).toString(),
+          orderId: dispute.orderId.toString(),
+          suborderId: dispute.suborderId.toString(),
+          storeName: store?.name ?? "Unknown store",
+          refundAmount: formatNaira(totalRefunded),
+        }),
+      );
+
+      const notification = NotificationFactory.create("email", {
+        recipient: "admin@soraxihub.com",
+        subject: "Dispute auto-resolved — resolution deadline missed",
+        emailType: "noreply",
+        fromAddress: "noreply@soraxihub.com",
+        html,
+        text: `Dispute ${(dispute._id as mongoose.Types.ObjectId).toString()} was auto-resolved after missing the resolution deadline.`,
+      });
+
+      await notification.send();
+    } catch (error) {
+      console.error(
+        `[DisputeAutoResolutionService] Admin notification failed for dispute ${(dispute._id as mongoose.Types.ObjectId).toString()}:`,
+        error,
+      );
+      await this.reportNotificationError(error, "notifyAdminTeam");
     }
   }
 
@@ -322,14 +472,60 @@ export class DisputeAutoResolutionService {
         `[DisputeAutoResolutionService] ${summary.failed} dispute(s) failed auto-resolution. Dispute IDs: ${failedIds.join(", ")}`,
       );
 
-      // NOTE: Send admin alert email here following your existing
-      // NotificationFactory pattern. Include the failed dispute IDs
-      // so the team can investigate and manually resolve them.
+      const html = await renderTemplate(
+        React.createElement(AdminNotificationEmail, {
+          title: "Dispute Auto-Resolution Failures",
+          content: `${summary.failed} dispute(s) failed to auto-resolve during the background job run and require manual investigation.`,
+          details: {
+            "Processed At": summary.processedAt.toISOString(),
+            "Total Overdue": summary.totalOverdue.toString(),
+            Resolved: summary.resolved.toString(),
+            Failed: summary.failed.toString(),
+            "Failed Dispute IDs": failedIds.join(", "),
+          },
+        }),
+      );
+
+      const notification = NotificationFactory.create("email", {
+        recipient: "admin@soraxihub.com",
+        subject: `Admin Alert: ${summary.failed} dispute(s) failed auto-resolution`,
+        emailType: "noreply",
+        fromAddress: "noreply@soraxihub.com",
+        html,
+        text: `${summary.failed} dispute(s) failed auto-resolution. Dispute IDs: ${failedIds.join(", ")}`,
+      });
+
+      await notification.send();
     } catch (error) {
       console.error(
         "[DisputeAutoResolutionService] Failed to notify admin of batch failures:",
         error,
       );
+      await this.reportNotificationError(error, "notifyAdminOfFailures");
+    }
+  }
+
+  /**
+   * Reports a reportable notification error to the ops Telegram channel.
+   * Never throws — notification failures must never affect financial writes.
+   *
+   * @param error - The error raised while sending a notification
+   * @param source - Short identifier for where the failure occurred
+   */
+  private static async reportNotificationError(
+    error: unknown,
+    source: string,
+  ): Promise<void> {
+    if (!isReportableError(error)) return;
+
+    try {
+      await sendTelegramMessage(
+        formatErrorReport(error, {
+          source: `service:dispute-auto-resolution.${source}`,
+        }),
+      );
+    } catch {
+      // sendTelegramMessage already console.errors internally; never mask the original error
     }
   }
 }

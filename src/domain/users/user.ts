@@ -62,6 +62,11 @@ export class User implements IUserInfo {
     return this.props.isVerified ?? false;
   }
 
+  /** University this student belongs to. Optional — predates most accounts. */
+  get institution(): string | undefined {
+    return this.props.institution;
+  }
+
   get followingStores(): string[] {
     return this.props.followingStores.map((id) => id.toString()) || [];
   }
@@ -121,6 +126,7 @@ export class User implements IUserInfo {
       postalCode: this.postalCode,
       fullAddress: this.fullAddress,
       isVerified: this.isVerified,
+      institution: this.institution,
       lastOtpRequestAt: this.lastOtpRequestAt,
       otpRequestBlockedUntil: this.otpBlockedUntil,
       isOtpBlocked: this.isOtpBlocked,
