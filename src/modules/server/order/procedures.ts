@@ -2,15 +2,9 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { DeliveryStatus } from "@/enums";
+import { DeliveryProofMethodEnum, DeliveryStatus } from "@/enums";
+import { settleSuborder } from "@/services/orders/suborder-settlement.service";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import {
-  getTransactionRecordByOrderId,
-  updateSuborderFinancialStatus,
-} from "@/lib/db/models/transaction-record.model";
-import { releaseVendorPendingToAvailable } from "@/lib/db/models/vendor-wallet.model";
-import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
-import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -150,55 +144,23 @@ export const orderRouter = createTRPCRouter({
             session,
           );
 
-          const transactionRecord =
-            await getTransactionRecordByOrderId(mainOrderId);
-
-          if (!transactionRecord) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: `Transaction record not found for order ${mainOrderId}`,
-            });
+          // Record how delivery was proven. First-party confirmation from the
+          // buyer's own account is the strongest evidence available, and the
+          // admin dispute panel surfaces it as such.
+          if (rawSubOrder.deliveryProof) {
+            rawSubOrder.deliveryProof.method =
+              DeliveryProofMethodEnum.CustomerInApp;
+            rawSubOrder.deliveryProof.confirmedAt = new Date();
           }
 
-          const breakdown = transactionRecord.suborderBreakdowns.find(
-            (b) => b.suborderId.toString() === subOrderId,
-          );
-
-          if (!breakdown) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: `No financial breakdown found for suborder ${subOrderId}`,
-            });
-          }
-
-          if (breakdown.status !== SuborderFinancialStatus.PENDING) {
-            await orderDoc.save({ session });
-            await session.commitTransaction();
-            return { success: true, message: "Delivery Confirmed." };
-          }
-
-          const writer = await JournalEntryWriter.init();
-
-          await writer.writeFundsReleased({
-            vendorId: breakdown.vendorId,
-            settleAmount: breakdown.settleAmount,
-            suborderId: breakdown.suborderId,
-            triggeredBy: "CUSTOMER_CONFIRMATION",
+          // Shared with the auto-confirm cron and the delivery-code path, so
+          // the ledger, financial status and wallet move can never drift apart.
+          await settleSuborder({
+            orderId: mainOrderId,
+            subOrderId,
+            trigger: "CUSTOMER_CONFIRMATION",
             session,
           });
-
-          await updateSuborderFinancialStatus(
-            mainOrderId,
-            subOrderId,
-            SuborderFinancialStatus.SETTLED,
-            session,
-          );
-
-          await releaseVendorPendingToAvailable(
-            breakdown.vendorId.toString(),
-            breakdown.settleAmount,
-            session,
-          );
 
           await orderDoc.save({ session });
           await session.commitTransaction();

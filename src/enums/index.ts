@@ -233,6 +233,34 @@ export enum StoreBusinessInfoEnum {
  * separate cookies. `Admin` exists so support can join a thread for dispute
  * mediation without a schema change.
  */
+/**
+ * How a delivery came to be marked delivered.
+ *
+ * Ordered by evidential strength — this is the vocabulary an admin uses to
+ * resolve an "item not received" dispute, so the distinctions matter:
+ *
+ * - `CustomerInApp`  — strongest. First-party, from the buyer's own account.
+ * - `CodeByRider`    — strong. The buyer was present and released their code.
+ * - `CodeByVendor`   — strong. Same code, read over the phone from a rider with
+ *                      no smartphone. Still buyer-attested; only the keyboard
+ *                      differs.
+ * - `VendorDeclared` — weak. The vendor's unverified assertion, corroborated by
+ *                      nothing. The burden of proof sits with them.
+ */
+export enum DeliveryProofMethodEnum {
+  CustomerInApp = "customer_in_app",
+  CodeByRider = "code_by_rider",
+  CodeByVendor = "code_by_vendor",
+  VendorDeclared = "vendor_declared",
+}
+
+/** Evidential weight of a proof method, for the admin dispute panel. */
+export enum DeliveryProofStrengthEnum {
+  Strongest = "strongest",
+  Strong = "strong",
+  Weak = "weak",
+}
+
 export enum MessageParticipantKindEnum {
   User = "user",
   Store = "store",
@@ -266,6 +294,7 @@ export enum SystemMessageTypeEnum {
   DisputeOpened = "dispute_opened",
   OrderStatusChanged = "order_status_changed",
   StoreSuspended = "store_suspended",
+  DeliveryConfirmed = "delivery_confirmed",
 }
 
 /**
@@ -284,6 +313,7 @@ export enum MessageOutboxEventEnum {
   DisputeOpened = "dispute.opened",
   StoreSuspended = "store.suspended",
   StoreReinstated = "store.reinstated",
+  DeliveryConfirmed = "delivery.confirmed",
 }
 
 export enum MessageOutboxStatusEnum {

@@ -3,11 +3,10 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, VariantProps } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import { ArrowLeftToLineIcon, ArrowRightToLineIcon } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -253,29 +252,176 @@ function Sidebar({
   );
 }
 
+const SIDEBAR_TRIGGER_POSITION_KEY = "sidebar_trigger_offset";
+const SIDEBAR_TRIGGER_HEIGHT = 44;
+const SIDEBAR_TRIGGER_EDGE_PADDING = 8;
+// How far the pointer must travel before we treat the gesture as a drag
+// instead of a tap. Keeps the handle clickable on touch screens.
+const SIDEBAR_TRIGGER_DRAG_THRESHOLD = 4;
+
+/**
+ * A floating handle docked to the left or right edge of the viewport that
+ * toggles the sidebar. It can be dragged vertically to a comfortable position
+ * (the offset is remembered in localStorage per side) but always stays glued
+ * to its edge.
+ */
 function SidebarTrigger({
   className,
   onClick,
+  side = "left",
+  followSidebar = true,
   ...props
-}: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+}: React.ComponentProps<"button"> & {
+  /** Which edge of the viewport the handle sticks to. */
+  side?: "left" | "right";
+  /** Slide the handle past the sidebar while it is expanded on desktop. */
+  followSidebar?: boolean;
+}) {
+  const { toggleSidebar, state, isMobile, openMobile } = useSidebar();
+
+  const [offsetY, setOffsetY] = React.useState<number | null>(null);
+  const dragRef = React.useRef({
+    pointerY: 0,
+    startTop: 0,
+    moved: false,
+    active: false,
+  });
+
+  const clampOffset = React.useCallback((value: number) => {
+    const max = Math.max(
+      window.innerHeight - SIDEBAR_TRIGGER_HEIGHT - SIDEBAR_TRIGGER_EDGE_PADDING,
+      SIDEBAR_TRIGGER_EDGE_PADDING
+    );
+    return Math.min(Math.max(value, SIDEBAR_TRIGGER_EDGE_PADDING), max);
+  }, []);
+
+  // Restore the remembered offset once we are on the client.
+  React.useEffect(() => {
+    const stored = window.localStorage.getItem(
+      `${SIDEBAR_TRIGGER_POSITION_KEY}:${side}`
+    );
+    const parsed = stored ? Number(stored) : NaN;
+    setOffsetY(
+      Number.isFinite(parsed)
+        ? clampOffset(parsed)
+        : clampOffset(window.innerHeight / 2 - SIDEBAR_TRIGGER_HEIGHT / 2)
+    );
+  }, [side, clampOffset]);
+
+  // Keep the handle on screen when the viewport is resized.
+  React.useEffect(() => {
+    const handleResize = () =>
+      setOffsetY((current) => (current === null ? current : clampOffset(current)));
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [clampOffset]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    // Ignore secondary buttons so context menus still work.
+    if (event.button !== 0) return;
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerY: event.clientY,
+      startTop: event.currentTarget.getBoundingClientRect().top,
+      moved: false,
+      active: true,
+    };
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag.active) return;
+
+    const delta = event.clientY - drag.pointerY;
+    if (!drag.moved && Math.abs(delta) < SIDEBAR_TRIGGER_DRAG_THRESHOLD) return;
+
+    drag.moved = true;
+    setOffsetY(clampOffset(drag.startTop + delta));
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag.active) return;
+
+    drag.active = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (drag.moved) {
+      setOffsetY((current) => {
+        if (current !== null) {
+          window.localStorage.setItem(
+            `${SIDEBAR_TRIGGER_POSITION_KEY}:${side}`,
+            String(current)
+          );
+        }
+        return current;
+      });
+      return;
+    }
+
+    onClick?.(event);
+    toggleSidebar();
+  };
+
+  // The arrow points in the direction the sidebar will move: outward to open
+  // it from a collapsed state, back toward the edge to close it.
+  const isOpen = isMobile ? openMobile : state === "expanded";
+  const pointsAwayFromEdge = side === "left" ? !isOpen : isOpen;
+  const Icon = pointsAwayFromEdge ? ArrowRightToLineIcon : ArrowLeftToLineIcon;
+
+  const shouldFollow = followSidebar && !isMobile && state === "expanded";
 
   return (
-    <Button
+    <button
+      type="button"
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon"
-      className={cn("size-7", className)}
-      onClick={(event) => {
-        onClick?.(event);
+      data-side={side}
+      aria-label="Toggle Sidebar"
+      aria-expanded={isOpen}
+      title="Toggle Sidebar"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
         toggleSidebar();
       }}
+      style={{
+        top: offsetY ?? "50%",
+        left:
+          side === "left"
+            ? shouldFollow
+              ? "var(--sidebar-width)"
+              : 0
+            : undefined,
+        right:
+          side === "right"
+            ? shouldFollow
+              ? "var(--sidebar-width)"
+              : 0
+            : undefined,
+      }}
+      className={cn(
+        "bg-soraxi-green hover:bg-soraxi-green-hover text-white",
+        "fixed z-30 flex h-11 w-9 touch-none items-center justify-center",
+        "cursor-grab shadow-md transition-colors active:cursor-grabbing",
+        "focus-visible:ring-2 focus-visible:ring-soraxi-green focus-visible:ring-offset-2 focus-visible:outline-none",
+        side === "left" ? "rounded-r-lg" : "rounded-l-lg",
+        offsetY === null && "-translate-y-1/2",
+        className
+      )}
       {...props}
     >
-      <PanelLeftIcon />
+      <Icon className="size-5" />
       <span className="sr-only">Toggle Sidebar</span>
-    </Button>
+    </button>
   );
 }
 

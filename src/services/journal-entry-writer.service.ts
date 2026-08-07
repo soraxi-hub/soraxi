@@ -241,8 +241,20 @@ export interface WriteFundsReleasedParams {
   settleAmount: number;
   /** _id of the suborder document that triggered this release. */
   suborderId: mongoose.Types.ObjectId;
-  /** How the release was triggered — stored in metadata for auditability. */
-  triggeredBy: "CUSTOMER_CONFIRMATION" | "AUTO_CONFIRMATION";
+  /**
+   * How the release was triggered — stored in metadata for auditability.
+   *
+   * `DELIVERY_CODE` covers proof-of-delivery confirmations, whether the code
+   * was typed by a rider on the public link or read over the phone and entered
+   * by the vendor. Both are buyer-attested; only the keyboard differs, and
+   * collapsing them here keeps the ledger's vocabulary about *why* funds moved
+   * rather than *which device* was used. The precise method is recorded on the
+   * sub-order's `deliveryProof`.
+   */
+  triggeredBy:
+    | "CUSTOMER_CONFIRMATION"
+    | "AUTO_CONFIRMATION"
+    | "DELIVERY_CODE";
   session: mongoose.ClientSession;
 }
 

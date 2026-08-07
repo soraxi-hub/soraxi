@@ -5,17 +5,19 @@ import type React from "react";
  * Displays comprehensive order information including:
  * - Order overview (date, total amount, discount)
  * - Payment information (method, status)
- * - Delivery information (address, postal code, stores count)
+ * - Delivery information (address)
+ *
+ * Order date, store count and total live in the page header, not here.
  */
 
 import {
-  Clock,
   CreditCard,
   CheckCircle2,
   Truck,
   MapPin,
-  Store,
   ShoppingBag,
+  Clock,
+  Store,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AppRouter } from "@/trpc/routers/_app";
@@ -56,6 +58,8 @@ const DetailItem = ({
 
 export function OrderSummary({ orderDetails }: OrderSummaryProps) {
   return (
+    // Order date, store count and total are no longer repeated here — the page
+    // header now carries all three. See `order-header.tsx`.
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <Card className="bg-muted/50">
         <CardHeader className="pb-2">

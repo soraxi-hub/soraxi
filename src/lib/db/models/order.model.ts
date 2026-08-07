@@ -1,6 +1,7 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import {
+  DeliveryProofMethodEnum,
   DeliveryStatus,
   DeliveryType,
   PaymentGateway,
@@ -39,6 +40,52 @@ export interface IOrderProduct {
 }
 
 /**
+ * Proof-of-delivery state carried by every sub-order.
+ *
+ * Three concerns live here and are deliberately kept separate:
+ *
+ *  1. The **code** — the 6-digit secret only the customer ever sees.
+ *  2. The **token** — the unguessable segment of the rider's confirmation link.
+ *     NOT a secret: holding it lets you *attempt* a confirmation, never
+ *     complete one, because the code is still required.
+ *  3. The **outcome** — how delivery was ultimately proven, which is what an
+ *     admin reads when resolving a dispute.
+ *
+ * Both secrets are stored in plaintext because both must be **retrievable**,
+ * not merely verifiable — the customer's order page renders the code on every
+ * visit and the vendor re-copies the link for each rider. See
+ * `lib/utils/delivery-proof.ts` for why hashing would buy almost nothing here,
+ * and why the attempt counter is the control that actually holds.
+ *
+ * ⚠️ Never project `code` or `token` into a vendor-facing response. A vendor
+ * who can see the code can self-confirm, and the entire mechanism collapses.
+ */
+export interface IDeliveryProof {
+  /** The 6-digit code. Customer-visible only. Minted when the sub-order ships. */
+  code?: string;
+  codeGeneratedAt?: Date;
+
+  /** Link token. Vendor-visible only. Minted when the sub-order ships. */
+  token?: string;
+  tokenCreatedAt?: Date;
+  tokenExpiresAt?: Date;
+
+  /** Failed code attempts. At `MAX_DELIVERY_CODE_ATTEMPTS` the link is dead. */
+  attempts: number;
+  /** Set when attempts are exhausted. Terminal — no timer, no reset. */
+  lockedAt?: Date;
+
+  /** Populated once delivery is established, by whatever route. */
+  method?: DeliveryProofMethodEnum;
+  confirmedAt?: Date;
+  /**
+   * Free text typed by whoever delivered. Unverified by design: a record for
+   * the customer and the vendor to reason about, not evidence in itself.
+   */
+  riderName?: string;
+}
+
+/**
  * Interface representing a sub-order within an order.
  */
 export interface ISubOrder {
@@ -50,6 +97,14 @@ export interface ISubOrder {
   deliveryDate?: Date; // The date the product was delivered
   deliveryStatus: DeliveryStatus;
   customerConfirmedDelivery: CustomerConfirmedDelivery;
+  /**
+   * Proof-of-delivery state for this sub-order.
+   *
+   * The code is the customer's; the token is a keyboard for whoever delivers.
+   * Both are stored hashed — a database leak must not yield a working code or
+   * a usable link.
+   */
+  deliveryProof: IDeliveryProof;
   statusHistory: Array<{
     status: StatusHistory;
     timestamp: Date;
@@ -223,6 +278,21 @@ const SubOrderSchema = new Schema<ISubOrder>({
     confirmedAt: { type: Date },
     autoConfirmed: { type: Boolean, default: false },
   },
+  deliveryProof: {
+    code: { type: String },
+    codeGeneratedAt: { type: Date },
+    token: { type: String },
+    tokenCreatedAt: { type: Date },
+    tokenExpiresAt: { type: Date },
+    attempts: { type: Number, default: 0 },
+    lockedAt: { type: Date },
+    method: {
+      type: String,
+      enum: Object.values(DeliveryProofMethodEnum),
+    },
+    confirmedAt: { type: Date },
+    riderName: { type: String, trim: true, maxlength: 60 },
+  },
   storeSnapshot: {
     name: {
       type: String,
@@ -332,6 +402,13 @@ const OrderSchema = new Schema<IOrderDocument>(
  */
 OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ stores: 1, createdAt: -1 });
+
+/**
+ * The rider confirmation page resolves an order from a link token and nothing
+ * else — there is no session to narrow the query by. Sparse because only
+ * shipped sub-orders carry a token.
+ */
+OrderSchema.index({ "subOrders.deliveryProof.token": 1 }, { sparse: true });
 OrderSchema.index({
   "subOrders.deliveryStatus": 1,
   "subOrders.customerConfirmedDelivery.confirmed": 1,

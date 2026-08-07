@@ -56,13 +56,25 @@ export interface IOrderService {
     session: mongoose.ClientSession,
   ): Promise<ReturnType<Order["toJSON"]>>;
 
+  /**
+   * @returns the updated order, plus the plaintext delivery code when this
+   *   transition minted one (`Shipped` only).
+   *
+   *   ⚠️ `issuedCode` exists so the caller can email it to the **customer**. It
+   *   must never be included in a response to a vendor: a vendor who can read
+   *   the code can confirm their own delivery, which defeats the entire
+   *   proof-of-delivery mechanism.
+   */
   updateDeliveryStatus(
     orderId: string,
     storeId: string,
     status: any,
     notes: string | undefined,
     session: mongoose.ClientSession,
-  ): Promise<ReturnType<Order["toJSON"]>>;
+  ): Promise<{
+    order: ReturnType<Order["toJSON"]>;
+    issuedCode?: string;
+  }>;
 
   confirmDelivery(
     orderId: string,

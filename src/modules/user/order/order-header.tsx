@@ -1,13 +1,9 @@
 /**
  * Order Header Component
- *
- * Displays the page title, order ID badge, and breadcrumb navigation
- * for the order details page.
  */
 
 import Link from "next/link";
-import { Package } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,36 +12,62 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { formatOrderNumber } from "@/lib/utils/order-number";
 
 interface OrderHeaderProps {
   orderId: string;
+  createdAt: Date | string;
+  storesCount: number;
+  formattedTotalAmount: string;
 }
 
-export function OrderHeader({ orderId }: OrderHeaderProps) {
+export function OrderHeader({
+  orderId,
+  createdAt,
+  formattedTotalAmount,
+}: OrderHeaderProps) {
+  const reference = formatOrderNumber(orderId, createdAt);
+
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Package className="h-6 w-6 text-primary" />
-          Order Details
-          <Badge variant="outline" className="text-sm hidden sm:inline-block">
-            ID: {orderId}
-          </Badge>
+    <div className="flex items-center justify-between py-4">
+      <div>
+        <h1 className="text-xl font-bold break-words sm:text-2xl">
+          Order <span className="font-mono">{reference}</span>
         </h1>
-        <Breadcrumb className="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/orders">Orders</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Order Details</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Placed{" "}
+          {new Date(createdAt).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}{" "}
+          · {formattedTotalAmount}
+        </p>
       </div>
+
+      <Breadcrumb className="hidden md:flex">
+        <BreadcrumbList className="text-xs sm:text-sm">
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/">Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+
+          <BreadcrumbSeparator />
+
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/orders">Orders</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+
+          <BreadcrumbSeparator />
+
+          <BreadcrumbItem>
+            <BreadcrumbPage className="font-mono">{reference}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
     </div>
   );
 }

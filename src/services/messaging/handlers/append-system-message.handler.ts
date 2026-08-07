@@ -42,6 +42,7 @@ export class AppendSystemMessageHandler implements OutboxHandler {
   readonly handles = [
     MessageOutboxEventEnum.OrderStatusChanged,
     MessageOutboxEventEnum.DisputeOpened,
+    MessageOutboxEventEnum.DeliveryConfirmed,
     MessageOutboxEventEnum.StoreSuspended,
     MessageOutboxEventEnum.StoreReinstated,
   ];
@@ -52,6 +53,8 @@ export class AppendSystemMessageHandler implements OutboxHandler {
         return this.onOrderStatusChanged(event);
       case MessageOutboxEventEnum.DisputeOpened:
         return this.onDisputeOpened(event);
+      case MessageOutboxEventEnum.DeliveryConfirmed:
+        return this.onDeliveryConfirmed(event);
       case MessageOutboxEventEnum.StoreSuspended:
         return this.onStoreSuspended(event);
       case MessageOutboxEventEnum.StoreReinstated:
@@ -117,6 +120,27 @@ export class AppendSystemMessageHandler implements OutboxHandler {
       eventId: event._id.toString(),
       systemType: SystemMessageTypeEnum.OrderStatusChanged,
       body: `This order is now "${statusLabel}".`,
+    });
+  }
+
+  /**
+   * Notes a code-confirmed handover in the order's thread.
+   *
+   * Useful to both sides later: the customer sees who took receipt, and the
+   * vendor has a timestamped record sitting in the same conversation a dispute
+   * would be argued from.
+   */
+  private async onDeliveryConfirmed(event: IMessageOutboxEvent): Promise<void> {
+    const { subOrderId, riderName } = event.payload as {
+      subOrderId: string;
+      riderName: string;
+    };
+
+    await this.appendToExistingThreads({
+      scopeRefId: subOrderId,
+      eventId: event._id.toString(),
+      systemType: SystemMessageTypeEnum.DeliveryConfirmed,
+      body: `Delivery confirmed — code entered by ${riderName}.`,
     });
   }
 

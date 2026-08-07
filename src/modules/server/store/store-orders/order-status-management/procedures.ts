@@ -8,7 +8,9 @@ import {
   renderTemplate,
   OrderStatusEmail,
   OrderFailureEmail,
+  OutForDeliveryEmail,
 } from "@/domain/notification";
+import { formatOrderNumber } from "@/lib/utils/order-number";
 import React from "react";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
@@ -96,13 +98,20 @@ export const orderStatusRouter = createTRPCRouter({
         }
 
         // ==================== Sub-Order Update (via domain) ====================
+        // Declared outside the transaction block so the email step below can
+        // read it. Never returned to the vendor.
+        let issuedCode: string | undefined;
+
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
           const orderService = OrderFactory.getOrderServiceInstance();
 
-          await orderService.updateDeliveryStatus(
+          // `issuedCode` is populated only on the Shipped transition, which is
+          // where the delivery code is minted. It exists solely so the customer
+          // can be emailed it below and must never reach this vendor's response.
+          const result = await orderService.updateDeliveryStatus(
             input.orderId,
             storeSession.id,
             input.deliveryStatus,
@@ -110,6 +119,8 @@ export const orderStatusRouter = createTRPCRouter({
               `Delivery updated to "${deliveryStatusLabel(input.deliveryStatus)}" by the store.`,
             session,
           );
+
+          issuedCode = result.issuedCode;
 
           await session.commitTransaction();
         } catch (domainError) {
@@ -159,31 +170,80 @@ export const orderStatusRouter = createTRPCRouter({
             input.deliveryStatus === DeliveryStatus.Canceled ||
             input.deliveryStatus === DeliveryStatus.FailedDelivery;
 
-          const statusSubject = isOrderFailedOrCanceled
-            ? `Issue with your order "${input.subOrderId}"`
-            : `Your order is now "${deliveryStatusLabel(input.deliveryStatus)}"`;
+          // Shipping mints the delivery code. This is the one email that
+          // carries it, and it goes to the customer only — a vendor able to
+          // read the code could confirm their own delivery.
+          //
+          // It replaces the generic status email for this transition rather
+          // than arriving alongside it: two emails about the same event, one of
+          // which buries the code, is how the code gets missed at the gate.
+          if (issuedCode) {
+            const subOrderDoc = orderDoc.subOrders.find(
+              (s) => s._id.toString() === input.subOrderId,
+            );
 
-          const customerHtml = await renderTemplate(
-            React.createElement(OrderStatusEmail, {
-              customerName: orderDoc.userSnapshot.name,
-              orderId: input.orderId,
-              subOrderId: input.subOrderId,
-              status: deliveryStatusLabel(input.deliveryStatus),
-              storeName: storeSession.name.toUpperCase(),
-              trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
-            }),
-          );
+            const codeHtml = await renderTemplate(
+              React.createElement(OutForDeliveryEmail, {
+                customerName: orderDoc.userSnapshot.name,
+                storeName: storeSession.name,
+                orderReference: formatOrderNumber(
+                  input.subOrderId,
+                  orderDoc.createdAt,
+                ),
+                deliveryCode: issuedCode,
+                orderId: input.orderId,
+                items:
+                  subOrderDoc?.products.map((p) => ({
+                    name: p.productSnapshot.name,
+                    quantity: p.productSnapshot.quantity,
+                    price: p.productSnapshot.price,
+                  })) ?? [],
+                total: subOrderDoc?.financials.vendorSettlementAmount ?? 0,
+              }),
+            );
 
-          const customerNotification = NotificationFactory.create("email", {
-            recipient: customerEmail,
-            subject: statusSubject,
-            emailType: "storeOrderNotification",
-            fromAddress: "orders@soraxihub.com",
-            html: customerHtml,
-            text: `Your order status has been updated to: ${deliveryStatusLabel(input.deliveryStatus)}`,
-          });
+            await NotificationFactory.create("email", {
+              recipient: customerEmail,
+              subject: "Your order is out for delivery",
+              emailType: "storeOrderNotification",
+              fromAddress: "orders@soraxihub.com",
+              html: codeHtml,
+              // Plain-text fallback carries the code too — some clients strip
+              // HTML entirely, and a codeless fallback is worse than useless.
+              text: `Your order is on its way. Your delivery code is ${issuedCode}. Give it to the delivery person only when your items are in your hands.`,
+            }).send();
+          }
 
-          await customerNotification.send();
+          // Skipped when the code email above already covered this transition.
+          // Two emails about the same event, one of which buries the code, is
+          // how the code gets missed at the gate.
+          if (!issuedCode) {
+            const statusSubject = isOrderFailedOrCanceled
+              ? `Issue with your order "${input.subOrderId}"`
+              : `Your order is now "${deliveryStatusLabel(input.deliveryStatus)}"`;
+
+            const customerHtml = await renderTemplate(
+              React.createElement(OrderStatusEmail, {
+                customerName: orderDoc.userSnapshot.name,
+                orderId: input.orderId,
+                subOrderId: input.subOrderId,
+                status: deliveryStatusLabel(input.deliveryStatus),
+                storeName: storeSession.name.toUpperCase(),
+                trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
+              }),
+            );
+
+            const customerNotification = NotificationFactory.create("email", {
+              recipient: customerEmail,
+              subject: statusSubject,
+              emailType: "storeOrderNotification",
+              fromAddress: "orders@soraxihub.com",
+              html: customerHtml,
+              text: `Your order status has been updated to: ${deliveryStatusLabel(input.deliveryStatus)}`,
+            });
+
+            await customerNotification.send();
+          }
 
           if (isOrderFailedOrCanceled) {
             const adminEmail = process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL;

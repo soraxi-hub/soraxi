@@ -3,6 +3,10 @@ import { ISubOrder } from "@/lib/db/models/order.model";
 import { ISubOrderFinancials } from "@/types/order";
 import { ShippingAddress } from "@/types/order";
 import { CustomerInfo } from "../types";
+import type {
+  CustomerDeliveryProofView,
+  VendorDeliveryProofView,
+} from "../delivery-proof-projection";
 
 // ---------------------------------------------------------------------------
 // Formatted sub-order financials
@@ -57,9 +61,20 @@ export type ISubOrderFinancialsFormatted = {
  * Sub-order contract inside the Order aggregate.
  * financials is replaced with the fully-formatted variant.
  */
-export type ISubOrderInfo = Omit<ISubOrder, "storeId" | "financials"> & {
+/**
+ * A sub-order as the **customer** sees it.
+ *
+ * `deliveryProof` is narrowed to the customer's view — their code and how
+ * delivery was proven, never the vendor's link token. Omitting the raw field
+ * here is what makes leaking it a compile error rather than a quiet mistake.
+ */
+export type ISubOrderInfo = Omit<
+  ISubOrder,
+  "storeId" | "financials" | "deliveryProof"
+> & {
   storeId: string;
   financials: ISubOrderFinancialsFormatted;
+  deliveryProof: CustomerDeliveryProofView;
 };
 
 // ---------------------------------------------------------------------------
@@ -175,7 +190,14 @@ export type OrderStoreJSON = {
   orderId: string;
   storeId: string;
   customerInfo: Omit<CustomerInfo, "userId">;
-  subOrder: ISubOrderInfo;
+  /**
+   * The **vendor's** view of their sub-order. `deliveryProof` carries the link
+   * and its state — never the customer's code, which a vendor could otherwise
+   * use to confirm their own delivery.
+   */
+  subOrder: Omit<ISubOrderInfo, "deliveryProof"> & {
+    deliveryProof: VendorDeliveryProofView;
+  };
   shippingAddress: ShippingAddress;
   paymentStatus: PaymentStatus;
   paymentMethod: string;
