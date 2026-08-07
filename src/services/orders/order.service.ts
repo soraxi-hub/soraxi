@@ -8,6 +8,7 @@ import { FilterQuery } from "mongoose";
 import { DeliveryStatus, PaymentStatus } from "@/enums";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { RefundService } from "@/services/refund.service";
+import { DeliveryProofService } from "@/services/orders/delivery-proof.service";
 import { getTransactionRecordModel } from "@/lib/db/models/transaction-record.model";
 import {
   FlutterwavePaymentStatus,
@@ -311,9 +312,29 @@ export class OrderService implements IOrderService {
       );
     }
 
+    // Proof-of-delivery issuance. `Shipped` is the earliest point `Delivered`
+    // becomes reachable (the state machine permits Shipped → Delivered
+    // directly), so a code must exist by now or a legal route to delivery would
+    // have no proof available to it.
+    //
+    // The plaintext code is returned for one purpose only: emailing it to the
+    // customer. It must never reach a vendor-facing response — a vendor who can
+    // see the code can self-confirm, and the whole mechanism collapses.
+    let issuedCode: string | undefined;
+
+    if (status === DeliveryStatus.Shipped) {
+      const subOrder = orderDoc.subOrders.find(
+        (s) => s.storeId.toString() === storeId,
+      );
+
+      if (subOrder) {
+        issuedCode = DeliveryProofService.issueForShipment(subOrder).code;
+      }
+    }
+
     await orderDoc.save({ session });
 
-    return order.toJSON();
+    return { order: order.toJSON(), issuedCode };
   }
 
   /**

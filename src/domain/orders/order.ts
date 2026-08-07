@@ -11,6 +11,10 @@ import {
 import { formatNaira, koboToNaira } from "@/lib/utils/naira";
 import { ISubOrderFinancials } from "@/types/order";
 import { CustomerInfo } from "./types";
+import {
+  toCustomerProofView,
+  toVendorProofView,
+} from "./delivery-proof-projection";
 
 /**
  * Order Aggregate Root
@@ -40,11 +44,22 @@ export class Order implements IOrderInfo {
     return this.props.stores.map((s) => s.toString());
   }
 
+  /**
+   * Customer-facing sub-orders.
+   *
+   * `deliveryProof` is replaced, never spread: the raw field holds the vendor's
+   * link token alongside the customer's code, and the customer has no business
+   * with the token. See `delivery-proof-projection.ts`.
+   */
   get subOrders(): ISubOrderInfo[] {
     return this.props.subOrders.map((sub) => ({
       ...sub,
       storeId: sub.storeId.toString(),
       financials: this.formatSubOrderFinancials(sub.financials),
+      deliveryProof: toCustomerProofView(
+        sub.deliveryProof,
+        sub.deliveryStatus === DeliveryStatus.Delivered,
+      ),
     }));
   }
 
@@ -474,6 +489,10 @@ export class Order implements IOrderInfo {
         ...subOrder,
         storeId: subOrder.storeId.toString(),
         financials: formattedFinancials,
+        // ⚠️ Replaced, never spread. The raw proof carries the customer's
+        // 6-digit code; a vendor who could read it would confirm their own
+        // deliveries and be paid for goods never handed over.
+        deliveryProof: toVendorProofView(subOrder.deliveryProof),
       },
       shippingAddress: this.shippingAddress,
       paymentStatus: this.paymentStatus,

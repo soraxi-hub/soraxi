@@ -18,6 +18,7 @@ import { storeWalletRouter } from "@/modules/server/store/wallet-management/fetc
 import { vendorPayoutRouter } from "@/modules/server/store/payout/store-payouts/procedures";
 import { productReviewRouter } from "@/modules/server/reviews/products/procedures";
 import { orderStatusRouter } from "@/modules/server/store/store-orders/order-status-management/procedures";
+import { deliveryProofRouter } from "@/modules/server/store/store-orders/delivery-proof/procedures";
 import { adminManagementRouter } from "@/modules/server/admin/admin-management/procedures";
 import { auditLogRouter } from "@/modules/server/admin/audit-logs/procedures";
 import { storeProductRouter } from "@/modules/server/store/products/procedure";
@@ -36,6 +37,7 @@ import { waitlistRouter } from "@/modules/server/waitlist/procedure";
 import { adminFinancialMetricsRouter } from "@/modules/server/admin/financials/procedures";
 import { adminRefundRouter } from "@/modules/server/admin/refunds/procedures";
 import { adminModerationRouter } from "@/modules/server/admin/moderation/procedures";
+import { deliveryConfirmationRouter } from "@/modules/server/delivery/procedures";
 import { customerMessagingRouter } from "@/modules/server/messaging/customer.procedures";
 import { vendorMessagingRouter } from "@/modules/server/messaging/vendor.procedures";
 
@@ -61,6 +63,7 @@ export const appRouter = createTRPCRouter({
   adminOrders: adminOrdersRouter,
   storeWallet: storeWalletRouter,
   orderStatus: orderStatusRouter,
+  deliveryProof: deliveryProofRouter,
   storeOrders: storeOrdersRouter,
   adminPayout: adminPayoutRouter,
   flutterwave: flutterwaveRouter,
@@ -72,6 +75,7 @@ export const appRouter = createTRPCRouter({
   vendorDispute: vendorDisputeRouter,
   vendorMessaging: vendorMessagingRouter,
   adminModeration: adminModerationRouter,
+  deliveryConfirmation: deliveryConfirmationRouter,
   customerMessaging: customerMessagingRouter,
   productReview: productReviewRouter,
   platformWallet: platformWalletRouter,

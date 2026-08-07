@@ -54,6 +54,21 @@ export const MessagingEvents = {
     return publish(MessageOutboxEventEnum.DisputeOpened, input);
   },
 
+  /**
+   * A delivery was confirmed with the customer's code.
+   *
+   * Only published for code confirmations — not for a vendor's unproven
+   * declaration, and not for a customer confirming in their own app. Both of
+   * those are already visible to the party who performed them, and a notice
+   * announcing "you confirmed this" is noise.
+   */
+  deliveryConfirmed(input: {
+    subOrderId: string;
+    riderName: string;
+  }): Promise<void> {
+    return publish(MessageOutboxEventEnum.DeliveryConfirmed, input);
+  },
+
   storeSuspended(input: { storeId: string }): Promise<void> {
     return publish(MessageOutboxEventEnum.StoreSuspended, input);
   },

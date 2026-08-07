@@ -37,6 +37,8 @@ import { TRPCError } from "@trpc/server";
 import { koboToNaira } from "@/lib/utils/naira";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { DateFormatter } from "@/lib/utils/date-formatter";
+import { formatOrderNumber } from "@/lib/utils/order-number";
+import { toAdminProofView } from "@/domain/orders/delivery-proof-projection";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -749,6 +751,27 @@ export const adminDisputeRouter = createTRPCRouter({
               price: koboToNaira(p.productSnapshot.price),
               image: p.productSnapshot.images?.[0] ?? null,
             })) ?? [],
+          /**
+           * What happened at handover.
+           *
+           * Neither the code nor the link is projected — a moderator needs to
+           * know *that* delivery was attested and by what route, never the
+           * secrets themselves.
+           *
+           * This answers only "did the parcel arrive?". Disputes about wrong
+           * or damaged items are about something else entirely, and the UI
+           * says so explicitly rather than letting a green panel imply a
+           * verdict.
+           */
+          deliveryRecord: subOrder
+            ? toAdminProofView(subOrder.deliveryProof)
+            : null,
+          subOrderReference: subOrder
+            ? formatOrderNumber(
+                subOrder._id.toString(),
+                order?.createdAt ?? dispute.openedAt,
+              )
+            : null,
         };
       } catch (error) {
         if (isReportableError(error)) {

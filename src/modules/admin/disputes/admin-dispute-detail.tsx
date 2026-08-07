@@ -35,6 +35,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/errors/error-fallback";
+import { DeliveryRecordPanel } from "./delivery-record-panel";
 
 // ---------------------------------------------------------------------------
 // Resolution action types
@@ -242,6 +243,14 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column — case details */}
         <div className="lg:col-span-2 space-y-4">
+          {/* What happened at handover. Placed first because it is the one
+              question the platform can answer objectively — but it answers
+              only "did the parcel arrive?", and the panel says so. */}
+          <DeliveryRecordPanel
+            proof={dispute.deliveryRecord}
+            orderNumber={dispute.subOrderReference ?? dispute.suborderId}
+          />
+
           {/* Financial summary */}
           <Card>
             <CardHeader className="pb-2">
@@ -374,9 +383,24 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" />
-                  <span className="text-sm">No evidence submitted</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="text-sm">No evidence submitted</span>
+                  </div>
+                  {/*
+                    Missing photos mean different things in different cases. A
+                    customer who received nothing has nothing to photograph; one
+                    claiming damage should have something. Deliberately does not
+                    tell the moderator which case this is — the platform has no
+                    dispute categories, so only the written complaint can say.
+                  */}
+                  <p className="text-xs text-muted-foreground">
+                    Whether this matters depends on the claim. Someone who
+                    received nothing has nothing to photograph; someone
+                    reporting damage or a wrong item usually does. Read the
+                    complaint above before weighing the absence.
+                  </p>
                 </div>
               )}
             </CardContent>

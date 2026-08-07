@@ -9,7 +9,7 @@ import { useMutation, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 
 import { OrderHeader } from "@/modules/user/order/order-header";
 import { OrderSummary } from "@/modules/user/order/order-summary";
-import { StoreAccordion } from "@/modules/user/order/store-accordion";
+import { SubOrderCard } from "@/modules/user/order/delivery/sub-order-card";
 import { ReviewDialog } from "@/modules/user/order/review-dialog";
 import { DisputeDialog } from "@/modules/user/order/dispute-dialog";
 import { DeliveryStatus } from "@/enums";
@@ -114,7 +114,7 @@ export default function OrderDetailsPage({ slug }: { slug: string }) {
 
   /**
    * Opens the dispute dialog for a specific suborder.
-   * Called from StoreAccordion when student clicks "Raise a Dispute".
+   * Called from SubOrderCard when the student reports a problem.
    */
   const handleDisputeInit = (subOrderId: string, storeName: string) => {
     setSelectedDisputeSubOrderId(subOrderId);
@@ -150,21 +150,38 @@ export default function OrderDetailsPage({ slug }: { slug: string }) {
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Suspense fallback={<OrderDetailsSkeleton />}>
         <main className="space-y-">
-          <OrderHeader orderId={orderDetails.orderId} />
+          <OrderHeader
+            orderId={orderDetails.orderId}
+            createdAt={orderDetails.createdAt}
+            storesCount={orderDetails.stores.length}
+            formattedTotalAmount={orderDetails.formattedTotalAmount}
+          />
 
           <OrderSummary orderDetails={orderDetails} />
 
-          <StoreAccordion
-            subOrders={orderDetails.subOrders}
-            totalProducts={totalProducts}
-            storesCount={orderDetails.stores.length}
-            orderId={slug}
-            financialStatuses={financialStatuses}
-            onUpdateDeliveryStatusAction={updateDeliveryStatus}
-            onReviewInitAction={handleReviewInit}
-            onDisputeInitAction={handleDisputeInit}
-            submitting={submitting}
-          />
+          {/* One card per store. Each carries its own delivery code, receipt
+              or problem prompt — the accordion this replaced treated every
+              sub-order as a passive record, which no longer holds now that each
+              one can be waiting on the customer. */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">
+              {totalProducts} {totalProducts === 1 ? "item" : "items"} from{" "}
+              {orderDetails.stores.length}{" "}
+              {orderDetails.stores.length === 1 ? "store" : "stores"}
+            </h2>
+
+            {orderDetails.subOrders.map((subOrder) => (
+              <SubOrderCard
+                key={subOrder._id.toString()}
+                subOrder={subOrder}
+                financialStatus={financialStatuses[subOrder._id.toString()]}
+                onConfirmReceipt={updateDeliveryStatus}
+                onReviewInit={handleReviewInit}
+                onDisputeInit={handleDisputeInit}
+                submitting={submitting}
+              />
+            ))}
+          </section>
 
           <ReviewDialog
             open={dialogOpen}

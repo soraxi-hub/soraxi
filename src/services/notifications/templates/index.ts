@@ -39,3 +39,4 @@ export { DisputeAutoResolvedVendorEmail } from "./dispute-auto-resolved-vendor-e
 export { DisputeAutoResolvedAdminEmail } from "./dispute-auto-resolved-admin-email";
 export { DisputeEvidenceExpiredCustomerEmail } from "./dispute-evidence-expired-customer-email";
 export { DisputeEvidenceExpiredVendorEmail } from "./dispute-evidence-expired-vendor-email";
+export { OutForDeliveryEmail } from "./out-for-delivery-email";
