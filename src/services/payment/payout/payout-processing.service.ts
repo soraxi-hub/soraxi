@@ -6,6 +6,7 @@ import {
 } from "@/lib/db/models/payout-record.model";
 import { updatePayoutFlutterwaveTransferId } from "@/lib/db/models/payout-record.model";
 import { reverseVendorPayoutDeduction } from "@/lib/db/models/vendor-wallet.model";
+import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { PayoutStatus } from "@/enums/financial.enums";
 import { koboToNaira } from "@/lib/utils/naira";
@@ -345,10 +346,11 @@ export class PayoutProcessingService {
         //   DEBIT   PLATFORM_ESCROW       netAmount
         //   DEBIT   GATEWAY_FEES_EXPENSE  gatewayFee   (if applicable)
         //   CREDIT  PAYOUT_PROCESSING     netAmount + fee
+        // Gateway fee is not passed here — it was already expensed at
+        // initiation (writeGatewayFee); completion only closes the net.
         await writer.writePayoutCompleted({
           vendorId: payout.vendorId,
           netAmount: payout.amountBreakdown.netAmount,
-          gatewayFee: payout.amountBreakdown.gatewayFee ?? 0,
           payoutId: payoutObjectId,
           session,
         });
@@ -440,6 +442,13 @@ export class PayoutProcessingService {
           payoutId: payoutObjectId,
           session,
         });
+
+        // Mirror the PLATFORM_REVENUE_COMMISSION debit into the platform
+        // wallet cache — reverses the credit made at initiation.
+        await debitPlatformCommission(
+          payout.amountBreakdown.processingFee,
+          session,
+        );
       }
 
       // Reverse gateway fee
@@ -458,12 +467,15 @@ export class PayoutProcessingService {
         });
       }
 
-      // Restore vendor wallet cache
-      // requestedAmount = netAmount + processingFee (+ debtRecovery if any),
-      // mirroring the total VENDOR_AVAILABLE reduction across all journal entries.
+      // Restore vendor wallet cache: netAmount + processingFee — exactly what
+      // the ledger returns to VENDOR_AVAILABLE above. Any debt-recovery
+      // deduction stays recovered (VENDOR_DEBT_RECEIVABLE was already settled
+      // at initiation); restoring the full requestedAmount would drift the
+      // cache above the ledger by the recovered amount.
       await reverseVendorPayoutDeduction(
         payout.vendorId.toString(),
-        payout.amountBreakdown.requestedAmount,
+        payout.amountBreakdown.netAmount +
+          payout.amountBreakdown.processingFee,
         session,
       );
 
@@ -671,6 +683,13 @@ export class PayoutProcessingService {
           payoutId: payoutObjectId,
           session,
         });
+
+        // Mirror the PLATFORM_REVENUE_COMMISSION debit into the platform
+        // wallet cache — reverses the credit made at initiation.
+        await debitPlatformCommission(
+          payout.amountBreakdown.processingFee,
+          session,
+        );
       }
 
       // --- Reverse gateway fee ---
@@ -690,12 +709,16 @@ export class PayoutProcessingService {
       }
 
       // --- Update vendor wallet cache ---
-      // Restores the full requested amount that was deducted in Stage 5.
-      // requestedAmount = netAmount + processingFee (+ debtRecovery if any),
-      // mirroring the total VENDOR_AVAILABLE reduction across all journal entries.
+      // Restores netAmount + processingFee — exactly what the ledger returns
+      // to VENDOR_AVAILABLE above. Any debt-recovery deduction is NOT restored:
+      // the debt was genuinely settled from the vendor's funds at initiation
+      // (VENDOR_DEBT_RECEIVABLE was credited) and a failed bank transfer does
+      // not undo that. Restoring the full requestedAmount here would drift the
+      // wallet cache above the ledger by the recovered amount.
       await reverseVendorPayoutDeduction(
         payout.vendorId.toString(),
-        payout.amountBreakdown.requestedAmount,
+        payout.amountBreakdown.netAmount +
+          payout.amountBreakdown.processingFee,
         session,
       );
 

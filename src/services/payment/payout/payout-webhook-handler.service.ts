@@ -6,6 +6,7 @@ import {
   markPayoutFailed,
 } from "@/lib/db/models/payout-record.model";
 import { reverseVendorPayoutDeduction } from "@/lib/db/models/vendor-wallet.model";
+import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { PayoutStatus } from "@/enums/financial.enums";
 import {
@@ -150,10 +151,11 @@ export class PayoutWebhookHandler {
       //   CREDIT  PAYOUT_PROCESSING     netAmount + fee    (processing account closed)
       const writer = await JournalEntryWriter.init();
 
+      // Gateway fee is not passed here — it was already expensed at
+      // initiation (writeGatewayFee); completion only closes the net.
       await writer.writePayoutCompleted({
         vendorId: payoutRecord!.vendorId,
         netAmount: payoutRecord!.amountBreakdown.netAmount,
-        gatewayFee: payoutRecord!.amountBreakdown.gatewayFee ?? 0,
         payoutId: payoutRecord!._id as mongoose.Types.ObjectId,
         session,
       });
@@ -248,6 +250,13 @@ export class PayoutWebhookHandler {
           payoutId: payoutObjectId,
           session,
         });
+
+        // Mirror the PLATFORM_REVENUE_COMMISSION debit into the platform
+        // wallet cache — reverses the credit made at initiation.
+        await debitPlatformCommission(
+          payoutRecord!.amountBreakdown.processingFee,
+          session,
+        );
       }
 
       // --- Reverse gateway fee ---
@@ -270,12 +279,15 @@ export class PayoutWebhookHandler {
       }
 
       // --- Update vendor wallet cache ---
-      // Restores the full requested amount that was deducted in Stage 5.
-      // requestedAmount = netAmount + processingFee (+ debtRecovery if any),
-      // mirroring the total VENDOR_AVAILABLE reduction across all journal entries.
+      // Restores netAmount + processingFee — exactly what the ledger returns
+      // to VENDOR_AVAILABLE above. Any debt-recovery deduction stays recovered
+      // (VENDOR_DEBT_RECEIVABLE was already settled at initiation); restoring
+      // the full requestedAmount would drift the cache above the ledger by the
+      // recovered amount.
       await reverseVendorPayoutDeduction(
         payoutRecord!.vendorId.toString(),
-        payoutRecord!.amountBreakdown.requestedAmount,
+        payoutRecord!.amountBreakdown.netAmount +
+          payoutRecord!.amountBreakdown.processingFee,
         session,
       );
 
