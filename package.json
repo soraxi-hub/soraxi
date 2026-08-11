@@ -11,7 +11,9 @@
     "start:create:superAdmin": "tsx scripts/create-super-admin.ts",
     "start:backfill-target-audience": "tsx scripts/back-fill-target-audience.ts",
     "lint": "next lint",
-    "email:dev": "email dev --dir src/services/notifications/templates --port 4000"
+    "email:dev": "email dev --dir src/services/notifications/templates --port 4000",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",
@@ -112,11 +114,13 @@
     "baseline-browser-mapping": "^2.10.20",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
+    "mongodb-memory-server": "^11.2.0",
     "react-email": "4.3.1",
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "@types/react": "19.2.6",
