@@ -156,31 +156,51 @@ The `JournalEntryWriter` service:
 
 The canonical definition of which accounts move for each financial event:
 
-| Event                                  | Debit                                                  | Credit                                                       |
-| -------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
-| **PAYMENT_RECEIVED**                   | `PLATFORM_ESCROW` (gross)                              | `CUSTOMER_REFUND_PAYABLE` (gross)                            |
-| **ORDER_SETTLED**                      | `CUSTOMER_REFUND_PAYABLE` (gross)                      | `VENDOR_PENDING` × n vendors + `PLATFORM_REVENUE_COMMISSION` |
-| **FUNDS_RELEASED**                     | `VENDOR_AVAILABLE` (settle)                            | `VENDOR_PENDING` (settle)                                    |
-| **DISPUTE_OPENED**                     | `VENDOR_DISPUTED` (settle)                             | `VENDOR_AVAILABLE` (settle)                                  |
-| **DISPUTE_REJECTED**                   | `VENDOR_AVAILABLE` (settle)                            | `VENDOR_DISPUTED` (settle)                                   |
-| **DISPUTE_UPHELD** (pair 1)            | `VENDOR_DISPUTED` (settle)                             | `CUSTOMER_REFUND_PAYABLE` (settle)                           |
-| **DISPUTE_UPHELD** (pair 2)            | `PLATFORM_REVENUE_COMMISSION` (commission)             | `CUSTOMER_REFUND_PAYABLE` (commission)                       |
-| **DISPUTE_UPHELD** (pair 3)            | `VENDOR_AVAILABLE` (penalty)                           | `PLATFORM_REVENUE_PENALTIES` (penalty)                       |
-| **DISPUTE_AUTO_RESOLVED** (pair 1)     | `VENDOR_DISPUTED` (settle)                             | `CUSTOMER_REFUND_PAYABLE` (settle)                           |
-| **DISPUTE_AUTO_RESOLVED** (pair 2)     | `PLATFORM_REVENUE_COMMISSION` (commission)             | `CUSTOMER_REFUND_PAYABLE` (commission)                       |
-| **ORDER_CANCELLATION_REFUND** (pair 1) | `VENDOR_PENDING` (settle)                              | `CUSTOMER_REFUND_PAYABLE` (settle)                           |
-| **ORDER_CANCELLATION_REFUND** (pair 2) | `PLATFORM_REVENUE_COMMISSION` (commission)             | `CUSTOMER_REFUND_PAYABLE` (commission)                       |
-| **FAILED_DELIVERY_REFUND**             | `VENDOR_PENDING` (settle)                              | `CUSTOMER_REFUND_PAYABLE` (settle)                           |
-| **REFUND_CONFIRMED**                   | `CUSTOMER_REFUND_PAYABLE` (amountRefunded)             | `PLATFORM_ESCROW` (amountRefunded)                           |
-| **DEBT_RECOVERY** (pair 1)             | `DEBT_RECOVERY_CLEARING` (amount)                      | `VENDOR_AVAILABLE` (amount)                                  |
-| **DEBT_RECOVERY** (pair 2)             | `PLATFORM_REVENUE_PENALTIES` (amount)                  | `DEBT_RECOVERY_CLEARING` (amount)                            |
-| **PAYOUT_PROCESSING_FEE**              | `VENDOR_AVAILABLE` (fee)                               | `PLATFORM_REVENUE_COMMISSION` (fee)                          |
-| **PAYOUT_INITIATED**                   | `PAYOUT_PROCESSING` (net)                              | `VENDOR_AVAILABLE` (net)                                     |
-| **PAYOUT_COMPLETED**                   | `PLATFORM_ESCROW` (net) + `GATEWAY_FEES_EXPENSE` (fee) | `PAYOUT_PROCESSING` (net + fee)                              |
-| **PAYOUT_FAILED**                      | `VENDOR_AVAILABLE` (net)                               | `PAYOUT_PROCESSING` (net)                                    |
-| **PAYOUT_PROCESSING_FEE_REVERSAL**     | `PLATFORM_REVENUE_COMMISSION` (fee)                    | `VENDOR_AVAILABLE` (fee)                                     |
-| **GATEWAY_FEE**                        | `GATEWAY_FEES_EXPENSE` (fee)                           | `PLATFORM_ESCROW` (fee)                                      |
-| **GATEWAY_FEE_REVERSAL**               | `PLATFORM_ESCROW` (fee)                                | `GATEWAY_FEES_EXPENSE` (fee)                                 |
+> **Conventions (normalised June–August 2026, verified by `tests/financial/`):**
+> liability/revenue-style accounts (`VENDOR_PENDING`, `VENDOR_AVAILABLE`,
+> `VENDOR_DISPUTED`, `CUSTOMER_REFUND_PAYABLE`, `PAYOUT_PROCESSING`,
+> `PLATFORM_REVENUE_*`) increase on **CREDIT**; asset/expense-style accounts
+> (`PLATFORM_ESCROW`, `VENDOR_DEBT_RECEIVABLE`, `GATEWAY_FEES_EXPENSE`)
+> increase on **DEBIT**.
+
+| Event                                  | Debit                                                                        | Credit                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **PAYMENT_RECEIVED**                   | `PLATFORM_ESCROW` (gross)                                                    | `CUSTOMER_REFUND_PAYABLE` (gross)                         |
+| **COLLECTION_FEE**                     | `GATEWAY_FEES_EXPENSE` (fee)                                                 | `PLATFORM_ESCROW` (fee)                                   |
+| **SUBORDER_SETTLED** (one per suborder) | `CUSTOMER_REFUND_PAYABLE` (amountPaid)                                       | `VENDOR_PENDING` (settle) + `PLATFORM_REVENUE_COMMISSION` (commission) |
+| **FUNDS_RELEASED**                     | `VENDOR_PENDING` (settle)                                                    | `VENDOR_AVAILABLE` (settle)                               |
+| **DISPUTE_OPENED**                     | `VENDOR_AVAILABLE` (settle)                                                  | `VENDOR_DISPUTED` (settle)                                |
+| **DISPUTE_REJECTED**                   | `VENDOR_DISPUTED` (settle)                                                   | `VENDOR_AVAILABLE` (settle)                               |
+| **DISPUTE_UPHELD** (pair 1)            | `VENDOR_DISPUTED` (settle)                                                   | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
+| **DISPUTE_UPHELD** (pair 2)            | `PLATFORM_REVENUE_COMMISSION` (commission)                                   | `CUSTOMER_REFUND_PAYABLE` (commission)                    |
+| **DISPUTE_UPHELD** (pair 3)            | `VENDOR_AVAILABLE` (covered) + `VENDOR_DEBT_RECEIVABLE` (shortfall)          | `PLATFORM_REVENUE_PENALTIES` (penalty)                    |
+| **DISPUTE_AUTO_RESOLVED** (pair 1)     | `VENDOR_DISPUTED` (settle)                                                   | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
+| **DISPUTE_AUTO_RESOLVED** (pair 2)     | `PLATFORM_REVENUE_COMMISSION` (commission)                                   | `CUSTOMER_REFUND_PAYABLE` (commission)                    |
+| **ORDER_CANCELLATION_REFUND** (pair 1) | `VENDOR_PENDING` (settle)                                                    | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
+| **ORDER_CANCELLATION_REFUND** (pair 2) | `PLATFORM_REVENUE_COMMISSION` (commission)                                   | `CUSTOMER_REFUND_PAYABLE` (commission)                    |
+| **FAILED_DELIVERY_REFUND**             | `VENDOR_PENDING` (settle)                                                    | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
+| **REFUND_CONFIRMED**                   | `CUSTOMER_REFUND_PAYABLE` (amountRefunded)                                   | `PLATFORM_ESCROW` (amountRefunded)                        |
+| **DEBT_RECOVERY**                      | `VENDOR_AVAILABLE` (recovered)                                               | `VENDOR_DEBT_RECEIVABLE` (recovered)                      |
+| **PAYOUT_PROCESSING_FEE**              | `VENDOR_AVAILABLE` (fee)                                                     | `PLATFORM_REVENUE_COMMISSION` (fee)                       |
+| **PAYOUT_INITIATED**                   | `VENDOR_AVAILABLE` (net)                                                     | `PAYOUT_PROCESSING` (net)                                 |
+| **GATEWAY_FEE** (at initiation)        | `GATEWAY_FEES_EXPENSE` (fee)                                                 | `PLATFORM_ESCROW` (fee)                                   |
+| **PAYOUT_COMPLETED**                   | `PAYOUT_PROCESSING` (net)                                                    | `PLATFORM_ESCROW` (net)                                   |
+| **PAYOUT_FAILED**                      | `PAYOUT_PROCESSING` (net)                                                    | `VENDOR_AVAILABLE` (net)                                  |
+| **PAYOUT_PROCESSING_FEE_REVERSAL**     | `PLATFORM_REVENUE_COMMISSION` (fee)                                          | `VENDOR_AVAILABLE` (fee)                                  |
+| **GATEWAY_FEE_REVERSAL**               | `PLATFORM_ESCROW` (fee)                                                      | `GATEWAY_FEES_EXPENSE` (fee)                              |
+
+> **SUBORDER_SETTLED** replaced the deprecated order-level **ORDER_SETTLED**
+> (`writeOrderSettlement`): settlement is now one balanced entry per suborder
+> (`writeSuborderSettlement`) so per-suborder commission stays derivable.
+>
+> **DEBT_RECOVERY** no longer uses `DEBT_RECOVERY_CLEARING`. Penalty revenue is
+> recognised in full at uphold time (pair 3 above); recovery only settles the
+> vendor's outstanding `VENDOR_DEBT_RECEIVABLE` from their available funds.
+>
+> **PAYOUT_COMPLETED** carries the net amount only — the gateway fee was
+> already expensed at initiation (**GATEWAY_FEE**) and is reversed on failure.
+> Recording it again at completion double-counted the fee (bug fixed
+> 2026-08-11).
 
 > **DISPUTE_UPHELD** produces six lines sharing one `journalId` (three balanced pairs): pair 1 moves the frozen settle amount into `CUSTOMER_REFUND_PAYABLE`, pair 2 reverses the commission into `CUSTOMER_REFUND_PAYABLE` so the student receives the full `amountPaid` back, and pair 3 applies the penalty. Total `CUSTOMER_REFUND_PAYABLE` credit = `settleAmount + commission = amountPaid`.
 >
@@ -219,18 +239,19 @@ The canonical definition of which accounts move for each financial event:
 
 These are the logical accounts in Soraxi's double-entry system. Every ledger line references exactly one account type.
 
-| Account                       | Type      | Description                                                                                   |
-| ----------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| `PLATFORM_ESCROW`             | Asset     | Money held on behalf of customers/vendors for in-flight orders                                |
-| `VENDOR_PENDING`              | Liability | Vendor funds awaiting order confirmation                                                      |
-| `VENDOR_AVAILABLE`            | Liability | Vendor funds cleared and ready to withdraw                                                    |
-| `VENDOR_DISPUTED`             | Liability | Vendor funds frozen due to an open dispute                                                    |
-| `PLATFORM_REVENUE_COMMISSION` | Revenue   | Commission income earned from sales and payout processing fees                                |
-| `PLATFORM_REVENUE_PENALTIES`  | Revenue   | Penalty income earned from upheld disputes + debt recovery                                    |
-| `CUSTOMER_REFUND_PAYABLE`     | Liability | Amount owed back to a customer — opened on refund trigger, closed on Flutterwave confirmation |
-| `PAYOUT_PROCESSING`           | Asset     | Funds in-flight to a vendor's bank account via Flutterwave                                    |
-| `GATEWAY_FEES_EXPENSE`        | Expense   | Flutterwave transfer fees recorded as a platform expense                                      |
-| `DEBT_RECOVERY_CLEARING`      | Clearing  | Intermediate account used when recovering vendor debt from payouts                            |
+| Account                       | Type      | Increases on | Description                                                                                   |
+| ----------------------------- | --------- | ------------ | --------------------------------------------------------------------------------------------- |
+| `PLATFORM_ESCROW`             | Asset     | DEBIT        | Money held on behalf of customers/vendors for in-flight orders                                |
+| `VENDOR_PENDING`              | Liability | CREDIT       | Vendor funds awaiting order confirmation                                                      |
+| `VENDOR_AVAILABLE`            | Liability | CREDIT       | Vendor funds cleared and ready to withdraw                                                    |
+| `VENDOR_DISPUTED`             | Liability | CREDIT       | Vendor funds frozen due to an open dispute                                                    |
+| `VENDOR_DEBT_RECEIVABLE`      | Asset     | DEBIT        | Money a vendor owes the platform after a penalty exceeded their available balance             |
+| `PLATFORM_REVENUE_COMMISSION` | Revenue   | CREDIT       | Commission income earned from sales and payout processing fees                                |
+| `PLATFORM_REVENUE_PENALTIES`  | Revenue   | CREDIT       | Penalty income earned from upheld disputes                                                    |
+| `CUSTOMER_REFUND_PAYABLE`     | Liability | CREDIT       | Amount owed back to a customer — opened on refund trigger, closed on Flutterwave confirmation |
+| `PAYOUT_PROCESSING`           | Liability | CREDIT       | Owed to a vendor while a payout is in transit; backing cash stays in `PLATFORM_ESCROW` until completion |
+| `GATEWAY_FEES_EXPENSE`        | Expense   | DEBIT        | Flutterwave collection/transfer fees recorded as a platform expense                           |
+| `DEBT_RECOVERY_CLEARING`      | Clearing  | —            | **Retired.** Replaced by `VENDOR_DEBT_RECEIVABLE` under the clamp-and-receivable debt model   |
 
 ---
 
@@ -1111,7 +1132,7 @@ const result = await checkEscrowSolvency();
 // { escrowBalance, payoutProcessing, platformHeldCash, liabilities, isSolvent, delta }
 ```
 
-**Known caveat (unresolved — see §16):** `writePayoutCompleted`'s `PLATFORM_ESCROW` line direction may be inverted relative to `writePaymentReceived`'s documented convention. If so, this check's `delta` will show a spurious, growing surplus that tracks completed-payout volume rather than a real solvency issue. Confirmed present in production as of 2026-07-05 — see §16.
+**Resolved (2026-08-11):** the `writePayoutCompleted` inversion is fixed, and `PAYOUT_PROCESSING` is now correctly counted on the liabilities side (its backing cash sits in `PLATFORM_ESCROW` until completion — counting it as platform-held double-counted every in-flight payout). In a healthy system `delta` equals retained earnings (commission + penalties − gateway expense); for the exact identity use `checkLedgerAccountingIdentity`. Historical entries written before the fix are not backfilled — see §16.
 
 ### Vendor Wallet Reconciliation (`reconcileVendorWallet`)
 
@@ -1135,18 +1156,16 @@ const result = await reconcileVendorWallet(vendorId);
 
 `total` is derived as `available + pending + disputed`.
 
-**Known caveat (unresolved — see §16):** `VENDOR_PENDING`'s direction above is confirmed correct against three independent `JournalEntryWriter` methods. `VENDOR_AVAILABLE`'s direction is _not_ consistently confirmed — six composer methods agree with the table above, three (`writeDisputeUpheld`'s penalty line, `writePayoutProcessingFee`, `writePayoutProcessingFeeReversal`) contradict it. `checkGlobalBalance` and `verifyJournalEntryIntegrity` cannot catch this class of bug — a line crediting the wrong account is still a balanced entry. Only this function, cross-referenced against the real `VendorWallet` document, can catch it.
+**Resolved (2026-08-11):** every `JournalEntryWriter` method now follows the table above (CREDIT increases all `VENDOR_*` buckets), verified by the lifecycle test suite in `tests/financial/`. The general point stands: `checkGlobalBalance` and `verifyJournalEntryIntegrity` cannot catch a wrong-direction line — a line crediting the wrong account is still a balanced entry. Only this function, cross-referenced against the real `VendorWallet` document, can catch that class of bug, which is why the test suite runs it after every stage.
 
 ### Vendor Debt Reconciliation (`reconcileVendorDebt`)
 
-Reconciles `VendorWallet.debt.amount` against the ledger. Debt isn't tracked via a dedicated account — `DEBT_RECOVERY_CLEARING` nets to zero on every `writeDebtRecovery` call by design, so it can't be used to derive debt. Instead, debt is implicitly a negative `VENDOR_AVAILABLE` ledger balance (created by `writeDisputeUpheld`'s penalty line debiting past what the vendor can cover):
+Reconciles `VendorWallet.debt.amount` against the ledger. Under the clamp-and-receivable debt model, `VENDOR_AVAILABLE` never goes negative — when an upheld penalty exceeds available, the shortfall is debited to the per-vendor `VENDOR_DEBT_RECEIVABLE` account (asset convention, DEBIT increases), and `writeDebtRecovery` credits it back down as payouts recover the debt:
 
 ```typescript
 const result = await reconcileVendorDebt(vendorId);
-// derived = max(0, -deriveLedgerAccountBalance(VENDOR_AVAILABLE, { entityId: vendorId }))
+// derived = deriveLedgerAccountBalance(VENDOR_DEBT_RECEIVABLE, { entityId: vendorId, increasesOn: "debit" })
 ```
-
-Inherits the same `VENDOR_AVAILABLE` direction caveat as `reconcileVendorWallet` above — arguably more exposed to it, since the penalty line is one of the three methods that disagrees with the documented convention.
 
 ### Transaction Record Reconciliation (`reconcileTransactionRecord`)
 
@@ -1185,11 +1204,11 @@ Not cron-eligible — needs a specific `orderId`, and there's no batch of "all o
 
 ### Known Issues — Confirmed or Suspected, Needs Resolution
 
-| Item                                                            | Status                                               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| --------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `VENDOR_AVAILABLE` debit/credit direction inconsistency         | Suspected — needs staging test                       | Six `JournalEntryWriter` methods agree "DEBIT increases," three disagree ("CREDIT increases," matching this doc's table). The three outliers are `writeDisputeUpheld`'s penalty line, `writePayoutProcessingFee`, `writePayoutProcessingFeeReversal` — notably, exactly the methods vendor debt tracking depends on. Test: seed a dispute uphold with a penalty exceeding available balance, compare `reconcileVendorWallet`/`reconcileVendorDebt` derived figures against the real `VendorWallet` document. |
-| `writePayoutCompleted` PLATFORM_ESCROW direction                | Suspected, likely confirmed in production 2026-07-05 | `writePaymentReceived` documents DEBIT as increasing `PLATFORM_ESCROW`; `writePayoutCompleted` also DEBITs it but comments describe this as funds _exiting_. A production cron run on 2026-07-05 found `checkEscrowSolvency` reporting `isSolvent: false, delta: 47960` (escrow larger than it should be) — consistent with this inversion. Needs confirmation: check whether a payout completed in the prior 24h with `netAmount` matching the delta.                                                       |
-| `CUSTOMER_REFUND_PAYABLE` lines missing `entityId`/`entityType` | Confirmed in production 2026-07-05                   | `checkLedgerStructuralIntegrity` found 2 ledger lines on `CUSTOMER_REFUND_PAYABLE` missing both fields. Likely a code path (guest checkout, retry, or missing customerId at call time) in whichever writer method credits this account without passing entity info. Affected lines: needs investigation via the writer call sites for those two `lineId`s.                                                                                                                                                   |
+| Item                                                            | Status                             | Notes                                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VENDOR_AVAILABLE` debit/credit direction inconsistency         | **Resolved 2026-08-11**            | Conventions normalised across every writer method (CREDIT increases all vendor/revenue/refund-payable accounts). Verified end-to-end by `tests/financial/stage3-disputes.test.ts` (findings-doc Test A, including debt creation).                                                             |
+| `writePayoutCompleted` PLATFORM_ESCROW direction                | **Resolved 2026-08-11**            | Completion now CREDITs `PLATFORM_ESCROW` (net only). Also fixed alongside it: gateway-fee double-count at completion, failed-payout wallet-cache over-restore by the debt-recovery amount, missing platform-wallet mirror for payout processing-fee revenue, and `PAYOUT_PROCESSING` double-counted as a platform asset in `checkEscrowSolvency`/`checkLedgerAccountingIdentity`. Verified by `tests/financial/stage4-payouts.test.ts` (findings-doc Test B). **Historical drift from the pre-fix inversion (e.g. the 2026-07-05 delta of 47,960) has NOT been backfilled — audit old `PAYOUT_COMPLETED` entries before trusting long-range historical reconciliations.** |
+| `CUSTOMER_REFUND_PAYABLE` lines missing `entityId`/`entityType` | Confirmed in production 2026-07-05 | `checkLedgerStructuralIntegrity` found 2 ledger lines on `CUSTOMER_REFUND_PAYABLE` missing both fields. Likely a code path (guest checkout, retry, or missing customerId at call time) in whichever writer method credits this account without passing entity info. Still needs investigation. |
 
 ### Planned Future Features
 

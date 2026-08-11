@@ -1,5 +1,32 @@
 # JournalEntryWriter Review — Findings & Staging Tests
 
+> **RESOLVED — 2026-08-11.** Every question in this document has been settled
+> by the automated financial test suite in `tests/financial/` (vitest +
+> in-memory MongoDB replica set; run with `npm test`). Outcomes:
+>
+> - **§2.1 (VENDOR_AVAILABLE direction)** — resolved in **Group B's favour**:
+>   the refactor that followed this doc normalised *every* account to proper
+>   accounting conventions. All vendor/revenue/refund-payable
+>   accounts (and PAYOUT_PROCESSING) are **CREDIT-increases**; PLATFORM_ESCROW
+>   and the new VENDOR_DEBT_RECEIVABLE are **DEBIT-increases**. Verified
+>   end-to-end by `stage3-disputes.test.ts` (Test A scenarios, including
+>   penalty-exceeds-available debt creation).
+> - **§2.2 (writePayoutCompleted escrow direction)** — confirmed and fixed:
+>   completion now CREDITs PLATFORM_ESCROW. Verified by
+>   `stage4-payouts.test.ts` (Test B scenario).
+> - The debt model was replaced entirely: available is clamped at zero and
+>   shortfalls are recorded in `VENDOR_DEBT_RECEIVABLE`
+>   (`DEBT_RECOVERY_CLEARING` is retired). `reconcileVendorDebt` reads that
+>   account directly — §1.1's negative-available derivation no longer applies.
+> - Four **new** bugs were found and fixed while building the suite
+>   (2026-08-11): PAYOUT_PROCESSING double-counted as a platform asset in
+>   `checkEscrowSolvency`/`checkLedgerAccountingIdentity`; the gateway fee
+>   double-counted on payout completion; failed payouts over-restoring the
+>   vendor wallet cache by the debt-recovery amount; and payout processing-fee
+>   revenue never mirrored into the platform wallet cache.
+>
+> The remainder of this document is kept as historical context only.
+
 **Context:** Found while wiring `reconciliation.util.ts`'s functions against the
 actual `JournalEntryWriter` source. Two categories: bugs fixed directly in the
 reconciliation utilities, and suspected issues in `JournalEntryWriter` itself
