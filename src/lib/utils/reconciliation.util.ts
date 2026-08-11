@@ -723,17 +723,25 @@ export async function checkLedgerStructuralIntegrity(
 export interface EscrowSolvencyResult {
   /** PLATFORM_ESCROW's own balance (asset convention: debit increases it). */
   escrowBalance: number;
-  /** PAYOUT_PROCESSING's balance: money owed to vendors while in transit to their bank (liability convention: credit increases it). */
+  /**
+   * PAYOUT_PROCESSING's balance: money owed to vendors while in transit to
+   * their bank (liability convention: credit increases it). Counted inside
+   * liabilities.total — the backing cash is still inside PLATFORM_ESCROW
+   * until the payout completes, so counting it as platform-held as well
+   * would double-count it.
+   */
   payoutProcessing: number;
   /** VENDOR_DEBT_RECEIVABLE: money vendors owe the platform (asset convention: debit increases it). */
   debtReceivable: number;
-  /** escrowBalance + payoutProcessing + debtReceivable: total assets/claims the platform controls. */
+  /** escrowBalance + debtReceivable: total assets/claims the platform controls. */
   platformHeldCash: number;
   liabilities: {
     vendorPending: number;
     vendorAvailable: number;
     vendorDisputed: number;
     customerRefundPayable: number;
+    /** Owed to vendors for in-flight payouts — same figure as the top-level payoutProcessing. */
+    payoutProcessing: number;
     total: number;
   };
   /** True when platformHeldCash >= liabilities.total. */
@@ -749,20 +757,19 @@ export interface EscrowSolvencyResult {
 
 /**
  * Verifies that the assets and claims the platform controls
- * (PLATFORM_ESCROW + PAYOUT_PROCESSING + VENDOR_DEBT_RECEIVABLE) cover
- * everything it still owes or holds on behalf of vendors and customers.
+ * (PLATFORM_ESCROW + VENDOR_DEBT_RECEIVABLE) cover everything it still owes
+ * or holds on behalf of vendors and customers.
  *
  * Account conventions (all now consistent across JournalEntryWriter):
  *   - PLATFORM_ESCROW: asset, debit increases. The platform's cash.
  *   - VENDOR_DEBT_RECEIVABLE: asset, debit increases. Money vendors owe.
  *   - PAYOUT_PROCESSING: liability, credit increases. Owed to a vendor while
- *     in transit to their bank; still added to the platform's controlled
- *     total because the cash has not left until the payout completes.
+ *     in transit to their bank. Counted with the OTHER liabilities: the cash
+ *     backing it is still inside PLATFORM_ESCROW until writePayoutCompleted
+ *     credits escrow, so adding it to the platform-held side (as an earlier
+ *     revision did) double-counted every in-flight payout and inflated the
+ *     surplus by exactly the in-flight net amount.
  *   - VENDOR_* /CUSTOMER_REFUND_PAYABLE: liabilities, credit increases.
- *
- * Settlement is a pure reclassification and never touches PLATFORM_ESCROW, so
- * PAYOUT_PROCESSING and VENDOR_DEBT_RECEIVABLE are added to escrow to get the
- * platform's full controlled position before comparing against liabilities.
  *
  * This is a solvency signal: isSolvent is platformHeldCash >= liabilities, and
  * delta is the surplus. In a healthy system the surplus equals retained
@@ -792,10 +799,14 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
     deriveLedgerAccountBalance(LedgerAccountType.CUSTOMER_REFUND_PAYABLE),
   ]);
 
-  const platformHeldCash = escrowBalance + payoutProcessing + debtReceivable;
+  const platformHeldCash = escrowBalance + debtReceivable;
 
   const liabilitiesTotal =
-    vendorPending + vendorAvailable + vendorDisputed + customerRefundPayable;
+    vendorPending +
+    vendorAvailable +
+    vendorDisputed +
+    customerRefundPayable +
+    payoutProcessing;
 
   return {
     escrowBalance,
@@ -807,6 +818,7 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
       vendorAvailable,
       vendorDisputed,
       customerRefundPayable,
+      payoutProcessing,
       total: liabilitiesTotal,
     },
     isSolvent: platformHeldCash >= liabilitiesTotal,
@@ -819,7 +831,7 @@ export async function checkEscrowSolvency(): Promise<EscrowSolvencyResult> {
 // ---------------------------------------------------------------------------
 
 export interface LedgerAccountingIdentityResult {
-  /** escrow + payoutProcessing + debtReceivable − third-party liabilities. */
+  /** escrow + debtReceivable − third-party liabilities (incl. payoutProcessing). */
   assetsMinusLiabilities: number;
   /** commission + penalties − gatewayExpense: the platform's retained earnings. */
   retainedEarnings: number;
@@ -846,11 +858,14 @@ export interface LedgerAccountingIdentityResult {
  * Exact system-wide accounting identity. Because commission and penalty revenue
  * never physically leave PLATFORM_ESCROW (settlement is a reclassification and
  * nothing sweeps revenue cash out), the platform's assets always exceed its
- * third-party liabilities by exactly its retained earnings. The identity that
- * must hold in a correct system is:
+ * third-party liabilities by exactly its retained earnings. PAYOUT_PROCESSING
+ * sits on the liabilities side — the cash backing an in-flight payout is still
+ * inside PLATFORM_ESCROW until completion. The identity that must hold in a
+ * correct system is:
  *
- *   escrow + payoutProcessing + debtReceivable
- *     − (vendorPending + vendorAvailable + vendorDisputed + customerRefundPayable)
+ *   escrow + debtReceivable
+ *     − (vendorPending + vendorAvailable + vendorDisputed
+ *        + customerRefundPayable + payoutProcessing)
  *   === commission + penalties − gatewayExpense
  *
  * Unlike checkEscrowSolvency (a loose >= signal), this asserts exact equality.
@@ -893,9 +908,12 @@ export async function checkLedgerAccountingIdentity(): Promise<LedgerAccountingI
 
   const assetsMinusLiabilities =
     escrowBalance +
-    payoutProcessing +
     debtReceivable -
-    (vendorPending + vendorAvailable + vendorDisputed + customerRefundPayable);
+    (vendorPending +
+      vendorAvailable +
+      vendorDisputed +
+      customerRefundPayable +
+      payoutProcessing);
 
   const retainedEarnings = commission + penalties - gatewayExpense;
 

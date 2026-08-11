@@ -25,6 +25,7 @@ import {
   deductVendorAvailableForPayout,
   reduceVendorDebt,
 } from "@/lib/db/models/vendor-wallet.model";
+import { creditPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { PayoutAmountBreakdown } from "@/domain/payout/value-objects/payout-amount-breakdown";
@@ -234,6 +235,11 @@ export class PayoutService implements IPayoutService {
           payoutId: savedPayoutObjectId,
           session,
         });
+
+        // Mirror the PLATFORM_REVENUE_COMMISSION credit into the platform
+        // wallet cache — without this the cache drifts below the ledger by
+        // the processing fee on every payout.
+        await creditPlatformCommission(totalFee, session);
       }
 
       // 4. Payout initiated — net amount (after debt recovery and processing

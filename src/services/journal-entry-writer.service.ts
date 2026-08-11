@@ -196,11 +196,6 @@ export interface WritePayoutCompletedParams {
   vendorId: mongoose.Types.ObjectId;
   /** Net amount transferred to the vendor's bank account, in Kobo. */
   netAmount: number;
-  /**
-   * Gateway fee charged by Flutterwave for this transfer, in Kobo.
-   * Pass 0 if no fee was charged or the platform absorbs it without attribution.
-   */
-  gatewayFee: number;
   /** _id of the payout record document. */
   payoutId: mongoose.Types.ObjectId;
   session: mongoose.ClientSession;
@@ -1294,32 +1289,24 @@ export class JournalEntryWriter {
 
   /**
    * Complete a payout. Closes PAYOUT_PROCESSING for the net that entered it at
-   * initiation, recognises the transfer fee as an expense, and reduces escrow
-   * by the total cash that left the platform (net + fee).
+   * initiation and reduces escrow by the net cash that reached the vendor.
    *
-   * Journal entry (with gateway fee):
-   *   DEBIT   PAYOUT_PROCESSING     netAmount
-   *   DEBIT   GATEWAY_FEES_EXPENSE  gatewayFee
-   *   CREDIT  PLATFORM_ESCROW       netAmount + gatewayFee
+   * The gateway fee is NOT recorded here — it was already expensed (and taken
+   * out of escrow) at initiation by writeGatewayFee, and is reversed by
+   * writeGatewayFeeReversal if the payout fails. Recording it again here
+   * double-counted the fee: every completed payout inflated
+   * GATEWAY_FEES_EXPENSE and drained PLATFORM_ESCROW by one extra fee.
    *
-   * Journal entry (no gateway fee):
+   * Journal entry:
    *   DEBIT   PAYOUT_PROCESSING   netAmount
    *   CREDIT  PLATFORM_ESCROW     netAmount
    */
   async writePayoutCompleted(
     params: WritePayoutCompletedParams,
   ): Promise<void> {
-    const { vendorId, netAmount, gatewayFee, payoutId, session } = params;
+    const { vendorId, netAmount, payoutId, session } = params;
 
     assertValidKoboAmount(netAmount, "netAmount");
-
-    if (!Number.isInteger(gatewayFee) || gatewayFee < 0) {
-      throw new Error(
-        `Invalid gatewayFee: expected a non-negative integer in Kobo, got ${gatewayFee}.`,
-      );
-    }
-
-    const totalCashOut = netAmount + gatewayFee;
 
     const lines: PendingLedgerLine[] = [
       {
@@ -1332,17 +1319,8 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.PLATFORM_ESCROW,
-        amount: totalCashOut,
+        amount: netAmount,
       },
-      ...(gatewayFee > 0
-        ? [
-            {
-              type: LedgerEntryType.DEBIT,
-              accountType: LedgerAccountType.GATEWAY_FEES_EXPENSE,
-              amount: gatewayFee,
-            } as PendingLedgerLine,
-          ]
-        : []),
     ];
 
     await this.commitEntry(
@@ -1350,10 +1328,8 @@ export class JournalEntryWriter {
         category: LedgerEntryCategory.PAYOUT_COMPLETED,
         referenceType: LedgerReferenceType.PAYOUT,
         referenceId: payoutId,
-        description:
-          `Payout ${payoutId} completed — ${netAmount} Kobo transferred to vendor ${vendorId}` +
-          (gatewayFee > 0 ? ` (gateway fee: ${gatewayFee} Kobo)` : ""),
-        metadata: { vendorId, payoutId, netAmount, gatewayFee },
+        description: `Payout ${payoutId} completed — ${netAmount} Kobo transferred to vendor ${vendorId}`,
+        metadata: { vendorId, payoutId, netAmount },
       },
       lines,
       session,
