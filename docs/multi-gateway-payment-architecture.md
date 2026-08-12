@@ -44,8 +44,8 @@ class PaymentGatewayFactory {
 ```
 
 **Guardrails:**
+
 - Never trust a `provider` query param from the URL alone — cross-check against the DB record to prevent a manipulated URL from triggering a mismatched verify call.
-- Namespace internal `txRef`s per gateway (`FLW-`, `PSK-`) as a fallback way to infer the gateway if a DB lookup ever fails.
 
 ---
 
@@ -53,7 +53,7 @@ class PaymentGatewayFactory {
 
 **Problem:** Querying the DB for the order, deriving the provider, then calling `verifyTransaction`, then relaying the result to the customer — feels like it could take over a minute.
 
-**Reality check:** The DB lookup on an indexed field is single-digit milliseconds — not the bottleneck. The actual cost is the **network round trip** to the gateway's API: request travels to the gateway's server, gets processed, travels back. That's typically 200ms–a few seconds, and it's unavoidable no matter how the surrounding code is architected — you always have to make that call *at some point* to know if payment succeeded.
+**Reality check:** The DB lookup on an indexed field is single-digit milliseconds — not the bottleneck. The actual cost is the **network round trip** to the gateway's API: request travels to the gateway's server, gets processed, travels back. That's typically 200ms–a few seconds, and it's unavoidable no matter how the surrounding code is architected — you always have to make that call _at some point_ to know if payment succeeded.
 
 **Conclusion:** The fix isn't optimizing the lookup — it's not making the customer wait on the live gateway call at all.
 
@@ -78,12 +78,12 @@ This decouples customer-facing latency ("how fast is our own DB") from gateway l
 
 **Solution — layered, time-boxed flow:**
 
-| Time | Behavior |
-|---|---|
-| 0–10s | Page polls `/order-status/:txRef` every 2–3s, shows "Confirming your payment…" |
-| ~10–15s (still pending) | Backend actively calls the gateway's `verifyTransaction` directly as a fallback (doesn't rely purely on the webhook), updates DB |
-| ~30–45s (still pending) | UI switches to an honest message: "This is taking longer than usual — we'll email you once confirmed." User can leave the page. |
-| Backstop | A cron job (extending the existing 3am/3:30am reconciliation cron pattern) sweeps orders still `pending` after N minutes, force-verifies against the gateway, and reconciles |
+| Time                    | Behavior                                                                                                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0–10s                   | Page polls `/order-status/:txRef` every 2–3s, shows "Confirming your payment…"                                                                                               |
+| ~10–15s (still pending) | Backend actively calls the gateway's `verifyTransaction` directly as a fallback (doesn't rely purely on the webhook), updates DB                                             |
+| ~30–45s (still pending) | UI switches to an honest message: "This is taking longer than usual — we'll email you once confirmed." User can leave the page.                                              |
+| Backstop                | A cron job (extending the existing 3am/3:30am reconciliation cron pattern) sweeps orders still `pending` after N minutes, force-verifies against the gateway, and reconciles |
 
 Most webhooks land in 2–5 seconds, so most users never see past step 1. No order is ever permanently stuck, and nothing depends on the customer keeping the tab open.
 
@@ -98,9 +98,10 @@ Most webhooks land in 2–5 seconds, so most users never see past step 1. No ord
 - **Extend the ledger with a gateway dimension.** Add a `gatewayProvider` field to `LedgerLine`/`JournalEntry` (alongside existing categories like `PLATFORM_ESCROW`, `GATEWAY_FEE_DEDUCTED`), so the ledger can be sliced per gateway at query time without needing separate ledgers.
 - **Reconcile in two layers:**
   1. **Per-gateway check** — sum internal ledger lines tagged with each `gatewayProvider`, compare against that gateway's own balance/settlement report. Catches gateway-specific issues early (as already happened with Flutterwave's net-of-fee settlement).
-  2. **Aggregate check** — total across all gateways should equal the sum of *passing* per-gateway checks, not a standalone comparison (otherwise one gateway's discrepancy can hide inside a coincidentally-matching total).
+  2. **Aggregate check** — total across all gateways should equal the sum of _passing_ per-gateway checks, not a standalone comparison (otherwise one gateway's discrepancy can hide inside a coincidentally-matching total).
 
 **Two things that will bite if skipped:**
+
 - **Fee schedules differ per gateway** — each new gateway likely needs its own fee-deduction logic feeding into `GATEWAY_FEE_DEDUCTED`, since gross-vs-net settlement isn't universal (Flutterwave's 1.4% + VAT precedent).
 - **Settlement timing differs per gateway** — a gateway's live balance often lags actual transactions by T+1 or more. Reconcile against that gateway's settlement report for the matching window, not a raw live balance, or every run produces false-positive discrepancies.
 

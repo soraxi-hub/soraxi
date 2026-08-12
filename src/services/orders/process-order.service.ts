@@ -6,7 +6,6 @@ import {
 } from "@/lib/db/models/order.model";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import mongoose, { type Model } from "mongoose";
-import type { FlutterwaveTransactionData } from "@/domain/payment/gateways/flutterwave.gateway";
 import { OrderNotificationService } from "@/services/orders/order-notification.service";
 import { CouponService } from "@/services/coupon.service";
 import { NotificationFactory, renderTemplate } from "../../domain/notification";
@@ -353,7 +352,8 @@ export class ProcessOrder {
   }: {
     orderId: UpdateOrderRecordProps["orderId"];
     session: UpdateOrderRecordProps["session"];
-    transactionDataStatus: FlutterwaveTransactionData["status"];
+    /** The gateway's raw status string, lowercased ("failed", "cancelled", …). */
+    transactionDataStatus: string;
   }): Promise<{
     ok: boolean;
     error?: string;

@@ -7,7 +7,7 @@ import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/services/cart/cart.service";
 import { PaymentGatewayFactory } from "@/domain/payment/payment.factory";
-import { nairaToKobo } from "@/lib/utils/naira";
+import { NormalizedPaymentStatus } from "@/domain/payment/gateways/gateway-interface";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -31,7 +31,6 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       const { tx_ref, withTransactionId, transaction_id } = input;
-      const statusArr = ["successful", "completed", "success"];
       const flutterwaveService = PaymentGatewayFactory.getGateway(
         PaymentGateway.Flutterwave,
       );
@@ -45,32 +44,27 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             return { ok: false, error: "Transaction Id is required" };
           }
 
-          const verifiedTransaction =
+          // The adapter returns the gateway-neutral result — status already
+          // normalized, fees and amounts already in Kobo.
+          const verified =
             await flutterwaveService.verifyPayment(transaction_id);
 
-          if (!verifiedTransaction) {
+          if (!verified) {
             return { ok: false, error: "Could not retrieve transaction data" };
           }
 
           // If the payment is in a pending state, return true and do not update the order record
-          if (verifiedTransaction?.data?.status.toLowerCase() === "pending") {
-            return {
-              ok: true,
-              status: verifiedTransaction?.data?.status.toLowerCase(),
-            };
+          if (verified.status === NormalizedPaymentStatus.Pending) {
+            return { ok: true, status: verified.rawStatus };
           }
 
           session = await mongoose.startSession();
           session.startTransaction();
 
-          // If the verified transaction data status is not a success status,
-          // update the order record to either failed or cancelled, with a TTD of 2 weeks.
-          if (
-            !statusArr.includes(verifiedTransaction?.data?.status.toLowerCase())
-          ) {
-            const transactionData = verifiedTransaction.data;
-
-            if (!transactionData.meta?.orderId) {
+          // If the verified transaction did not succeed, update the order
+          // record to either failed or cancelled, with a TTD of 2 weeks.
+          if (verified.status === NormalizedPaymentStatus.Failed) {
+            if (!verified.meta.orderId) {
               await session.abortTransaction();
               return {
                 ok: false,
@@ -78,13 +72,10 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
               };
             }
 
-            const { orderId } = transactionData.meta;
-            const transactionDataStatus = transactionData.status;
-
             const result = await processOrder.updateOrderRecordToFailureState({
-              orderId,
+              orderId: verified.meta.orderId,
               session,
-              transactionDataStatus,
+              transactionDataStatus: verified.rawStatus,
             });
 
             if (!result.ok) {
@@ -96,53 +87,39 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             return { ok: true, status: result.status };
           }
 
-          // If the verified transaction data status is a success status,
-          // process the order.
-          if (
-            statusArr.includes(verifiedTransaction?.data?.status.toLowerCase())
-          ) {
-            const transactionData = verifiedTransaction.data;
-            // Extract collection fee data from verified transaction
-            const appFeeNaira = transactionData.app_fee ?? 0;
-            const appFeeKobo = nairaToKobo(appFeeNaira);
-            const vatKobo = Math.round(appFeeKobo * 0.075);
-            const collectionFeeKobo = appFeeKobo + vatKobo;
-            const { orderId, idempotencyKey } = transactionData.meta;
-            const paymentMethod = transactionData.payment_type;
-            const flutterwaveTransactionId = transactionData.id;
+          // Successful transaction — process the order.
+          const { collectionFeeKobo, gatewayTransactionId, paymentMethod } =
+            verified;
+          const { orderId, idempotencyKey } = verified.meta;
 
-            // Get customer info from order
-            const customerInfo = {
-              fullName: transactionData.meta.fullName,
-              email: transactionData.meta.email,
-            };
+          const customerInfo = {
+            fullName: verified.meta.fullName,
+            email: verified.meta.email,
+          };
 
-            // Update the order record
-            const result = await processOrder.updateOrderRecordToSuccessState({
-              orderId,
-              idempotencyKey,
-              transactionId: flutterwaveTransactionId,
-              session,
-              paymentMethod,
-              customerInfo,
-              collectionFeeKobo,
-            });
+          // Update the order record
+          const result = await processOrder.updateOrderRecordToSuccessState({
+            orderId,
+            idempotencyKey,
+            transactionId: Number(gatewayTransactionId),
+            session,
+            paymentMethod,
+            customerInfo,
+            collectionFeeKobo,
+          });
 
-            if (!result.ok) {
-              console.error(result.error);
-              return { ok: false, status: PaymentStatus.Failed };
-            }
-
-            // Step 4: Clear user's cart
-            if (result.userId) {
-              CartService.clearCart(result.userId);
-            }
-
-            await session.commitTransaction();
-            return { ok: true, status: transactionData.status };
+          if (!result.ok) {
+            console.error(result.error);
+            return { ok: false, status: PaymentStatus.Failed };
           }
 
-          return { ok: false, error: "failed to verify Transaction" };
+          // Step 4: Clear user's cart
+          if (result.userId) {
+            CartService.clearCart(result.userId);
+          }
+
+          await session.commitTransaction();
+          return { ok: true, status: verified.rawStatus };
         }
 
         if (!tx_ref) {

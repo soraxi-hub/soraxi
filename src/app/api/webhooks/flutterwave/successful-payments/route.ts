@@ -7,9 +7,9 @@ import { PayoutWebhookHandler } from "@/services/payment/payout/payout-webhook-h
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/services/cart/cart.service";
 import { PaymentGateway } from "@/enums";
+import { NormalizedPaymentStatus } from "@/domain/payment/gateways/gateway-interface";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
-import { nairaToKobo } from "@/lib/utils/naira";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -72,43 +72,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify transaction with Flutterwave API
+    // Verify transaction with the gateway's API — the adapter returns the
+    // gateway-neutral result (amounts and fees already in Kobo).
     const verifiedTransaction = await PaymentService.verifyPayment({
       gateway: PaymentGateway.Flutterwave,
       transactionReference: transactionId,
     });
 
     if (
-      verifiedTransaction?.status.toLowerCase() !== "success" ||
-      verifiedTransaction?.data?.status.toLowerCase() !== "successful"
+      !verifiedTransaction ||
+      verifiedTransaction.status !== NormalizedPaymentStatus.Successful
     ) {
       throw new AppError("BAD_REQUEST", "Transaction not successful", {
-        transactionStatus: verifiedTransaction?.data?.status,
+        transactionStatus: verifiedTransaction?.rawStatus,
       });
     }
 
-    // Process the order based on transactionData
-    const transactionData = verifiedTransaction.data;
-
-    // Extract collection fee data from verified transaction
-    const appFeeNaira = transactionData.app_fee ?? 0;
-    const appFeeKobo = nairaToKobo(appFeeNaira);
-    const vatKobo = Math.round(appFeeKobo * 0.075);
-    const collectionFeeKobo = appFeeKobo + vatKobo;
-
-    const flutterwaveTransactionId = transactionData.id;
-    const { orderId, idempotencyKey } = transactionData.meta;
-    const paymentMethod = transactionData.payment_type;
+    const { collectionFeeKobo, gatewayTransactionId, paymentMethod, meta } =
+      verifiedTransaction;
+    const { orderId, idempotencyKey } = meta;
 
     const customerInfo = {
-      fullName: transactionData.meta.fullName,
-      email: transactionData.meta.email,
+      fullName: meta.fullName,
+      email: meta.email,
     };
 
     const result = await processOrder.updateOrderRecordToSuccessState({
       orderId,
       idempotencyKey,
-      transactionId: flutterwaveTransactionId,
+      transactionId: Number(gatewayTransactionId),
       session,
       paymentMethod,
       customerInfo,
