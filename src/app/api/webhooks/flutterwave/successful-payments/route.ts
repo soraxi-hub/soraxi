@@ -73,10 +73,13 @@ export async function POST(request: Request) {
     }
 
     // Verify transaction with the gateway's API — the adapter returns the
-    // gateway-neutral result (amounts and fees already in Kobo).
+    // gateway-neutral result (amounts and fees already in Kobo). This route
+    // is Flutterwave's own webhook front door, so the provider is known from
+    // the route itself; ProcessOrder still cross-checks it against the
+    // gateway recorded on the order.
     const verifiedTransaction = await PaymentService.verifyPayment({
       gateway: PaymentGateway.Flutterwave,
-      transactionReference: transactionId,
+      refs: { providerTransactionId: transactionId },
     });
 
     if (
@@ -105,6 +108,9 @@ export async function POST(request: Request) {
       paymentMethod,
       customerInfo,
       collectionFeeKobo,
+      provider: verifiedTransaction.provider,
+      amountPaidKobo: verifiedTransaction.amountKobo,
+      currency: verifiedTransaction.currency,
     });
 
     if (!result.ok) {

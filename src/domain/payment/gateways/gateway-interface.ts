@@ -118,6 +118,20 @@ export interface PaymentVerificationResult {
 // The gateway contract
 // ---------------------------------------------------------------------------
 
+/**
+ * Identifiers available when verifying a transaction. Callers pass what they
+ * have; each adapter picks what its provider needs:
+ *  - Flutterwave: prefers the numeric `providerTransactionId` (from redirect
+ *    or webhook), falls back to verify-by-reference with `reference`.
+ *  - Paystack: verifies by `reference` alone.
+ */
+export interface VerifyPaymentParams {
+  /** Our internal reference (the cart idempotency key / tx_ref). */
+  reference?: string;
+  /** The provider's own transaction id, when the caller has it. */
+  providerTransactionId?: string;
+}
+
 export interface IPaymentGateway {
   /** Which provider this adapter talks to. */
   readonly provider: PaymentGateway;
@@ -134,15 +148,9 @@ export interface IPaymentGateway {
   /**
    * Verify a transaction against the provider's API and return the
    * normalized result, or null when the provider cannot resolve the
-   * transaction (not found / API exhausted retries).
-   *
-   * `providerTransactionRef` is the identifier the provider itself hands
-   * back on redirect or webhook — adapter-specific by nature (Flutterwave:
-   * the numeric transaction id; Paystack: the reference string). Callers
-   * always obtained it from that provider's own redirect/webhook payload, so
-   * no cross-provider ambiguity exists.
+   * transaction (not found / API exhausted retries / no usable identifier).
    */
   verifyPayment(
-    providerTransactionRef: string,
+    params: VerifyPaymentParams,
   ): Promise<PaymentVerificationResult | null>;
 }

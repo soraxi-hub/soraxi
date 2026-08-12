@@ -2,7 +2,6 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { preparedPaymentSchema } from "@/validators/order-input-validators";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { TRPCError } from "@trpc/server";
-import { PaymentGateway } from "@/enums";
 import { PaymentService } from "@/services/payment/payment.service";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
@@ -52,10 +51,9 @@ export const flutterwaveRouter = createTRPCRouter({
           input,
           user: userData,
         };
-        return await PaymentService.initializePayment({
-          gateway: PaymentGateway.Flutterwave,
-          props,
-        });
+        // Gateway selection is platform-controlled — GatewayRouter inside
+        // PaymentService picks the provider and handles failover.
+        return await PaymentService.initializePayment({ props });
       } catch (error) {
         if (isReportableError(error)) {
           try {

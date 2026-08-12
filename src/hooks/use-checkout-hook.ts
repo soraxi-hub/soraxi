@@ -179,7 +179,6 @@ export function useCheckoutService(
       // Step 2: Process payment
       setIsProcessing(true);
       await paymentMutation.mutateAsync(paymentData);
-      // @ts-ignore
     } catch (err: any) {
       setError(
         err.message ||

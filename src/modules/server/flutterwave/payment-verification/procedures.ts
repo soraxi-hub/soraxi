@@ -8,6 +8,7 @@ import { OrderFactory } from "@/domain/orders/order-factory";
 import { CartService } from "@/services/cart/cart.service";
 import { PaymentGatewayFactory } from "@/domain/payment/payment.factory";
 import { NormalizedPaymentStatus } from "@/domain/payment/gateways/gateway-interface";
+import { getOrderModel } from "@/lib/db/models/order.model";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -31,14 +32,26 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       const { tx_ref, withTransactionId, transaction_id } = input;
-      const flutterwaveService = PaymentGatewayFactory.getGateway(
-        PaymentGateway.Flutterwave,
-      );
       const processOrder = await OrderFactory.getProcessOrderInstance();
       let session: mongoose.ClientSession | null = null;
       await connectToDatabase();
 
       try {
+        // ── Derive the gateway from the order record ─────────────────────
+        // The provider was recorded on the order at initiation; the record —
+        // never a URL parameter — decides which gateway's API we verify
+        // against. Falls back to Flutterwave for orders created before the
+        // provider was recorded.
+        let gateway = PaymentGateway.Flutterwave;
+        if (tx_ref) {
+          const Order = await getOrderModel();
+          const order = await Order.findOne({ idempotencyKey: tx_ref })
+            .select("paymentGateway")
+            .lean<{ paymentGateway?: PaymentGateway }>();
+          if (order?.paymentGateway) gateway = order.paymentGateway;
+        }
+        const gatewayService = PaymentGatewayFactory.getGateway(gateway);
+
         if (withTransactionId) {
           if (!transaction_id) {
             return { ok: false, error: "Transaction Id is required" };
@@ -46,8 +59,10 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
 
           // The adapter returns the gateway-neutral result — status already
           // normalized, fees and amounts already in Kobo.
-          const verified =
-            await flutterwaveService.verifyPayment(transaction_id);
+          const verified = await gatewayService.verifyPayment({
+            reference: tx_ref,
+            providerTransactionId: transaction_id,
+          });
 
           if (!verified) {
             return { ok: false, error: "Could not retrieve transaction data" };
@@ -106,6 +121,9 @@ export const flutterwavePaymentVerificationRouter = createTRPCRouter({
             paymentMethod,
             customerInfo,
             collectionFeeKobo,
+            provider: verified.provider,
+            amountPaidKobo: verified.amountKobo,
+            currency: verified.currency,
           });
 
           if (!result.ok) {

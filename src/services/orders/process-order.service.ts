@@ -1,4 +1,4 @@
-import { PaymentStatus } from "@/enums";
+import { PaymentGateway, PaymentStatus } from "@/enums";
 import {
   getOrderModel,
   IOrderDocument,
@@ -40,7 +40,49 @@ type UpdateOrderRecordProps = {
   paymentMethod: string;
   customerInfo: CustomerInfo;
   collectionFeeKobo: number;
+  /** Which gateway verified this payment — cross-checked against the order record. */
+  provider: PaymentGateway;
+  /** Amount the gateway confirmed was charged, in Kobo. */
+  amountPaidKobo: number;
+  /** Currency the gateway confirmed, e.g. "NGN". */
+  currency: string;
 };
+
+/**
+ * Validate that what the gateway says was charged actually covers the order.
+ *
+ * Verification trusting the status alone is not enough: with bank-transfer
+ * flows a customer can underpay and the gateway may still emit a webhook.
+ * Overpayment is tolerated (never blocks fulfilment); underpayment or a
+ * currency mismatch must stop the order from being marked Paid.
+ *
+ * Pure function, exported for unit testing.
+ */
+export function validateChargedAmount({
+  expectedKobo,
+  chargedKobo,
+  currency,
+}: {
+  expectedKobo: number;
+  chargedKobo: number;
+  currency: string;
+}): { ok: true } | { ok: false; reason: string } {
+  if (currency !== "NGN") {
+    return {
+      ok: false,
+      reason: `Unexpected currency "${currency}" — expected NGN.`,
+    };
+  }
+  if (chargedKobo < expectedKobo) {
+    return {
+      ok: false,
+      reason:
+        `Underpayment: gateway confirmed ${chargedKobo} Kobo but the order ` +
+        `total is ${expectedKobo} Kobo.`,
+    };
+  }
+  return { ok: true };
+}
 
 export class ProcessOrder {
   private Order!: Model<IOrderDocument>;
@@ -63,6 +105,9 @@ export class ProcessOrder {
     paymentMethod,
     customerInfo,
     collectionFeeKobo,
+    provider,
+    amountPaidKobo,
+    currency,
   }: UpdateOrderRecordProps): Promise<{
     ok: boolean;
     error?: string;
@@ -97,6 +142,36 @@ export class ProcessOrder {
         };
       }
       // else → pending, allow update to continue
+    }
+
+    // ── Provider guard ───────────────────────────────────────────────────
+    // The order record names the gateway that issued the payment link. A
+    // verification arriving from a different provider means a mismatched or
+    // manipulated callback — never mark the order paid from it.
+    if (order.paymentGateway && order.paymentGateway !== provider) {
+      const error =
+        `Gateway mismatch for order ${orderId}: order was initiated on ` +
+        `"${order.paymentGateway}" but verification came from "${provider}".`;
+      console.error(error);
+      await this.alertAdminOfSuspiciousPayment(error);
+      return { ok: false, error };
+    }
+
+    // ── Amount guard ─────────────────────────────────────────────────────
+    // The gateway's verified status alone is not proof the order was covered
+    // (bank-transfer underpayment still fires a webhook). Validate the
+    // charged amount against the order total before marking anything paid.
+    const amountCheck = validateChargedAmount({
+      expectedKobo: order.totalAmount,
+      chargedKobo: amountPaidKobo,
+      currency,
+    });
+
+    if (!amountCheck.ok) {
+      const error = `Payment rejected for order ${orderId}: ${amountCheck.reason}`;
+      console.error(error);
+      await this.alertAdminOfSuspiciousPayment(error);
+      return { ok: false, error };
     }
 
     // Redeem coupon for this user
@@ -167,6 +242,7 @@ export class ProcessOrder {
         transactionId,
         session,
         collectionFeeKobo,
+        provider,
       );
     } catch (error) {
       console.error(
@@ -205,12 +281,29 @@ export class ProcessOrder {
     };
   }
 
+  /**
+   * Alert the platform team about a payment that verified "successful" but
+   * failed a safety guard (underpayment, currency or gateway mismatch).
+   * These need a human decision — refund, manual reconciliation, or fraud
+   * follow-up — so the order is deliberately left unpaid.
+   */
+  private async alertAdminOfSuspiciousPayment(detail: string): Promise<void> {
+    try {
+      await sendTelegramMessage(
+        `Suspicious payment blocked\n${detail}\nOrder was NOT marked paid — manual review required.`,
+      );
+    } catch {
+      // The alert is best-effort; the block itself already happened.
+    }
+  }
+
   private async processPaymentConfirmedFinancials(
     order: IOrder,
     flutterwaveReference: string,
     flutterwaveTransactionId: number,
     session: mongoose.ClientSession | null,
     collectionFeeKobo: number,
+    provider: PaymentGateway,
   ): Promise<void> {
     // Journal entry writes always involve multiple documents — a session is
     // required to guarantee atomicity. Throw early rather than risk a
@@ -274,6 +367,8 @@ export class ProcessOrder {
       {
         customerId: order.userId,
         orderId: order._id,
+        paymentProvider: provider,
+        gatewayTransactionId: String(flutterwaveTransactionId),
         flutterwaveReference,
         flutterwaveTransactionId,
         flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,

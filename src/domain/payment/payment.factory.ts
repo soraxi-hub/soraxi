@@ -12,4 +12,17 @@ export class PaymentGatewayFactory {
         throw new Error("Unsupported payment gateway");
     }
   }
+
+  /**
+   * Whether an adapter exists for this gateway. GatewayRouter uses this so
+   * routing candidates can never include a provider that would throw above.
+   */
+  static isSupported(gateway: PaymentGateway): boolean {
+    switch (gateway) {
+      case PaymentGateway.Flutterwave:
+        return true;
+      default:
+        return false;
+    }
+  }
 }

@@ -6,6 +6,7 @@ import {
   InitializePaymentResult,
   NormalizedPaymentStatus,
   PaymentVerificationResult,
+  VerifyPaymentParams,
 } from "./gateway-interface";
 
 export interface FlutterwaveVerifyResponse {
@@ -274,14 +275,28 @@ export class FlutterwaveGateway implements IPaymentGateway {
   }
 
   /**
-   * Verify a Flutterwave transaction by its numeric transaction id (the
-   * identifier Flutterwave hands back on redirect and webhook payloads).
-   * Includes retry logic and exponential backoff for reliability.
+   * Verify a Flutterwave transaction. Prefers the numeric transaction id
+   * (the identifier Flutterwave hands back on redirect and webhook
+   * payloads); falls back to verify-by-reference with our tx_ref when only
+   * the internal reference is known (e.g. a cron backstop sweeping stuck
+   * orders). Includes retry logic and exponential backoff for reliability.
    */
   async verifyPayment(
-    providerTransactionRef: string,
+    params: VerifyPaymentParams,
   ): Promise<PaymentVerificationResult | null> {
-    const url = `${this.apiUrl}/transactions/${Number(providerTransactionRef)}/verify`;
+    const { reference, providerTransactionId } = params;
+
+    let url: string;
+    if (providerTransactionId) {
+      url = `${this.apiUrl}/transactions/${Number(providerTransactionId)}/verify`;
+    } else if (reference) {
+      url = `${this.apiUrl}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`;
+    } else {
+      console.error(
+        "FlutterwaveGateway.verifyPayment: no transaction identifier provided",
+      );
+      return null;
+    }
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
