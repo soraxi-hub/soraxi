@@ -75,9 +75,12 @@ describe("GatewayRouter.candidateGateways", () => {
     ]);
   });
 
-  it("excludes Paystack even when configured, until its adapter exists", () => {
-    // Deploying PAYSTACK_SECRET_KEY must not route real checkouts to a
-    // provider PaymentGatewayFactory cannot instantiate.
+  it("excludes Paystack even when configured, until the status page supports it", () => {
+    // The Paystack adapter and webhook are complete, but the redirect-driven
+    // status page still can't resolve a Paystack callback (no transaction_id),
+    // so routing a live checkout there would show a paid customer a cancelled
+    // page. Deploying PAYSTACK_SECRET_KEY alone must not enable it — Phase 4
+    // flips GatewayRouter.isRoutable.
     process.env.FLUTTERWAVE_SECRET_KEY = "FLWSECK_TEST";
     process.env.PAYSTACK_SECRET_KEY = "sk_test_paystack";
 

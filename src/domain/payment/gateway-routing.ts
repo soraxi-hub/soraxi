@@ -40,6 +40,33 @@ export class GatewayRouter {
   }
 
   /**
+   * Whether new checkouts may be sent to this gateway.
+   *
+   * Distinct from PaymentGatewayFactory.isSupported (which only asks whether
+   * an adapter can be constructed): a provider can verify webhooks correctly
+   * while the customer-facing redirect flow still can't handle it.
+   *
+   * Paystack is intentionally NOT routable yet. Its adapter and webhook are
+   * complete, but the checkout status page still resolves payments from the
+   * Flutterwave-style redirect (`transaction_id`), and treats a redirect
+   * without one as an abandoned payment. Paystack redirects carry
+   * `reference`/`trxref` instead, so routing a live checkout there today
+   * would show a paid customer a cancelled-payment page. Phase 4 (bounded,
+   * polling-based status page) removes that coupling — flip this to `true`
+   * then, together with deploying PAYSTACK_SECRET_KEY.
+   */
+  private static isRoutable(gateway: PaymentGateway): boolean {
+    switch (gateway) {
+      case PaymentGateway.Flutterwave:
+        return true;
+      case PaymentGateway.Paystack:
+        return false; // ← Phase 4 flips this
+      default:
+        return false;
+    }
+  }
+
+  /**
    * Ordered candidates for a new checkout: primary first, then enabled
    * fallbacks. Never empty — throws if no gateway is usable, since checkout
    * cannot proceed at all in that state.
@@ -48,6 +75,7 @@ export class GatewayRouter {
     const candidates = [this.PRIMARY, ...this.FALLBACKS].filter(
       (gateway) =>
         PaymentGatewayFactory.isSupported(gateway) &&
+        this.isRoutable(gateway) &&
         this.isConfigured(gateway),
     );
 
