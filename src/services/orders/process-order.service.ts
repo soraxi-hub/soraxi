@@ -454,7 +454,16 @@ export class ProcessOrder {
     error?: string;
     status?: PaymentStatus;
   }> {
-    const failedStatusArr = [PaymentStatus.Failed, PaymentStatus.Cancelled];
+    // Paid is terminal too: a late or stale "failed" verification must never
+    // walk back a confirmed payment. Reachable now that the status-page
+    // fallback and the cron backstop both re-verify orders independently of
+    // the webhook that may already have settled them.
+    const terminalStatusArr = [
+      PaymentStatus.Paid,
+      PaymentStatus.Failed,
+      PaymentStatus.Cancelled,
+      PaymentStatus.Refunded,
+    ];
 
     const order = await this.Order.findById(
       new mongoose.Types.ObjectId(orderId),
@@ -466,7 +475,7 @@ export class ProcessOrder {
       return { ok: false, error: "Order not found" };
     }
 
-    if (failedStatusArr.includes(order.paymentStatus)) {
+    if (terminalStatusArr.includes(order.paymentStatus)) {
       return { ok: true, status: order.paymentStatus };
     }
 

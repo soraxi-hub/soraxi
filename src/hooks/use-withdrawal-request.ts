@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
@@ -21,7 +21,7 @@ export interface WithdrawalForm {
  * Bank account returned from payout account query.
  */
 type Output = inferProcedureOutput<
-  AppRouter["payment"]["getStorePayoutAccounts"]
+  AppRouter["storePayoutAccount"]["getStorePayoutAccounts"]
 >;
 
 export type BankAccount = Output[number];
@@ -69,7 +69,7 @@ export function useWithdrawalRequest({
   >({});
 
   const { data: payoutAccounts, isLoading: isLoadingAccounts } = useQuery(
-    trpc.payment.getStorePayoutAccounts.queryOptions(),
+    trpc.storePayoutAccount.getStorePayoutAccounts.queryOptions(),
   );
 
   const createWithdrawalRequest = useMutation(
@@ -208,3 +208,5 @@ export function useWithdrawalRequest({
     processWithdrawal,
   };
 }
+
+

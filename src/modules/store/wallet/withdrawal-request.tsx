@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import { useWithdrawalRequest } from "@/hooks/use-withdrawal-request";
  * Type definitions for the component
  */
 type Output = inferProcedureOutput<
-  AppRouter["payment"]["getStorePayoutAccounts"]
+  AppRouter["storePayoutAccount"]["getStorePayoutAccounts"]
 >;
 type BankAccount = Output[number];
 
@@ -108,7 +108,7 @@ export function WithdrawalRequest({
           >
             {/* Withdrawal Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount">Withdrawal Amount (₦)</Label>
+              <Label htmlFor="amount">Withdrawal Amount (â‚¦)</Label>
 
               <Input
                 id="amount"
@@ -139,7 +139,7 @@ export function WithdrawalRequest({
                 {formatNaira(WITHDRAWAL_LIMITS.MINIMUM_WITHDRAWAL, {
                   showDecimals: true,
                 })}{" "}
-                • Maximum:{" "}
+                â€¢ Maximum:{" "}
                 {formatNaira(WITHDRAWAL_LIMITS.MAXIMUM_WITHDRAWAL, {
                   showDecimals: true,
                 })}
@@ -319,7 +319,7 @@ export function WithdrawalRequest({
                   {selectedAccount.bankDetails.bankName}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedAccount.bankDetails.accountHolderName} •{" "}
+                  {selectedAccount.bankDetails.accountHolderName} â€¢{" "}
                   {selectedAccount.bankDetails.accountNumber}
                 </p>
               </div>
@@ -425,3 +425,4 @@ function AccountCard({
     </Card>
   );
 }
+

@@ -28,9 +28,22 @@ export async function startTestDb(): Promise<void> {
   }
   replSet = await MongoMemoryReplSet.create({
     replSet: { count: 1 },
-    // Windows (Defender scanning, cold spawn) regularly needs more than the
-    // default 10s to bring an instance up.
-    instanceOpts: [{ launchTimeout: 90_000 }],
+    instanceOpts: [
+      {
+        // Windows (Defender scanning, cold spawn) regularly needs more than
+        // the default 10s to bring an instance up.
+        launchTimeout: 90_000,
+        // MongoDB defaults transactions to a 5ms lock wait, which is far too
+        // tight on a single-node in-memory replset running tests back to
+        // back — transactions intermittently fail to acquire an IX lock even
+        // with no real contention. Production uses a real replica set and is
+        // unaffected; this only removes test flakiness.
+        args: [
+          "--setParameter",
+          "maxTransactionLockRequestTimeoutMillis=5000",
+        ],
+      },
+    ],
   });
   process.env.MONGODB_URI = replSet.getUri();
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -48,14 +48,14 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
   const trpc = useTRPC();
 
   const { data: payoutAccounts } = useQuery(
-    trpc.payment.getStorePayoutAccounts.queryOptions()
+    trpc.storePayoutAccount.getStorePayoutAccounts.queryOptions()
   );
   const { data: banks, isLoading } = useQuery(
-    trpc.payment.getBanks.queryOptions()
+    trpc.storePayoutAccount.getBanks.queryOptions()
   );
 
   const resolveAccountMutation = useMutation(
-    trpc.payment.resolveAccountNumber.mutationOptions({
+    trpc.storePayoutAccount.resolveAccountNumber.mutationOptions({
       onSuccess: (data) => {
         if (data.status !== "success") {
           toast.error(
@@ -81,7 +81,7 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
   );
 
   const addPayoutAccount = useMutation(
-    trpc.payment.addPayoutAccount.mutationOptions({
+    trpc.storePayoutAccount.addPayoutAccount.mutationOptions({
       onSuccess: (data) => {
         toast.success(`Success, ${data.message}`);
         setIsValidating(false);
@@ -328,17 +328,17 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
             {/* Payout Information */}
             <div className="bg-soraxi-green/5 border border-soraxi-green/20 rounded-lg p-4">
               <h4 className="text-sm font-medium text-soraxi-green mb-2">
-                💰 Payout Information
+                ðŸ’° Payout Information
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>
-                  • Payouts are processed weekly between Friday and Sunday once
+                  â€¢ Payouts are processed weekly between Friday and Sunday once
                   a withdrawal request is made.
                 </li>
-                <li>• Minimum payout amount is ₦1,000.00</li>
-                <li>• Bank transfer fees may apply depending on your bank.</li>
+                <li>â€¢ Minimum payout amount is â‚¦1,000.00</li>
+                <li>â€¢ Bank transfer fees may apply depending on your bank.</li>
                 <li>
-                  • You can track all payouts in your wallet dashboard after
+                  â€¢ You can track all payouts in your wallet dashboard after
                   setup.
                 </li>
               </ul>
@@ -369,3 +369,4 @@ const UpdatePayoutAccount = ({ storeId }: { storeId: string }) => {
 };
 
 export default UpdatePayoutAccount;
+

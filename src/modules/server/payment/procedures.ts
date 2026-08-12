@@ -13,8 +13,15 @@ import {
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 
-export const flutterwaveRouter = createTRPCRouter({
-  initializePayment: baseProcedure
+/**
+ * Gateway-neutral checkout initiation.
+ *
+ * Which provider handles the payment is decided by GatewayRouter inside
+ * PaymentService, not by the caller — this router has no provider in its
+ * name or its body for that reason.
+ */
+export const paymentRouter = createTRPCRouter({
+  initialize: baseProcedure
     .input(preparedPaymentSchema)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -59,7 +66,7 @@ export const flutterwaveRouter = createTRPCRouter({
           try {
             await sendTelegramMessage(
               formatErrorReport(error, {
-                source: "trpc:flutterwave.initializePayment",
+                source: "trpc:payment.initialize",
               }),
             );
           } catch {
