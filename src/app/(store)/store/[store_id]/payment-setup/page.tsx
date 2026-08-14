@@ -11,12 +11,12 @@ export async function generateMetadata(): Promise<Metadata> {
   );
 }
 
-async function page({ params }: { params: Promise<{ store_id: string }> }) {
-  const { store_id } = await params;
-
+async function page() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <UpdatePayoutAccount storeId={store_id} />
+      {/* The store is derived from the session, not the URL — a payout
+          destination must never be settable by changing a path segment. */}
+      <UpdatePayoutAccount />
     </ErrorBoundary>
   );
 }

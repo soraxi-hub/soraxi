@@ -142,8 +142,7 @@ export const paymentRouter = createTRPCRouter({
         const { accountNumber, bankCode } = input;
 
         if (
-          !process.env
-            .FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION
+          !process.env.FLUTTERWAVE_SECRET_KEY_LIVE_FOR_BANK_ACCOUNT_VERIFICATION
         ) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -179,6 +178,34 @@ export const paymentRouter = createTRPCRouter({
           };
         };
 
+        /**
+         * Distinguish "we could not verify this account" from "verification is
+         * broken".
+         *
+         * The response body was previously returned whatever the HTTP status,
+         * so a 5xx from Flutterwave surfaced to the vendor as an ordinary
+         * result reading "An error occurred. Please contact support" — which
+         * reads like *their* account is wrong, sends them to support, and
+         * leaves no trace for us. Two very different problems wearing the same
+         * message.
+         *
+         * A non-2xx is our problem, not theirs: it is reported through the
+         * normal error path (and so to Telegram) and the vendor is told the
+         * truth — the check is unavailable, not that their details are bad.
+         *
+         * The account number is deliberately NOT logged. It is the vendor's
+         * banking detail and has no place in application logs.
+         */
+        if (!response.ok) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Bank verification is temporarily unavailable. Please try again shortly. (provider responded ${response.status})`,
+            cause: new Error(
+              `Flutterwave /accounts/resolve returned ${response.status}: ${result?.message ?? "no message"} (bank code ${bankCode})`,
+            ),
+          });
+        }
+
         return result;
       } catch (error) {
         if (isReportableError(error)) {
@@ -196,6 +223,87 @@ export const paymentRouter = createTRPCRouter({
       }
     }),
 
+  /**
+   * Sets the store's single payout account, replacing whatever was there.
+   *
+   * ───────────────────────────────────────────────────────────────────────────
+   * WHY REPLACE RATHER THAN APPEND
+   * ───────────────────────────────────────────────────────────────────────────
+   * A store has exactly one payout account: the one every payout lands in.
+   *
+   * The previous `addPayoutAccount` appended, capped at three — but payouts
+   * always read `payoutAccounts[0]`. So a vendor who "added a different
+   * account" kept being paid into the *old* one, with a UI that gave every
+   * impression they had changed it. Replacing removes that gap entirely: what
+   * the page shows is where the money goes, with no index to reason about.
+   *
+   * The store id comes from the session, never the client — a vendor must not
+   * be able to redirect another store's payouts by changing a parameter.
+   */
+  setPayoutAccount: baseProcedure
+    .input(
+      z.object({
+        payoutMethod: z.string().default("Bank Transfer"),
+        bankDetails: z.object({
+          bankName: z.string().min(1),
+          accountNumber: z.string().regex(/^\d{10}$/, "Enter 10 digits"),
+          accountHolderName: z.string().min(1),
+          bankCode: z.number(),
+          bankId: z.number(),
+        }),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { store: storeToken } = ctx;
+
+        if (!storeToken) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Please login to your store.",
+          });
+        }
+
+        const Store = await getStoreModel();
+        const store = await Store.findById(storeToken.id);
+
+        if (!store) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found",
+          });
+        }
+
+        // One account, so the array is set rather than pushed to. Anything
+        // previously saved was unreachable for payouts anyway.
+        store.payoutAccounts = [
+          {
+            payoutMethod: "Bank Transfer",
+            bankDetails: input.bankDetails,
+          },
+        ] as typeof store.payoutAccounts;
+
+        await store.save();
+
+        return { success: true as const, message: "Payout account saved." };
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.payout-account.setPayoutAccount",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally.
+          }
+        }
+        throw handleTRPCError(error, "Failed to save payout account.");
+      }
+    }),
+
+  /** @deprecated Use `setPayoutAccount`. Appends, and payouts only ever read
+   *  index 0 — see the note on `setPayoutAccount`. */
   addPayoutAccount: baseProcedure
     .input(
       z.object({

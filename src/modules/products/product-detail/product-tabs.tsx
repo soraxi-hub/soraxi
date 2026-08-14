@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { soraxiTabsTriggerStyle } from "@/modules/store/components/page-card.styles";
 
 export const renderRichText = (content: string) => {
   return (
@@ -30,7 +32,7 @@ export function ProductTabs({
   const trpc = useTRPC();
 
   const { data: reviews, isLoading } = useQuery(
-    trpc.productReview.getReviewsByProductId.queryOptions({ productId })
+    trpc.productReview.getReviewsByProductId.queryOptions({ productId }),
   );
 
   const totalReviews = reviews?.length || 0;
@@ -48,24 +50,18 @@ export function ProductTabs({
   });
 
   return (
-    <Tabs defaultValue="description" className="">
+    <Tabs defaultValue="description">
       <TabsList className="w-full border-none p-0 rounded-none h-auto">
-        <TabsTrigger
-          value="description"
-          className="w-fit border-0 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-b-soraxi-green dark:data-[state=active]:border-b-soraxi-green py-3"
-        >
+        <TabsTrigger value="description" className={cn(soraxiTabsTriggerStyle)}>
           Description
         </TabsTrigger>
         <TabsTrigger
           value="specifications"
-          className="w-fit border-0 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-b-soraxi-green dark:data-[state=active]:border-b-soraxi-green py-3"
+          className={cn(soraxiTabsTriggerStyle)}
         >
           Specifications
         </TabsTrigger>
-        <TabsTrigger
-          value="reviews"
-          className="w-fit border-0 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-b-soraxi-green dark:data-[state=active]:border-b-soraxi-green py-3"
-        >
+        <TabsTrigger value="reviews" className={cn(soraxiTabsTriggerStyle)}>
           Reviews ({totalReviews})
         </TabsTrigger>
       </TabsList>

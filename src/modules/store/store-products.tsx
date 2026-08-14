@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ import { ProductStatusEnum } from "@/enums";
 import { ReOrderDialog } from "./components/drag-n-drop/dialog-container";
 import { ProductsTable } from "./components/products-table";
 
-type Output = inferProcedureOutput<AppRouter["store"]["getStoreProducts"]>;
+type Output = inferProcedureOutput<AppRouter["storeProducts"]["getStoreProducts"]>;
 type StoreProduct = Output["products"][number];
 
 /**
@@ -62,7 +62,7 @@ export function StoreProductsManagement({
   const [reOrderedimages, setReOrderedImages] = useState<string[]>([]);
   const [currentProductId, setCurrentProductId] = useState<string | null>(null);
   const loadProductsMutation = useMutation(
-    trpc.store.getStoreProducts.mutationOptions({
+    trpc.storeProducts.getStoreProducts.mutationOptions({
       onSuccess: (data) => {
         setProducts(data.products);
       },
@@ -98,7 +98,7 @@ export function StoreProductsManagement({
   };
 
   const visibilityToggle = useMutation(
-    trpc.store.handleVisibilityToggle.mutationOptions({
+    trpc.storeProducts.handleVisibilityToggle.mutationOptions({
       onSuccess: (data) => {
         toast.success(data.message);
         loadProducts();
@@ -117,7 +117,7 @@ export function StoreProductsManagement({
   };
 
   const updateImagesOrder = useMutation(
-    trpc.store.updateProductImagesOrder.mutationOptions({
+    trpc.storeProducts.updateProductImagesOrder.mutationOptions({
       onSuccess: (data) => {
         toast.success(data.message || "Images updated");
         setShowReOrderDialog(false);

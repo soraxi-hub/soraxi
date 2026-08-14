@@ -1,10 +1,8 @@
 ﻿"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,29 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Send,
-  CreditCard,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-} from "lucide-react";
-import type { inferProcedureOutput } from "@trpc/server";
-import type { AppRouter } from "@/trpc/routers/_app";
-import { cn } from "@/lib/utils";
+import { Send, CreditCard, AlertCircle, Clock } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 import Link from "next/link";
 import { WITHDRAWAL_LIMITS } from "@/constants/financial.constants";
 
 import { useWithdrawalRequest } from "@/hooks/use-withdrawal-request";
-
-/**
- * Type definitions for the component
- */
-type Output = inferProcedureOutput<
-  AppRouter["storePayoutAccount"]["getStorePayoutAccounts"]
->;
-type BankAccount = Output[number];
 
 interface WithdrawalRequestProps {
   availableBalance: number;
@@ -66,8 +47,9 @@ export function WithdrawalRequest({
     errors,
     loading,
     bankAccounts,
+    // `setSelectedAccount` is gone: the store has one payout account and the
+    // hook selects it on load, so there is nothing left to switch between.
     selectedAccount,
-    setSelectedAccount,
     isLoadingAccounts,
     amountInKobo,
     fees,
@@ -108,7 +90,7 @@ export function WithdrawalRequest({
           >
             {/* Withdrawal Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount">Withdrawal Amount (â‚¦)</Label>
+              <Label htmlFor="amount">Withdrawal Amount (₦)</Label>
 
               <Input
                 id="amount"
@@ -139,7 +121,7 @@ export function WithdrawalRequest({
                 {formatNaira(WITHDRAWAL_LIMITS.MINIMUM_WITHDRAWAL, {
                   showDecimals: true,
                 })}{" "}
-                â€¢ Maximum:{" "}
+                · Maximum:{" "}
                 {formatNaira(WITHDRAWAL_LIMITS.MAXIMUM_WITHDRAWAL, {
                   showDecimals: true,
                 })}
@@ -197,21 +179,41 @@ export function WithdrawalRequest({
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {bankAccounts.map((account) => (
-                    <AccountCard
-                      key={account.bankDetails.accountNumber}
-                      account={account}
-                      isSelected={selectedAccount?.id === account.id}
-                      onSelect={() => {
-                        setSelectedAccount(account);
-                        setForm((prev) => ({
-                          ...prev,
-                          accountId: account.id,
-                        }));
-                      }}
-                    />
-                  ))}
+                /*
+                 * A statement, not a picker. A store has exactly one payout
+                 * account, so there is nothing to choose between — and a
+                 * selectable list of one invites the vendor to wonder which
+                 * option they are on. The account id is already set by the
+                 * hook, so nothing here needs to be interactive.
+                 */
+                <div className="rounded-lg border border-border p-4">
+                  <p className="text-xs text-muted-foreground">
+                    Paid into
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {bankAccounts[0].bankDetails.bankName}
+                  </p>
+                  <p className="font-mono text-sm text-muted-foreground">
+                    <span aria-hidden>
+                      •••• {bankAccounts[0].bankDetails.accountNumber.slice(-4)}
+                    </span>
+                    <span className="sr-only">
+                      Account ending{" "}
+                      {bankAccounts[0].bankDetails.accountNumber
+                        .slice(-4)
+                        .split("")
+                        .join(" ")}
+                    </span>
+                  </p>
+                  <p className="text-sm text-soraxi-green">
+                    {bankAccounts[0].bankDetails.accountHolderName}
+                  </p>
+
+                  <Button variant="link" size="sm" className="mt-1 px-0" asChild>
+                    <Link href={`/store/${storeId}/payment-setup`}>
+                      Change payout account
+                    </Link>
+                  </Button>
                 </div>
               )}
 
@@ -319,7 +321,7 @@ export function WithdrawalRequest({
                   {selectedAccount.bankDetails.bankName}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedAccount.bankDetails.accountHolderName} â€¢{" "}
+                  {selectedAccount.bankDetails.accountHolderName} ·{" "}
                   {selectedAccount.bankDetails.accountNumber}
                 </p>
               </div>
@@ -379,50 +381,3 @@ export function WithdrawalRequest({
     </>
   );
 }
-
-/**
- * AccountCard Component
- *
- * Reusable component for displaying bank account information
- * with selection state and click handler.
- */
-function AccountCard({
-  account,
-  isSelected,
-  onSelect,
-}: {
-  account: BankAccount;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <Card
-      onClick={onSelect}
-      className={cn(
-        "cursor-pointer transition-all hover:border-soraxi-green",
-        isSelected
-          ? "border-2 border-soraxi-green dark:border-soraxi-green"
-          : "",
-      )}
-    >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
-          {account.bankDetails.accountHolderName}
-        </CardTitle>
-        <span className="text-xs text-muted-foreground">
-          {account.bankDetails.bankName}
-        </span>
-      </CardHeader>
-      <CardContent>
-        <p className="font-mono text-sm">{account.bankDetails.accountNumber}</p>
-        <div className="flex items-center mt-2">
-          <Badge variant="default" className="bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Verified
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
