@@ -75,18 +75,28 @@ describe("GatewayRouter.candidateGateways", () => {
     ]);
   });
 
-  it("excludes Paystack even when configured, until the status page supports it", () => {
-    // The Paystack adapter and webhook are complete, but the redirect-driven
-    // status page still can't resolve a Paystack callback (no transaction_id),
-    // so routing a live checkout there would show a paid customer a cancelled
-    // page. Deploying PAYSTACK_SECRET_KEY alone must not enable it — Phase 4
-    // flips GatewayRouter.isRoutable.
+  it("never routes checkouts to Paystack, even with its key deployed", () => {
+    // Paystack is gated off in BOTH isConfigured and isRoutable while the
+    // integration is unfinished. Deploying a key to test the webhook must not
+    // expose live customers to it — including as a silent failover target
+    // when Flutterwave errors.
     process.env.FLUTTERWAVE_SECRET_KEY = "FLWSECK_TEST";
     process.env.PAYSTACK_SECRET_KEY = "sk_test_paystack";
 
     expect(GatewayRouter.candidateGateways()).toEqual([
       PaymentGateway.Flutterwave,
     ]);
+  });
+
+  it("throws rather than silently routing to Paystack when Flutterwave is unconfigured", () => {
+    // With Paystack gated off there is no usable gateway left, so checkout
+    // must fail loudly instead of quietly reaching for the unfinished one.
+    delete process.env.FLUTTERWAVE_SECRET_KEY;
+    process.env.PAYSTACK_SECRET_KEY = "sk_test_paystack";
+
+    expect(() => GatewayRouter.candidateGateways()).toThrow(
+      /no payment gateway/i,
+    );
   });
 
   it("throws when no gateway is configured — checkout cannot proceed silently", () => {

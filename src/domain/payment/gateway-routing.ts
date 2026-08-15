@@ -27,13 +27,21 @@ export class GatewayRouter {
     PaymentGateway.Paystack,
   ];
 
-  /** Whether the provider's credentials are deployed. */
+  /**
+   * Whether the provider's credentials are deployed.
+   *
+   * Paystack is pinned to `false` rather than reading its env var: the
+   * integration is not finished, and deploying a key to test it must not be
+   * what decides whether live customers can reach it. Restore the commented
+   * line when Paystack goes live.
+   */
   private static isConfigured(gateway: PaymentGateway): boolean {
     switch (gateway) {
       case PaymentGateway.Flutterwave:
         return Boolean(process.env.FLUTTERWAVE_SECRET_KEY);
       case PaymentGateway.Paystack:
-        return Boolean(process.env.PAYSTACK_SECRET_KEY);
+        return false;
+      // return Boolean(process.env.PAYSTACK_SECRET_KEY);
       default:
         return false;
     }
@@ -44,23 +52,25 @@ export class GatewayRouter {
    *
    * Distinct from PaymentGatewayFactory.isSupported (which only asks whether
    * an adapter can be constructed): a provider can verify webhooks correctly
-   * while the customer-facing redirect flow still can't handle it.
+   * while still being deliberately kept out of live checkout.
    *
-   * Paystack is intentionally NOT routable yet. Its adapter and webhook are
-   * complete, but the checkout status page still resolves payments from the
-   * Flutterwave-style redirect (`transaction_id`), and treats a redirect
-   * without one as an abandoned payment. Paystack redirects carry
-   * `reference`/`trxref` instead, so routing a live checkout there today
-   * would show a paid customer a cancelled-payment page. Phase 4 (bounded,
-   * polling-based status page) removes that coupling — flip this to `true`
-   * then, together with deploying PAYSTACK_SECRET_KEY.
+   * Paystack is OFF here as well as in isConfigured — two independent gates,
+   * neither driven by environment variables, because being routed to means
+   * real customer money. Flipping this alone changes nothing; going live
+   * needs both. Note that turning these on makes Paystack a silent FAILOVER
+   * target, not a customer-visible choice: checkout has no gateway picker,
+   * so a Flutterwave outage would send customers to Paystack automatically.
+   *
+   * Neither gate affects /api/webhooks/paystack, which resolves its adapter
+   * through PaymentGatewayFactory directly — so Paystack payments can be
+   * confirmed during testing without opening live checkout to them.
    */
   private static isRoutable(gateway: PaymentGateway): boolean {
     switch (gateway) {
       case PaymentGateway.Flutterwave:
         return true;
       case PaymentGateway.Paystack:
-        return false; // ← Phase 4 flips this
+        return false;
       default:
         return false;
     }
