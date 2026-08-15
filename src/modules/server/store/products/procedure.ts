@@ -303,16 +303,23 @@ export const storeProductRouter = createTRPCRouter({
             isVisible: product.isVisible,
           },
         };
-      } catch (error: any) {
-        if (error instanceof TRPCError) {
-          throw error;
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.products.handleVisibilityToggle",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
         }
-
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "An unexpected error occurred",
-          cause: error,
-        });
+        // handleTRPCError passes TRPCErrors through untouched and replaces
+        // everything else with a safe message — Mongoose validation errors
+        // otherwise describe our schema paths, and unrecognised library
+        // errors were being echoed to the client verbatim.
+        throw handleTRPCError(error, "Failed to update product visibility.");
       }
     }),
 
@@ -385,17 +392,19 @@ export const storeProductRouter = createTRPCRouter({
           success: true,
           message: "Product images updated successfully",
         };
-      } catch (error: any) {
-        console.log("error", error);
-        if (error instanceof TRPCError) {
-          throw error;
+      } catch (error) {
+        if (isReportableError(error)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(error, {
+                source: "trpc:store.products.updateProductImagesOrder",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors internally; never mask the original error
+          }
         }
-
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "An unexpected error occurred",
-          cause: error,
-        });
+        throw handleTRPCError(error, "Failed to update product images.");
       }
     }),
 });

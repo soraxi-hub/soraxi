@@ -63,6 +63,34 @@ function newErrorRef(): string {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 }
 
+/**
+ * Carries the correlation reference from `maskUnauthoredErrors` (which logs
+ * it) to `errorFormatter` (which serialises it to the client).
+ *
+ * The two run at different stages and each used to mint its own token, so the
+ * reference a user was told to quote appeared in no log line — support would
+ * search for a string that never existed server-side. Minting once and
+ * passing it along is the whole point of the reference.
+ *
+ * A symbol rather than a plain field so it cannot collide with anything tRPC
+ * or a library puts on the error, and never appears in serialisation.
+ */
+const ERROR_REF = Symbol("soraxi.errorRef");
+
+type ErrorRefCarrier = { [ERROR_REF]?: string };
+
+/** Stamp the reference onto the error travelling to the formatter. */
+function attachErrorRef<E extends object>(error: E, ref: string): E {
+  (error as E & ErrorRefCarrier)[ERROR_REF] = ref;
+  return error;
+}
+
+/** Read a reference stamped by the masking middleware, if there is one. */
+function readErrorRef(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) return undefined;
+  return (error as ErrorRefCarrier)[ERROR_REF];
+}
+
 const t = initTRPC.context<Context>().create({
   /**
    * @see https://trpc.io/docs/server/data-transformers
@@ -80,12 +108,17 @@ const t = initTRPC.context<Context>().create({
    * runs on both paths. By the time an error arrives here its message has
    * already been vetted.
    */
-  errorFormatter({ shape }) {
+  errorFormatter({ shape, error }) {
     return {
       ...shape,
       data: {
         ...shape.data,
-        ref: newErrorRef(),
+        // Reuse the reference the masking middleware already logged, so the
+        // token the user quotes is the one support can actually grep for.
+        // The fallback covers errors that never passed through masking
+        // (authored messages), which have no log line to correlate with
+        // anyway — those users are quoting a real message, not a token.
+        ref: readErrorRef(error) ?? newErrorRef(),
         // Never ship a stack, regardless of environment. tRPC includes the
         // original message inside it, so leaving it would reopen the leak by
         // a side door.
@@ -116,7 +149,8 @@ const maskUnauthoredErrors = t.middleware(async ({ next }) => {
   const ref = newErrorRef();
 
   // The real error still has to be diagnosable, so log it against the same
-  // reference the user is shown.
+  // reference the user is shown — see ERROR_REF for why it is carried on the
+  // error rather than regenerated in the formatter.
   console.error(
     `[trpc:${ref}] ${result.error.code} — masked:`,
     result.error.cause ?? result.error,
@@ -124,11 +158,14 @@ const maskUnauthoredErrors = t.middleware(async ({ next }) => {
 
   return {
     ...result,
-    error: new TRPCError({
-      code: result.error.code,
-      message: OPAQUE_MESSAGE,
-      cause: result.error.cause,
-    }),
+    error: attachErrorRef(
+      new TRPCError({
+        code: result.error.code,
+        message: OPAQUE_MESSAGE,
+        cause: result.error.cause,
+      }),
+      ref,
+    ),
   };
 });
 
