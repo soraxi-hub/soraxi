@@ -244,7 +244,9 @@ function AccountForm({
         bankName: selectedBank.name,
         accountNumber,
         accountHolderName,
-        bankCode: Number(selectedBank.code),
+        // Sent verbatim — Number("044") would yield 44, and the payout would
+        // later be sent to a bank code that does not exist.
+        bankCode: selectedBank.code,
         bankId: selectedBank.id,
       },
     });

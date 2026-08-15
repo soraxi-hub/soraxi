@@ -54,7 +54,8 @@ export interface PayoutData {
     bankName: string;
     accountNumber: string;
     accountHolderName: string;
-    bankCode: number;
+    /** Provider bank code, e.g. "044". Leading zeros are significant. */
+    bankCode: string;
     bankId?: number;
   };
 }

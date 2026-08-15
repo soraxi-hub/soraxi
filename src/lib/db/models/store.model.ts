@@ -29,7 +29,8 @@ export interface IPayoutAccount {
     bankName: string;
     accountNumber: string;
     accountHolderName: string;
-    bankCode: number;
+    /** Provider bank code, e.g. "044". Leading zeros are significant. */
+    bankCode: string;
     bankId?: number;
   };
 }
@@ -177,7 +178,11 @@ const PayoutAccountSchema = new Schema<IPayoutAccount>({
       required: [true, "Account holder name is required"],
     },
     bankCode: {
-      type: Number,
+      // String, not Number: provider bank codes are fixed-width strings whose
+      // leading zeros are significant ("044" is Access Bank). Storing them
+      // numerically silently rewrote them — 044 became 44 — and every payout
+      // or account re-verification then sent a code no bank recognises.
+      type: String,
       required: [true, "Bank code is required"],
     },
     bankId: Number,

@@ -55,7 +55,8 @@ export const PayoutAccountSchema = z.object({
     bankName: z.string().min(1, "Bank name is required"),
     accountNumber: z.string().min(1, "Bank account number is required"),
     accountHolderName: z.string().min(1, "Account holder name is required"),
-    bankCode: z.number().min(1, "Bank code is required"),
+    // String: provider bank codes carry significant leading zeros ("044").
+    bankCode: z.string().min(1, "Bank code is required"),
     bankId: z.number().optional(),
   }),
 });
