@@ -57,7 +57,13 @@ export function StoreHeaderCard({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(publicUrl);
+      // publicUrl is a relative path ("/brand/<storeId>"). That is fine for
+      // <Link>, which resolves it against the current origin, but a copied
+      // link leaves the app — pasted into a chat or a post, a bare path
+      // resolves to nothing. Absolutise it against the current origin so what
+      // the vendor shares actually opens.
+      const absoluteUrl = new URL(publicUrl, window.location.origin).toString();
+      await navigator.clipboard.writeText(absoluteUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

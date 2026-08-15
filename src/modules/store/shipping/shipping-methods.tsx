@@ -29,7 +29,7 @@ import {
   SoraxiCardTitle,
 } from "@/components/ui/soraxi-card";
 import { cn } from "@/lib/utils";
-import { addNairaSign, koboToNaira } from "@/lib/utils/naira";
+import { addNairaSign, koboToNaira, nairaToKobo } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 
 import { pageCardLg, pageGutter } from "../components/page-card.styles";
@@ -144,7 +144,15 @@ export default function ShippingMethodForm() {
 
   const onSubmit = (values: FormValues) => {
     setIsSubmitting(true);
-    update.mutate({ ...values, applicableRegions: [] });
+    // Mirror of the reset above: the form edits naira, everything persisted is
+    // kobo, and the mutation stores price verbatim. Without this the saved fee
+    // shrinks 100x on every save — and because the reload then converts that
+    // smaller number back to naira, each edit compounds the loss silently.
+    update.mutate({
+      ...values,
+      price: nairaToKobo(values.price),
+      applicableRegions: [],
+    });
   };
 
   // Drives the live preview. Watching the whole form is fine here — it is a
