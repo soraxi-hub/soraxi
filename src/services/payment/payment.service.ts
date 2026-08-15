@@ -1,4 +1,4 @@
-import { PaymentGateway } from "@/enums";
+import { PaymentGateway, PaymentStatus } from "@/enums";
 import { PaymentGatewayFactory } from "../../domain/payment/payment.factory";
 import { GatewayRouter } from "../../domain/payment/gateway-routing";
 import { PreparedPaymentData } from "../checkout.service";
@@ -111,9 +111,55 @@ export class PaymentService {
       }
     }
 
+    // Every gateway refused. The Pending order committed above is now holding
+    // the cart's idempotency key, and createPendingOrder's duplicate guard
+    // rejects ANY existing order for that key — Failed and Cancelled included.
+    // Left in place, it locks the customer out of their own cart permanently:
+    // the pending-payment sweep cannot help, because no payment was ever
+    // initiated for it to verify. Since no payment link was ever issued, this
+    // order can never be paid, so removing it is safe and is what restores
+    // retry access.
+    await PaymentService.discardUninitiatedOrder(order._id.toString());
+
     throw lastError instanceof Error
       ? lastError
       : new Error("Payment initiation failed on every configured gateway.");
+  }
+
+  /**
+   * Remove an order whose payment was never successfully initiated.
+   *
+   * Deletes only while the order is still Pending. That condition is belt and
+   * braces rather than a live race — no payment link reached the customer — but
+   * it guarantees this can never erase an order that somehow got paid.
+   *
+   * Failures here are logged, never thrown: the caller is already on its way to
+   * reporting the initiation error, and replacing that with a cleanup error
+   * would hide the real cause.
+   */
+  private static async discardUninitiatedOrder(orderId: string): Promise<void> {
+    try {
+      const Order = await getOrderModel();
+      const result = await Order.deleteOne({
+        _id: orderId,
+        paymentStatus: PaymentStatus.Pending,
+      });
+
+      if (result.deletedCount === 0) {
+        console.warn(
+          `[PaymentService] Order ${orderId} was not discarded after failed ` +
+            `initiation — it is no longer Pending. Left for manual review.`,
+        );
+      }
+    } catch (error) {
+      // The customer stays blocked on this cart until the order is cleared by
+      // hand, so make it loud rather than silent.
+      console.error(
+        `[PaymentService] Failed to discard uninitiated order ${orderId}. ` +
+          `The cart's idempotency key remains blocked.`,
+        error,
+      );
+    }
   }
 
   /** Update the provider recorded on a pending order (failover only). */
