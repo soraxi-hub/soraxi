@@ -287,6 +287,39 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     if (!result.ok) expect(result.error).not.toMatch(/order mismatch/i);
   });
 
+  // The non-numeric-id case is enforced at compile time rather than here:
+  // gatewayTransactionId is a string on the adapter contract, on
+  // UpdateOrderRecordProps, and on TransactionRecord, so reintroducing a
+  // Number() coercion is a type error. A runtime test would add nothing the
+  // typechecker does not already guarantee.
+
+  it("leaves the order unconfirmed when financial records cannot be written", async () => {
+    // The regression this guards is the worst state the system can reach: an
+    // order marked Paid with no transaction record and no journal entries.
+    // Nothing in the reconciliation suite detects it, because there is no
+    // imbalance to find — only an absence. It must fail closed instead.
+    const { orderId } = await seedPendingOrder({ reference: REFERENCE });
+    stubVerify(
+      verificationResult({
+        meta: {
+          orderId: orderId.toString(),
+          idempotencyKey: REFERENCE,
+          email: "student@school.edu.ng",
+          phoneNumber: "+2348012345678",
+          fullName: "Ada Obi",
+        },
+      }),
+    );
+
+    // This seeded order has no sub-orders, so financial composition fails.
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    expect(result.ok).toBe(false);
+    await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
+  });
+
   it("rejects a successful verification whose metadata has no orderId", async () => {
     await seedPendingOrder({ reference: REFERENCE });
     stubVerify(verificationResult()); // meta.orderId is "" in the fixture

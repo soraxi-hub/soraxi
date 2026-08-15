@@ -11,7 +11,7 @@ import { RefundService } from "@/services/refund.service";
 import { DeliveryProofService } from "@/services/orders/delivery-proof.service";
 import { getTransactionRecordModel } from "@/lib/db/models/transaction-record.model";
 import {
-  FlutterwavePaymentStatus,
+  GatewayPaymentStatus,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
 
@@ -375,8 +375,10 @@ export class OrderService implements IOrderService {
       orderId: new mongoose.Types.ObjectId(orderId),
     }).session(session);
 
-    // No captured payment → nothing to refund.
-    if (!txn || txn.flutterwaveStatus !== FlutterwavePaymentStatus.SUCCESSFUL) {
+    // No captured payment → nothing to refund. Filtering on the normalised
+    // status keeps this correct for every gateway; a Flutterwave-specific
+    // check would have silently treated Paystack payments as unrefundable.
+    if (!txn || txn.gatewayStatus !== GatewayPaymentStatus.SUCCESSFUL) {
       return;
     }
 
@@ -417,9 +419,10 @@ export class OrderService implements IOrderService {
       customerId: txn.customerId.toString(),
       settleAmount: breakdown.settleAmount,
       commission: breakdown.commission,
-      // TransactionRecord stores the numeric Flutterwave id; the refund layer
-      // and RefundRecord type it as a string.
-      flutterwaveTransactionId: txn.flutterwaveTransactionId.toString(),
+      // The provider that collected the payment is the only one that can
+      // refund it, so both travel to the refund layer together.
+      paymentProvider: txn.paymentProvider,
+      gatewayTransactionId: txn.gatewayTransactionId,
       session,
     };
 

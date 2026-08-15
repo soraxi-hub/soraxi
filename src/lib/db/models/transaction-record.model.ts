@@ -1,7 +1,7 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import {
-  FlutterwavePaymentStatus,
+  GatewayPaymentStatus,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
 import { PaymentGateway } from "@/enums";
@@ -49,24 +49,32 @@ export interface ITransactionRecord {
   customerId: mongoose.Types.ObjectId; // The user that placed the order
   orderId: mongoose.Types.ObjectId;
 
-  /**
-   * Which gateway collected this payment. Optional for back-compat with
-   * records created before multi-gateway support — absent means Flutterwave.
-   */
-  paymentProvider?: PaymentGateway;
-  /**
-   * The provider's transaction id, stringified — the gateway-neutral twin of
-   * flutterwaveTransactionId. Optional for back-compat.
-   */
-  gatewayTransactionId?: string;
+  /** Which gateway collected this payment. */
+  paymentProvider: PaymentGateway;
 
-  // Flutterwave-era payment fields. Still written for every record (numeric
-  // id coerced for Flutterwave; other providers write their id stringified
-  // into gatewayTransactionId and mirror what fits here) — a future
-  // migration will retire them in favour of the neutral fields above.
-  flutterwaveReference: string; // Our internal reference (cart idempotency key)
-  flutterwaveTransactionId: number; // Provider's numeric transaction Id
-  flutterwaveStatus: FlutterwavePaymentStatus;
+  /**
+   * Our own reference for the payment — the cart's idempotency key, echoed
+   * back by every gateway. Named for what it is: the Flutterwave-era name
+   * described the provider, but the value was never a Flutterwave reference.
+   */
+  gatewayReference: string;
+
+  /**
+   * The provider's transaction id, as a string.
+   *
+   * A string because that is what providers actually issue — the previous
+   * numeric field forced `Number(...)` on every id, which silently produced
+   * NaN for any non-numeric one and failed record creation *after* the order
+   * had already been marked paid.
+   *
+   * Unique per provider rather than globally: an id is only meaningful within
+   * the gateway that issued it, and two providers can legitimately emit the
+   * same value. See the compound index below.
+   */
+  gatewayTransactionId: string;
+
+  /** Normalised collection outcome — see GatewayPaymentStatus. */
+  gatewayStatus: GatewayPaymentStatus;
 
   totalAmount: number; // Total amount paid by customer in Kobo
 
@@ -145,30 +153,25 @@ const TransactionRecordSchema = new Schema<ITransactionRecordDocument>(
     },
     paymentProvider: {
       type: String,
+      required: true,
       enum: Object.values(PaymentGateway),
+      index: true,
+    },
+    gatewayReference: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
     },
     gatewayTransactionId: {
       type: String,
-      index: true,
-      sparse: true,
+      required: true,
     },
-    flutterwaveReference: {
+    gatewayStatus: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
-    },
-    flutterwaveTransactionId: {
-      type: Number,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    flutterwaveStatus: {
-      type: String,
-      required: true,
-      enum: Object.values(FlutterwavePaymentStatus),
-      default: FlutterwavePaymentStatus.PENDING,
+      enum: Object.values(GatewayPaymentStatus),
+      default: GatewayPaymentStatus.PENDING,
     },
     totalAmount: {
       type: Number,
@@ -188,6 +191,20 @@ const TransactionRecordSchema = new Schema<ITransactionRecordDocument>(
   {
     timestamps: true,
   },
+);
+
+/**
+ * A gateway transaction id is unique only within the gateway that issued it,
+ * so uniqueness is enforced per provider rather than globally. A single-field
+ * unique index would reject a legitimate payment the day two providers happen
+ * to emit the same id.
+ *
+ * This is also what keeps a payment from being recorded twice — the guarantee
+ * the retired numeric `flutterwaveTransactionId` unique index used to provide.
+ */
+TransactionRecordSchema.index(
+  { paymentProvider: 1, gatewayTransactionId: 1 },
+  { unique: true },
 );
 
 /**
@@ -243,42 +260,42 @@ export async function getTransactionRecordByOrderId(
 }
 
 /**
- * Get a transaction record by Flutterwave payment reference.
- * Primarily used when processing Flutterwave webhooks.
+ * Get a transaction record by our own payment reference (the cart idempotency
+ * key). Works for any gateway — every provider echoes this value back.
  *
- * @param flutterwaveReference - The Flutterwave transaction reference
+ * @param gatewayReference - Our payment reference
  * @returns Transaction record document or null
  */
-export async function getTransactionRecordByFlutterwaveReference(
-  flutterwaveReference: string,
+export async function getTransactionRecordByGatewayReference(
+  gatewayReference: string,
 ): Promise<ITransactionRecord | null> {
   await connectToDatabase();
   const TransactionRecord = await getTransactionRecordModel();
 
   return TransactionRecord.findOne<ITransactionRecord>({
-    flutterwaveReference,
+    gatewayReference,
   });
 }
 
 /**
- * Update the Flutterwave payment status on a transaction record.
+ * Update the collection outcome on a transaction record.
  * Called when a webhook confirms the final payment outcome.
  *
- * @param flutterwaveReference - The Flutterwave transaction reference
- * @param status - The new Flutterwave payment status
+ * @param gatewayReference - Our payment reference
+ * @param status - The new normalised payment status
  * @returns Updated transaction record document or null
  */
-export async function updateTransactionFlutterwaveStatus(
-  flutterwaveReference: string,
-  status: FlutterwavePaymentStatus,
+export async function updateTransactionGatewayStatus(
+  gatewayReference: string,
+  status: GatewayPaymentStatus,
   session: mongoose.ClientSession,
 ): Promise<ITransactionRecord | null> {
   await connectToDatabase();
   const TransactionRecord = await getTransactionRecordModel();
 
   return TransactionRecord.findOneAndUpdate<ITransactionRecord>(
-    { flutterwaveReference },
-    { $set: { flutterwaveStatus: status } },
+    { gatewayReference },
+    { $set: { gatewayStatus: status } },
     { new: true, session },
   );
 }

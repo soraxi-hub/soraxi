@@ -203,7 +203,7 @@ export class PaymentConfirmationService {
         const result = await processOrder.updateOrderRecordToSuccessState({
           orderId: loadedOrderId,
           idempotencyKey,
-          transactionId: Number(verified.gatewayTransactionId),
+          transactionId: verified.gatewayTransactionId,
           session,
           paymentMethod: verified.paymentMethod,
           customerInfo: {

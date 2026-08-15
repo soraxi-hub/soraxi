@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/lib/db/models/refund-record.model";
 import { getVendorWalletModel } from "@/lib/db/models/vendor-wallet.model";
 import { formatNaira, koboToNaira } from "@/lib/utils/naira";
+import { PaymentGateway } from "@/enums";
 import {
   NotificationFactory,
   RefundIssuedEmail,
@@ -145,10 +146,12 @@ export interface IProcessRefundInput {
   /** Platform commission on this suborder, in Kobo. */
   commission: number;
   /**
-   * The Flutterwave transaction ID from the original payment.
-   * Retrieved from TransactionRecord.flutterwaveReference.
+   * Which gateway collected the original payment - only that provider can
+   * refund it. Carried from the TransactionRecord.
    */
-  flutterwaveTransactionId: string;
+  paymentProvider: PaymentGateway;
+  /** The provider's transaction ID from the original payment. */
+  gatewayTransactionId: string;
   session: mongoose.ClientSession;
 }
 
@@ -230,7 +233,8 @@ export class RefundService {
       customerId,
       settleAmount,
       commission,
-      flutterwaveTransactionId,
+      paymentProvider,
+      gatewayTransactionId,
       session,
     } = input;
 
@@ -275,7 +279,8 @@ export class RefundService {
           settleAmount,
           commission,
         },
-        flutterwaveTransactionId,
+        paymentProvider,
+        gatewayTransactionId,
         status: RefundStatus.INITIATED,
         // Opening entry (writeOrderCancellationRefund) is keyed on (REFUND, refundId)
         ledgerReferenceType: LedgerReferenceType.REFUND,
@@ -290,7 +295,7 @@ export class RefundService {
   /**
    * Automated cancellation refund: DB phase followed by the Flutterwave call.
    *
-   * WARNING: callFlutterwaveRefund performs network I/O and opens its own
+   * WARNING: callGatewayRefund performs network I/O and opens its own
    * session. Only call this OUTSIDE an open transaction. Code running inside a
    * transaction (the order status flow) must call
    * initiateOrderCancellationRefund instead and defer the network call until
@@ -305,7 +310,7 @@ export class RefundService {
 
     // Amount refunded is settle + commission for cancellations; read it back
     // from the record so this wrapper never diverges from the DB phase.
-    await this.callFlutterwaveRefund(
+    await this.callGatewayRefund(
       refundRecord,
       refundRecord.amountBreakdown.amountRefunded,
       "Order cancelled by vendor",
@@ -341,7 +346,8 @@ export class RefundService {
       customerId,
       settleAmount,
       commission,
-      flutterwaveTransactionId,
+      paymentProvider,
+      gatewayTransactionId,
       session,
     } = input;
 
@@ -378,7 +384,8 @@ export class RefundService {
           settleAmount,
           commission,
         },
-        flutterwaveTransactionId,
+        paymentProvider,
+        gatewayTransactionId,
         status: RefundStatus.INITIATED,
         // Opening entry (writeFailedDeliveryRefund) is keyed on (REFUND, refundId)
         ledgerReferenceType: LedgerReferenceType.REFUND,
@@ -393,7 +400,7 @@ export class RefundService {
   /**
    * Automated failed-delivery refund: DB phase followed by the Flutterwave call.
    *
-   * WARNING: callFlutterwaveRefund performs network I/O and opens its own
+   * WARNING: callGatewayRefund performs network I/O and opens its own
    * session. Only call this OUTSIDE an open transaction. Code running inside a
    * transaction (the order status flow) must call initiateFailedDeliveryRefund
    * instead and defer the network call until after commit.
@@ -407,7 +414,7 @@ export class RefundService {
 
     // Failed delivery refunds only the settleAmount; read it back from the
     // record so this wrapper never diverges from the DB phase.
-    await this.callFlutterwaveRefund(
+    await this.callGatewayRefund(
       refundRecord,
       refundRecord.amountBreakdown.amountRefunded,
       "Delivery failed — vendor unable to complete delivery",
@@ -446,7 +453,8 @@ export class RefundService {
       customerId,
       settleAmount,
       commission,
-      flutterwaveTransactionId,
+      paymentProvider,
+      gatewayTransactionId,
       disputeId,
       trigger,
       session,
@@ -469,7 +477,8 @@ export class RefundService {
           settleAmount,
           commission,
         },
-        flutterwaveTransactionId,
+        paymentProvider,
+        gatewayTransactionId,
         status: RefundStatus.INITIATED,
         // The opening liability was written by the dispute service as part of
         // writeDisputeUpheld / writeDisputeAutoResolved, keyed on the dispute.
@@ -486,7 +495,7 @@ export class RefundService {
   /**
    * Automated dispute refund: DB phase followed by the Flutterwave call.
    *
-   * WARNING: callFlutterwaveRefund performs network I/O and opens its own
+   * WARNING: callGatewayRefund performs network I/O and opens its own
    * session. Only call this OUTSIDE an open transaction. Code running inside the
    * dispute resolution transaction must call initiateDisputeRefund instead and
    * defer the network call until after commit.
@@ -500,7 +509,7 @@ export class RefundService {
 
     // Dispute refunds return the full amountPaid; read it back from the record
     // so this wrapper never diverges from the DB phase.
-    await this.callFlutterwaveRefund(
+    await this.callGatewayRefund(
       refundRecord,
       refundRecord.amountBreakdown.amountRefunded,
       "Dispute upheld — full refund issued to customer",
@@ -596,7 +605,7 @@ export class RefundService {
    * Called from the main Flutterwave webhook route when a refund event arrives.
    * Routes to success or failure handling based on the refund status.
    *
-   * Note: Flutterwave does not send refund webhooks by default — you must
+   * Note: Flutterwave does not send refund webhooks by default â€” you must
    * request enablement from Flutterwave support. Until enabled, the manual
    * admin path is the only way to close a refund.
    *
@@ -764,17 +773,36 @@ export class RefundService {
    * @param amountInKobo - Amount to refund in Kobo (converted internally to Naira)
    * @param comments - Reason shown in Flutterwave dashboard
    */
-  private static async callFlutterwaveRefund(
+  private static async callGatewayRefund(
     refundRecord: IRefundRecordDocument,
     amountInKobo: number,
     comments: string,
   ): Promise<void> {
     const refundId = (refundRecord._id as mongoose.Types.ObjectId).toString();
 
+    // Only the gateway that took the money can give it back. Records written
+    // before multi-gateway support carry no provider and are Flutterwave.
+    const provider = refundRecord.paymentProvider ?? PaymentGateway.Flutterwave;
+
+    if (provider !== PaymentGateway.Flutterwave) {
+      // Deliberately explicit rather than falling through to the Flutterwave
+      // client, which would post another provider's transaction id to
+      // Flutterwave's API and fail in a confusing way. The record stays
+      // INITIATED so the admin refund panel still shows it and the manual
+      // path can close it. Implement the provider's refund client — and
+      // remove this branch — before enabling its collections.
+      console.error(
+        `[RefundService] Refund ${refundId} was collected via "${provider}", ` +
+          `which has no automated refund client. Record stays INITIATED — ` +
+          `admin must refund manually from the ${provider} dashboard.`,
+      );
+      return;
+    }
+
     try {
       const client = new FlutterwaveRefundClient();
       const response = await client.initiateRefund(
-        refundRecord.flutterwaveTransactionId,
+        refundRecord.gatewayTransactionId,
         koboToNaira(amountInKobo),
         comments,
       );
@@ -795,9 +823,7 @@ export class RefundService {
         const RefundRecord = await import(
           "@/lib/db/models/refund-record.model"
         ).then((m) => m.getRefundRecordModel());
-        await (
-          await RefundRecord
-        ).findByIdAndUpdate(
+        await RefundRecord.findByIdAndUpdate(
           refundId,
           { $set: { flutterwaveRefundId: response.data.id.toString() } },
           { session },
@@ -906,7 +932,7 @@ export class RefundService {
 
   /**
    * Notify the customer that their refund has been processed.
-   * Fire-and-forget — always called outside the session after commit.
+   * Fire-and-forget â€” always called outside the session after commit.
    *
    * @param refundRecord - The completed refund record
    */

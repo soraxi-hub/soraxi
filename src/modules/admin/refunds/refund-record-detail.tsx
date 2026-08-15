@@ -503,22 +503,28 @@ function AdminRefundDetail({ refundId }: AdminRefundDetailProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5" />
-                Flutterwave Reference
+                {/* Name the provider that actually collected the payment —
+                    an admin refunding manually needs to open the right
+                    dashboard, and this panel used to say Flutterwave
+                    regardless. */}
+                {refund.paymentProvider
+                  ? `${refund.paymentProvider[0]!.toUpperCase()}${refund.paymentProvider.slice(1)} Reference`
+                  : "Gateway Reference"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-muted-foreground">Transaction ID</Label>
                 <p className="font-mono text-sm break-all flex items-center">
-                  {refund.flutterwaveTransactionId}
+                  {refund.gatewayTransactionId}
                   {isInitiated && (
-                    <CopyButton value={refund.flutterwaveTransactionId} />
+                    <CopyButton value={refund.gatewayTransactionId} />
                   )}
                 </p>
                 {isInitiated && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Use this to locate the transaction on the Flutterwave
-                    dashboard.
+                    Use this to locate the transaction on the{" "}
+                    {refund.paymentProvider ?? "payment gateway"} dashboard.
                   </p>
                 )}
               </div>

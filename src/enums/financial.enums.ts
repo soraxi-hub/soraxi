@@ -156,9 +156,15 @@ export enum FlutterwaveTransferStatus {
 }
 
 /**
- * Status returned by Flutterwave for a payment collection.
+ * Outcome of a payment collection, as persisted on a TransactionRecord.
+ *
+ * Provider-neutral by design: every gateway adapter normalises its own status
+ * vocabulary before anything reaches this layer, so a Paystack collection is
+ * recorded and queried exactly like a Flutterwave one. Financial reports and
+ * refund eligibility filter on this value, and a provider-specific enum here
+ * would have silently excluded every non-Flutterwave payment from both.
  */
-export enum FlutterwavePaymentStatus {
+export enum GatewayPaymentStatus {
   PENDING = "pending",
   SUCCESSFUL = "successful",
   FAILED = "failed",
