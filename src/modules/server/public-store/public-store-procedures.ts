@@ -118,7 +118,7 @@ export const publicStoreRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Error in getStoreProfilePublic procedure.");
+        throw handleTRPCError(error, "We couldn't load this storefront.");
       }
     }),
 });

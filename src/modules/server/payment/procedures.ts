@@ -2,7 +2,6 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { preparedPaymentSchema } from "@/validators/order-input-validators";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { TRPCError } from "@trpc/server";
-import { PaymentGateway } from "@/enums";
 import { PaymentService } from "@/services/payment/payment.service";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { getUserModel, IUser } from "@/lib/db/models/user.model";
@@ -14,8 +13,15 @@ import {
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 
-export const flutterwaveRouter = createTRPCRouter({
-  initializePayment: baseProcedure
+/**
+ * Gateway-neutral checkout initiation.
+ *
+ * Which provider handles the payment is decided by GatewayRouter inside
+ * PaymentService, not by the caller — this router has no provider in its
+ * name or its body for that reason.
+ */
+export const paymentRouter = createTRPCRouter({
+  initialize: baseProcedure
     .input(preparedPaymentSchema)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -52,16 +58,15 @@ export const flutterwaveRouter = createTRPCRouter({
           input,
           user: userData,
         };
-        return await PaymentService.initializePayment({
-          gateway: PaymentGateway.Flutterwave,
-          props,
-        });
+        // Gateway selection is platform-controlled — GatewayRouter inside
+        // PaymentService picks the provider and handles failover.
+        return await PaymentService.initializePayment({ props });
       } catch (error) {
         if (isReportableError(error)) {
           try {
             await sendTelegramMessage(
               formatErrorReport(error, {
-                source: "trpc:flutterwave.initializePayment",
+                source: "trpc:payment.initialize",
               }),
             );
           } catch {

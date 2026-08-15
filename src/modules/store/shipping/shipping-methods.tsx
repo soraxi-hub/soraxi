@@ -1,307 +1,249 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { Truck } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
+import { cn } from "@/lib/utils";
+import { addNairaSign, koboToNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { inferProcedureOutput } from "@trpc/server";
-import { AppRouter } from "@/trpc/routers/_app";
-import { toast } from "sonner";
-import { formatNaira, koboToNaira } from "@/lib/utils/naira";
 
-type Output = inferProcedureOutput<
-  AppRouter["storeShipping"]["getStoreShippingMethods"]
->;
-type ShippingMethod = Output[number];
+import { pageCardLg, pageGutter } from "../components/page-card.styles";
+import { Badge } from "@/components/ui/badge";
 
-// Form validation schema
-const formSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  price: z.number().min(0, "Price cannot be negative"),
-  estimatedDeliveryDays: z
-    .number()
-    .min(2, "Estimated delivery days must be at least 2"),
-  isActive: z.boolean().optional(), // Make isActive required
-  description: z.string().min(25, "Description must be at least 25 characters"),
-  applicableRegions: z.array(z.string()).optional(),
-  conditions: z
-    .object({
-      minOrderValue: z.number().min(0).optional(),
-      maxOrderValue: z.number().min(0).optional(),
-      minWeight: z.number().min(0).optional(),
-      maxWeight: z.number().min(0).optional(),
-    })
-    .optional(),
-});
-
+/** A store offers one delivery option. The server enforces the same limit. */
 export const MAX_METHODS = 1;
 
-export default function ShippingMethodForm() {
-  const [regions, setRegions] = useState<string[]>([]);
-  // const [newRegion, setNewRegion] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentMethod, setCurrentMethod] = useState<ShippingMethod | null>(
-    null,
-  );
-  const trpc = useTRPC();
+const MIN_DESCRIPTION = 25;
+const MIN_DELIVERY_DAYS = 2;
 
-  const form = useForm<z.infer<typeof formSchema>>({
+const formSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(2, "Give the option a name customers will recognise"),
+  price: z
+    .number({ invalid_type_error: "Enter a fee, or 0 for free delivery" })
+    .min(0, "A fee cannot be negative"),
+  estimatedDeliveryDays: z
+    .number({ invalid_type_error: "Enter the number of days" })
+    .min(MIN_DELIVERY_DAYS, `Minimum ${MIN_DELIVERY_DAYS} days`),
+  isActive: z.boolean().optional(),
+  description: z
+    .string()
+    .min(
+      MIN_DESCRIPTION,
+      `Tell customers a bit more — at least ${MIN_DESCRIPTION} characters`,
+    ),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+const EMPTY_FORM: FormValues = {
+  name: "",
+  price: 0,
+  estimatedDeliveryDays: MIN_DELIVERY_DAYS,
+  isActive: false,
+  description: "",
+};
+
+/**
+ * Delivery configuration for a store.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * ONE OPTION, EDITED IN PLACE
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A store offers exactly one delivery option, so this is a settings screen, not
+ * a list with an add form. The previous version showed a "Shipping Methods"
+ * list card, a `1/1` counter, an "Add Shipping Method" form that greyed itself
+ * out once full, and an Edit button to move between them — a lot of machinery
+ * for a single record. The form is now simply seeded with whatever is saved.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * WHY THE PREVIEW EARNS ITS SPACE
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A vendor is writing copy that a student reads at checkout while deciding
+ * whether to buy. Showing that line live, as it will actually appear, is what
+ * stops "Hostel delivery — 2 days" from turning out to mean something else in
+ * practice. Late deliveries are the most common complaint, and most of them
+ * start with a vendor guessing at this form.
+ *
+ * Layout: the page owns the horizontal gutter, cards are flush on mobile and
+ * boxed from `lg`. See `page-card.styles.ts`.
+ */
+export default function ShippingMethodForm() {
+  const trpc = useTRPC();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: shippingMethods, refetch: refetchShippingMethods } =
+    useSuspenseQuery(trpc.storeShipping.getStoreShippingMethods.queryOptions());
+
+  const saved = shippingMethods?.[0] ?? null;
+  const hasOption = Boolean(saved);
+
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      isActive: false,
-      conditions: {},
-    },
+    defaultValues: EMPTY_FORM,
+    mode: "onChange",
   });
 
-  const {
-    data: shippingMethods,
-    isLoading,
-    refetch: refetchShippingMethods,
-  } = useSuspenseQuery(
-    trpc.storeShipping.getStoreShippingMethods.queryOptions(),
-  );
+  /**
+   * Seed the form from whatever is saved.
+   *
+   * Prices arrive in kobo and are edited in naira — the conversion belongs here
+   * rather than in the input, so the form only ever deals in one unit.
+   */
+  useEffect(() => {
+    if (!saved) return;
 
-  const handleShippingMethodUpdate = useMutation(
+    form.reset({
+      id: saved.id,
+      name: saved.name,
+      price: koboToNaira(saved.price),
+      estimatedDeliveryDays: saved.estimatedDeliveryDays,
+      isActive: saved.isActive ?? false,
+      description: saved.description ?? "",
+    });
+  }, [saved, form]);
+
+  const update = useMutation(
     trpc.storeShipping.handleStoreShippingMethodUpdate.mutationOptions({
       onSuccess: (data) => {
-        toast.success(data.message || "Shipping method updated successfully");
+        toast.success(data.message || "Delivery option saved");
         refetchShippingMethods();
-        setIsEditing(false);
-        setCurrentMethod(null);
-        form.reset({
-          isActive: false,
-          conditions: {},
-          applicableRegions: [],
-          description: "",
-          name: "",
-          price: 0,
-          estimatedDeliveryDays: 0,
-        });
-        setRegions([]);
         setIsSubmitting(false);
       },
       onError: (error) => {
-        console.error("Error updating shipping method:", error);
-        toast.error(
-          error.message || "Error updating shipping method. Please try again.",
-        );
+        toast.error(error.message || "Could not save your delivery option");
         setIsSubmitting(false);
       },
     }),
   );
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Check maximum methods limit
-    if (shippingMethods.length >= MAX_METHODS && !isEditing) {
-      toast.error(`Maximum of ${MAX_METHODS} shipping methods allowed`);
-      return;
-    }
-
+  const onSubmit = (values: FormValues) => {
     setIsSubmitting(true);
-    const fullValues = { ...values, applicableRegions: regions };
-
-    handleShippingMethodUpdate.mutate({
-      ...fullValues,
-    });
-  }
-
-  const handleEditMethod = (method: ShippingMethod) => {
-    setIsEditing(true);
-    setCurrentMethod(method);
-    form.reset({
-      ...method,
-    });
+    update.mutate({ ...values, applicableRegions: [] });
   };
 
-  const cancelEdit = () => {
-    setIsEditing(false);
-    setCurrentMethod(null);
-    form.reset({
-      isActive: false,
-      conditions: {},
-      applicableRegions: [],
-      description: "",
-      name: "",
-      price: 0,
-      estimatedDeliveryDays: 0,
-    });
-    setRegions([]);
-  };
-
-  // const addRegion = () => {
-  //   if (newRegion.trim()) {
-  //     setRegions([...regions, newRegion.trim()]);
-  //     setNewRegion("");
-  //   }
-  // };
-
-  // const removeRegion = (index: number) => {
-  //   setRegions(regions.filter((_, i) => i !== index));
-  // };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-[120px] w-full rounded-lg" />
-        ))}
-      </div>
-    );
-  }
+  // Drives the live preview. Watching the whole form is fine here — it is a
+  // handful of fields and the preview must track every keystroke.
+  const preview = form.watch();
+  const description = form.watch("description") ?? "";
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
-      {/* Existing Methods Section */}
-      {Array.isArray(shippingMethods) && shippingMethods.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold flex items-center justify-between">
-              <span>Shipping Methods</span>
-              <Badge variant="outline">
-                {shippingMethods.length}/{MAX_METHODS}
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              Manage your store&#39;s shipping methods and configurations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {shippingMethods.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {shippingMethods.map((method, index) => (
-                  <Card key={index} className="relative">
-                    <CardContent className="p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">{method.name}</h3>
-                        <Badge
-                          variant={method.isActive ? "default" : "secondary"}
-                        >
-                          {method.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Price:</span>
-                          <span>{formatNaira(method.price)}</span>
-                        </div>
-                        {method.estimatedDeliveryDays && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              Delivery Days:
-                            </span>
-                            <span>{method.estimatedDeliveryDays}</span>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() =>
-                          handleEditMethod({
-                            ...method,
-                            price: koboToNaira(method.price),
-                            isActive: method.isActive ?? false,
-                          })
-                        }
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Method
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No shipping methods configured
-              </div>
+    <div className={cn("mx-auto w-full max-w-3xl space-y-6 py-6", pageGutter)}>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Delivery</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            One delivery option per store, for now.
+          </p>
+        </div>
+
+        {hasOption && (
+          <Badge
+            className={cn(
+              "shrink-0",
+              saved?.isActive
+                ? "bg-soraxi-green text-white"
+                : "bg-muted text-muted-foreground",
             )}
-          </CardContent>
-        </Card>
-      )}
+          >
+            {saved?.isActive ? "On" : "Off"}
+          </Badge>
+        )}
+      </header>
 
-      {/* Add/Edit Method Form */}
-      <Card
-        className={
-          shippingMethods.length >= MAX_METHODS && !isEditing
-            ? "opacity-50 pointer-events-none"
-            : ""
-        }
-      >
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">
-            {isEditing ? `Edit ${currentMethod?.name}` : "Add Shipping Method"}
-          </CardTitle>
-          <CardDescription>
-            {shippingMethods.length >= MAX_METHODS && !isEditing
-              ? "Maximum methods reached. Remove existing methods to add new ones."
-              : "Configure new shipping method for your store"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      {!hasOption && <NoOptionYet />}
+
+      <SoraxiCard className={pageCardLg}>
+        <SoraxiCardHeader>
+          <SoraxiCardTitle>
+            {hasOption ? "Your delivery option" : "Set up delivery"}
+          </SoraxiCardTitle>
+          <SoraxiCardDescription className="mt-1 text-muted-foreground">
+            Customers see this at checkout and pay it on top of the item price.
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
+
+        <SoraxiCardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Keep existing form fields */}
-              {/* Basic Information Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Method Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Standard Shipping" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      What to call it{" "}
+                      <span className="text-soraxi-error">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Hostel delivery" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Price *</FormLabel>
+                      <FormLabel>
+                        Delivery fee{" "}
+                        <span className="text-soraxi-error">*</span>
+                      </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="50"
-                          placeholder="500"
-                          min="0"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
-                        />
+                        <div className="relative">
+                          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
+                            ₦
+                          </span>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            step="50"
+                            min={0}
+                            placeholder="500"
+                            className="pl-7"
+                            value={Number.isNaN(field.value) ? "" : field.value}
+                            onChange={(event) =>
+                              field.onChange(
+                                event.target.value === ""
+                                  ? Number.NaN
+                                  : Number(event.target.value),
+                              )
+                            }
+                          />
+                        </div>
                       </FormControl>
+                      <FormDescription>
+                        Enter 0 for free delivery.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -312,52 +254,63 @@ export default function ShippingMethodForm() {
                   name="estimatedDeliveryDays"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Estimated Delivery Days</FormLabel>
+                      <FormLabel>
+                        Days to arrive{" "}
+                        <span className="text-soraxi-error">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          placeholder="3-5 business days"
-                          min={2}
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value))
+                          inputMode="numeric"
+                          min={MIN_DELIVERY_DAYS}
+                          placeholder="2"
+                          value={Number.isNaN(field.value) ? "" : field.value}
+                          onChange={(event) =>
+                            field.onChange(
+                              event.target.value === ""
+                                ? Number.NaN
+                                : Number(event.target.value),
+                            )
                           }
                         />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col space-y-2">
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
+                      <FormDescription>
+                        Minimum {MIN_DELIVERY_DAYS} days.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* Description */}
               <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <FormLabel>
+                        What customers should know{" "}
+                        <span className="text-soraxi-error">*</span>
+                      </FormLabel>
+                      {/* Counts up to the minimum rather than down from a
+                          maximum — the constraint here is writing enough. */}
+                      <span
+                        className={cn(
+                          "text-xs tabular-nums",
+                          description.length >= MIN_DESCRIPTION
+                            ? "text-soraxi-green"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {description.length}/{MIN_DESCRIPTION} min
+                      </span>
+                    </div>
                     <FormControl>
                       <Textarea
-                        placeholder="Additional information about this shipping method"
+                        rows={4}
                         className="resize-none"
+                        placeholder="Where you deliver, cut-off times, anything customers should expect."
                         {...field}
                       />
                     </FormControl>
@@ -366,58 +319,177 @@ export default function ShippingMethodForm() {
                 )}
               />
 
-              {/* Shipping Tips */}
-              <div className="bg-soraxi-green/5 border border-soraxi-green/20 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-soraxi-green mb-2">
-                  💡 Shipping Tips
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>
-                    • Offer multiple shipping options to cater to different
-                    customer needs
-                  </li>
-                  {/* <li>
-                    • Consider free shipping for orders above a certain amount
-                  </li> */}
-                  <li>
-                    • Be realistic with delivery timeframes to set proper
-                    expectations
-                  </li>
-                  <li>
-                    • Factor in packaging and handling time when setting
-                    delivery estimates
-                  </li>
-                </ul>
-              </div>
-
-              <div className="flex gap-4">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
-                >
-                  {isSubmitting
-                    ? "Saving..."
-                    : isEditing
-                      ? "Update Method"
-                      : "Create Method"}
-                </Button>
-
-                {isEditing && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={cancelEdit}
-                  >
-                    Cancel Edit
-                  </Button>
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Offer this option</FormLabel>
+                      <FormDescription>
+                        Turn off to pause orders without deleting the setup.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
-              </div>
+              />
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-soraxi-green text-white hover:bg-soraxi-green-hover"
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : hasOption
+                    ? "Save changes"
+                    : "Create delivery option"}
+              </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
+
+      <CheckoutPreview
+        name={preview.name}
+        price={preview.price}
+        days={preview.estimatedDeliveryDays}
+        description={preview.description}
+        isActive={Boolean(preview.isActive)}
+      />
+
+      <FeeGuidance />
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function NoOptionYet() {
+  return (
+    <SoraxiCard className={pageCardLg}>
+      <SoraxiCardContent className="py-8 text-center">
+        <span className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-soraxi-green/10">
+          <Truck className="size-5 text-soraxi-green" aria-hidden />
+        </span>
+        <p className="font-semibold">No delivery option yet</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+          Tell Customers what you charge and how long delivery takes. You can
+          change it any time.
+        </p>
+      </SoraxiCardContent>
+    </SoraxiCard>
+  );
+}
+
+/**
+ * The option exactly as a student sees it at checkout.
+ *
+ * Rendered from the live form rather than the saved record, so a vendor sees
+ * the consequence of a change before committing to it.
+ */
+function CheckoutPreview({
+  name,
+  price,
+  days,
+  description,
+  isActive,
+}: {
+  name?: string;
+  price?: number;
+  days?: number;
+  description?: string;
+  isActive: boolean;
+}) {
+  const hasPrice = typeof price === "number" && !Number.isNaN(price);
+  const hasDays = typeof days === "number" && !Number.isNaN(days);
+
+  return (
+    <SoraxiCard className={pageCardLg}>
+      <SoraxiCardHeader>
+        <SoraxiCardTitle>How customers see it</SoraxiCardTitle>
+        <SoraxiCardDescription className="mt-1 text-muted-foreground">
+          Your option at checkout, exactly as it appears.
+        </SoraxiCardDescription>
+      </SoraxiCardHeader>
+
+      <SoraxiCardContent className="space-y-2">
+        <div className="rounded-lg border border-border p-3">
+          <div className="flex items-start gap-3">
+            <span
+              className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2 border-soraxi-green"
+              aria-hidden
+            >
+              <span className="size-1.5 rounded-full bg-soraxi-green" />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="truncate font-medium">
+                  {name?.trim() || "Delivery option"}
+                </p>
+                <p className="shrink-0 text-sm font-semibold">
+                  {/* `addNairaSign`, not `formatNaira` — the form holds naira
+                      and `formatNaira` expects kobo, so it would show a
+                      hundredth of the real fee. */}
+                  {hasPrice && price > 0 ? addNairaSign(price) : "Free"}
+                </p>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Arrives in {hasDays ? days : "—"} days
+              </p>
+
+              {description?.trim() && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {!isActive && (
+          <p className="text-xs text-soraxi-error">
+            Turned off — customers can&apos;t check out until one option is on.
+          </p>
+        )}
+      </SoraxiCardContent>
+    </SoraxiCard>
+  );
+}
+
+function FeeGuidance() {
+  const points = [
+    "Include packaging and the trip to the hostel, not just transport.",
+    "Be honest about days. Late deliveries are the most common complaint.",
+    "You keep the delivery fee in full; the platform fee applies to the item total only.",
+  ];
+
+  return (
+    <SoraxiCard className={pageCardLg}>
+      <SoraxiCardHeader>
+        <SoraxiCardTitle>Setting a fee</SoraxiCardTitle>
+      </SoraxiCardHeader>
+      <SoraxiCardContent>
+        <ul className="space-y-2 text-sm text-muted-foreground">
+          {points.map((point) => (
+            <li key={point} className="flex gap-2">
+              <span
+                className="mt-2 size-1 shrink-0 rounded-full bg-soraxi-green"
+                aria-hidden
+              />
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      </SoraxiCardContent>
+    </SoraxiCard>
   );
 }

@@ -1,10 +1,13 @@
-import { koboToNaira } from "@/lib/utils/naira";
-import { OrderPendingService } from "@/services/orders/order-pending.service";
-import { CartRepository } from "@/repositories/cart-repo";
-import { IPaymentGateway } from "./gateway-interface";
-import { PreparedPaymentData } from "@/services/checkout.service";
-import { PublicToJSONUserType } from "@/domain/users/user-interface";
-import { CartFactory } from "@/domain/cart/cart-factory";
+import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
+import { PaymentGateway } from "@/enums";
+import {
+  IPaymentGateway,
+  GatewayInitiationPayload,
+  InitializePaymentResult,
+  NormalizedPaymentStatus,
+  PaymentVerificationResult,
+  VerifyPaymentParams,
+} from "./gateway-interface";
 
 export interface FlutterwaveVerifyResponse {
   status: "success" | "error";
@@ -153,7 +156,66 @@ export type FlutterwavePayload = {
   };
 };
 
+/**
+ * Map a raw Flutterwave verify response into the gateway-neutral result.
+ *
+ * Pure function — exported separately from the class so the mapping (status
+ * normalization, Naira→Kobo conversion, fee + VAT arithmetic) is unit-testable
+ * without network or environment setup.
+ *
+ * Returns null when the envelope status is not "success" (transaction not
+ * found / API-level error) — matching the historical behavior where callers
+ * treated that as "could not retrieve transaction data".
+ */
+export function normalizeFlutterwaveVerifyResponse(
+  response: FlutterwaveVerifyResponse,
+): PaymentVerificationResult | null {
+  if (response.status !== "success" || !response.data) return null;
+
+  const data = response.data;
+  const rawStatus = data.status.toLowerCase();
+
+  const successStatuses = ["successful", "success", "completed"];
+  let status: NormalizedPaymentStatus;
+  if (successStatuses.includes(rawStatus)) {
+    status = NormalizedPaymentStatus.Successful;
+  } else if (rawStatus === "pending") {
+    status = NormalizedPaymentStatus.Pending;
+  } else {
+    // "failed", "cancelled", and anything unrecognised — consumers use
+    // rawStatus to distinguish failed from cancelled.
+    status = NormalizedPaymentStatus.Failed;
+  }
+
+  // Flutterwave reports amounts and fees in Naira; the platform works in
+  // Kobo. app_fee excludes VAT, which Flutterwave charges at 7.5% on the fee.
+  const appFeeKobo = nairaToKobo(data.app_fee ?? 0);
+  const vatKobo = Math.round(appFeeKobo * 0.075);
+
+  return {
+    provider: PaymentGateway.Flutterwave,
+    status,
+    rawStatus,
+    amountKobo: nairaToKobo(data.charged_amount ?? data.amount),
+    currency: data.currency,
+    collectionFeeKobo: appFeeKobo + vatKobo,
+    gatewayTransactionId: String(data.id),
+    reference: data.tx_ref,
+    paymentMethod: data.payment_type,
+    meta: {
+      orderId: data.meta.orderId,
+      idempotencyKey: data.meta.idempotencyKey,
+      email: data.meta.email,
+      phoneNumber: data.meta.phone_number,
+      fullName: data.meta.fullName,
+    },
+    raw: response,
+  };
+}
+
 export class FlutterwaveGateway implements IPaymentGateway {
+  readonly provider = PaymentGateway.Flutterwave;
+
   private readonly apiUrl: string;
   private readonly secretKey: string;
   private readonly maxRetries = 3;
@@ -170,58 +232,38 @@ export class FlutterwaveGateway implements IPaymentGateway {
       );
   }
 
+  /**
+   * Turn the neutral initiation payload into Flutterwave's hosted-checkout
+   * request and return the payment link. No business logic here — cart
+   * validation and pending-order creation happen in PaymentService before
+   * this is called.
+   */
   async initializePayment(
-    input: PreparedPaymentData,
-    user: PublicToJSONUserType,
-  ) {
-    /**
-     * Step 1: Validate Cart
-     */
-    const cartDoc = await CartRepository.getCartByUserId(user.userId);
-    if (!cartDoc) throw new Error("User cart not found.");
-    const cart = CartFactory.createCart({
-      ...cartDoc,
-      _id: cartDoc._id?.toString(),
-      userId: cartDoc.userId.toString(),
-    });
-
-    const { amount, customer } = input;
-    const idempotencyKey = cart.idempotencyKey;
-
-    // Ensure idempotency key exists
-    if (!idempotencyKey)
-      throw new Error("Idempotency key is missing from the cart.");
-
-    // Create pending order
-    const order = await OrderPendingService.createPendingOrder({
-      user,
-      cart,
-      input,
-    });
+    input: GatewayInitiationPayload,
+  ): Promise<InitializePaymentResult> {
+    const { reference, amountKobo, orderId, redirectUrl, customer } = input;
 
     /**
      * Critical: Please note that changing any of this data or field names may break
      * the webhook verification and payment confirmation process. Proceed with caution.
      * If you must change anything here, ensure you also update the webhook handler accordingly.
      */
-    const payload = {
-      tx_ref: idempotencyKey,
-      amount: koboToNaira(amount), // Convert the amount from kobo to naira. For flutterwave, they need the amount in naira. Paystack is different.
+    const payload: FlutterwavePayload = {
+      tx_ref: reference,
+      amount: koboToNaira(amountKobo), // Flutterwave charges in Naira. Paystack is different.
       currency: "NGN",
-      redirect_url:
-        process.env.NEXT_PUBLIC_REDIRECT_URL ||
-        "https://www.soraxihub.com/checkout/payment-status",
+      redirect_url: redirectUrl,
       customer: {
         email: customer.email,
         name: customer.name,
-        phonenumber: customer.phone_number,
+        phonenumber: customer.phoneNumber,
       },
       meta: {
         email: customer.email,
-        phone_number: customer.phone_number,
+        phone_number: customer.phoneNumber,
         fullName: customer.name,
-        idempotencyKey,
-        orderId: order._id.toString(),
+        idempotencyKey: reference,
+        orderId,
       },
       configurations: {
         session_duration: 30,
@@ -233,14 +275,28 @@ export class FlutterwaveGateway implements IPaymentGateway {
   }
 
   /**
-   * Verify a Flutterwave transaction by its ID or reference.
-   * Includes retry logic and exponential backoff for reliability.
-   * @param transactionReference - The transaction ID or reference from Flutterwave.
+   * Verify a Flutterwave transaction. Prefers the numeric transaction id
+   * (the identifier Flutterwave hands back on redirect and webhook
+   * payloads); falls back to verify-by-reference with our tx_ref when only
+   * the internal reference is known (e.g. a cron backstop sweeping stuck
+   * orders). Includes retry logic and exponential backoff for reliability.
    */
   async verifyPayment(
-    transactionReference: string,
-  ): Promise<FlutterwaveVerifyResponse | null> {
-    const url = `${this.apiUrl}/transactions/${Number(transactionReference)}/verify`;
+    params: VerifyPaymentParams,
+  ): Promise<PaymentVerificationResult | null> {
+    const { reference, providerTransactionId } = params;
+
+    let url: string;
+    if (providerTransactionId) {
+      url = `${this.apiUrl}/transactions/${Number(providerTransactionId)}/verify`;
+    } else if (reference) {
+      url = `${this.apiUrl}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`;
+    } else {
+      console.error(
+        "FlutterwaveGateway.verifyPayment: no transaction identifier provided",
+      );
+      return null;
+    }
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
@@ -261,7 +317,7 @@ export class FlutterwaveGateway implements IPaymentGateway {
           if (attempt === this.maxRetries) return null;
         } else {
           const data: FlutterwaveVerifyResponse = await response.json();
-          return data;
+          return normalizeFlutterwaveVerifyResponse(data);
         }
       } catch (error) {
         console.error(`Attempt ${attempt}: Network error -`, error);

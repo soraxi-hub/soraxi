@@ -1,9 +1,11 @@
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
-import PaymentSuccess from "@/modules/checkout/success/payment-successful";
 import PaymentSuccessSkeleton from "@/modules/skeletons/payment-success-skeleton";
 import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
-import PaymentFailurePage from "@/modules/checkout/failure/payment-failure";
+import { PaymentStatusClient } from "@/modules/checkout/payment-status-client";
 
 export const metadata: Metadata = {
   title: `Payment Status`,
@@ -34,48 +36,35 @@ export const metadata: Metadata = {
     canonical: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success`,
   },
   robots: {
-    index: false, // 🚫 don’t index user-specific payment success pages
+    index: false, // don’t index user-specific payment success pages
     follow: true,
     nocache: true,
   },
 };
 
-// Force dynamic rendering for this page
-export const dynamic = "force-dynamic";
-
 interface Props {
   searchParams: Promise<{
     status?: string;
-    trxref?: string; // PayStack gateways use trxref
-    tx_ref?: string; // Flutterwave gateways use trx_ref
-    transaction_id?: string; // Flutterwave gateways use transaction_id
+    trxref?: string; // Paystack sends trxref
+    reference?: string; // Paystack sends reference
+    tx_ref?: string; // Flutterwave sends tx_ref
+    transaction_id?: string; // Flutterwave sends transaction_id
     [key: string]: string | undefined;
   }>;
 }
 
 export default async function Page({ searchParams }: Props) {
-  const statusArr = ["successful", "completed", "success"];
-  const { status } = await searchParams;
+  const params = await searchParams;
 
-  if (!status) {
-    return (
-      <Suspense fallback={<PaymentSuccessSkeleton />}>
-        <PaymentFailurePage searchParams={await searchParams} />
-      </Suspense>
-    );
-  }
-
-  if (status && !statusArr.includes((status as string).toLowerCase())) {
-    return (
-      <Suspense fallback={<PaymentSuccessSkeleton />}>
-        <PaymentFailurePage searchParams={await searchParams} />
-      </Suspense>
-    );
-  }
+  /**
+   * Every gateway echoes our own reference — the cart idempotency key — back
+   * on redirect, just under a different parameter name.
+   */
+  const reference = params.tx_ref ?? params.reference ?? params.trxref;
 
   return (
     <Suspense fallback={<PaymentSuccessSkeleton />}>
-      <PaymentSuccess searchParams={await searchParams} />
+      <PaymentStatusClient reference={reference} />
     </Suspense>
   );
 }

@@ -12,6 +12,7 @@
       "path": "/api/cron/expire-dispute-evidence",
       "schedule": "0 3 * * *"
     },
+    { "path": "/api/cron/sweep-pending-payments", "schedule": "0 14 * * *" },
     { "path": "/api/cron/reconcile-financials", "schedule": "0 3 * * *" },
     { "path": "/api/cron/reconcile-vendor-wallets", "schedule": "30 3 * * *" },
     { "path": "/api/cron/drain-message-outbox", "schedule": "0 11 * * *" }

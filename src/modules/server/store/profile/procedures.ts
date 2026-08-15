@@ -58,7 +58,7 @@ export const storeProfileRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Error in getStoreProfilePrivate procedure.");
+      throw handleTRPCError(error, "We couldn't load your store profile.");
     }
   }),
 
@@ -193,7 +193,7 @@ export const storeProfileRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           error,
-          "Error in handleStoreDescriptionUpdate procedure.",
+          "We couldn't save your store description.",
         );
       }
     }),

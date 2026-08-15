@@ -18,6 +18,12 @@ type CreatePendingOrderParams = {
   user: PublicToJSONUserType;
   cart: Cart;
   input: PreparedPaymentData;
+  /**
+   * Which gateway will collect this payment. Recorded on the order at
+   * creation — the order record is the source of truth for the provider
+   * everywhere downstream (status page, webhooks, verification).
+   */
+  gateway: PaymentGateway;
 };
 
 /**
@@ -62,6 +68,7 @@ export class OrderPendingService {
     user,
     cart,
     input,
+    gateway,
   }: CreatePendingOrderParams) {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -123,7 +130,7 @@ export class OrderPendingService {
           deliveryType,
         })
         .setPaymentInfo({
-          gateway: PaymentGateway.Flutterwave,
+          gateway,
           status: PaymentStatus.Pending,
         })
         .setIdempotencyKey(idempotencyKey);

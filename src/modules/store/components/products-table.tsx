@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+﻿import { ReactNode } from "react";
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import { ProductStatusEnum } from "@/enums";
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
 
-type Output = inferProcedureOutput<AppRouter["store"]["getStoreProducts"]>;
+type Output = inferProcedureOutput<AppRouter["storeProducts"]["getStoreProducts"]>;
 type Product = Output["products"];
 
 interface ProductsTableProps {

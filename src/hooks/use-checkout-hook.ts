@@ -73,18 +73,19 @@ export function useCheckoutService(
   );
 
   /**
-   * Payment initialization mutation using Flutterwave API.
-   * Redirects user to payment link upon success.
+   * Payment initialization mutation. Which gateway is used is decided
+   * server-side by GatewayRouter — the client never names a provider.
+   * Redirects user to the payment link upon success.
    */
   const paymentMutation = useMutation(
-    trpc.flutterwave.initializePayment.mutationOptions({
+    trpc.payment.initialize.mutationOptions({
       onSuccess: (response) => {
         if (response.status && response.data?.link) {
           toast.success("Redirecting to payment...");
           window.location.href = response.data.link;
         } else {
           const errorMessage =
-            response.message || "Failed to initialize payment with Flutterwave";
+            response.message || "Failed to initialize payment";
           toast.error(errorMessage);
           setError(errorMessage);
         }
@@ -179,7 +180,6 @@ export function useCheckoutService(
       // Step 2: Process payment
       setIsProcessing(true);
       await paymentMutation.mutateAsync(paymentData);
-      // @ts-ignore
     } catch (err: any) {
       setError(
         err.message ||

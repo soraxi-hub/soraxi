@@ -1,29 +1,33 @@
 import { connectToDatabase } from "@/lib/db/mongoose";
-import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { PaymentService } from "@/services/payment/payment.service";
+import { PaymentConfirmationService } from "@/services/payment/payment-confirmation.service";
 import { FlutterwaveWebhookEvent } from "@/domain/payment/gateways/flutterwave.gateway";
 import { PayoutWebhookHandler } from "@/services/payment/payout/payout-webhook-handler.service";
-import { OrderFactory } from "@/domain/orders/order-factory";
-import { CartService } from "@/services/cart/cart.service";
 import { PaymentGateway } from "@/enums";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
-import { nairaToKobo } from "@/lib/utils/naira";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 
+/**
+ * Flutterwave webhook front door.
+ *
+ * Responsibilities stop at authenticating the request and identifying the
+ * transaction. Everything financial is delegated to
+ * PaymentConfirmationService, which the Paystack webhook, the status-page
+ * fallback and the cron backstop all share — so a gateway result is turned
+ * into ledger truth by exactly one piece of code.
+ */
 export async function POST(request: Request) {
   const requestBody = await request.json();
   const headers = request.headers;
   const secretHash = process.env.FLUTTERWAVE_SECRET_HASH_KEY;
 
   await connectToDatabase();
-
-  let session: mongoose.ClientSession | null = null;
 
   try {
     if (!secretHash) {
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     // ----------------------------------------------------------------
-    // ADD: Event type detection — route before any further processing
+    // Event type detection — route before any further processing.
     //
     // Flutterwave sends an "event" field on every webhook payload.
     // We check it here and route accordingly before doing anything else.
@@ -50,7 +54,6 @@ export async function POST(request: Request) {
     if (eventType === FlutterwaveWebhookEvent.TRANSFER_COMPLETED) {
       // --- Transfer event (Stage 6) ---
       // Route to PayoutWebhookHandler — completely separate from payment flow
-      // No session needed here — PayoutWebhookHandler manages its own session
       const result = await PayoutWebhookHandler.handle(requestBody.data);
 
       return NextResponse.json(
@@ -58,10 +61,6 @@ export async function POST(request: Request) {
         { status: result.status ?? (result.ok ? 200 : 500) },
       );
     }
-
-    const processOrder = await OrderFactory.getProcessOrderInstance();
-    session = await mongoose.startSession();
-    session.startTransaction();
 
     const transactionId: string = requestBody?.id || requestBody?.data?.id;
     if (!transactionId) {
@@ -72,73 +71,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify transaction with Flutterwave API
-    const verifiedTransaction = await PaymentService.verifyPayment({
+    // The webhook body carries no trustworthy reference, so resolve the
+    // transaction against Flutterwave first to learn our own tx_ref.
+    const verified = await PaymentService.verifyPayment({
       gateway: PaymentGateway.Flutterwave,
-      transactionReference: transactionId,
+      refs: { providerTransactionId: transactionId },
     });
 
-    if (
-      verifiedTransaction?.status.toLowerCase() !== "success" ||
-      verifiedTransaction?.data?.status.toLowerCase() !== "successful"
-    ) {
-      throw new AppError("BAD_REQUEST", "Transaction not successful", {
-        transactionStatus: verifiedTransaction?.data?.status,
-      });
-    }
-
-    // Process the order based on transactionData
-    const transactionData = verifiedTransaction.data;
-
-    // Extract collection fee data from verified transaction
-    const appFeeNaira = transactionData.app_fee ?? 0;
-    const appFeeKobo = nairaToKobo(appFeeNaira);
-    const vatKobo = Math.round(appFeeKobo * 0.075);
-    const collectionFeeKobo = appFeeKobo + vatKobo;
-
-    const flutterwaveTransactionId = transactionData.id;
-    const { orderId, idempotencyKey } = transactionData.meta;
-    const paymentMethod = transactionData.payment_type;
-
-    const customerInfo = {
-      fullName: transactionData.meta.fullName,
-      email: transactionData.meta.email,
-    };
-
-    const result = await processOrder.updateOrderRecordToSuccessState({
-      orderId,
-      idempotencyKey,
-      transactionId: flutterwaveTransactionId,
-      session,
-      paymentMethod,
-      customerInfo,
-      collectionFeeKobo,
-    });
-
-    if (!result.ok) {
+    if (!verified) {
       throw new AppError(
         "BAD_REQUEST",
-        result.error ??
-          "There is an issue updating order records via the webhook route.",
-        { orderId, idempotencyKey },
+        "Could not retrieve transaction data from Flutterwave",
+        { transactionId },
       );
     }
 
-    if (result.userId) {
-      CartService.clearCart(result.userId);
+    const reference = verified.meta.idempotencyKey || verified.reference;
+    if (!reference) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "Missing payment reference in Flutterwave transaction metadata",
+        { transactionId },
+      );
     }
 
-    await session.commitTransaction();
+    // Single financial write path — idempotent, so a webhook racing the
+    // status-page fallback settles the order exactly once.
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference,
+      providerTransactionId: transactionId,
+      gateway: PaymentGateway.Flutterwave,
+    });
+
+    if (!result.ok) {
+      throw new AppError("BAD_REQUEST", result.error, { reference });
+    }
 
     return NextResponse.json(
-      { message: "Webhook processed successfully" },
+      { message: "Webhook processed successfully", status: result.status },
       { status: 200 },
     );
   } catch (error) {
     console.error("Webhook processing failed:", error);
-    if (session) {
-      await session.abortTransaction();
-    }
     if (isReportableError(error)) {
       try {
         await sendTelegramMessage(
@@ -151,9 +125,5 @@ export async function POST(request: Request) {
       }
     }
     return handleApiError(error);
-  } finally {
-    if (session) {
-      await session.endSession();
-    }
   }
 }

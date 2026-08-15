@@ -17,6 +17,8 @@ import {
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
 import { withTransaction } from "./test-db";
+import { getOrderModel } from "@/lib/db/models/order.model";
+import { DeliveryType, PaymentGateway, PaymentStatus } from "@/enums";
 
 import { settleSuborder } from "@/services/orders/suborder-settlement.service";
 
@@ -35,6 +37,57 @@ export interface SeededPaidOrder {
   totalCommission: number;
   collectionFeeKobo: number;
   suborders: SeededSuborder[];
+}
+
+/**
+ * Seed a minimal pending Order document — enough for the payment-confirmation
+ * state machine (status transitions, ownership, gateway resolution, sweep
+ * eligibility). Deliberately not a full checkout: the financial composition of
+ * a paid order is covered by seedPaidOrder and the Stage 1-5 suites.
+ */
+export async function seedPendingOrder(params: {
+  reference: string;
+  userId?: mongoose.Types.ObjectId;
+  totalAmount?: number;
+  gateway?: PaymentGateway;
+  paymentStatus?: PaymentStatus;
+  /** Backdate createdAt to test sweep eligibility. */
+  createdAt?: Date;
+}): Promise<{ orderId: mongoose.Types.ObjectId; userId: mongoose.Types.ObjectId }> {
+  const Order = await getOrderModel();
+  const userId = params.userId ?? new mongoose.Types.ObjectId();
+
+  const order = await Order.create({
+    userId,
+    userSnapshot: {
+      name: "Ada Obi",
+      email: "student@school.edu.ng",
+      phoneNumber: "+2348012345678",
+    },
+    stores: [],
+    subOrders: [],
+    totalAmount: params.totalAmount ?? 500_000,
+    shippingAddress: {
+      postalCode: "500001",
+      address: "12 Campus Road",
+      city: "Nsukka",
+      state: "Enugu",
+      deliveryType: DeliveryType.Campus,
+    },
+    paymentStatus: params.paymentStatus ?? PaymentStatus.Pending,
+    paymentGateway: params.gateway ?? PaymentGateway.Flutterwave,
+    idempotencyKey: params.reference,
+  });
+
+  if (params.createdAt) {
+    // createdAt is managed by timestamps, so it must be forced past Mongoose.
+    await Order.collection.updateOne(
+      { _id: order._id },
+      { $set: { createdAt: params.createdAt } },
+    );
+  }
+
+  return { orderId: order._id, userId };
 }
 
 /** Create a vendor wallet with zero balances, outside any transaction. */

@@ -4,6 +4,7 @@ import {
   FlutterwavePaymentStatus,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
+import { PaymentGateway } from "@/enums";
 
 /**
  * Detailed commission breakdown for a single suborder.
@@ -48,9 +49,23 @@ export interface ITransactionRecord {
   customerId: mongoose.Types.ObjectId; // The user that placed the order
   orderId: mongoose.Types.ObjectId;
 
-  // Flutterwave payment details
-  flutterwaveReference: string; // Flutterwave's unique transaction reference
-  flutterwaveTransactionId: number; // Flutterwave's unique transaction Id
+  /**
+   * Which gateway collected this payment. Optional for back-compat with
+   * records created before multi-gateway support — absent means Flutterwave.
+   */
+  paymentProvider?: PaymentGateway;
+  /**
+   * The provider's transaction id, stringified — the gateway-neutral twin of
+   * flutterwaveTransactionId. Optional for back-compat.
+   */
+  gatewayTransactionId?: string;
+
+  // Flutterwave-era payment fields. Still written for every record (numeric
+  // id coerced for Flutterwave; other providers write their id stringified
+  // into gatewayTransactionId and mirror what fits here) — a future
+  // migration will retire them in favour of the neutral fields above.
+  flutterwaveReference: string; // Our internal reference (cart idempotency key)
+  flutterwaveTransactionId: number; // Provider's numeric transaction Id
   flutterwaveStatus: FlutterwavePaymentStatus;
 
   totalAmount: number; // Total amount paid by customer in Kobo
@@ -127,6 +142,15 @@ const TransactionRecordSchema = new Schema<ITransactionRecordDocument>(
       required: true,
       unique: true, // One transaction record per order
       index: true,
+    },
+    paymentProvider: {
+      type: String,
+      enum: Object.values(PaymentGateway),
+    },
+    gatewayTransactionId: {
+      type: String,
+      index: true,
+      sparse: true,
     },
     flutterwaveReference: {
       type: String,

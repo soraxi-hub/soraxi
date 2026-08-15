@@ -1,4 +1,4 @@
-import { DeliveryType, PaymentGateway, ProductTypeEnum } from "@/enums";
+import { DeliveryType, ProductTypeEnum } from "@/enums";
 import { currencyOperations } from "@/lib/utils/naira";
 import { ShippingMethod, ShippingMethodForPayment } from "@/types";
 import { CouponTypeEnum } from "@/enums";
@@ -204,9 +204,8 @@ export class CheckoutService {
       input: paymentData,
       user: userData,
     };
-    return await PaymentService.initializePayment({
-      gateway: PaymentGateway.Flutterwave,
-      props,
-    });
+    // Gateway selection is platform-controlled — GatewayRouter inside
+    // PaymentService picks the provider and handles failover.
+    return await PaymentService.initializePayment({ props });
   }
 }
