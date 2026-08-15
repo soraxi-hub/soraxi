@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Store } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,13 +10,13 @@ import { DeliveryStatus, deliveryStatusLabel } from "@/enums";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import { cn } from "@/lib/utils";
 import { formatNaira } from "@/lib/utils/naira";
-import { MessageAboutOrderButton } from "@/modules/messaging/components/message-about-order-button";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 
 import { DeliveryCodeBlock } from "./delivery-code-block";
 import { DeliveryReceipt } from "./delivery-receipt";
-import { ProductItem } from "../product-item";
+import { OrderedProductRow } from "./ordered-product-row";
+import { ChevronDown } from "lucide-react";
 
 type OrderOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 type SubOrder = OrderOutput["subOrders"][number];
@@ -94,62 +93,56 @@ export function SubOrderCard({
       <CardContent className="space-y-4 px-4 py-4 sm:px-6">
         {/* Header: who, what state, how much */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-              <Store className="size-4 text-muted-foreground" aria-hidden />
-            </span>
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{storeName}</p>
 
-            <div className="min-w-0">
-              <p className="truncate font-semibold">{storeName}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px]",
+                  isDelivered && "border-soraxi-green/40 text-soraxi-green",
+                )}
+              >
+                {deliveryStatusLabel(subOrder.deliveryStatus)}
+              </Badge>
 
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {/* `text-black` in both themes: the warning token is a bright
+                    yellow that white text disappears against. */}
+              {awaitingCode && (
+                <Badge className="bg-soraxi-warning text-[10px] text-black">
+                  Awaiting code
+                </Badge>
+              )}
+
+              {proof?.isUnproven && (
+                <Badge className="bg-soraxi-warning text-[10px] text-black">
+                  No proof
+                </Badge>
+              )}
+
+              {isDisputed && (
                 <Badge
                   variant="outline"
-                  className={cn(
-                    "text-[10px]",
-                    isDelivered && "border-soraxi-green/40 text-soraxi-green",
-                  )}
+                  className="border-soraxi-error/40 text-[10px] text-soraxi-error"
                 >
-                  {deliveryStatusLabel(subOrder.deliveryStatus)}
+                  Dispute open
                 </Badge>
+              )}
 
-                {/* `text-black` in both themes: the warning token is a bright
-                    yellow that white text disappears against. */}
-                {awaitingCode && (
-                  <Badge className="bg-soraxi-warning text-[10px] text-black">
-                    Awaiting code
-                  </Badge>
-                )}
+              {isRefunded && (
+                <Badge
+                  variant="outline"
+                  className="border-soraxi-green/40 text-[10px] text-soraxi-green"
+                >
+                  Refunded
+                </Badge>
+              )}
 
-                {proof?.isUnproven && (
-                  <Badge className="bg-soraxi-warning text-[10px] text-black">
-                    No proof
-                  </Badge>
-                )}
-
-                {isDisputed && (
-                  <Badge
-                    variant="outline"
-                    className="border-soraxi-error/40 text-[10px] text-soraxi-error"
-                  >
-                    Dispute open
-                  </Badge>
-                )}
-
-                {isRefunded && (
-                  <Badge
-                    variant="outline"
-                    className="border-soraxi-green/40 text-[10px] text-soraxi-green"
-                  >
-                    Refunded
-                  </Badge>
-                )}
-
-                <span className="text-xs text-muted-foreground">
-                  {subOrder.products.length}{" "}
-                  {subOrder.products.length === 1 ? "item" : "items"}
-                </span>
-              </div>
+              <span className="text-xs text-muted-foreground">
+                {subOrder.products.length}{" "}
+                {subOrder.products.length === 1 ? "item" : "items"}
+              </span>
             </div>
           </div>
 
@@ -244,41 +237,30 @@ export function SubOrderCard({
         </button>
 
         {expanded && (
-          <div className="space-y-4 border-t border-border pt-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-3 border-t border-border pt-3">
+            {/*
+              Each row carries its own actions, so the duplicate pair of
+              full-width "Message vendor" / "Raise a dispute" buttons that used
+              to sit under this list is gone. Keeping both would have offered
+              the same two actions twice within one card.
+            */}
+            <ul className="divide-y divide-border">
               {subOrder.products.map((product, index) => (
-                <ProductItem
+                <OrderedProductRow
                   key={product.productSnapshot?._id?.toString() ?? index}
                   product={product}
-                  onReviewInitAction={onReviewInit}
-                  onReturnInitAction={() => {}}
-                  deliveryStatus={subOrder.deliveryStatus}
                   subOrderId={subOrderId}
+                  canDispute={canDispute && !submitting}
+                  canReview={isDelivered}
+                  onDispute={() => onDisputeInit(subOrderId, storeName)}
+                  onReview={onReviewInit}
                 />
               ))}
-            </div>
+            </ul>
 
             <div className="flex justify-between border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">Sub-order total</span>
               <span className="font-semibold">{formatNaira(subtotal)}</span>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <MessageAboutOrderButton
-                subOrderId={subOrderId}
-                role="customer"
-                className="sm:w-auto"
-              />
-              {canDispute && (
-                <Button
-                  variant="outline"
-                  onClick={() => onDisputeInit(subOrderId, storeName)}
-                  disabled={submitting}
-                  className="w-full border-soraxi-error/50 text-soraxi-error hover:bg-soraxi-error/10 hover:text-soraxi-error sm:w-auto"
-                >
-                  Raise a dispute
-                </Button>
-              )}
             </div>
           </div>
         )}

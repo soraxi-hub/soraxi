@@ -5,6 +5,7 @@ import {
   RefundTrigger,
   LedgerReferenceType,
 } from "@/enums/financial.enums";
+import { PaymentGateway } from "@/enums";
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -67,11 +68,19 @@ export interface IRefundRecord {
   amountBreakdown: IRefundAmountBreakdown;
 
   /**
-   * The Flutterwave transaction ID from the original payment.
-   * This is the `id` (numeric) from the TransactionRecord, used as the
-   * target for the Flutterwave refund API call.
+   * Which gateway collected the original payment.
+   *
+   * A refund can only be issued by the provider that took the money, so this
+   * decides which refund API is called. Optional purely so records written
+   * before multi-gateway support still load; absent means Flutterwave.
    */
-  flutterwaveTransactionId: string;
+  paymentProvider?: PaymentGateway;
+
+  /**
+   * The provider's transaction ID from the original payment, taken verbatim
+   * from the TransactionRecord and used as the target of the refund call.
+   */
+  gatewayTransactionId: string;
 
   /**
    * The Flutterwave refund ID returned after calling /v3/transactions/:id/refund.
@@ -176,7 +185,11 @@ const RefundRecordSchema = new Schema<IRefundRecordDocument>(
       type: RefundAmountBreakdownSchema,
       required: true,
     },
-    flutterwaveTransactionId: {
+    paymentProvider: {
+      type: String,
+      enum: Object.values(PaymentGateway),
+    },
+    gatewayTransactionId: {
       type: String,
       required: true,
     },

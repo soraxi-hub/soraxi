@@ -79,8 +79,12 @@ export async function POST(request: Request) {
     });
 
     if (!verified) {
+      // Flutterwave's own API is unreachable or erroring after the adapter
+      // exhausted its retries. A 4xx here would tell Flutterwave to stop
+      // redelivering and silently strand a real payment, so answer 5xx and
+      // let the webhook come back.
       throw new AppError(
-        "BAD_REQUEST",
+        "BAD_GATEWAY",
         "Could not retrieve transaction data from Flutterwave",
         { transactionId },
       );
@@ -88,6 +92,7 @@ export async function POST(request: Request) {
 
     const reference = verified.meta.idempotencyKey || verified.reference;
     if (!reference) {
+      // Malformed payload — no amount of redelivery adds the reference.
       throw new AppError(
         "BAD_REQUEST",
         "Missing payment reference in Flutterwave transaction metadata",
@@ -104,7 +109,14 @@ export async function POST(request: Request) {
     });
 
     if (!result.ok) {
-      throw new AppError("BAD_REQUEST", result.error, { reference });
+      // Retryable faults earn a 5xx so Flutterwave redelivers; deliberate
+      // rejections (underpayment, gateway mismatch) get a 4xx so it stops,
+      // since those are already alerting an admin for a human decision.
+      throw new AppError(
+        result.retryable ? "BAD_GATEWAY" : "BAD_REQUEST",
+        result.error,
+        { reference },
+      );
     }
 
     return NextResponse.json(

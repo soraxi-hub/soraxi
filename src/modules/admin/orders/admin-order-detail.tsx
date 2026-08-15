@@ -105,9 +105,14 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
         </div>
         <div className="flex items-center gap-3">
           {getPaymentBadge(order.paymentStatus)}
-          {order.flutterwaveReference && (
+          {order.gatewayReference && (
             <span className="text-xs text-muted-foreground font-mono">
-              FLW: {order.flutterwaveReference}
+              {/* Label the actual provider — "FLW" was hardcoded and would
+                  have mislabelled every Paystack payment. */}
+              {order.paymentProvider
+                ? `${order.paymentProvider.toUpperCase()}: `
+                : ""}
+              {order.gatewayReference}
             </span>
           )}
         </div>

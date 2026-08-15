@@ -10,20 +10,11 @@ import type React from "react";
  * Order date, store count and total live in the page header, not here.
  */
 
-import {
-  CreditCard,
-  CheckCircle2,
-  Truck,
-  MapPin,
-  ShoppingBag,
-  Clock,
-  Store,
-} from "lucide-react";
+import { Truck, MapPin, Store } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AppRouter } from "@/trpc/routers/_app";
 import type { inferProcedureOutput } from "@trpc/server";
 import { DeliveryType } from "@/enums";
-import { capitalizeFirstLetter } from "@/lib/utils";
 
 type Output = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 
@@ -58,59 +49,7 @@ const DetailItem = ({
 
 export function OrderSummary({ orderDetails }: OrderSummaryProps) {
   return (
-    // Order date, store count and total are no longer repeated here — the page
-    // header now carries all three. See `order-header.tsx`.
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <Card className="bg-muted/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" />
-            Order Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <DetailItem
-            icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            label="Order Date"
-            value={new Date(orderDetails.createdAt).toLocaleString()}
-          />
-          <DetailItem
-            icon={null}
-            label="Total Amount"
-            value={orderDetails.formattedTotalAmount}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="bg-muted/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            Payment Info
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {/* <DetailItem
-            icon={<CreditCard className="h-4 w-4 text-muted-foreground" />}
-            label="Payment Method"
-            value={
-              capitalizeFirstLetter(
-                orderDetails.paymentMethod?.replace("_", " ") ?? "N/A"
-              ) || "N/A"
-            }
-          /> */}
-          <DetailItem
-            icon={<CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
-            label="Payment Status"
-            value={
-              capitalizeFirstLetter(
-                orderDetails.paymentStatus?.replace("_", " ") ?? "N/A",
-              ) || "N/A"
-            }
-          />
-        </CardContent>
-      </Card>
-
       <Card className="bg-muted/50 md:col-span-2">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">

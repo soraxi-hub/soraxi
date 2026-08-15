@@ -248,7 +248,8 @@ export const paymentRouter = createTRPCRouter({
           bankName: z.string().min(1),
           accountNumber: z.string().regex(/^\d{10}$/, "Enter 10 digits"),
           accountHolderName: z.string().min(1),
-          bankCode: z.number(),
+          // String: leading zeros in provider bank codes are significant.
+          bankCode: z.string().min(1),
           bankId: z.number(),
         }),
       }),
@@ -313,7 +314,8 @@ export const paymentRouter = createTRPCRouter({
           bankName: z.string(),
           accountNumber: z.string(),
           accountHolderName: z.string(),
-          bankCode: z.number(),
+          // String: leading zeros in provider bank codes are significant.
+          bankCode: z.string().min(1),
           bankId: z.number(),
         }),
       }),

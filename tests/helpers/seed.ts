@@ -12,7 +12,7 @@ import {
 } from "@/lib/db/models/platform-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
-  FlutterwavePaymentStatus,
+  GatewayPaymentStatus,
   LedgerEntityType,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
@@ -162,9 +162,10 @@ export async function seedPaidOrder(params: {
       {
         customerId,
         orderId,
-        flutterwaveReference: `TEST-REF-${orderId.toString()}`,
-        flutterwaveTransactionId: Math.floor(Math.random() * 1_000_000_000),
-        flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,
+        paymentProvider: PaymentGateway.Flutterwave,
+        gatewayReference: `TEST-REF-${orderId.toString()}`,
+        gatewayTransactionId: `TEST-TXN-${orderId.toString()}`,
+        gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
         totalAmount,
         suborderBreakdowns: suborders.map((s) => {
           const { details } = calculateCommission(s.grossAmount);
@@ -190,7 +191,7 @@ export async function seedPaidOrder(params: {
       orderId,
       entityId: customerId,
       entityType: LedgerEntityType.CUSTOMER,
-      flutterwaveReference: `TEST-REF-${orderId.toString()}`,
+      gatewayReference: `TEST-REF-${orderId.toString()}`,
       session,
     });
 

@@ -63,8 +63,8 @@ export interface WritePaymentReceivedParams {
   totalAmount: number;
   /** _id of the order (used as the referenceId). */
   orderId: mongoose.Types.ObjectId;
-  /** Flutterwave transaction reference — stored in metadata. */
-  flutterwaveReference: string;
+  /** Our payment reference (cart idempotency key) — stored in metadata. */
+  gatewayReference: string;
   /** The id of the entityType that made the payment */
   entityId: mongoose.Types.ObjectId;
   /** Is it a customer or vendor */
@@ -494,7 +494,7 @@ export class JournalEntryWriter {
     const {
       totalAmount,
       orderId,
-      flutterwaveReference,
+      gatewayReference,
       session,
       entityId,
       entityType,
@@ -523,7 +523,7 @@ export class JournalEntryWriter {
         referenceType: LedgerReferenceType.SUBORDER,
         referenceId: orderId,
         description: `Customer payment received for order ${orderId}`,
-        metadata: { flutterwaveReference, orderId },
+        metadata: { gatewayReference, orderId },
       },
       lines,
       session,

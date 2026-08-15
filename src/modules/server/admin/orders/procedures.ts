@@ -206,7 +206,8 @@ export const adminOrdersRouter = createTRPCRouter({
               })),
             };
           }),
-          flutterwaveReference: transactionRecord?.flutterwaveReference ?? null,
+          gatewayReference: transactionRecord?.gatewayReference ?? null,
+          paymentProvider: transactionRecord?.paymentProvider ?? null,
         };
       } catch (error) {
         if (isReportableError(error)) {

@@ -17,7 +17,7 @@ import { creditVendorPendingBalance } from "@/lib/db/models/vendor-wallet.model"
 import { creditPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
 import {
-  FlutterwavePaymentStatus,
+  GatewayPaymentStatus,
   LedgerEntityType,
   SuborderFinancialStatus,
 } from "@/enums/financial.enums";
@@ -35,7 +35,8 @@ type CustomerInfo = {
 type UpdateOrderRecordProps = {
   orderId: string;
   idempotencyKey: string;
-  transactionId: number;
+  /** The provider's transaction id, verbatim. Never coerced to a number. */
+  transactionId: string;
   session: mongoose.ClientSession | null;
   paymentMethod: string;
   customerInfo: CustomerInfo;
@@ -250,8 +251,6 @@ export class ProcessOrder {
         order._id,
         error,
       );
-      // NOTE: Same principle applies — don't fail the order.
-      // Flag for admin review and retry queue (covered in Layer 4: Background Jobs)
       if (isReportableError(error)) {
         try {
           await sendTelegramMessage(
@@ -263,6 +262,31 @@ export class ProcessOrder {
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
+
+      /**
+       * Fail the order rather than swallow this.
+       *
+       * The previous behaviour logged, alerted, then fell through to
+       * `ok: true` — so the order committed as Paid with no transaction
+       * record, no journal entries and no vendor wallet credit, while the
+       * webhook answered 200 and the gateway never redelivered. That state is
+       * invisible to the entire reconciliation suite, because nothing was
+       * written: there is no imbalance to find, only an absence. The platform
+       * would hold the customer's money with no ledger trace of it.
+       *
+       * Returning `ok: false` aborts the surrounding transaction, so the order
+       * stays Pending and the caller reports a retryable failure — the webhook
+       * is redelivered, and the cron sweep catches anything the webhook misses.
+       * An unrecordable payment therefore surfaces as an unconfirmed order,
+       * which is recoverable, rather than a paid one with no financial record,
+       * which is not.
+       */
+      return {
+        ok: false,
+        error:
+          "Payment verified but financial records could not be written. " +
+          "The order remains unconfirmed and will be retried.",
+      };
     }
 
     // Send notifications
@@ -299,8 +323,8 @@ export class ProcessOrder {
 
   private async processPaymentConfirmedFinancials(
     order: IOrder,
-    flutterwaveReference: string,
-    flutterwaveTransactionId: number,
+    gatewayReference: string,
+    gatewayTransactionId: string,
     session: mongoose.ClientSession | null,
     collectionFeeKobo: number,
     provider: PaymentGateway,
@@ -361,17 +385,18 @@ export class ProcessOrder {
 
     // ----------------------------------------------------------------
     // STEP 2: Create the Transaction Record
-    // One record per order linking Flutterwave to all suborder breakdowns
+    // One record per order linking the gateway payment to all suborder
+    // breakdowns. Every field here is provider-neutral — the id is stored as
+    // the string the provider issued, never coerced to a number.
     // ----------------------------------------------------------------
     await createTransactionRecord(
       {
         customerId: order.userId,
         orderId: order._id,
         paymentProvider: provider,
-        gatewayTransactionId: String(flutterwaveTransactionId),
-        flutterwaveReference,
-        flutterwaveTransactionId,
-        flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,
+        gatewayReference,
+        gatewayTransactionId,
+        gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
         totalAmount: order.totalAmount,
         suborderBreakdowns,
       },
@@ -396,7 +421,7 @@ export class ProcessOrder {
       orderId: order._id,
       entityId: order.userId,
       entityType: LedgerEntityType.CUSTOMER,
-      flutterwaveReference,
+      gatewayReference,
       session,
     });
 

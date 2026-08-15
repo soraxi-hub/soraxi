@@ -1,11 +1,11 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { AdminGuard } from "@/domain/admin/admin-guard";
 import {
-  FlutterwavePaymentStatus,
+  GatewayPaymentStatus,
   LedgerAccountType,
   LedgerEntryCategory,
   LedgerEntryType,
@@ -249,7 +249,6 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
             getProductModel(),
           ]);
 
-        // ─────────────────────────────────────────────────────────────────
         // 1. ACTIVE SELLER COUNT
         //
         // Definition: stores that are Active AND have at least one visible,
@@ -261,7 +260,7 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
         //
         // For "all_time", we drop the date filter on products and return the
         // full active seller count.
-        // ─────────────────────────────────────────────────────────────────
+        //
         const activeStoreIds = await Store.distinct("_id", {
           status: StoreStatusEnum.Active,
         });
@@ -279,58 +278,10 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
         );
         const activeSellerCount = activeSellerIds.length;
 
-        // ─────────────────────────────────────────────────────────────────
-        // 2. TOTAL PLATFORM GMV
-        //
-        // ─── GMV (corrected) ──────────────────────────────────────────────────────
-        // Source: JournalEntry category PAYMENT_RECEIVED → LedgerLine DEBIT on
-        // PLATFORM_ESCROW. One journal entry per order, so count = transaction count.
-        //
-        // We do NOT query LedgerLine by accountType + direction because PLATFORM_ESCROW
-        // is also debited by PAYOUT_COMPLETED and credited by GATEWAY_FEE and
-        // GATEWAY_FEE_REVERSAL — none of which are GMV events.
-        // ──────────────────────────────────────────────────────────────────────────
-
-        // Same result but slow since there is lookup. Use primarily for reconciliation
-        // const gmvPipeline = [
-        //   {
-        //     $match: {
-        //       category: LedgerEntryCategory.PAYMENT_RECEIVED,
-        //       ...dateFilter,
-        //     },
-        //   },
-        //   {
-        //     $lookup: {
-        //       from: "ledgerlines",
-        //       let: { jId: "$_id" },
-        //       pipeline: [
-        //         {
-        //           $match: {
-        //             $expr: { $eq: ["$journalId", "$$jId"] },
-        //             accountType: LedgerAccountType.PLATFORM_ESCROW,
-        //             type: LedgerEntryType.DEBIT, // ← DEBIT, not CREDIT
-        //           },
-        //         },
-        //       ],
-        //       as: "escrowLines",
-        //     },
-        //   },
-        //   {
-        //     $group: {
-        //       _id: null,
-        //       totalGmvKobo: {
-        //         $sum: { $arrayElemAt: ["$escrowLines.amount", 0] },
-        //       },
-        //     },
-        //   },
-        // ];
-        // const gmvResult = await JournalEntry.aggregate(gmvPipeline);
-
-        // Same result but faster since there is no lookup
         const gmvResult = await TransactionRecord.aggregate([
           {
             $match: {
-              flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,
+              gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
               ...dateFilter,
             },
           },
@@ -344,30 +295,30 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
 
         const totalGmvKobo: number = gmvResult[0]?.totalGmvKobo ?? 0;
 
-        // ─────────────────────────────────────────────────────────────────
+        //
         // 3. TOTAL TRANSACTION COUNT
         //
-        // A transaction is counted only when Flutterwave confirms SUCCESSFUL
+        // A transaction is counted only when its gateway confirms SUCCESSFUL
         // payment. PENDING and FAILED records are excluded.
-        // ─────────────────────────────────────────────────────────────────
+        //
         const transactionCount = await TransactionRecord.countDocuments({
-          flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,
+          gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
           ...dateFilter,
         });
 
-        // ─────────────────────────────────────────────────────────────────
+        //
         // 4. REFUND VOLUME (count + value)
         //
-        // Step A — find all JournalEntry IDs with category REFUND_ISSUED
+        // Step A find all JournalEntry IDs with category REFUND_ISSUED
         //          within the time window. The date filter is applied to the
         //          JournalEntry, not the LedgerLine, because the journal entry
         //          is the event record; ledger lines inherit its timestamp.
         //
-        // Step B — sum LedgerLine amounts for those journal IDs where the
+        // Step B sum LedgerLine amounts for those journal IDs where the
         //          line is a CREDIT on CUSTOMER_REFUND_PAYABLE (the debit
         //          side hits VENDOR_AVAILABLE or PLATFORM_ESCROW, so we only
         //          need one side to avoid double-counting).
-        // ─────────────────────────────────────────────────────────────────
+        //
         const refundJournalEntries = await JournalEntry.find({
           category: LedgerEntryCategory.REFUND_ISSUED,
           ...dateFilter,
@@ -396,9 +347,9 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
           refundValueKobo = refundValueResult[0]?.totalRefundKobo ?? 0;
         }
 
-        // ─────────────────────────────────────────────────────────────────
+        //
         // Response
-        // ─────────────────────────────────────────────────────────────────
+        //
         return {
           success: true,
           data: {
@@ -430,7 +381,7 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
               totalTransactionCount: transactionCount,
 
               /**
-               * Refund metrics — both count and value in Kobo.
+               * Refund metrics both count and value in Kobo.
                */
               refunds: {
                 count: refundCount,
@@ -581,7 +532,7 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
         const transactionBreakdown = await TransactionRecord.aggregate([
           {
             $match: {
-              flutterwaveStatus: FlutterwavePaymentStatus.SUCCESSFUL,
+              gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
               ...dateFilter,
             },
           },

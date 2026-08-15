@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { TRPCError } from "@trpc/server";
@@ -122,7 +122,8 @@ export const adminRefundRouter = createTRPCRouter({
                     name: `${customer.firstName} ${customer.lastName}`.trim(),
                   }
                 : null,
-              flutterwaveTransactionId: refund.flutterwaveTransactionId,
+              gatewayTransactionId: refund.gatewayTransactionId,
+              paymentProvider: refund.paymentProvider ?? null,
               flutterwaveRefundId: refund.flutterwaveRefundId ?? null,
               failureReason: refund.failureReason ?? null,
               createdAt: refund.createdAt,
@@ -230,7 +231,8 @@ export const adminRefundRouter = createTRPCRouter({
                   phoneNumber: customer.phoneNumber,
                 }
               : null,
-            flutterwaveTransactionId: refund.flutterwaveTransactionId,
+            gatewayTransactionId: refund.gatewayTransactionId,
+            paymentProvider: refund.paymentProvider ?? null,
             flutterwaveRefundId: refund.flutterwaveRefundId ?? null,
             manualReference: refund.manualReference ?? null,
             failureReason: refund.failureReason ?? null,
@@ -361,7 +363,7 @@ export const adminRefundRouter = createTRPCRouter({
 
           if (!claimed) {
             throw new Error(
-              "Refund is no longer in INITIATED state — it may have been finalized by a concurrent request.",
+              "Refund is no longer in INITIATED state. It may have been finalized by a concurrent request.",
             );
           }
 
@@ -376,7 +378,7 @@ export const adminRefundRouter = createTRPCRouter({
         return {
           success: true,
           message:
-            "Refund marked as failed. The refund liability remains open — a follow-up action will be required.",
+            "Refund marked as failed. The refund liability remains open, a follow-up action will be required.",
         };
       } catch (error) {
         if (isReportableError(error)) {
