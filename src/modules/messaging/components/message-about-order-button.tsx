@@ -19,19 +19,50 @@ interface MessageAboutOrderButtonProps {
   storeId?: string;
   label?: string;
   className?: string;
+  /**
+   * Render as a bare icon in a row of actions rather than a labelled button.
+   * The label becomes the accessible name, so the action stays announced.
+   */
+  iconOnly?: boolean;
 }
 
 function ActionButton({
   isPending,
   label,
   className,
+  iconOnly,
   onClick,
 }: {
   isPending: boolean;
   label: string;
   className?: string;
+  iconOnly?: boolean;
   onClick: () => void;
 }) {
+  if (iconOnly) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onClick}
+        disabled={isPending}
+        title={label}
+        aria-label={label}
+        className={cn(
+          "size-8 shrink-0 text-muted-foreground hover:text-soraxi-green",
+          className,
+        )}
+      >
+        {isPending ? (
+          <Spinner className="size-4" />
+        ) : (
+          <MessageSquare className="size-4" />
+        )}
+      </Button>
+    );
+  }
+
   return (
     <Button
       variant="outline"
@@ -61,10 +92,12 @@ function CustomerButton({
   subOrderId,
   label,
   className,
+  iconOnly,
 }: {
   subOrderId: string;
   label: string;
   className?: string;
+  iconOnly?: boolean;
 }) {
   const router = useRouter();
   const trpc = useTRPC();
@@ -85,6 +118,7 @@ function CustomerButton({
       isPending={openThread.isPending}
       label={label}
       className={className}
+      iconOnly={iconOnly}
       onClick={() => openThread.mutate({ subOrderId })}
     />
   );
@@ -95,11 +129,13 @@ function VendorButton({
   storeId,
   label,
   className,
+  iconOnly,
 }: {
   subOrderId: string;
   storeId: string;
   label: string;
   className?: string;
+  iconOnly?: boolean;
 }) {
   const router = useRouter();
   const trpc = useTRPC();
@@ -120,6 +156,7 @@ function VendorButton({
       isPending={openThread.isPending}
       label={label}
       className={className}
+      iconOnly={iconOnly}
       onClick={() => openThread.mutate({ subOrderId })}
     />
   );
@@ -141,6 +178,7 @@ export function MessageAboutOrderButton({
   storeId,
   label,
   className,
+  iconOnly,
 }: MessageAboutOrderButtonProps) {
   if (role === "vendor") {
     // Without a store id there is nowhere to navigate after opening the
@@ -153,6 +191,7 @@ export function MessageAboutOrderButton({
         storeId={storeId}
         label={label ?? "Message customer"}
         className={className}
+        iconOnly={iconOnly}
       />
     );
   }
@@ -162,6 +201,7 @@ export function MessageAboutOrderButton({
       subOrderId={subOrderId}
       label={label ?? "Message vendor"}
       className={className}
+      iconOnly={iconOnly}
     />
   );
 }
