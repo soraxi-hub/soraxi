@@ -17,7 +17,28 @@ interface GenericErrorProps {
   onRetry?: () => void;
 }
 
+const FALLBACK_MESSAGE = "Something went wrong on our end. Please try again.";
+
+/**
+ * Messages reaching this component come from the tRPC error formatter, which
+ * substitutes generic text for anything it cannot prove was written for a
+ * user. Errors thrown outside tRPC have no such guarantee, so a raw
+ * `Error.message` — a driver's, a library's — is never rendered here.
+ *
+ * The `ref` is a short correlation token matching a server log line. It gives
+ * the user something concrete to quote to support and gives support something
+ * to search, which is what the raw message was accidentally providing before.
+ */
 export function GenericError({ error, onRetry }: GenericErrorProps) {
+  const data = (error as TRPCClientErrorLike<AppRouter> | undefined)?.data as
+    | { ref?: string }
+    | undefined;
+
+  // Only trust a message that arrived through the tRPC pipeline; anything else
+  // is an unfiltered runtime error.
+  const message = data ? (error?.message ?? FALLBACK_MESSAGE) : FALLBACK_MESSAGE;
+  const ref = data?.ref;
+
   return (
     <div className="flex min-h-[400px] items-center justify-center p-4">
       <Card className="w-full max-w-md text-center">
@@ -27,10 +48,10 @@ export function GenericError({ error, onRetry }: GenericErrorProps) {
           </div>
           <CardTitle>Something Went Wrong</CardTitle>
           <CardDescription className="break-words text-wrap">
-            {error?.message || "An unexpected error occurred."}
+            {message}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <Button
             onClick={onRetry}
             className="w-full bg-soraxi-green-hover text-white hover:bg-soraxi-green-hover"
@@ -38,6 +59,13 @@ export function GenericError({ error, onRetry }: GenericErrorProps) {
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
+
+          {ref && (
+            <p className="text-xs text-muted-foreground">
+              If this keeps happening, quote reference{" "}
+              <span className="font-mono font-medium">{ref}</span> to support.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

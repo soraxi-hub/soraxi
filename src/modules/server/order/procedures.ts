@@ -51,7 +51,7 @@ export const orderRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Error in getByUserId procedure.");
+      throw handleTRPCError(error, "We couldn't load your orders.");
     }
   }),
 
@@ -84,7 +84,7 @@ export const orderRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Error in getByOrderId procedure.");
+        throw handleTRPCError(error, "We couldn't load this order.");
       }
     }),
 
@@ -189,7 +189,7 @@ export const orderRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           error,
-          "Error in customerConfirmedDelivery procedure.",
+          "We couldn't confirm your delivery.",
         );
       }
     }),

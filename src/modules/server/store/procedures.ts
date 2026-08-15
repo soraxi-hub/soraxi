@@ -50,7 +50,7 @@ export const storeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Error in getById procedure.");
+        throw handleTRPCError(error, "We couldn't load this store.");
       }
     }),
 
@@ -135,7 +135,10 @@ export const storeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Error in getOnboardingDetails procedure.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load your onboarding details.",
+        );
       }
     }),
 });
