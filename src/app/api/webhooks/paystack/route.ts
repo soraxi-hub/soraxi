@@ -60,6 +60,8 @@ export async function POST(request: Request) {
     // pre-verification round trip is needed to find the order.
     const reference = requestBody?.data?.reference;
     if (!reference) {
+      // Malformed payload — redelivery cannot add a reference that was never
+      // sent, so tell Paystack to stop rather than retry forever.
       throw new AppError(
         "BAD_REQUEST",
         "Transaction reference missing in Paystack webhook payload",
@@ -72,7 +74,14 @@ export async function POST(request: Request) {
     });
 
     if (!result.ok) {
-      throw new AppError("BAD_REQUEST", result.error, { reference });
+      // Retryable faults (Paystack's API unreachable mid-verification) earn a
+      // 5xx so the webhook is redelivered; deliberate rejections get a 4xx so
+      // Paystack stops, since those already alert an admin for a decision.
+      throw new AppError(
+        result.retryable ? "BAD_GATEWAY" : "BAD_REQUEST",
+        result.error,
+        { reference },
+      );
     }
 
     return NextResponse.json(

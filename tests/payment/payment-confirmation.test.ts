@@ -91,6 +91,9 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     });
 
     expect(result.ok).toBe(false);
+    // Permanent: the order is created before the payment link is issued, so a
+    // webhook can never outrun it. Redelivery would never find the order.
+    if (!result.ok) expect(result.retryable).toBe(false);
     // No gateway call is made for an unknown reference.
     expect(spy).not.toHaveBeenCalled();
   });
@@ -183,7 +186,7 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Paid);
   });
 
-  it("reports an error, without writing, when the gateway cannot be reached", async () => {
+  it("reports a RETRYABLE error, without writing, when the gateway cannot be reached", async () => {
     await seedPendingOrder({ reference: REFERENCE });
     stubVerify(null);
 
@@ -192,6 +195,10 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     });
 
     expect(result.ok).toBe(false);
+    // The webhook routes turn this into a 5xx so the gateway redelivers.
+    // Marking it non-retryable would answer 4xx and silently strand a real
+    // payment whenever the gateway has a blip.
+    if (!result.ok) expect(result.retryable).toBe(true);
     await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
   });
 
@@ -216,6 +223,70 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     );
   });
 
+  it("rejects a verification whose metadata names a different order", async () => {
+    // Metadata is provider-round-tripped data. Trusting it over the order
+    // resolved from the reference would settle an order this call never
+    // verified, and outside the terminal-state guard checked above.
+    const { orderId: realOrderId } = await seedPendingOrder({
+      reference: REFERENCE,
+    });
+    const otherOrder = await seedPendingOrder({ reference: "other-reference" });
+
+    stubVerify(
+      verificationResult({
+        meta: {
+          orderId: otherOrder.orderId.toString(),
+          idempotencyKey: REFERENCE,
+          email: "student@school.edu.ng",
+          phoneNumber: "+2348012345678",
+          fullName: "Ada Obi",
+        },
+      }),
+    );
+
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/order mismatch/i);
+      expect(result.retryable).toBe(false);
+    }
+
+    // Neither order may be touched.
+    await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
+    await expect(readStatus("other-reference")).resolves.toBe(
+      PaymentStatus.Pending,
+    );
+    expect(realOrderId.toString()).not.toBe(otherOrder.orderId.toString());
+  });
+
+  it("proceeds past the mismatch guard when metadata agrees", async () => {
+    const { orderId } = await seedPendingOrder({ reference: REFERENCE });
+
+    stubVerify(
+      verificationResult({
+        meta: {
+          orderId: orderId.toString(),
+          idempotencyKey: REFERENCE,
+          email: "student@school.edu.ng",
+          phoneNumber: "+2348012345678",
+          fullName: "Ada Obi",
+        },
+      }),
+    );
+
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    // Matching ids must not trip the guard. This order has no sub-orders to
+    // settle, so the write itself still fails downstream — what matters here
+    // is that it failed for some other reason than a mismatch.
+    if (!result.ok) expect(result.error).not.toMatch(/order mismatch/i);
+  });
+
   it("rejects a successful verification whose metadata has no orderId", async () => {
     await seedPendingOrder({ reference: REFERENCE });
     stubVerify(verificationResult()); // meta.orderId is "" in the fixture
@@ -225,6 +296,9 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     });
 
     expect(result.ok).toBe(false);
+    // Malformed, not transient — redelivering the same payload changes
+    // nothing, so the routes answer 4xx and the gateway stops.
+    if (!result.ok) expect(result.retryable).toBe(false);
     await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
   });
 });

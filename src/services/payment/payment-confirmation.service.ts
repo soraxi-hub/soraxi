@@ -9,7 +9,26 @@ import { NormalizedPaymentStatus } from "@/domain/payment/gateways/gateway-inter
 
 export type PaymentConfirmationOutcome =
   | { ok: true; status: PaymentStatus; message?: string }
-  | { ok: false; error: string; status?: PaymentStatus };
+  | {
+      ok: false;
+      error: string;
+      /**
+       * Whether calling again could plausibly succeed.
+       *
+       * Webhook routes map this onto their HTTP status, which is what decides
+       * whether the gateway redelivers: a 5xx earns a retry, a 4xx tells the
+       * gateway to give up permanently. Getting it wrong is costly in both
+       * directions — a 4xx on a transient outage silently drops a real
+       * payment, while a 5xx on a rejected one has the gateway redeliver
+       * forever against something that can never succeed.
+       *
+       * True only for upstream/infrastructure faults. Deliberate rejections
+       * (underpayment, gateway mismatch, malformed metadata) are false: they
+       * need a human, not another delivery attempt.
+       */
+      retryable: boolean;
+      status?: PaymentStatus;
+    };
 
 /**
  * The single path through which a gateway's verdict becomes financial truth.
@@ -64,7 +83,14 @@ export class PaymentConfirmationService {
       }>();
 
     if (!order) {
-      return { ok: false, error: `No order found for reference "${reference}".` };
+      // Not a race: the pending order is created before the payment link is
+      // ever issued, so a webhook cannot outrun it. An unknown reference is
+      // permanently unknown — redelivering will not conjure the order.
+      return {
+        ok: false,
+        error: `No order found for reference "${reference}".`,
+        retryable: false,
+      };
     }
 
     // Already settled — nothing to verify. This is what makes the webhook and
@@ -86,9 +112,12 @@ export class PaymentConfirmationService {
     });
 
     if (!verified) {
+      // The adapter already exhausted its own retries — the gateway is down,
+      // timing out, or erroring. Worth another delivery attempt later.
       return {
         ok: false,
         error: "Could not retrieve transaction data from the gateway.",
+        retryable: true,
       };
     }
 
@@ -133,6 +162,7 @@ export class PaymentConfirmationService {
             throw new RejectedPayment({
               ok: false,
               error: result.error ?? "Failed to update order",
+              retryable: false,
             });
           }
 
@@ -143,17 +173,35 @@ export class PaymentConfirmationService {
         // Successful — the provider and charged-amount guards inside
         // updateOrderRecordToSuccessState decide whether it is really safe to
         // mark this order paid.
-        const { orderId, idempotencyKey } = verified.meta;
+        const { orderId: metadataOrderId, idempotencyKey } = verified.meta;
 
-        if (!orderId) {
+        if (!metadataOrderId) {
           throw new RejectedPayment({
             ok: false,
             error: "Missing order reference in transaction metadata.",
+            retryable: false,
+          });
+        }
+
+        // Settle the order we resolved from the reference and checked was
+        // Pending — never the one the gateway names. Metadata is
+        // provider-round-tripped data; if it disagreed, we would both write to
+        // an order this call never verified and escape the terminal-state
+        // guard above, which was evaluated against a different document.
+        const loadedOrderId = order._id.toString();
+
+        if (metadataOrderId !== loadedOrderId) {
+          throw new RejectedPayment({
+            ok: false,
+            error:
+              `Order mismatch for reference "${reference}": metadata names ` +
+              `order ${metadataOrderId} but the reference resolves to ${loadedOrderId}.`,
+            retryable: false,
           });
         }
 
         const result = await processOrder.updateOrderRecordToSuccessState({
-          orderId,
+          orderId: loadedOrderId,
           idempotencyKey,
           transactionId: Number(verified.gatewayTransactionId),
           session,
@@ -169,9 +217,13 @@ export class PaymentConfirmationService {
         });
 
         if (!result.ok) {
+          // Covers the deliberate rejections — gateway mismatch, underpayment,
+          // currency mismatch — which alert an admin and need a human
+          // decision. Redelivery would only repeat the same rejection.
           throw new RejectedPayment({
             ok: false,
             error: result.error ?? "Failed to update order",
+            retryable: false,
           });
         }
 
