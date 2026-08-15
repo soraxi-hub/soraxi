@@ -103,7 +103,9 @@ const getCachedFeaturedProducts = unstable_cache(
       }))
       .filter((p) => p.isVerifiedProduct);
 
-    return JSON.parse(JSON.stringify(formattedProducts)) as typeof formattedProducts;
+    return JSON.parse(
+      JSON.stringify(formattedProducts),
+    ) as typeof formattedProducts;
   },
   ["home:getFeaturedProducts"],
   { revalidate: REVALIDATE_SECONDS },
