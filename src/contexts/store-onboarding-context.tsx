@@ -51,14 +51,6 @@ const initialSteps: OnboardingStep[] = [
     isActive: true,
   },
   {
-    id: "business-info",
-    title: "Business Information",
-    description: "Provide your business details and documents",
-    path: "/dashboard/store/onboarding/business-info",
-    isCompleted: false,
-    isActive: false,
-  },
-  {
     id: "shipping",
     title: "Shipping Methods",
     description: "Configure your shipping options",
@@ -94,7 +86,7 @@ const initialState: OnboardingState = {
 // Reducer function to manage onboarding state transitions
 function onboardingReducer(
   state: OnboardingState,
-  action: OnboardingAction
+  action: OnboardingAction,
 ): OnboardingState {
   switch (action.type) {
     case "SET_STORE_ID":
@@ -136,7 +128,7 @@ function onboardingReducer(
           ...state.progress,
           completedSteps,
           percentage: Math.round(
-            (completedSteps.length / state.steps.length) * 100
+            (completedSteps.length / state.steps.length) * 100,
           ),
         },
       };
@@ -172,7 +164,7 @@ interface OnboardingContextType {
   state: OnboardingState;
   updateData: <K extends keyof OnboardingData>(
     step: K,
-    data: Partial<OnboardingData[K]>
+    data: Partial<OnboardingData[K]>,
   ) => void;
   markStepCompleted: (stepId: string) => void;
   setCurrentStep: (stepIndex: number) => void;
@@ -184,7 +176,7 @@ interface OnboardingContextType {
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(
-  undefined
+  undefined,
 );
 
 // Provider component
@@ -198,11 +190,11 @@ export function StoreOnboardingProvider({
   const updateData = useCallback(
     <K extends keyof OnboardingData>(
       step: K,
-      data: Partial<OnboardingData[K]>
+      data: Partial<OnboardingData[K]>,
     ) => {
       dispatch({ type: "UPDATE_DATA", payload: { step, data } });
     },
-    []
+    [],
   );
 
   const markStepCompleted = useCallback((stepId: string) => {
@@ -287,7 +279,7 @@ export function useStoreOnboarding() {
   const context = useContext(OnboardingContext);
   if (context === undefined) {
     throw new Error(
-      "useStoreOnboarding must be used within a StoreOnboardingProvider"
+      "useStoreOnboarding must be used within a StoreOnboardingProvider",
     );
   }
   return context;

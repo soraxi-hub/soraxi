@@ -33,7 +33,7 @@ const steps = [
   },
   {
     title: "Address Information",
-    fields: ["address", "cityOfResidence", "stateOfResidence", "postalCode"],
+    fields: ["address", "cityOfResidence", "stateOfResidence"],
   },
   {
     title: "Contact & Security",
@@ -61,7 +61,6 @@ function SignUp() {
       phoneNumber: "",
       cityOfResidence: "",
       stateOfResidence: "",
-      postalCode: "",
     },
   });
 
@@ -76,7 +75,6 @@ function SignUp() {
       | "phoneNumber"
       | "cityOfResidence"
       | "stateOfResidence"
-      | "postalCode"
     >;
     const isValid = await form.trigger(fields);
     if (isValid) setCurrentStep((prev) => Math.min(prev + 1, steps.length));
@@ -227,48 +225,42 @@ function SignUp() {
                 {/* Step 2 */}
                 {currentStep === 2 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      "address",
-                      "cityOfResidence",
-                      "stateOfResidence",
-                      "postalCode",
-                    ].map((field) => (
-                      <FormField
-                        key={field}
-                        control={form.control}
-                        name={
-                          field as
-                            | "address"
-                            | "cityOfResidence"
-                            | "stateOfResidence"
-                            | "postalCode"
-                        }
-                        render={({ field }) => (
-                          <FormItem
-                          // className={
-                          //   field.name === "address" ? "md:col-span-2" : ""
-                          // }
-                          >
-                            <FormControl>
-                              <Input
-                                placeholder={
-                                  field.name === "address"
-                                    ? "Street Address"
-                                    : field.name === "cityOfResidence"
-                                      ? "City"
-                                      : field.name === "stateOfResidence"
-                                        ? "State"
-                                        : "Postal Code"
-                                }
-                                className={inputClass}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ))}
+                    {["address", "cityOfResidence", "stateOfResidence"].map(
+                      (field) => (
+                        <FormField
+                          key={field}
+                          control={form.control}
+                          name={
+                            field as
+                              | "address"
+                              | "cityOfResidence"
+                              | "stateOfResidence"
+                          }
+                          render={({ field }) => (
+                            <FormItem
+                            // className={
+                            //   field.name === "address" ? "md:col-span-2" : ""
+                            // }
+                            >
+                              <FormControl>
+                                <Input
+                                  placeholder={
+                                    field.name === "address"
+                                      ? "Street Address"
+                                      : field.name === "cityOfResidence"
+                                        ? "City"
+                                        : "State"
+                                  }
+                                  className={inputClass}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ),
+                    )}
                   </div>
                 )}
 

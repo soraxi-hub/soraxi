@@ -18,7 +18,6 @@ type UpdateData = Partial<
     IStore,
     | "name"
     | "description"
-    | "businessInfo"
     | "shippingMethods"
     | "payoutAccounts"
     | "agreedToTermsAt"
@@ -63,15 +62,6 @@ export async function POST(request: NextRequest) {
     if (data.profile) {
       updateData.name = data.profile.name;
       updateData.description = data.profile.description;
-    }
-
-    if (data.businessInfo) {
-      updateData.businessInfo = {
-        type: data.businessInfo.type,
-        businessName: data.businessInfo.businessName,
-        registrationNumber: data.businessInfo.registrationNumber,
-        documentUrls: data.businessInfo.documentUrls || [],
-      };
     }
 
     if (data.shipping && Array.isArray(data.shipping)) {

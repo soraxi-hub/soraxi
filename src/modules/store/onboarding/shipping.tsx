@@ -8,7 +8,7 @@ import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 
 /**
  * Shipping Methods Onboarding Page
- * Third step in the onboarding process - configures shipping options
+ * Second step in the onboarding process - configures shipping options
  */
 export default function ShippingPage({ storeId }: { storeId: string }) {
   const router = useRouter();
@@ -16,12 +16,12 @@ export default function ShippingPage({ storeId }: { storeId: string }) {
 
   useEffect(() => {
     // Set current step when component mounts
-    setCurrentStep(2);
+    setCurrentStep(1);
   }, [setCurrentStep]);
 
   /**
    * Handle navigation to next step
-   * Redirects to payout setup page
+   * Redirects to the terms page
    */
   const handleNext = () => {
     router.push(`/store/onboarding/${storeId}/terms`);
@@ -29,10 +29,10 @@ export default function ShippingPage({ storeId }: { storeId: string }) {
 
   /**
    * Handle navigation to previous step
-   * Redirects back to business information page
+   * Redirects back to the store profile page
    */
   const handleBack = () => {
-    router.push(`/store/onboarding/${storeId}/business-info`);
+    router.push(`/store/onboarding/${storeId}/profile`);
   };
 
   return (

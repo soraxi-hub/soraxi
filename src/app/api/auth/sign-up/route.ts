@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
     phoneNumber,
     cityOfResidence,
     stateOfResidence,
-    postalCode,
   } = requestBody as {
     id: string;
     email: string;
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
     address: string;
     cityOfResidence: string;
     stateOfResidence: string;
-    postalCode: string;
     isVerified: boolean;
   };
 
@@ -54,7 +52,6 @@ export async function POST(request: NextRequest) {
       address,
       cityOfResidence,
       stateOfResidence,
-      postalCode,
       isVerified: false,
     };
     await connectToDatabase();

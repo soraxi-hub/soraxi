@@ -197,7 +197,6 @@ export const userRouter = createTRPCRouter({
         dbUser.address = input.address;
         dbUser.cityOfResidence = input.cityOfResidence;
         dbUser.stateOfResidence = input.stateOfResidence;
-        dbUser.postalCode = input.postalCode;
         // Empty string means "cleared" — store undefined so the field is simply
         // absent rather than an empty value the UI would have to special-case.
         dbUser.institution = input.institution?.trim() || undefined;

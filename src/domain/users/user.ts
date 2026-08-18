@@ -50,10 +50,6 @@ export class User implements IUserInfo {
     return this.props.stateOfResidence;
   }
 
-  get postalCode(): string {
-    return this.props.postalCode;
-  }
-
   get fullAddress(): string {
     return [this.address, this.city, this.state].filter(Boolean).join(", ");
   }
@@ -123,7 +119,6 @@ export class User implements IUserInfo {
       address: this.address,
       city: this.city,
       state: this.state,
-      postalCode: this.postalCode,
       fullAddress: this.fullAddress,
       isVerified: this.isVerified,
       institution: this.institution,

@@ -14,7 +14,6 @@ export interface IUserInfo {
   address: string;
   city: string;
   state: string;
-  postalCode: string;
   fullAddress: string;
   isVerified: boolean;
   followingStores: string[];
@@ -42,7 +41,6 @@ export type SignupUserContext = Pick<
   | "address"
   | "cityOfResidence"
   | "stateOfResidence"
-  | "postalCode"
 > & {
   /** Whether the email/phone has been verified; defaults to `false`. */
   isVerified?: boolean;
@@ -65,7 +63,6 @@ export type ProfileUserContext = Pick<
   | "address"
   | "cityOfResidence"
   | "stateOfResidence"
-  | "postalCode"
   | "isVerified"
   | "stores"
 >;

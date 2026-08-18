@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import { ProgressTracker } from "./ProgressTracker";
 import { toast } from "sonner";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
+import { pageCardLg } from "@/modules/store/components/page-card.styles";
 
 /**
  * Onboarding Layout Component
@@ -69,13 +77,15 @@ export function OnboardingLayout({
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Header */}
-            <div className="bg-card border border-border rounded-lg p-6 mb-6">
-              <div className="flex flex-col w-full justify-between gap-4">
+            <SoraxiCard className={`mb-6 ${pageCardLg}`}>
+              <SoraxiCardHeader className="flex flex-col w-full justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">
+                  <SoraxiCardTitle className="text-2xl font-bold">
                     {title}
-                  </h1>
-                  <p className="text-muted-foreground mt-1">{description}</p>
+                  </SoraxiCardTitle>
+                  <SoraxiCardDescription className="text-muted-foreground mt-1">
+                    {description}
+                  </SoraxiCardDescription>
                 </div>
                 <div className="flex items-center space-x-4 justify-between w-full">
                   {showBackButton && (
@@ -101,13 +111,13 @@ export function OnboardingLayout({
                     <span>Save Draft</span>
                   </Button>
                 </div>
-              </div>
-            </div>
+              </SoraxiCardHeader>
+            </SoraxiCard>
 
             {/* Form Content */}
-            <div className="bg-card border border-border rounded-lg p-6">
-              {children}
-            </div>
+            <SoraxiCard className={pageCardLg}>
+              <SoraxiCardContent>{children}</SoraxiCardContent>
+            </SoraxiCard>
           </div>
         </div>
       </div>

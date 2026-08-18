@@ -39,7 +39,6 @@ export interface PreparedPaymentData {
     city: string;
     state: string;
     address: string;
-    postal_code: string;
     userId: string;
     couponCode?: string | null;
     deliveryType: DeliveryType;
@@ -188,7 +187,6 @@ export class CheckoutService {
         city: this.userData.city,
         state: this.userData.state,
         address: this.userData.address,
-        postal_code: this.userData.postalCode,
         userId: this.userData.userId,
         couponCode: appliedCoupon?.code,
         deliveryType,

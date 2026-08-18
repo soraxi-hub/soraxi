@@ -23,13 +23,7 @@ const formDataSchema = z.object({
   email: z.string().email(),
   phone: z.string().min(7).max(14),
   institution: z.string().min(2).max(150),
-  cityOfApplicant: z.string().min(2).max(20),
-  stateOfApplicant: z.string().min(2).max(20),
   categoryId: z.string().min(1),
-  subCategory: z.string().max(100).optional(),
-  estimatedInventorySize: z.enum(["small", "medium", "large"]),
-  estimatedPriceMin: z.coerce.number().min(0),
-  estimatedPriceMax: z.coerce.number().min(0),
   isDropshipper: z.enum(["true", "false"]).transform((val) => val === "true"),
   cacNumber: z.string().max(50).optional(),
   instagramHandle: z.string().max(60).optional(),
@@ -69,12 +63,6 @@ export async function POST(request: NextRequest) {
 
     const validatedFields = formDataSchema.parse(rawFields);
 
-    // Build the price range object expected by the service
-    const estimatedPriceRange = {
-      min: validatedFields.estimatedPriceMin,
-      max: validatedFields.estimatedPriceMax,
-    };
-
     // 3. Extract uploaded product sample files
     const productSampleFiles = formData.getAll("productSamples") as File[];
     if (productSampleFiles.length === 0) {
@@ -91,20 +79,15 @@ export async function POST(request: NextRequest) {
     const serviceInput = {
       submittedBy,
       institution: validatedFields.institution,
-      cityOfApplicant: validatedFields.cityOfApplicant,
-      stateOfApplicant: validatedFields.stateOfApplicant,
       businessName: validatedFields.businessName,
       ownerName: validatedFields.ownerName,
       email: validatedFields.email,
       phone: validatedFields.phone,
       categoryId: validatedFields.categoryId,
-      subCategory: validatedFields.subCategory,
       productSamples: productSampleFiles,
       cacNumber: validatedFields.cacNumber,
       instagramHandle: validatedFields.instagramHandle,
       otherProofUrl: validatedFields.otherProofUrl,
-      estimatedInventorySize: validatedFields.estimatedInventorySize,
-      estimatedPriceRange,
       isDropshipper: validatedFields.isDropshipper,
     };
 

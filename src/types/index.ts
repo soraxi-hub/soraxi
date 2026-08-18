@@ -45,7 +45,6 @@ export interface User {
   address: string;
   cityOfResidence: string;
   stateOfResidence: string;
-  postalCode: string;
   isVerified: boolean;
   followingStores: string[]; // ObjectIds as strings
   stores: {

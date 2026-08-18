@@ -43,7 +43,8 @@ function AdminWaitlistList() {
   const limit = 20;
 
   const { data, isLoading } = useQuery(
-    trpc.waitlist.getPendingApplications.queryOptions({
+    trpc.waitlist.getApplications.queryOptions({
+      status: statusFilter,
       page,
       limit,
     }),
@@ -52,6 +53,7 @@ function AdminWaitlistList() {
   const applications = data?.applications ?? [];
   const total = data?.total ?? 0;
   const totalPages = data?.pages ?? 1;
+  const statusCounts = data?.statusCounts;
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value as StatusFilter);
@@ -102,6 +104,8 @@ function AdminWaitlistList() {
       </div>
 
       {/* ── Summary row ────────────────────────────────────────────────────── */}
+      {/* Each tile doubles as a filter: the counts come back with every query,
+          so clicking one switches the table without a second round trip. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {(
           [
@@ -115,22 +119,26 @@ function AdminWaitlistList() {
             { label: "Rejected", key: "rejected", color: "text-red-600" },
           ] as const
         ).map((item) => (
-          <div
+          <button
             key={item.key}
-            className="rounded-xl border bg-card p-4 space-y-1"
+            type="button"
+            onClick={() => handleStatusChange(item.key)}
+            aria-pressed={statusFilter === item.key}
+            className={`rounded-xl border bg-card p-4 space-y-1 text-left transition-colors hover:border-soraxi-green/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-soraxi-green ${
+              statusFilter === item.key
+                ? "border-soraxi-green ring-1 ring-soraxi-green/30"
+                : ""
+            }`}
           >
             <p className="text-sm text-muted-foreground">{item.label}</p>
-            <p className={`text-2xl font-bold ${item.color}`}>
-              {isLoading ? (
+            <div className={`text-2xl font-bold ${item.color}`}>
+              {isLoading && !statusCounts ? (
                 <Skeleton className="h-8 w-12" />
-              ) : // summary counts not yet on this endpoint — show total for pending
-              item.key === statusFilter ? (
-                total
               ) : (
-                "—"
+                (statusCounts?.[item.key] ?? 0)
               )}
-            </p>
-          </div>
+            </div>
+          </button>
         ))}
       </div>
 
@@ -206,7 +214,9 @@ function AdminWaitlistList() {
                     <p className="text-sm text-muted-foreground">
                       {statusFilter === "pending"
                         ? "No pending applications to review"
-                        : `No ${statusFilter} applications`}
+                        : statusFilter === "all"
+                          ? "No applications have been submitted yet"
+                          : `No ${statusFilter} applications`}
                     </p>
                   </div>
                 </TableCell>

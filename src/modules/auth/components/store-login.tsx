@@ -47,7 +47,6 @@ type ApiResponse = {
       totalSteps: number;
       percentage: number;
       profileComplete: boolean;
-      businessInfoComplete: boolean;
       shippingComplete: boolean;
       termsComplete: boolean;
     };
@@ -153,14 +152,12 @@ export default function StoreLoginPage() {
    */
   const determineOnboardingStep = (onboarding: {
     profileComplete: boolean;
-    businessInfoComplete: boolean;
     shippingComplete: boolean;
     termsComplete: boolean;
-  }): "profile" | "business-info" | "shipping" | "terms" => {
+  }): "profile" | "shipping" | "terms" => {
     if (!onboarding) return "profile";
 
     if (!onboarding.profileComplete) return "profile";
-    if (!onboarding.businessInfoComplete) return "business-info";
     if (!onboarding.shippingComplete) return "shipping";
     if (!onboarding.termsComplete) return "terms";
 

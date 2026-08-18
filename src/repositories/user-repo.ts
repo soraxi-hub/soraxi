@@ -17,7 +17,6 @@ export class UserRepository {
       password: user.password,
       firstName: user.firstName,
       cityOfResidence: user.city,
-      postalCode: user.postalCode,
       stateOfResidence: user.state,
       phoneNumber: user.phoneNumber,
     });
@@ -83,7 +82,6 @@ export class UserRepository {
         "stores",
         "cityOfResidence",
         "stateOfResidence",
-        "postalCode",
         "isVerified",
         "stores",
       )

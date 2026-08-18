@@ -9,7 +9,6 @@ export type BuildStoreInput = {
   storeEmail: string;
   password: string;
   ownerId: string;
-  token: string;
 };
 
 export class StoreFactory {

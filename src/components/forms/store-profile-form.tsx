@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
+import { pageCardLg } from "@/modules/store/components/page-card.styles";
 // import { Upload, ImageIcon } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import type { StoreProfileData } from "@/types/onboarding";
@@ -92,51 +100,60 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
   // Watch form values for real-time updates
   const watchedValues = watch();
 
-  console.log("description", watchedValues.description);
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Store Name */}
-      <div className="space-y-2">
-        <Label htmlFor="name" className="text-sm font-medium">
-          Store Name *
-        </Label>
-        <Input
-          id="name"
-          {...register("name")}
-          placeholder="Enter your store name"
-          className={errors.name ? "border-destructive" : ""}
-        />
-        {errors.name && (
-          <p className="text-sm text-destructive">{errors.name.message}</p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          This will be displayed as your store&#39;s public name
-        </p>
-      </div>
+      <SoraxiCard className={pageCardLg}>
+        <SoraxiCardHeader>
+          <SoraxiCardTitle>Store Profile</SoraxiCardTitle>
+          <SoraxiCardDescription className="text-muted-foreground">
+            How your store introduces itself to buyers
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
 
-      {/* Store Description */}
-      <div className="space-y-2">
-        <Label htmlFor="description" className="text-sm font-medium">
-          Store Description *
-        </Label>
-        <Textarea
-          id="description"
-          {...register("description")}
-          placeholder="Describe what your store sells and what makes it unique"
-          rows={4}
-          className={errors.description ? "border-destructive" : ""}
-        />
-        {errors.description && (
-          <p className="text-sm text-destructive">
-            {errors.description.message}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Help customers understand what your store is about (
-          {watchedValues.description?.length || 0}/500 characters)
-        </p>
-      </div>
+        <SoraxiCardContent className="space-y-6">
+          {/* Store Name */}
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              Store Name *
+            </Label>
+            <Input
+              id="name"
+              {...register("name")}
+              placeholder="Enter your store name"
+              className={errors.name ? "border-destructive" : ""}
+            />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This will be displayed as your store&#39;s public name
+            </p>
+          </div>
+
+          {/* Store Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium">
+              Store Description *
+            </Label>
+            <Textarea
+              id="description"
+              {...register("description")}
+              placeholder="Describe what your store sells and what makes it unique"
+              rows={4}
+              className={errors.description ? "border-destructive" : ""}
+            />
+            {errors.description && (
+              <p className="text-sm text-destructive">
+                {errors.description.message}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Help customers understand what your store is about (
+              {watchedValues.description?.length || 0}/500 characters)
+            </p>
+          </div>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Logo Upload */}
       {/* <div className="space-y-2">
@@ -231,7 +248,7 @@ export function StoreProfileForm({ onNextAction }: StoreProfileFormProps) {
           disabled={!isValid}
           className="bg-soraxi-green hover:bg-soraxi-green/90 text-white"
         >
-          Continue to Business Info
+          Continue to Shipping
         </Button>
       </div>
     </form>

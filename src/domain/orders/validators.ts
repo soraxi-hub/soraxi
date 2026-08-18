@@ -135,7 +135,6 @@ export class OrderValidators {
       address: address.address,
       city: address.city,
       state: address.state,
-      postalCode: address.postalCode,
     };
 
     for (const [fieldName, fieldValue] of Object.entries(stringFields)) {

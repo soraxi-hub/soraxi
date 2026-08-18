@@ -9,8 +9,9 @@ export interface IVendorApplication {
   submittedBy: mongoose.Types.ObjectId;
   referenceId: string;
   status: VendorApplicationStatus;
-  stateOfApplicant: string;
-  cityOfApplicant: string;
+  /** Retired fields — kept optional so pre-existing applications stay readable. */
+  stateOfApplicant?: string;
+  cityOfApplicant?: string;
 
   businessName: string;
   ownerName: string;
@@ -27,8 +28,8 @@ export interface IVendorApplication {
   instagramHandle?: string;
   otherProofUrl?: string;
 
-  estimatedInventorySize: InventorySize;
-  estimatedPriceRange: { min: number; max: number };
+  estimatedInventorySize?: InventorySize;
+  estimatedPriceRange?: { min: number; max: number };
 
   isDropshipper: boolean;
 
@@ -62,14 +63,10 @@ const VendorApplicationSchema = new Schema<IVendorApplicationDocument>(
     email: { type: String, unique: true },
     phone: { type: String, required: true },
     institution: { type: String, required: true },
-    cityOfApplicant: {
-      type: String,
-      required: [true, "City of residence is required"],
-    },
-    stateOfApplicant: {
-      type: String,
-      required: [true, "State of residence is required"],
-    },
+    // Retired: no longer collected on the waitlist form. Left on the schema, and
+    // optional, so values on earlier applications remain readable.
+    cityOfApplicant: { type: String },
+    stateOfApplicant: { type: String },
     categoryId: {
       type: String,
       required: true,
@@ -82,14 +79,14 @@ const VendorApplicationSchema = new Schema<IVendorApplicationDocument>(
     instagramHandle: { type: String },
     otherProofUrl: { type: String },
 
+    // Retired alongside the location fields, for the same reason.
     estimatedInventorySize: {
       type: String,
       enum: ["small", "medium", "large"],
-      required: true,
     },
     estimatedPriceRange: {
-      min: { type: Number, required: true },
-      max: { type: Number, required: true },
+      min: { type: Number },
+      max: { type: Number },
     },
 
     isDropshipper: { type: Boolean, required: true },

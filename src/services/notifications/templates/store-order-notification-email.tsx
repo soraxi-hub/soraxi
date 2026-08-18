@@ -42,7 +42,6 @@ export function StoreOrderNotificationEmail({
   deliveryAddress?: {
     street: string;
     country: string;
-    postalCode: string;
     deliveryType: DeliveryType;
   };
 }) {
@@ -95,8 +94,6 @@ export function StoreOrderNotificationEmail({
                 Address: {deliveryAddress.street}
                 <br />
                 Country: {deliveryAddress.country}
-                <br />
-                Postal Code: {deliveryAddress.postalCode}
               </Text>
             )}
           </Section>

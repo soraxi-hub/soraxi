@@ -5,7 +5,6 @@ import {
   useStoreOnboarding,
 } from "@/contexts/store-onboarding-context";
 import { IShippingMethod } from "@/lib/db/models/store.model";
-import { StoreBusinessInfoEnum } from "@/enums";
 import axios from "axios";
 import { useEffect } from "react";
 
@@ -17,13 +16,6 @@ interface Store {
       description: string | undefined;
       logoUrl: string | undefined;
       bannerUrl: string | undefined;
-    };
-    "business-info": {
-      businessName?: string;
-      registrationNumber?: string;
-      taxId?: string;
-      type: StoreBusinessInfoEnum;
-      documentUrls?: string[];
     };
     shipping: IShippingMethod[];
     terms: Date | undefined;

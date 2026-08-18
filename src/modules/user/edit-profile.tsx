@@ -44,7 +44,6 @@ const EditProfile = () => {
       address: "",
       cityOfResidence: "",
       stateOfResidence: "",
-      postalCode: "",
       institution: "",
     },
   });
@@ -213,20 +212,6 @@ const EditProfile = () => {
                     <FormLabel>State</FormLabel>
                     <FormControl>
                       <Input placeholder="NY" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="postalCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Postal Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10001" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

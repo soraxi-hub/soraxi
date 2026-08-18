@@ -353,7 +353,10 @@ const OrderSchema = new Schema<IOrderDocument>(
     subOrders: [SubOrderSchema],
     totalAmount: { type: Number, required: [true, "Total amount is required"] },
     shippingAddress: {
-      postalCode: { type: String, required: [true, "Postal code is required"] },
+      // No longer collected — delivery is within UNICAL, so a postal code adds
+      // nothing to fulfilment. Kept on the schema, and optional, so the value
+      // on orders placed before we stopped asking is still readable.
+      postalCode: { type: String },
       address: { type: String, required: [true, "Address is required"] },
       city: { type: String, required: [true, "City is required"] },
       state: { type: String, required: [true, "State is required"] },

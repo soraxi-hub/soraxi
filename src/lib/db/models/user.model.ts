@@ -19,7 +19,6 @@ export interface IUser {
   address: string;
   cityOfResidence: string;
   stateOfResidence: string;
-  postalCode: string;
   isVerified: boolean;
   /**
    * The university this student belongs to, chosen from the INSTITUTIONS list.
@@ -99,10 +98,6 @@ const UserSchema = new Schema<IUserDocument>(
     stateOfResidence: {
       type: String,
       required: [true, "State of residence is required"],
-    },
-    postalCode: {
-      type: String,
-      required: [true, "Postal code is required"],
     },
     isVerified: {
       type: Boolean,
@@ -207,10 +202,10 @@ export async function getUserById(
   return lean
     ? User.findById(id)
         .select(
-          "firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode",
+          "firstName lastName email phoneNumber address cityOfResidence stateOfResidence institution",
         )
         .lean<IUser>()
     : User.findById(id).select(
-        "firstName lastName email phoneNumber address cityOfResidence stateOfResidence postalCode",
+        "firstName lastName email phoneNumber address cityOfResidence stateOfResidence institution",
       );
 }

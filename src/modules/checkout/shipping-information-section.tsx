@@ -159,7 +159,6 @@ export function ShippingInformationSection({
 
                           <p className="text-muted-foreground text-sm">
                             {userData.city}, {userData.state}
-                            {userData.postalCode && ` ${userData.postalCode}`}
                           </p>
                         </>
                       ) : (

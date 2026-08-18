@@ -23,8 +23,9 @@ export interface ShippingAddress {
 
   /**
    * The postal or ZIP code associated with the delivery location.
+   * No longer collected — only present on orders placed before we stopped asking.
    */
-  postalCode: string;
+  postalCode?: string;
 
   /**
    * Specifies the delivery method selected by the customer

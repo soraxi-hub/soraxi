@@ -16,8 +16,13 @@ export interface VendorApplicationProps {
   referenceId: string;
   status: VendorApplicationStatus;
   submittedBy: string;
-  stateOfApplicant: string;
-  cityOfApplicant: string;
+  /**
+   * No longer collected — the applicant's location is on their account, and the
+   * waitlist form stopped asking. Optional so applications submitted before the
+   * change still round-trip through the domain layer.
+   */
+  stateOfApplicant?: string;
+  cityOfApplicant?: string;
 
   // Contact & business
   businessName: string;
@@ -38,9 +43,10 @@ export interface VendorApplicationProps {
   instagramHandle?: string;
   otherProofUrl?: string;
 
-  // Inventory intent
-  estimatedInventorySize: InventorySize;
-  estimatedPriceRange: PriceRange;
+  // Inventory intent — no longer collected. `isDropshipper` already tells a
+  // reviewer whether stock is held, which is the part that drove decisions.
+  estimatedInventorySize?: InventorySize;
+  estimatedPriceRange?: PriceRange;
 
   // Model
   isDropshipper: boolean;
@@ -56,22 +62,22 @@ export interface VendorApplicationProps {
   updatedAt: Date;
 }
 
+/**
+ * What a vendor actually submits today. Location, subcategory, inventory size,
+ * and price range are deliberately absent — see the notes on
+ * `VendorApplicationProps` for the fields kept only for historical records.
+ */
 export interface VendorApplicationCreateInput {
   submittedBy: string;
-  stateOfApplicant: string;
-  cityOfApplicant: string;
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
   institution: string;
   categoryId: string;
-  subCategory?: string;
   productSamples: string[];
   cacNumber?: string;
   instagramHandle?: string;
   otherProofUrl?: string;
-  estimatedInventorySize: InventorySize;
-  estimatedPriceRange: PriceRange;
   isDropshipper: boolean;
 }

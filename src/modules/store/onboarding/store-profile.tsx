@@ -21,10 +21,10 @@ export default function StoreProfilePage({ storeId }: { storeId: string }) {
 
   /**
    * Handle navigation to next step
-   * Redirects to business information page
+   * Redirects to shipping configuration page
    */
   const handleNext = () => {
-    router.push(`/store/onboarding/${storeId}/business-info`);
+    router.push(`/store/onboarding/${storeId}/shipping`);
   };
 
   return (

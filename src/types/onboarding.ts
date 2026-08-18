@@ -26,14 +26,6 @@ export interface StoreProfileData {
   bannerUrl?: string;
 }
 
-export interface BusinessInfoData {
-  businessName?: string;
-  type: "individual" | "company";
-  registrationNumber?: string;
-  taxId?: string;
-  documentUrls?: string[];
-}
-
 export interface ShippingMethodData {
   name: string;
   price: number;
@@ -60,9 +52,13 @@ export interface PayoutData {
   };
 }
 
+/**
+ * Onboarding no longer asks for business information. Every vendor answered
+ * "Individual Seller" — the only selectable option — so the store's business
+ * type is defaulted server-side on submit instead of costing a screen.
+ */
 export interface OnboardingData {
   profile: StoreProfileData;
-  businessInfo: BusinessInfoData;
   shipping: ShippingMethodData[];
   termsAgreed: boolean;
 }

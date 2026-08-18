@@ -59,7 +59,6 @@ export default function StoreDashboardPage({
     let nextStep = "profile";
 
     if (!onboarding.profileComplete) nextStep = "profile";
-    else if (!onboarding.businessInfoComplete) nextStep = "business-info";
     else if (!onboarding.shippingComplete) nextStep = "shipping";
     else if (!onboarding.termsComplete) nextStep = "terms";
 
