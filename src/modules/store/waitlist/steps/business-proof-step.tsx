@@ -109,7 +109,7 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
       <SoraxiCard>
         <SoraxiCardHeader className="pb-4">
           <SoraxiCardTitle className="text-xl">
-            Step 3 of 3: Business Proof
+            Step 2 of 2: Business Proof
           </SoraxiCardTitle>
           <SoraxiCardDescription>
             Provide at least one of the following to verify your business

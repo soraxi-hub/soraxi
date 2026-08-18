@@ -1,6 +1,5 @@
 import { PasswordService } from "@/lib/utils";
 import { Store } from "./store";
-import { StoreBusinessInfoEnum } from "@/enums";
 import { IStore } from "@/lib/db/models/store.model";
 
 export class AuthenticatedStore extends Store {
@@ -19,16 +18,6 @@ export class AuthenticatedStore extends Store {
     return !!(this.storeName && this.description);
   }
 
-  isBusinessInfoComplete(): boolean {
-    return !!(
-      this.businessInfo &&
-      (this.businessInfo.type === StoreBusinessInfoEnum.Individual ||
-        (this.businessInfo.type === StoreBusinessInfoEnum.Company &&
-          this.businessInfo.businessName &&
-          this.businessInfo.registrationNumber))
-    );
-  }
-
   isShippingComplete(): boolean {
     return !!(this.shippingMethods && this.shippingMethods.length > 0);
   }
@@ -42,7 +31,6 @@ export class AuthenticatedStore extends Store {
       termsComplete: this.isTermsComplete(),
       profileComplete: this.isProfileComplete(),
       shippingComplete: this.isShippingComplete(),
-      businessInfoComplete: this.isBusinessInfoComplete(),
     };
 
     const completedSteps =

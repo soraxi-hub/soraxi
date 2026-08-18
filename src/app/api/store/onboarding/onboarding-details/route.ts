@@ -5,7 +5,6 @@ import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import mongoose from "mongoose";
 import { koboToNaira } from "@/lib/utils/naira";
-import { StoreBusinessInfoEnum } from "@/enums";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -41,13 +40,6 @@ export async function GET(_request: NextRequest) {
 
     const progressSteps = {
       profile: !!(store.name && store.description),
-      "business-info": !!(
-        store.businessInfo &&
-        (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
-          (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
-            store.businessInfo.businessName &&
-            store.businessInfo.registrationNumber))
-      ),
       shipping: !!(store.shippingMethods?.length > 0),
       terms: !!store.agreedToTermsAt,
     };
@@ -78,7 +70,6 @@ export async function GET(_request: NextRequest) {
             name: store.name,
             description: store.description,
           },
-          "business-info": store.businessInfo || {},
           shipping: shippingMethods,
           terms: store.agreedToTermsAt,
         },

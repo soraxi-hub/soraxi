@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import mongoose from "mongoose";
 import { VendorApplicationCreateInput } from "./vendor-application-types";
 import { VendorApplication } from "./vendor-application";
@@ -26,10 +25,7 @@ export class VendorApplicationFactory {
       email: input.email.toLowerCase().trim(),
       phone: input.phone.trim(),
       institution: input.institution,
-      cityOfApplicant: input.cityOfApplicant,
-      stateOfApplicant: input.stateOfApplicant,
       categoryId: input.categoryId,
-      subCategory: input.subCategory?.trim(),
 
       productSamples: input.productSamples,
 
@@ -37,24 +33,11 @@ export class VendorApplicationFactory {
       instagramHandle: input.instagramHandle?.trim(),
       otherProofUrl: input.otherProofUrl?.trim(),
 
-      estimatedInventorySize: input.estimatedInventorySize,
-      estimatedPriceRange: input.estimatedPriceRange,
-
       isDropshipper: input.isDropshipper,
 
       createdAt: now,
       updatedAt: now,
     });
-  }
-
-  /**
-   * Generates a secure one-time invite token with a 14-day expiry.
-   */
-  static generateInviteToken(): { token: string; expiresAt: Date } {
-    const token = randomBytes(32).toString("hex");
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 14);
-    return { token, expiresAt };
   }
 
   /**

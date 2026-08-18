@@ -170,7 +170,8 @@ export interface ShippingAddressInfo {
   readonly address: string;
   readonly city: string;
   readonly state: string;
-  readonly postalCode: string;
+  /** Only present on orders placed before we stopped collecting postal codes. */
+  readonly postalCode?: string;
   readonly deliveryType: DeliveryType;
   readonly campusName?: string;
   readonly campusLocation?: string;

@@ -30,19 +30,9 @@ interface OnboardingProfile {
   description: string;
 }
 
-// Business info section
-interface OnboardingBusinessInfo {
-  type: StoreBusinessInfoEnum;
-  businessName?: string;
-  registrationNumber?: string;
-  taxId?: string;
-  documentUrls?: string[];
-}
-
 // Full onboarding data payload
 interface OnboardingData {
   profile: OnboardingProfile;
-  "business-info": OnboardingBusinessInfo;
   shipping: IShippingMethod[];
   termsAgreed: boolean;
 }
@@ -76,9 +66,16 @@ async function getStoreOwnerName(storeOwnerId: string): Promise<string> {
 }
 
 /**
- * API Route: Submit Onboarding for Review
- * Finalizes the onboarding process and submits store for admin approval
- * Updates store status and marks onboarding as complete
+ * API Route: Complete Onboarding
+ *
+ * Finalizes onboarding and takes the store live immediately.
+ *
+ * There is deliberately no second review here. The vendor was already vetted at
+ * the waitlist stage — product samples, category, and proof of business were all
+ * reviewed before their store was created. Onboarding adds a description, a
+ * shipping price, and a terms timestamp, none of which a reviewer can act on, so
+ * a second approval queue only kept a vetted vendor waiting. Admins retain
+ * suspend and moderation powers over a live store.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -125,30 +122,11 @@ export async function POST(request: NextRequest) {
 
     // Extract onboarding data sections
     const { profile, shipping, termsAgreed } = onboardingData;
-    const businessInfo = onboardingData["business-info"];
 
     // Validate profile info
     if (!profile?.name || !profile?.description) {
       return NextResponse.json(
         { error: "Store profile is incomplete" },
-        { status: 400 },
-      );
-    }
-
-    // Validate business info
-    if (!businessInfo?.type) {
-      return NextResponse.json(
-        { error: "Business information is incomplete" },
-        { status: 400 },
-      );
-    }
-
-    if (
-      businessInfo.type === StoreBusinessInfoEnum.Company &&
-      (!businessInfo.businessName || !businessInfo.registrationNumber)
-    ) {
-      return NextResponse.json(
-        { error: "Company registration details are required" },
         { status: 400 },
       );
     }
@@ -172,11 +150,10 @@ export async function POST(request: NextRequest) {
     /**
      * Build the data structure to update the store with:
      * - Store profile
-     * - Business info
+     * - Business type (defaulted — no longer asked for)
      * - Shipping methods
-     * - Payout setup
      * - Terms agreement timestamp
-     * - Verification and status for admin review
+     * - Active status, since onboarding no longer gates on a second review
      */
     const updateData: Partial<
       Pick<
@@ -195,12 +172,12 @@ export async function POST(request: NextRequest) {
       name: profile.name,
       description: profile.description,
 
-      // Business info
+      // Business info. Onboarding used to ask for this on its own screen, where
+      // the only selectable option was "Individual Seller" — so it is defaulted
+      // here rather than collected.
       businessInfo: {
-        type: businessInfo.type,
-        businessName: businessInfo.businessName,
-        registrationNumber: businessInfo.registrationNumber,
-        documentUrls: businessInfo.documentUrls || [],
+        type: StoreBusinessInfoEnum.Individual,
+        documentUrls: [],
       },
 
       // Shipping methods
@@ -215,14 +192,13 @@ export async function POST(request: NextRequest) {
       // Terms agreement date
       agreedToTermsAt: new Date(agreementTimestamp),
 
-      // Mark store as pending for admin review
-      status: StoreStatusEnum.Pending,
+      // Live immediately — the vendor was vetted at the waitlist stage.
+      status: StoreStatusEnum.Active,
 
-      // Initial verification setup
       verification: {
-        isVerified: false, // Will be set to true after admin approval
+        isVerified: true,
         method: StoreVerificationStatusEnum.Email,
-        notes: "Onboarding completed, pending admin review",
+        notes: "Onboarding completed; approved at the waitlist stage",
       },
     };
 
@@ -248,21 +224,21 @@ export async function POST(request: NextRequest) {
         store.storeOwner.toString(),
       );
 
-      // 1. Send admin notification using AdminNotificationEmail template
+      // 1. Notify admins — informational only. Nothing is queued for approval;
+      // this exists so the team can see new storefronts going live.
       const adminHtml = await renderTemplate(
         React.createElement(AdminNotificationEmail, {
-          title: "New Store Submission",
-          content: `A new store "${updatedStore.name}" has been submitted for review and requires your attention.`,
+          title: "New Store Live",
+          content: `"${updatedStore.name}" finished onboarding and is now live. No review is required — this vendor was approved at the waitlist stage.`,
           details: {
             "Store Name": updatedStore.name,
             "Store Owner": storeOwnerName,
             "Owner Email": storeEmail,
-            "Business Type": businessInfo.type,
-            "Submission Date": new Date().toLocaleDateString(),
+            "Went Live": new Date().toLocaleDateString(),
             "Store ID": updatedStore._id.toString(),
           },
           actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/stores/${updatedStore._id}`,
-          actionLabel: "Review Store",
+          actionLabel: "View Store",
         }),
       );
 
@@ -270,13 +246,13 @@ export async function POST(request: NextRequest) {
         storeName: updatedStore.name,
         storeOwnerName,
         storeEmail,
-        businessType: businessInfo.type,
+        businessType: StoreBusinessInfoEnum.Individual,
         storeId: updatedStore._id.toString(),
       });
 
       const adminNotification = NotificationFactory.create("email", {
         recipient: adminEmail,
-        subject: `New Store Submission: ${updatedStore.name}`,
+        subject: `New Store Live: ${updatedStore.name}`,
         emailType: "admin",
         fromAddress: "admin@soraxihub.com",
         html: adminHtml,
@@ -305,7 +281,7 @@ export async function POST(request: NextRequest) {
 
       const storeOwnerNotification = NotificationFactory.create("email", {
         recipient: storeEmail,
-        subject: `Your store "${updatedStore.name}" was submitted for review`,
+        subject: `Your store "${updatedStore.name}" is live`,
         emailType: "storeOnboarding",
         fromAddress: "noreply@soraxihub.com",
         html: storeOwnerHtml,
@@ -315,7 +291,7 @@ export async function POST(request: NextRequest) {
       await storeOwnerNotification.send();
 
       console.log(
-        `Store submission emails sent successfully for store: ${updatedStore.name}`,
+        `Store go-live emails sent successfully for store: ${updatedStore.name}`,
       );
     } catch (error) {
       console.error(
@@ -340,13 +316,13 @@ export async function POST(request: NextRequest) {
     // Return success response with summary
     return NextResponse.json({
       success: true,
-      message: "Onboarding submitted successfully for review",
+      message: "Onboarding complete — your store is live",
       store: {
         id: updatedStore._id,
         name: updatedStore.name,
         status: updatedStore.status,
         verification: updatedStore.verification,
-        submittedAt: updatedStore.agreedToTermsAt,
+        completedAt: updatedStore.agreedToTermsAt,
       },
     });
   } catch (error) {

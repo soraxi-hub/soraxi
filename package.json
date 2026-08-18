@@ -10,6 +10,7 @@
     "teardown:financial": "tsx scripts/financial-teardown.ts",
     "start:create:superAdmin": "tsx scripts/create-super-admin.ts",
     "start:backfill-target-audience": "tsx scripts/back-fill-target-audience.ts",
+    "start:drop-user-postal-code": "tsx scripts/drop-user-postal-code.ts",
     "lint": "next lint",
     "email:dev": "email dev --dir src/services/notifications/templates --port 4000",
     "test": "vitest run",

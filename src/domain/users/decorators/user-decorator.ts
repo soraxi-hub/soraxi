@@ -38,9 +38,6 @@ export abstract class UserDecorator implements IUserInfo {
   get state() {
     return this.decoratedUser.state;
   }
-  get postalCode() {
-    return this.decoratedUser.postalCode;
-  }
   get fullAddress() {
     return this.decoratedUser.fullAddress;
   }

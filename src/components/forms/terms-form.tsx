@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
+import { pageCardLg } from "@/modules/store/components/page-card.styles";
 import {
   ArrowLeft,
   FileText,
@@ -98,7 +98,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
 
   /**
    * Handle final onboarding submission
-   * Submits all collected data for review and approval
+   * Saves the collected data and takes the store live
    */
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -113,7 +113,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
       // Save final draft with all data
       await saveDraft();
 
-      // Submit for review
+      // Complete onboarding — the store goes live on success
       const response = await fetch("/api/store/onboarding/submit", {
         method: "POST",
         headers: {
@@ -136,9 +136,7 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
       }
 
       // Success - show confirmation and redirect
-      toast.success(
-        `Your store has been submitted for review. You'll be notified once it's approved.`,
-      );
+      toast.success(`Your store is live. You can start listing products now.`);
 
       router.push(`/store/${state.storeId}/dashboard`);
     } catch (error) {
@@ -157,24 +155,23 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
           Terms & Conditions
         </h2>
         <p className="text-sm text-muted-foreground">
-          Please review and agree to our Vendor Onboarding Agreement to complete
-          your store setup. Your store will be submitted for review after this
-          step.
+          Please review and agree to our Vendor Onboarding Agreement. Your store
+          goes live as soon as you accept.
         </p>
       </div>
 
       {/* Onboarding Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+      <SoraxiCard className={pageCardLg}>
+        <SoraxiCardHeader>
+          <SoraxiCardTitle className="flex items-center space-x-2">
             <CheckCircle className="w-5 h-5 text-soraxi-green" />
             <span>Onboarding Summary</span>
-          </CardTitle>
-          <CardDescription>
+          </SoraxiCardTitle>
+          <SoraxiCardDescription className="text-muted-foreground">
             Review the information you&#39;ve provided during setup
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </SoraxiCardDescription>
+        </SoraxiCardHeader>
+        <SoraxiCardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <h4 className="font-medium text-foreground mb-2">
@@ -190,21 +187,6 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
               </p>
             </div>
             <div>
-              <h4 className="font-medium text-foreground mb-2">
-                Business Information
-              </h4>
-              <p className="text-muted-foreground">
-                <strong>Type:</strong>{" "}
-                {state.data.businessInfo?.type || "Not provided"}
-              </p>
-              {state.data.businessInfo?.type === "company" && (
-                <p className="text-muted-foreground">
-                  <strong>Business Name:</strong>{" "}
-                  {state.data.businessInfo?.businessName || "Not provided"}
-                </p>
-              )}
-            </div>
-            <div>
               <h4 className="font-medium text-foreground mb-2">Shipping</h4>
               <p className="text-muted-foreground">
                 <strong>Methods:</strong> {state.data.shipping?.length || 0}{" "}
@@ -212,24 +194,24 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </SoraxiCardContent>
+      </SoraxiCard>
 
       {/* Vendor Onboarding Agreement */}
       <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center space-x-2">
+        <SoraxiCard className={pageCardLg}>
+          <SoraxiCardHeader>
+            <SoraxiCardTitle className="text-base flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span>Vendor Onboarding Agreement</span>
-            </CardTitle>
-            <CardDescription>
+            </SoraxiCardTitle>
+            <SoraxiCardDescription className="text-muted-foreground">
               {hasReachedEnd
                 ? "You've reached the end of the agreement."
                 : "Scroll to the end to unlock the agreement checkbox."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </SoraxiCardDescription>
+          </SoraxiCardHeader>
+          <SoraxiCardContent>
             <div className="relative mb-4">
               <div
                 ref={viewportRef}
@@ -543,12 +525,12 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
                 {errors.agreeToVendorAgreement.message}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
 
         {/* Information Confirmation */}
-        <Card>
-          <CardContent>
+        <SoraxiCard className={pageCardLg}>
+          <SoraxiCardContent>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="confirmInformation"
@@ -569,18 +551,9 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
                 {errors.confirmInformation.message}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </SoraxiCardContent>
+        </SoraxiCard>
       </div>
-
-      {/* Final Notice */}
-      <Alert>
-        <AlertDescription>
-          After submitting, your store will be reviewed by our team. This
-          process typically takes 1-3 business days. You&#39;ll receive an email
-          notification once your store is approved and ready to start selling.
-        </AlertDescription>
-      </Alert>
 
       {/* Form Actions */}
       <div className="flex flex-col gap-3 sm:flex-row justify-between pt-6 border-t border-border">
@@ -601,10 +574,10 @@ export function TermsForm({ onBackAction }: TermsFormProps) {
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Submitting for Review...
+              Finishing setup...
             </>
           ) : (
-            "Submit for Review"
+            "Accept & Go Live"
           )}
         </Button>
       </div>

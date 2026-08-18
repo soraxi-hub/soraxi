@@ -18,11 +18,11 @@ export class UserFactory {
    * password hashing, password validation, and future security features.
    *
    * Unlike `createAuthUser`, this method **does not** overwrite the address,
-   * city, state, or postal code fields with empty strings – it preserves the
-   * values passed in, making it suitable for use in your `/api/auth/sign-up` endpoint.
+   * city, or state fields with empty strings – it preserves the values passed
+   * in, making it suitable for use in your `/api/auth/sign-up` endpoint.
    *
    * @param props - The sign‑up user properties (firstName, lastName, email, password,
-   *                phoneNumber, address, cityOfResidence, stateOfResidence, postalCode,
+   *                phoneNumber, address, cityOfResidence, stateOfResidence,
    *                and optionally isVerified).
    * @returns An `AuthUserDecorator` instance that contains all user data and
    *          authentication methods.
@@ -62,7 +62,6 @@ export class UserFactory {
       address: "",
       cityOfResidence: "",
       stateOfResidence: "",
-      postalCode: "",
       followingStores: [],
       phoneNumber: "",
       createdAt: new Date(),

@@ -9,12 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardDescription,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
+import { pageCardLg } from "@/modules/store/components/page-card.styles";
 import { Plus, Trash2, ArrowLeft, Truck, Clock } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import type { ShippingMethodData } from "@/types/onboarding";
@@ -172,19 +173,19 @@ export function ShippingMethodsForm({
       {/* Shipping Methods List */}
       <div className="space-y-4">
         {fields.map((field, index) => (
-          <Card key={field.id} className="relative">
-            <CardHeader className="pb-3">
+          <SoraxiCard key={field.id} className={`relative ${pageCardLg}`}>
+            <SoraxiCardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-soraxi-green/10 rounded-full items-center justify-center hidden sm:flex">
                     <Truck className="w-4 h-4 text-soraxi-green" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">
+                    <SoraxiCardTitle className="text-base">
                       {watchedMethods[index]?.name ||
                         `Shipping Method ${index + 1}`}
-                    </CardTitle>
-                    <CardDescription className="hidden sm:inline-flex">
+                    </SoraxiCardTitle>
+                    <SoraxiCardDescription className="hidden sm:inline-flex text-muted-foreground">
                       {watchedMethods[index]?.price !== undefined && (
                         <span className="flex items-center space-x-1">
                           <span>₦</span>
@@ -201,7 +202,7 @@ export function ShippingMethodsForm({
                           )}
                         </span>
                       )}
-                    </CardDescription>
+                    </SoraxiCardDescription>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -228,10 +229,10 @@ export function ShippingMethodsForm({
                   )}
                 </div>
               </div>
-            </CardHeader>
+            </SoraxiCardHeader>
 
             {expandedMethod === index && (
-              <CardContent className="space-y-4">
+              <SoraxiCardContent className="space-y-4">
                 {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -447,9 +448,9 @@ export function ShippingMethodsForm({
                     </div>
                   </div>
                 </div> */}
-              </CardContent>
+              </SoraxiCardContent>
             )}
-          </Card>
+          </SoraxiCard>
         ))}
 
         {/* Add New Shipping Method */}

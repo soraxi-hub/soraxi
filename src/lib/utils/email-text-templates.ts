@@ -37,12 +37,12 @@ Please review this store submission in the admin dashboard.`;
 
 Thank you for completing your store onboarding on ${siteConfig.name}!
 
-Your store "${details.storeName}" has been successfully submitted for admin review.
+Your store "${details.storeName}" is now live. There is nothing left to wait for - you were approved when your application was accepted.
 
-What happens next:
-- Our team will review your store details
-- You'll receive an email notification once a decision is made
-- In the meantime, you can update your store profile
+What to do next:
+- Add your first products so buyers can find you
+- Add your payout account so we can send you your earnings
+- Share your storefront link with your customers
 
 You can view your store here: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard/store
 
@@ -195,7 +195,6 @@ The ${details.siteName} Support Team`;
       city: string;
       state: string;
       country: string;
-      postalCode: string;
     };
   }): string => {
     const itemsText = details.items
@@ -209,7 +208,7 @@ The ${details.siteName} Support Team`;
     if (details.deliveryAddress) {
       addressText = `\nDelivery Address:
 ${details.deliveryAddress.street}
-${details.deliveryAddress.city}, ${details.deliveryAddress.state} ${details.deliveryAddress.postalCode}
+${details.deliveryAddress.city}, ${details.deliveryAddress.state}
 ${details.deliveryAddress.country}\n`;
     }
 

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { INSTITUTIONS } from "@/constants/constant";
+import { categories, INSTITUTIONS } from "@/constants/constant";
 
 export const BusinessContactStep: React.FC<FirstStepProps> = ({
   formData,
@@ -31,7 +31,9 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
 }) => {
   const getValidationIcon = (field: keyof typeof formData) => {
     if (errors[field]) return <AlertCircle className="h-4 w-4 text-red-500" />;
-    if (formData[field] && !errors[field])
+    const value = formData[field];
+    const filled = value !== "" && value !== null;
+    if (filled && !errors[field])
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     return null;
   };
@@ -41,21 +43,21 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Business & Contact Information
+          Your Business
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Tell us about yourself and your business. This helps us understand who
-          you are before you join the platform.
+          Tell us who you are and what you sell. This helps us understand your
+          business before you join the platform.
         </p>
       </div>
 
       <SoraxiCard>
         <SoraxiCardHeader className="pb-4">
           <SoraxiCardTitle className="text-xl">
-            Step 1 of 3: Business & Contact
+            Step 1 of 2: Business &amp; Contact
           </SoraxiCardTitle>
           <SoraxiCardDescription>
-            Your personal details and business name
+            Your details, your business name, and what you sell
           </SoraxiCardDescription>
         </SoraxiCardHeader>
 
@@ -202,54 +204,94 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
             </p>
           </div>
 
-          {/* State */}
+          {/* Category */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <Label htmlFor="state" className="text-sm font-medium">
-                State <span className="text-red-500">*</span>
+              <Label className="text-sm font-medium">
+                Product Category <span className="text-red-500">*</span>
               </Label>
-              {getValidationIcon("stateOfApplicant")}
+              {getValidationIcon("categoryId")}
             </div>
-            <Input
-              id="state"
-              value={formData.stateOfApplicant}
-              onChange={(e) =>
-                onFormDataChange("stateOfApplicant", e.target.value)
-              }
-              placeholder="e.g. Cross River"
+            <Select
+              value={formData.categoryId}
+              onValueChange={(val) => onFormDataChange("categoryId", val)}
               disabled={isLoading}
-              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
-            />
-            {errors.stateOfApplicant && (
+            >
+              <SelectTrigger className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800] w-full">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.slug} value={cat.slug}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.categoryId && (
               <p className="text-sm text-red-500 flex items-center">
                 <AlertCircle className="h-3 w-3 mr-1" />
-                {errors.stateOfApplicant}
+                {errors.categoryId}
               </p>
             )}
+            <p className="text-xs text-gray-500">
+              The main category you&apos;ll be selling in
+            </p>
           </div>
 
-          {/* City */}
-          <div className="space-y-2">
+          {/* Dropship toggle */}
+          <div className="space-y-3">
             <div className="flex items-center space-x-2">
-              <Label htmlFor="city" className="text-sm font-medium">
-                City <span className="text-red-500">*</span>
+              <Label className="text-sm font-medium">
+                Are you a dropshipper? <span className="text-red-500">*</span>
               </Label>
-              {getValidationIcon("cityOfApplicant")}
             </div>
-            <Input
-              id="city"
-              value={formData.cityOfApplicant}
-              onChange={(e) =>
-                onFormDataChange("cityOfApplicant", e.target.value)
-              }
-              placeholder="e.g. Calabar"
-              disabled={isLoading}
-              className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800]"
-            />
-            {errors.cityOfApplicant && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(
+                [
+                  {
+                    label: "Yes — I dropship",
+                    sub: "I don't hold physical stock",
+                    value: true,
+                  },
+                  {
+                    label: "No — I hold stock",
+                    sub: "I have physical inventory",
+                    value: false,
+                  },
+                ] as const
+              ).map((opt) => {
+                const isSelected = formData.isDropshipper === opt.value;
+                return (
+                  <button
+                    key={String(opt.value)}
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => onFormDataChange("isDropshipper", opt.value)}
+                    className={`
+                      flex flex-col items-start p-4 rounded-lg border-2 text-left transition-all
+                      ${
+                        isSelected
+                          ? "border-[#14a800] bg-[#14a800]/5"
+                          : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                      }
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                    `}
+                  >
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {opt.label}
+                    </span>
+                    <span className="text-xs text-gray-500 mt-0.5">
+                      {opt.sub}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {errors.isDropshipper && (
               <p className="text-sm text-red-500 flex items-center">
                 <AlertCircle className="h-3 w-3 mr-1" />
-                {errors.cityOfApplicant}
+                {errors.isDropshipper}
               </p>
             )}
           </div>

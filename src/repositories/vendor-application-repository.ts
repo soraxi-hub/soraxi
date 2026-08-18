@@ -84,14 +84,6 @@ export class VendorApplicationRepository {
     return this.toDomain(doc);
   }
 
-  async findByInviteToken(token: string): Promise<VendorApplication | null> {
-    const doc = await VendorApplicationModel.findOne({
-      inviteToken: token,
-    }).lean<IVendorApplication>();
-    if (!doc) return null;
-    return this.toDomain(doc);
-  }
-
   async existsByEmail(email: string): Promise<boolean> {
     const count = await VendorApplicationModel.countDocuments({
       email: email.toLowerCase().trim(),
@@ -100,26 +92,55 @@ export class VendorApplicationRepository {
     return count > 0;
   }
 
+  /**
+   * Applications for one status, or every application when passed "all".
+   */
   async findAllByStatus(
-    status: VendorApplicationStatus,
+    status: VendorApplicationStatus | "all",
     page: number = 1,
     limit: number = 20,
   ): Promise<{ applications: VendorApplication[]; total: number }> {
     const skip = (page - 1) * limit;
+    const filter = status === "all" ? {} : { status };
 
     const [docs, total] = await Promise.all([
-      VendorApplicationModel.find({ status })
+      VendorApplicationModel.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean<IVendorApplication[]>(),
-      VendorApplicationModel.countDocuments({ status }),
+      VendorApplicationModel.countDocuments(filter),
     ]);
 
     return {
       applications: docs.map(this.toDomain.bind(this)),
       total,
     };
+  }
+
+  /**
+   * How many applications sit in each status. One grouped query rather than a
+   * count per status, so the admin summary row costs a single round trip.
+   */
+  async countsByStatus(): Promise<Record<VendorApplicationStatus, number>> {
+    const rows = await VendorApplicationModel.aggregate<{
+      _id: VendorApplicationStatus;
+      count: number;
+    }>([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
+
+    // Seeded with zeroes so a status with no applications reads as 0, not blank.
+    const counts: Record<VendorApplicationStatus, number> = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      invited: 0,
+    };
+
+    for (const row of rows) {
+      if (row._id in counts) counts[row._id] = row.count;
+    }
+
+    return counts;
   }
 
   async countByCategory(categoryId: string): Promise<number> {
@@ -165,24 +186,18 @@ export class VendorApplicationRepository {
       status: props.status,
       submittedBy: props.submittedBy,
       institution: props.institution,
-      cityOfApplicant: props.cityOfApplicant,
-      stateOfApplicant: props.stateOfApplicant,
       businessName: props.businessName,
       ownerName: props.ownerName,
       email: props.email.toLowerCase().trim(),
       phone: props.phone,
 
       categoryId: props.categoryId,
-      subCategory: props.subCategory,
 
       productSamples: props.productSamples,
 
       cacNumber: props.cacNumber,
       instagramHandle: props.instagramHandle,
       otherProofUrl: props.otherProofUrl,
-
-      estimatedInventorySize: props.estimatedInventorySize,
-      estimatedPriceRange: props.estimatedPriceRange,
 
       isDropshipper: props.isDropshipper,
     });

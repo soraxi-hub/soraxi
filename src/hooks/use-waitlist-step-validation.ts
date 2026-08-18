@@ -22,7 +22,7 @@ export interface UseWaitlistStepValidationReturn {
 export function useWaitlistStepValidation(): UseWaitlistStepValidationReturn {
   const [errors, setErrors] = useState<WaitlistFormErrors>({});
 
-  // ─── Step 1: Business & Contact ───────────────────────────────────────────
+  // ─── Step 1: Business, contact & what you sell ─────────────────────────────
 
   const validateBusinessContact = useCallback(
     (formData: WaitlistFormData): WaitlistStepValidationResult => {
@@ -53,49 +53,8 @@ export function useWaitlistStepValidation(): UseWaitlistStepValidationReturn {
           "Please select an institution close to your business";
       }
 
-      if (!formData.stateOfApplicant.trim()) {
-        stepErrors.stateOfApplicant = "State is required";
-      }
-
-      if (!formData.cityOfApplicant.trim()) {
-        stepErrors.cityOfApplicant = "City is required";
-      }
-
-      return {
-        isValid: Object.keys(stepErrors).length === 0,
-        errors: stepErrors,
-      };
-    },
-    [],
-  );
-
-  // ─── Step 2: Category & Model ─────────────────────────────────────────────
-
-  const validateCategoryModel = useCallback(
-    (formData: WaitlistFormData): WaitlistStepValidationResult => {
-      const stepErrors: WaitlistFormErrors = {};
-
       if (!formData.categoryId) {
         stepErrors.categoryId = "Please select a category";
-      }
-
-      if (!formData.subCategory) {
-        stepErrors.subCategory = "Please select a subcategory";
-      }
-
-      if (!formData.estimatedInventorySize) {
-        stepErrors.estimatedInventorySize = "Please select your inventory size";
-      }
-
-      if (formData.estimatedPriceMin <= 0) {
-        stepErrors.estimatedPriceMin = "Please enter a minimum price";
-      }
-
-      if (formData.estimatedPriceMax <= 0) {
-        stepErrors.estimatedPriceMax = "Please enter a maximum price";
-      } else if (formData.estimatedPriceMax < formData.estimatedPriceMin) {
-        stepErrors.estimatedPriceMax =
-          "Max price must be greater than min price";
       }
 
       if (formData.isDropshipper === null) {
@@ -110,7 +69,7 @@ export function useWaitlistStepValidation(): UseWaitlistStepValidationReturn {
     [],
   );
 
-  // ─── Step 3: Business Proof & Samples ────────────────────────────────────
+  // ─── Step 2: Business Proof & Samples ────────────────────────────────────
 
   const validateProofSamples = useCallback(
     (
@@ -157,9 +116,6 @@ export function useWaitlistStepValidation(): UseWaitlistStepValidationReturn {
           result = validateBusinessContact(formData);
           break;
         case 1:
-          result = validateCategoryModel(formData);
-          break;
-        case 2:
           result = validateProofSamples(formData, sampleFiles);
           break;
         default:
@@ -172,7 +128,7 @@ export function useWaitlistStepValidation(): UseWaitlistStepValidationReturn {
 
       return result;
     },
-    [validateBusinessContact, validateCategoryModel, validateProofSamples],
+    [validateBusinessContact, validateProofSamples],
   );
 
   const clearFieldError = useCallback(

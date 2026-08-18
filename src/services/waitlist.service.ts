@@ -1,5 +1,8 @@
 import { VendorApplicationRepository } from "../repositories/vendor-application-repository";
-import { VendorApplicationCreateInput } from "../domain/vendor-application";
+import {
+  VendorApplicationCreateInput,
+  VendorApplicationStatus,
+} from "../domain/vendor-application";
 import { VendorApplication } from "../domain/vendor-application/vendor-application";
 import { VendorApplicationFactory } from "@/domain/vendor-application/vendor-application-factory";
 import { siteConfig } from "@/config/site";
@@ -46,8 +49,9 @@ interface AdminApplicationSummary {
   email: string;
   phone: string;
   institution: string;
-  stateOfApplicant: string;
-  cityOfApplicant: string;
+  /** Retired fields — present only on applications submitted before we stopped asking. */
+  stateOfApplicant?: string;
+  cityOfApplicant?: string;
   categoryId: string;
   subCategory?: string;
   categoryVendorCount: number;
@@ -55,8 +59,8 @@ interface AdminApplicationSummary {
   cacNumber?: string;
   instagramHandle?: string;
   otherProofUrl?: string;
-  estimatedInventorySize: string;
-  estimatedPriceRange: { min: number; max: number };
+  estimatedInventorySize?: string;
+  estimatedPriceRange?: { min: number; max: number };
   isDropshipper: boolean;
   status: string;
   rejectionReason?: string;
@@ -188,22 +192,28 @@ export class WaitlistService {
     };
   }
 
-  // ─── Admin: Fetch pending applications ───────────────────────────────────
+  // ─── Admin: Fetch applications ───────────────────────────────────────────
 
-  async getPendingApplications(
+  /**
+   * A page of applications for the given status, plus the count of every
+   * status so the admin summary row can show all four at once.
+   *
+   * @param status - One status, or "all" for every application.
+   */
+  async getApplications(
+    status: VendorApplicationStatus | "all",
     page: number,
     limit: number,
   ): Promise<{
     applications: AdminApplicationSummary[];
     total: number;
     pages: number;
+    statusCounts: Record<VendorApplicationStatus, number>;
   }> {
-    const { applications, total } =
-      await this.vendorApplicationRepository.findAllByStatus(
-        "pending",
-        page,
-        limit,
-      );
+    const [{ applications, total }, statusCounts] = await Promise.all([
+      this.vendorApplicationRepository.findAllByStatus(status, page, limit),
+      this.vendorApplicationRepository.countsByStatus(),
+    ]);
 
     const summaries = await Promise.all(
       applications.map((app) => this.toAdminSummary(app)),
@@ -212,7 +222,8 @@ export class WaitlistService {
     return {
       applications: summaries,
       total,
-      pages: Math.ceil(total / limit),
+      pages: Math.max(1, Math.ceil(total / limit)),
+      statusCounts,
     };
   }
 
@@ -257,20 +268,19 @@ export class WaitlistService {
         });
       }
 
-      const { token, expiresAt } =
-        VendorApplicationFactory.generateInviteToken();
-      application.approve(token, expiresAt, adminId);
+      application.approve(adminId);
 
       await this.vendorApplicationRepository.save(application, session);
       const password = generateDefaultPassword(application.businessName);
 
+      // Approval creates the store outright — the vendor signs in with the
+      // temporary password below, so there is no invite to issue or redeem.
       const savedStore = await StoreService.createStore(
         {
           storeName: application.businessName,
           storeEmail: application.email,
           password,
           ownerId: application.submittedBy,
-          token,
         },
         session,
       );
@@ -375,35 +385,6 @@ export class WaitlistService {
         }
       }
     }
-  }
-
-  // ─── Vendor: Redeem invite token ──────────────────────────────────────────
-
-  async redeemInviteToken(
-    token: string,
-    session: mongoose.ClientSession,
-  ): Promise<VendorApplication> {
-    const application =
-      await this.vendorApplicationRepository.findByInviteToken(token);
-
-    if (!application) {
-      throw new AppError("NOT_FOUND", "This invite link is invalid.", {
-        token,
-      });
-    }
-
-    if (!application.isInviteTokenValid(token)) {
-      throw new AppError(
-        "BAD_REQUEST",
-        "This invite link has expired. Please contact support to request a new one.",
-        { token, applicationId: application.id },
-      );
-    }
-
-    application.markAsInvited();
-    await this.vendorApplicationRepository.save(application, session);
-
-    return application;
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────

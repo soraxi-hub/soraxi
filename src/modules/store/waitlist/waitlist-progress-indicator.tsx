@@ -1,7 +1,7 @@
 "use client";
 
 import { Progress } from "@/components/ui/progress";
-import { Building2, LayoutGrid, ShieldCheck } from "lucide-react";
+import { Building2, ShieldCheck } from "lucide-react";
 
 interface WaitlistProgressIndicatorProps {
   currentStep: number;
@@ -12,13 +12,8 @@ interface WaitlistProgressIndicatorProps {
 const STEP_CONFIG = [
   {
     title: "Business & Contact",
-    description: "Your details",
+    description: "Your details and what you sell",
     icon: Building2,
-  },
-  {
-    title: "Category & Model",
-    description: "What you sell",
-    icon: LayoutGrid,
   },
   {
     title: "Proof & Samples",
@@ -50,7 +45,7 @@ export function WaitlistProgressIndicator({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2 md:gap-4">
+      <div className="grid grid-cols-2 gap-2 md:gap-4">
         {STEP_CONFIG.map((step, index) => {
           const isCompleted = index < currentStep;
           const isCurrent = index === currentStep;

@@ -82,7 +82,6 @@ const Profile = () => {
                 { label: "Address", value: user.address },
                 { label: "City", value: user.city },
                 { label: "State", value: user.state },
-                { label: "Postal Code", value: user.postalCode },
               ]}
             />
           </div>

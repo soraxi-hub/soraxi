@@ -115,7 +115,6 @@ export const preparedPaymentSchema = z.object({
     city: z.string(),
     state: z.string(),
     address: z.string(),
-    postal_code: z.string(),
     userId: z.string(),
     couponCode: z.string().nullable().optional(),
     deliveryType: z.nativeEnum(DeliveryType),

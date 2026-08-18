@@ -1,27 +1,16 @@
-import type { InventorySize } from "@/domain/vendor-application";
-
 // ─── Form data ────────────────────────────────────────────────────────────────
 
 export interface WaitlistFormData {
-  // Step 1 — Business & Contact
+  // Step 1 — Business, contact & what you sell
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
   institution: string;
-  stateOfApplicant: string;
-  cityOfApplicant: string;
-
-  // Step 2 — Category & Model
   categoryId: string;
-  categoryName: string; // display only, not submitted
-  subCategory: string;
-  estimatedInventorySize: InventorySize | "";
-  estimatedPriceMin: number;
-  estimatedPriceMax: number;
   isDropshipper: boolean | null;
 
-  // Step 3 — Business Proof
+  // Step 2 — Business Proof
   cacNumber: string;
   instagramHandle: string;
   otherProofUrl: string;
@@ -32,20 +21,26 @@ export const initialWaitlistFormData: WaitlistFormData = {
   ownerName: "",
   email: "",
   phone: "",
+  institution: "",
   categoryId: "",
-  categoryName: "",
-  subCategory: "",
-  estimatedInventorySize: "",
-  estimatedPriceMin: 0,
-  estimatedPriceMax: 0,
   isDropshipper: null,
   cacNumber: "",
   instagramHandle: "",
   otherProofUrl: "",
-  institution: "",
-  stateOfApplicant: "",
-  cityOfApplicant: "",
 };
+
+/**
+ * Contact details read from the applicant's account on the server and used to
+ * prefill step 1, so a signed-in vendor never retypes what we already hold.
+ * Every field stays editable — a business email or phone often differs from the
+ * one on the personal account.
+ */
+export interface WaitlistApplicantDefaults {
+  ownerName: string;
+  email: string;
+  phone: string;
+  institution: string;
+}
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -70,13 +65,10 @@ export interface BaseStepProps {
   isLoading: boolean;
 }
 
-export interface StepWithNavProps extends BaseStepProps {
-  onNext: () => void;
-  onPrevious: () => void;
-}
-
 export interface FirstStepProps extends BaseStepProps {
   onNext: () => void;
+  /** Which fields arrived prefilled, so the step can say so once. */
+  prefilledFields: Array<keyof WaitlistFormData>;
 }
 
 export interface ProofStepProps extends BaseStepProps {
@@ -98,7 +90,7 @@ export interface WaitlistWizardStep {
   description: string;
 }
 
-export type WizardStepIndex = 0 | 1 | 2 | 3;
+export type WizardStepIndex = 0 | 1;
 
 // ─── Image validation (reused from upload wizard) ─────────────────────────────
 

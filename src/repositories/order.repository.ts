@@ -358,7 +358,6 @@ export class OrderRepository {
           }
         : undefined,
       shippingAddress: {
-        postalCode: config.shippingAddress.postalCode,
         city: config.shippingAddress.city,
         state: config.shippingAddress.state,
         address: config.shippingAddress.address,

@@ -101,7 +101,6 @@ export async function POST(request: NextRequest) {
         storeEmail,
         password,
         ownerId: userData.id,
-        token,
       },
       session,
     );

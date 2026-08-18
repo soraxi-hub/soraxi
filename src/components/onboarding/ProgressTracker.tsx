@@ -2,6 +2,13 @@
 
 import { Check, Circle } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
+import { pageCardLg } from "@/modules/store/components/page-card.styles";
 
 /**
  * Progress Tracker Component
@@ -13,26 +20,26 @@ export function ProgressTracker() {
   const { steps, progress } = state;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-foreground">
-          Setup Progress
-        </h2>
-        <span className="text-sm text-muted-foreground">
-          {progress.percentage}% Complete
-        </span>
-      </div>
+    <SoraxiCard className={`mb-6 ${pageCardLg}`}>
+      <SoraxiCardHeader>
+        <div className="flex items-center justify-between">
+          <SoraxiCardTitle className="text-lg">Setup Progress</SoraxiCardTitle>
+          <span className="text-sm text-muted-foreground">
+            {progress.percentage}% Complete
+          </span>
+        </div>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-muted rounded-full h-2 mb-6">
-        <div
-          className="bg-soraxi-green h-2 rounded-full transition-all duration-300 ease-in-out"
-          style={{ width: `${progress.percentage}%` }}
-        />
-      </div>
+        {/* Progress Bar */}
+        <div className="w-full bg-muted rounded-full h-2 mt-2">
+          <div
+            className="bg-soraxi-green h-2 rounded-full transition-all duration-300 ease-in-out"
+            style={{ width: `${progress.percentage}%` }}
+          />
+        </div>
+      </SoraxiCardHeader>
 
       {/* Steps List */}
-      <div className="space-y-4">
+      <SoraxiCardContent className="space-y-4">
         {steps.map((step, index) => (
           <div
             key={step.id}
@@ -87,7 +94,7 @@ export function ProgressTracker() {
             </div>
           </div>
         ))}
-      </div>
-    </div>
+      </SoraxiCardContent>
+    </SoraxiCard>
   );
 }

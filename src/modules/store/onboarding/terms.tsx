@@ -16,12 +16,12 @@ export default function TermsPage({ storeId }: { storeId: string }) {
 
   useEffect(() => {
     // Set current step when component mounts
-    setCurrentStep(3);
+    setCurrentStep(2);
   }, [setCurrentStep]);
 
   /**
    * Handle navigation to previous step
-   * Redirects back to payout setup page
+   * Redirects back to the shipping page
    */
   const handleBack = () => {
     router.push(`/store/onboarding/${storeId}/shipping`);

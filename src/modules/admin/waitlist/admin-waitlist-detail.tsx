@@ -64,14 +64,13 @@ const STATUS_BANNER: Record<
     icon: <CheckCircle className="w-5 h-5 text-blue-600" />,
     title: "Application Approved",
     message:
-      "This vendor has been approved. An invite email has been sent to their address.",
+      "This vendor has been approved. Their store was created and their login details were emailed to them.",
     borderColor: "border-l-blue-400",
   },
   invited: {
     icon: <CheckCircle className="w-5 h-5 text-green-600" />,
     title: "Vendor Onboarded",
-    message:
-      "The vendor has redeemed their invite and is setting up their store.",
+    message: "The vendor is setting up their store.",
     borderColor: "border-l-green-400",
   },
   rejected: {
@@ -139,16 +138,17 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
   const approveMutation = useMutation(
     trpc.waitlist.approveApplication.mutationOptions({
       onSuccess: () => {
-        toast.success("Application approved. Invite email sent.");
+        toast.success(
+          "Application approved. Login details sent to the vendor.",
+        );
         queryClient.invalidateQueries(
           trpc.waitlist.getApplicationById.queryOptions({ applicationId }),
         );
-        queryClient.invalidateQueries(
-          trpc.waitlist.getPendingApplications.queryOptions({
-            page: 1,
-            limit: 20,
-          }),
-        );
+        // Every status/page, not just the first page of pending — approving
+        // moves the row out of one list and into another.
+        queryClient.invalidateQueries({
+          queryKey: trpc.waitlist.getApplications.queryKey(),
+        });
         setDialogOpen(false);
       },
       onError: (err) => {
@@ -164,12 +164,9 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
         queryClient.invalidateQueries(
           trpc.waitlist.getApplicationById.queryOptions({ applicationId }),
         );
-        queryClient.invalidateQueries(
-          trpc.waitlist.getPendingApplications.queryOptions({
-            page: 1,
-            limit: 20,
-          }),
-        );
+        queryClient.invalidateQueries({
+          queryKey: trpc.waitlist.getApplications.queryKey(),
+        });
         setDialogOpen(false);
         setRejectionReason("");
       },
@@ -295,7 +292,7 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
                 disabled={isActioning}
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Approve & Send Invite
+                Approve & Create Store
               </Button>
             </div>
           )}
@@ -365,18 +362,28 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
                     {application.institution || "—"}
                   </p>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">State</Label>
-                  <p className="font-medium mt-0.5">
-                    {application.stateOfApplicant || "—"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">City</Label>
-                  <p className="font-medium mt-0.5">
-                    {application.cityOfApplicant || "—"}
-                  </p>
-                </div>
+                {/* Location is no longer collected — shown only where an older
+                    application still carries it. */}
+                {application.stateOfApplicant && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      State
+                    </Label>
+                    <p className="font-medium mt-0.5">
+                      {application.stateOfApplicant}
+                    </p>
+                  </div>
+                )}
+                {application.cityOfApplicant && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      City
+                    </Label>
+                    <p className="font-medium mt-0.5">
+                      {application.cityOfApplicant}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -401,23 +408,28 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
                     <p className="mt-0.5">{application.subCategory}</p>
                   </div>
                 )}
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Inventory Size
-                  </Label>
-                  <p className="mt-0.5 capitalize">
-                    {application.estimatedInventorySize}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Price Range
-                  </Label>
-                  <p className="mt-0.5">
-                    ₦{application.estimatedPriceRange.min.toLocaleString()} – ₦
-                    {application.estimatedPriceRange.max.toLocaleString()}
-                  </p>
-                </div>
+                {/* Inventory size and price range are no longer collected. */}
+                {application.estimatedInventorySize && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Inventory Size
+                    </Label>
+                    <p className="mt-0.5 capitalize">
+                      {application.estimatedInventorySize}
+                    </p>
+                  </div>
+                )}
+                {application.estimatedPriceRange && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Price Range
+                    </Label>
+                    <p className="mt-0.5">
+                      ₦{application.estimatedPriceRange.min.toLocaleString()} –
+                      ₦{application.estimatedPriceRange.max.toLocaleString()}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <Label className="text-xs text-muted-foreground">
                     Business Model
@@ -582,43 +594,63 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
               )}
             </div>
 
-            {/* Package / inventory summary */}
-            <div className="rounded-xl border p-5 space-y-3">
-              <div className="flex items-center gap-2 pb-1 border-b">
-                <Package className="w-4 h-4 text-soraxi-green" />
-                <span className="font-semibold">Inventory Summary</span>
+            {/*
+              Legacy inventory summary. We no longer ask for inventory size or a
+              price range, and the business model already appears in the Category
+              section above — so this card only earns its space on applications
+              submitted while those questions were still being asked.
+            */}
+            {(application.estimatedInventorySize ||
+              application.estimatedPriceRange) && (
+              <div className="rounded-xl border p-5 space-y-3">
+                <div className="flex items-center gap-2 pb-1 border-b">
+                  <Package className="w-4 h-4 text-soraxi-green" />
+                  <span className="font-semibold">Inventory Summary</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {application.estimatedInventorySize && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Size
+                      </Label>
+                      <p className="capitalize mt-0.5 font-medium">
+                        {application.estimatedInventorySize}
+                      </p>
+                    </div>
+                  )}
+                  {application.estimatedPriceRange && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Min Price
+                        </Label>
+                        <p className="mt-0.5 font-medium">
+                          ₦
+                          {application.estimatedPriceRange.min.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Max Price
+                        </Label>
+                        <p className="mt-0.5 font-medium">
+                          ₦
+                          {application.estimatedPriceRange.max.toLocaleString()}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Model
+                    </Label>
+                    <p className="mt-0.5">
+                      {application.isDropshipper ? "Drop" : "Stock"}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Size</Label>
-                  <p className="capitalize mt-0.5 font-medium">
-                    {application.estimatedInventorySize}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Min Price
-                  </Label>
-                  <p className="mt-0.5 font-medium">
-                    ₦{application.estimatedPriceRange.min.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Max Price
-                  </Label>
-                  <p className="mt-0.5 font-medium">
-                    ₦{application.estimatedPriceRange.max.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Model</Label>
-                  <p className="mt-0.5">
-                    {application.isDropshipper ? "Drop" : "Stock"}
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -642,7 +674,7 @@ function AdminWaitlistDetail({ applicationId }: AdminWaitlistDetailProps) {
             </DialogTitle>
             <DialogDescription>
               {actionType === "approve"
-                ? `You are about to approve ${application.businessName}. An invite email will be sent to ${application.email} with a one-time onboarding link valid for 14 days.`
+                ? `You are about to approve ${application.businessName}. Their store will be created immediately and their login details emailed to ${application.email}.`
                 : `You are about to reject ${application.businessName}. They will receive an email with your reason. This action cannot be undone.`}
             </DialogDescription>
           </DialogHeader>

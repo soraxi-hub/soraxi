@@ -24,23 +24,24 @@ export function StoreOnboardingEmail({
         </Text>
 
         <Text>
-          Your store <strong>{storeName}</strong> has been successfully
-          submitted for admin review.
+          Your store <strong>{storeName}</strong> is now live. There is nothing
+          left to wait for — you were approved when your application was
+          accepted.
         </Text>
 
-        <Text>What happens next:</Text>
+        <Text>What to do next:</Text>
 
         <ul>
           <li>
-            <Text>Our team will review your store details</Text>
+            <Text>Add your first products so buyers can find you</Text>
           </li>
           <li>
             <Text>
-              You&#39;ll receive an email notification once a decision is made
+              Add your payout account so we can send you your earnings
             </Text>
           </li>
           <li>
-            <Text>In the meantime, you can update your store profile</Text>
+            <Text>Share your storefront link with your customers</Text>
           </li>
         </ul>
 

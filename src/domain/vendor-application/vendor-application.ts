@@ -125,17 +125,6 @@ export class VendorApplication {
     return this.props.status === "rejected";
   }
 
-  hasInviteExpired(): boolean {
-    if (!this.props.inviteExpiresAt) return false;
-    return new Date() > this.props.inviteExpiresAt;
-  }
-
-  isInviteTokenValid(token: string): boolean {
-    if (this.props.inviteToken !== token) return false;
-    if (this.hasInviteExpired()) return false;
-    return true;
-  }
-
   canBeApproved(): boolean {
     return this.props.status === "pending";
   }
@@ -146,29 +135,21 @@ export class VendorApplication {
 
   // ─── State transitions ────────────────────────────────────────────────────
 
-  approve(_inviteToken: string, _inviteExpiresAt: Date, adminId: string): void {
+  /**
+   * Approval creates the vendor's store outright and emails them a temporary
+   * password, so there is no invite for them to redeem and no token to issue.
+   * `inviteToken` / `inviteExpiresAt` survive on the props only to keep older
+   * records readable.
+   */
+  approve(adminId: string): void {
     if (!this.canBeApproved()) {
       throw new Error(
         `Application ${this.props.referenceId} cannot be approved from status: ${this.props.status}`,
       );
     }
 
-    // No need for the invite token since we are autogenerating the store for the vendor
     this.props.status = "approved";
-    // this.props.inviteToken = inviteToken;
-    // this.props.inviteExpiresAt = inviteExpiresAt;
     this.props.reviewedBy = adminId;
-    this.props.updatedAt = new Date();
-  }
-
-  markAsInvited(): void {
-    if (this.props.status !== "approved") {
-      throw new Error(
-        `Application ${this.props.referenceId} cannot be marked as invited from status: ${this.props.status}`,
-      );
-    }
-
-    this.props.status = "invited";
     this.props.updatedAt = new Date();
   }
 

@@ -93,8 +93,6 @@ export default function StoreProfilePage() {
 
   return (
     <div className={cn("mx-auto w-full max-w-5xl space-y-4 py-6", pageGutter)}>
-      {/* <StatusBanner tone={status.tone} /> */}
-
       <StoreHeaderCard
         storeName={storeData.storeName}
         initials={initials}

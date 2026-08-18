@@ -69,12 +69,6 @@ export const userSignUpInfoValidation = z.object({
     })
     .min(2, { message: "Minimum 2 Characters" })
     .max(50),
-  postalCode: z
-    .string({
-      required_error: "Required",
-    })
-    .min(4, { message: "Minimum 4 Characters" })
-    .max(10),
 });
 
 /**

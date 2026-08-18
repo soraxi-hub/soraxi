@@ -118,7 +118,6 @@ export class OrderNotificationService {
               street: order.shippingAddress.address,
               deliveryType: order.shippingAddress.deliveryType,
               country: "Nigeria",
-              postalCode: order.shippingAddress.postalCode,
             }
           : undefined;
 

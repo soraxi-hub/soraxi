@@ -30,7 +30,10 @@ const rejectSchema = z.object({
     .max(500),
 });
 
-const getPendingSchema = z.object({
+const getApplicationsSchema = z.object({
+  status: z
+    .enum(["all", "pending", "approved", "rejected", "invited"])
+    .default("pending"),
   page: z.number().min(1).default(1),
   limit: z.number().min(1).max(50).default(20),
 });
@@ -68,13 +71,15 @@ export const waitlistRouter = createTRPCRouter({
     }),
 
   /**
-   * Admin — fetch paginated pending applications with category saturation counts.
+   * Admin — fetch a paginated page of applications for any status (or "all"),
+   * with category saturation counts and a count per status.
    */
-  getPendingApplications: baseProcedure
-    .input(getPendingSchema)
+  getApplications: baseProcedure
+    .input(getApplicationsSchema)
     .query(async ({ input }) => {
       try {
-        return await waitlistService.getPendingApplications(
+        return await waitlistService.getApplications(
+          input.status,
           input.page,
           input.limit,
         );
@@ -83,7 +88,7 @@ export const waitlistRouter = createTRPCRouter({
           try {
             await sendTelegramMessage(
               formatErrorReport(error, {
-                source: "trpc:waitlist.getPendingApplications",
+                source: "trpc:waitlist.getApplications",
               }),
             );
           } catch {

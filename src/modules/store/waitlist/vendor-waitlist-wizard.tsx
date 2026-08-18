@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { scrollToTop } from "@/lib/utils";
 import { useProductImages } from "@/hooks/use-product-images.upload";
@@ -8,34 +8,44 @@ import { useWizardNavigation } from "@/hooks/use-wizard-navigation.upload";
 import { useWaitlistStepValidation } from "@/hooks/use-waitlist-step-validation";
 import { WaitlistProgressIndicator } from "./waitlist-progress-indicator";
 import { BusinessContactStep } from "./steps/business-contact-step";
-import { CategoryModelStep } from "./steps/category-model-step";
 import { BusinessProofStep } from "./steps/business-proof-step";
 import { SubmitSuccess } from "./steps/submit-success";
 import {
   initialWaitlistFormData,
+  type WaitlistApplicantDefaults,
   type WaitlistFormData,
 } from "@/types/waitlist-wizard.types";
 import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import { normalizeInstagramHandle } from "@/lib/utils/normalize-instagram-handle";
 import Link from "next/link";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 2;
+
+interface VendorWaitlistWizardProps {
+  /**
+   * Contact details read from the signed-in applicant's account on the server.
+   * Any field the account doesn't have simply arrives empty.
+   */
+  applicantDefaults: WaitlistApplicantDefaults;
+}
 
 /**
  * VendorWaitlistWizard
  *
- * 3-step wizard for vendors to apply to the Soraxi waitlist.
+ * 2-step wizard for vendors to apply to the Soraxi waitlist.
  *
- * Step 1 — Business & Contact Info
- * Step 2 — Category, Inventory & Business Model
- * Step 3 — Business Proof & Product Samples
+ * Step 1 — Business, contact info, category & business model
+ * Step 2 — Business Proof & Product Samples
  *
  * On success, shows a confirmation screen with the vendor's referenceId.
  */
-export function VendorWaitlistWizard() {
-  const [formData, setFormData] = useState<WaitlistFormData>(
-    initialWaitlistFormData,
-  );
+export function VendorWaitlistWizard({
+  applicantDefaults,
+}: VendorWaitlistWizardProps) {
+  const [formData, setFormData] = useState<WaitlistFormData>(() => ({
+    ...initialWaitlistFormData,
+    ...applicantDefaults,
+  }));
   const [isLoading, setIsLoading] = useState(false);
   const [submittedResult, setSubmittedResult] = useState<{
     referenceId: string;
@@ -55,6 +65,19 @@ export function VendorWaitlistWizard() {
 
   const { currentStep, nextStep, previousStep, stepProgress } =
     useWizardNavigation(0, TOTAL_STEPS);
+
+  /**
+   * Which contact fields actually arrived from the account. Derived from the
+   * defaults rather than the live form values, so the notice doesn't disappear
+   * the moment the vendor edits one of them.
+   */
+  const prefilledFields = useMemo(
+    () =>
+      (
+        Object.keys(applicantDefaults) as Array<keyof WaitlistApplicantDefaults>
+      ).filter((field) => Boolean(applicantDefaults[field])),
+    [applicantDefaults],
+  );
 
   // ─── Field change handler ─────────────────────────────────────────────────
 
@@ -96,24 +119,14 @@ export function VendorWaitlistWizard() {
     payload.append("email", formData.email);
     payload.append("phone", formData.phone);
     payload.append("institution", formData.institution);
-    payload.append("stateOfApplicant", formData.stateOfApplicant);
-    payload.append("cityOfApplicant", formData.cityOfApplicant);
     if (formData.cacNumber) payload.append("cacNumber", formData.cacNumber);
     const normalizedHandle = normalizeInstagramHandle(formData.instagramHandle);
     if (normalizedHandle) payload.append("instagramHandle", normalizedHandle);
     if (formData.otherProofUrl)
       payload.append("otherProofUrl", formData.otherProofUrl);
 
-    // Category & inventory
+    // Category & business model
     payload.append("categoryId", formData.categoryId);
-    if (formData.subCategory)
-      payload.append("subCategory", formData.subCategory);
-    payload.append(
-      "estimatedInventorySize",
-      formData.estimatedInventorySize as string,
-    );
-    payload.append("estimatedPriceMin", String(formData.estimatedPriceMin));
-    payload.append("estimatedPriceMax", String(formData.estimatedPriceMax));
     payload.append("isDropshipper", String(formData.isDropshipper));
 
     // Append product sample images (as files)
@@ -126,8 +139,8 @@ export function VendorWaitlistWizard() {
 
   // ─── Submit (single POST with FormData) ──────────────────────────────────
   const handleSubmit = useCallback(async () => {
-    // Final validation on step 3
-    const validation = validateStep(2, formData, productSampleFiles);
+    // Final validation on the proof step
+    const validation = validateStep(1, formData, productSampleFiles);
     if (!validation.isValid) {
       toast.error("Please fix the errors before submitting");
       return;
@@ -182,20 +195,10 @@ export function VendorWaitlistWizard() {
             onFormDataChange={handleFormDataChange}
             onNext={handleNext}
             isLoading={isLoading}
+            prefilledFields={prefilledFields}
           />
         );
       case 1:
-        return (
-          <CategoryModelStep
-            formData={formData}
-            errors={errors}
-            onFormDataChange={handleFormDataChange}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            isLoading={isLoading}
-          />
-        );
-      case 2:
         return (
           <BusinessProofStep
             formData={formData}

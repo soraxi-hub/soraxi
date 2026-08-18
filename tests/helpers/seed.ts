@@ -68,7 +68,6 @@ export async function seedPendingOrder(params: {
     subOrders: [],
     totalAmount: params.totalAmount ?? 500_000,
     shippingAddress: {
-      postalCode: "500001",
       address: "12 Campus Road",
       city: "Nsukka",
       state: "Enugu",

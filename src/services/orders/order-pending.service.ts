@@ -102,7 +102,7 @@ export class OrderPendingService {
        */
       const {
         cartItemsWithShippingMethod: cartItems,
-        meta: { address, city, state, postal_code, deliveryType, couponCode },
+        meta: { address, city, state, deliveryType, couponCode },
       } = input;
 
       // ── Step 1: Validate coupon and get total discount ─────────────────
@@ -126,7 +126,6 @@ export class OrderPendingService {
           address,
           city,
           state,
-          postalCode: postal_code,
           deliveryType,
         })
         .setPaymentInfo({

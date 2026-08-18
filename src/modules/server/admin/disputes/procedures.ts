@@ -25,7 +25,7 @@ import {
   creditPlatformPenalty,
   debitPlatformCommission,
 } from "@/lib/db/models/platform-wallet.model";
-import { calculatePenalty } from "@/lib/utils/calculate-penalty.util ";
+import { calculatePenalty } from "@/lib/utils/calculate-penalty.util";
 import {
   SuborderFinancialStatus,
   DisputeStatus,

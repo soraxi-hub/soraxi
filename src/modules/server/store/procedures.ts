@@ -3,7 +3,6 @@ import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import type mongoose from "mongoose";
-import { StoreBusinessInfoEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -80,13 +79,6 @@ export const storeRouter = createTRPCRouter({
         // Determine progress
         const progressSteps = {
           profile: !!(store.name && store.description),
-          "business-info": !!(
-            store.businessInfo &&
-            (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
-              (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
-                store.businessInfo.businessName &&
-                store.businessInfo.registrationNumber))
-          ),
           shipping: !!(store.shippingMethods?.length > 0),
           payout: !!(store.payoutAccounts?.length > 0),
           terms: !!store.agreedToTermsAt,
@@ -111,7 +103,6 @@ export const storeRouter = createTRPCRouter({
               name: store.name,
               description: store.description,
             },
-            "business-info": store.businessInfo || {},
             shipping: store.shippingMethods,
             payout: store.payoutAccounts,
             terms: store.agreedToTermsAt,
@@ -146,13 +137,6 @@ export const storeRouter = createTRPCRouter({
 export const computeOnboardingStatus = (store: IStore) => {
   const onboardingStatus = {
     profileComplete: !!(store.name && store.description),
-    businessInfoComplete: !!(
-      store.businessInfo &&
-      (store.businessInfo.type === StoreBusinessInfoEnum.Individual ||
-        (store.businessInfo.type === StoreBusinessInfoEnum.Company &&
-          store.businessInfo.businessName &&
-          store.businessInfo.registrationNumber))
-    ),
     shippingComplete: !!(
       store.shippingMethods && store.shippingMethods.length > 0
     ),

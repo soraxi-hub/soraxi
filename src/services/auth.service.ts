@@ -54,7 +54,6 @@ export class AuthService {
     tokenData: StoreTokenPayload;
     onboarding: {
       profileComplete: boolean;
-      businessInfoComplete: boolean;
       shippingComplete: boolean;
       termsComplete: boolean;
       isComplete: boolean;
