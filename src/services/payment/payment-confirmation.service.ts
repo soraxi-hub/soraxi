@@ -7,6 +7,31 @@ import { CartService } from "@/services/cart/cart.service";
 import { PaymentService } from "@/services/payment/payment.service";
 import { NormalizedPaymentStatus } from "@/domain/payment/gateways/gateway-interface";
 
+/**
+ * How long an order with no transaction at the gateway is left alone before
+ * it is treated as abandoned.
+ *
+ * Not zero, because "no transaction yet" is also what an in-progress checkout
+ * looks like: a customer still on the gateway's page entering card details,
+ * waiting on an OTP, or completing a bank transfer has no transaction on
+ * record either. Bank transfers in particular can sit unpaid for many minutes,
+ * so the window is generous — cancelling a live payment is far worse than
+ * leaving an abandoned order pending a little longer.
+ */
+const ABANDONMENT_GRACE_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Absolute ceiling on how long an order may sit Pending, whatever the gateway
+ * says.
+ *
+ * The grace window above only fires on a definitive `not_found`. If a gateway
+ * were persistently unreachable, every sweep would return `unavailable` and
+ * orders would accumulate forever — each one holding its cart's idempotency
+ * key and locking the customer out of that cart. This is the backstop that
+ * makes "no order stays Pending indefinitely" true unconditionally.
+ */
+const HARD_EXPIRY_MS = 48 * 60 * 60 * 1000; // 48 hours
+
 export type PaymentConfirmationOutcome =
   | { ok: true; status: PaymentStatus; message?: string }
   | {
@@ -64,22 +89,21 @@ export class PaymentConfirmationService {
    */
   static async confirmFromGateway({
     reference,
-    providerTransactionId,
     gateway,
   }: {
     reference: string;
-    providerTransactionId?: string;
     gateway?: PaymentGateway;
   }): Promise<PaymentConfirmationOutcome> {
     await connectToDatabase();
 
     const Order = await getOrderModel();
     const order = await Order.findOne({ idempotencyKey: reference })
-      .select("_id paymentStatus paymentGateway")
+      .select("_id paymentStatus paymentGateway createdAt")
       .lean<{
         _id: mongoose.Types.ObjectId;
         paymentStatus: PaymentStatus;
         paymentGateway?: PaymentGateway;
+        createdAt: Date;
       }>();
 
     if (!order) {
@@ -106,20 +130,54 @@ export class PaymentConfirmationService {
     const resolvedGateway =
       gateway ?? order.paymentGateway ?? PaymentGateway.Flutterwave;
 
-    const verified = await PaymentService.verifyPayment({
+    const outcome = await PaymentService.verifyPayment({
       gateway: resolvedGateway,
-      refs: { reference, providerTransactionId },
+      refs: { reference },
     });
 
-    if (!verified) {
+    if (outcome.kind === "unavailable") {
       // The adapter already exhausted its own retries — the gateway is down,
-      // timing out, or erroring. Worth another delivery attempt later.
+      // timing out, or erroring. We know nothing, so change nothing.
       return {
         ok: false,
-        error: "Could not retrieve transaction data from the gateway.",
+        error: `Could not retrieve transaction data from the gateway. ${outcome.message ?? ""}`.trim(),
         retryable: true,
       };
     }
+
+    if (outcome.kind === "not_found") {
+      /**
+       * The gateway is healthy and says this transaction does not exist — the
+       * customer left the payment page without paying. No gateway emits a
+       * webhook for that, so this is the ONLY signal abandonment produces, and
+       * without acting on it the order would sit Pending forever, holding the
+       * cart's idempotency key and locking the customer out of that cart.
+       *
+       * The grace window matters: an in-progress checkout looks identical from
+       * here, so only orders old enough to have been genuinely abandoned are
+       * cancelled.
+       */
+      const ageMs = Date.now() - new Date(order.createdAt).getTime();
+
+      if (ageMs < ABANDONMENT_GRACE_MS) {
+        return { ok: true, status: PaymentStatus.Pending };
+      }
+
+      const status = await PaymentConfirmationService.expirePendingOrder(
+        order._id.toString(),
+        `abandoned — gateway reports no transaction for reference "${reference}"`,
+      );
+
+      return status
+        ? { ok: true, status }
+        : {
+            ok: false,
+            error: "Failed to cancel abandoned order.",
+            retryable: true,
+          };
+    }
+
+    const verified = outcome.result;
 
     // Still in flight at the gateway — leave the order pending and let the
     // caller poll again. Never a write.
@@ -254,6 +312,55 @@ export class PaymentConfirmationService {
   }
 
   /**
+   * Move a Pending order to a terminal state because it will never be paid.
+   *
+   * Routes through the same ProcessOrder path a gateway-reported failure uses,
+   * so the terminal-state guards apply — an order that turned out to be Paid
+   * in the meantime is left alone rather than cancelled out from under a real
+   * payment.
+   *
+   * @returns the resulting status, or null if the order could not be updated.
+   */
+  private static async expirePendingOrder(
+    orderId: string,
+    reason: string,
+  ): Promise<PaymentStatus | null> {
+    const processOrder = await OrderFactory.getProcessOrderInstance();
+    const session = await mongoose.startSession();
+
+    try {
+      let status: PaymentStatus | null = null;
+
+      await session.withTransaction(async () => {
+        const result = await processOrder.updateOrderRecordToFailureState({
+          orderId,
+          session,
+          // Anything other than "failed" maps to Cancelled, which is the
+          // honest label here: nobody attempted and lost a payment, the
+          // customer simply never completed one.
+          transactionDataStatus: "abandoned",
+        });
+
+        status = result.ok ? (result.status ?? PaymentStatus.Cancelled) : null;
+      });
+
+      if (status) {
+        console.log(`[PaymentConfirmation] Order ${orderId} cancelled: ${reason}`);
+      }
+
+      return status;
+    } catch (error) {
+      console.error(
+        `[PaymentConfirmation] Failed to expire order ${orderId}`,
+        error,
+      );
+      return null;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  /**
    * Backstop sweep: re-verify orders left Pending long after checkout.
    *
    * Covers every way the primary paths can miss — a webhook that never
@@ -278,6 +385,7 @@ export class PaymentConfirmationService {
     paid: number;
     failed: number;
     stillPending: number;
+    expired: number;
     errored: number;
   }> {
     await connectToDatabase();
@@ -289,16 +397,24 @@ export class PaymentConfirmationService {
       paymentStatus: PaymentStatus.Pending,
       createdAt: { $lte: cutoff },
     })
-      .select("idempotencyKey paymentGateway")
+      .select("_id idempotencyKey paymentGateway createdAt")
       .sort({ createdAt: 1 }) // oldest first — they have waited longest
       .limit(limit)
-      .lean<{ idempotencyKey: string; paymentGateway?: PaymentGateway }[]>();
+      .lean<
+        {
+          _id: mongoose.Types.ObjectId;
+          idempotencyKey: string;
+          paymentGateway?: PaymentGateway;
+          createdAt: Date;
+        }[]
+      >();
 
     const summary = {
       totalEligible: stale.length,
       paid: 0,
       failed: 0,
       stillPending: 0,
+      expired: 0,
       errored: 0,
     };
 
@@ -306,11 +422,44 @@ export class PaymentConfirmationService {
     // calls a gateway API. Concurrency here would buy little and risks both
     // provider rate limits and connection-pool exhaustion on serverless.
     for (const order of stale) {
+      const ageMs = Date.now() - new Date(order.createdAt).getTime();
+
       try {
         const result = await PaymentConfirmationService.confirmFromGateway({
           reference: order.idempotencyKey,
           gateway: order.paymentGateway,
         });
+
+        const stillPending =
+          !result.ok || result.status === PaymentStatus.Pending;
+
+        /**
+         * Hard backstop.
+         *
+         * Verification either could not be reached or keeps saying "in
+         * flight", and the order is now older than any real payment could
+         * be. Left alone it would be re-verified forever while holding its
+         * cart's idempotency key, so it is cancelled regardless of what the
+         * gateway does or does not say.
+         *
+         * Safe because expirePendingOrder goes through the same terminal-state
+         * guards as any other failure write: an order that did get paid in the
+         * meantime is not touched.
+         */
+        if (stillPending && ageMs >= HARD_EXPIRY_MS) {
+          const status = await PaymentConfirmationService.expirePendingOrder(
+            order._id.toString(),
+            `hard expiry — pending for ${Math.round(ageMs / 3_600_000)}h ` +
+              `without a confirmed outcome`,
+          );
+
+          if (status) {
+            summary.expired++;
+          } else {
+            summary.errored++;
+          }
+          continue;
+        }
 
         if (!result.ok) {
           summary.errored++;
