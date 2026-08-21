@@ -3,9 +3,8 @@ import { TRPCError } from "@trpc/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
 
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { PublicStoreProfile } from "@/modules/public-store/public-store-profile";
 import { PublicStoreProfileSkeleton } from "@/modules/skeletons/public-store-profile-skeleton";
 import { caller, getQueryClient, trpc } from "@/trpc/server";
@@ -84,11 +83,11 @@ async function Page({ params }: PageProps) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ErrorBoundary fallback={<ErrorFallback />}>
+      <QueryBoundary>
         <Suspense fallback={<PublicStoreProfileSkeleton />}>
           <PublicStoreProfile storeId={storeId} />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrationBoundary>
   );
 }

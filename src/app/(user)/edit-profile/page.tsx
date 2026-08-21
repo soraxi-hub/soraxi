@@ -1,9 +1,8 @@
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import EditProfileSkeleton from "@/modules/skeletons/edit-profile-skeleton";
 import EditProfile from "@/modules/user/edit-profile";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
 import type { Metadata } from "next";
 import { generateUserMetadata } from "@/lib/helpers/generate-user-metadata";
 
@@ -18,11 +17,11 @@ async function Page() {
   prefetch(trpc.wishlist.getByUserId.queryOptions());
   return (
     <HydrateClient>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <QueryBoundary>
         <Suspense fallback={<EditProfileSkeleton />}>
           <EditProfile />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrateClient>
   );
 }

@@ -4,8 +4,7 @@ import { Suspense } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { Separator } from "@/components/ui/separator";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { statusConfig as statusConfigMap } from "@/config/dispute-config";
 import { DisputeOutcome } from "@/enums/financial.enums";
 import { SupportSection } from "@/modules/user/disputes/support-section";
@@ -117,7 +116,7 @@ function DisputeStatusContent({
 }
 
 /**
- * Page export with Suspense + ErrorBoundary
+ * Page export with Suspense + QueryBoundary
  */
 export default async function DisputeStatusPage({
   params,
@@ -126,7 +125,7 @@ export default async function DisputeStatusPage({
 }) {
   const { orderId, disputeId } = await params;
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryBoundary>
       <Suspense
         fallback={
           <div className="max-w-5xl mx-auto px-4 pt-10 space-y-4 animate-pulse">
@@ -138,6 +137,6 @@ export default async function DisputeStatusPage({
       >
         <DisputeStatusContent orderId={orderId} disputeId={disputeId} />
       </Suspense>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }

@@ -1,9 +1,8 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
 import StoreProfilePage from "@/modules/store/profile/store-profile-page";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { StoreProfileSkeleton } from "@/modules/skeletons/store-profile-skeleton";
 
 async function Page() {
@@ -13,11 +12,11 @@ async function Page() {
   );
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ErrorBoundary fallback={<ErrorFallback />}>
+      <QueryBoundary>
         <Suspense fallback={<StoreProfileSkeleton />}>
           <StoreProfilePage />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrationBoundary>
   );
 }

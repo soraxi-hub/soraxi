@@ -1,6 +1,5 @@
-import { ErrorBoundary } from "react-error-boundary";
 import { Suspense } from "react";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 import OrderDetailsPage from "@/modules/user/user-order-details-page";
 import { OrderDetailsSkeleton } from "@/modules/skeletons/user-order-details-skeleton";
@@ -16,11 +15,11 @@ export default async function Page({
 
   return (
     <HydrateClient>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <QueryBoundary>
         <Suspense fallback={<OrderDetailsSkeleton />}>
           <OrderDetailsPage slug={slug} />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrateClient>
   );
 }

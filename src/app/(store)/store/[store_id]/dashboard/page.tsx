@@ -7,8 +7,7 @@ import { StoreDashboardSkeleton } from "@/modules/skeletons/store-dashboard-skel
 import { siteConfig } from "@/config/site";
 import { Metadata } from "next";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const store = await getStoreFromCookie();
@@ -35,13 +34,13 @@ async function Page({ params }: { params: Promise<{ store_id: string }> }) {
   );
 
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryBoundary>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Suspense fallback={<StoreDashboardSkeleton />}>
           <StoreDashboardPage store_id={store_id} error="" />
         </Suspense>
       </HydrationBoundary>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }
 

@@ -1,7 +1,5 @@
 import { Suspense } from "react";
 import { caller } from "@/trpc/server";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
 import {
   Card,
   CardContent,
@@ -30,13 +28,18 @@ interface PageProps {
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
 
+  /*
+   * No client `ErrorBoundary` here. `CouponUsageContent` is an async Server
+   * Component, so a failed fetch inside it rejects during the server render —
+   * before any client boundary exists to catch it. Next.js routes that to
+   * `app/(admin)/error.tsx`, which is where this page's error UI comes from.
+   * The `Suspense` stays: the async child genuinely suspends.
+   */
   return (
     <div className="container mx-auto py-8 space-y-6">
-      <ErrorBoundary fallback={<ErrorFallback />}>
-        <Suspense fallback={<CouponUsageSkeleton />}>
-          <CouponUsageContent id={id} />
-        </Suspense>
-      </ErrorBoundary>
+      <Suspense fallback={<CouponUsageSkeleton />}>
+        <CouponUsageContent id={id} />
+      </Suspense>
     </div>
   );
 }

@@ -33,8 +33,7 @@ import { DisputeStatus, DisputeOutcome } from "@/enums/financial.enums";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { DeliveryRecordPanel } from "./delivery-record-panel";
 
 // ---------------------------------------------------------------------------
@@ -661,7 +660,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
 
 function AdminDisputeDetail({ disputeId }: { disputeId: string }) {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryBoundary>
       <Suspense
         fallback={
           <div className="space-y-4 animate-pulse">
@@ -673,7 +672,7 @@ function AdminDisputeDetail({ disputeId }: { disputeId: string }) {
       >
         <AdminDisputeDetailContent disputeId={disputeId} />
       </Suspense>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }
 

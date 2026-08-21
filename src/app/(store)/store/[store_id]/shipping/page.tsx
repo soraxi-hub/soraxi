@@ -1,10 +1,9 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
 import ShippingMethodForm from "@/modules/store/shipping/shipping-methods";
 import ShippingMethodFormSkeleton from "@/modules/skeletons/shipping-method-form-skeleton";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 
 import type { Metadata } from "next";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
@@ -23,11 +22,11 @@ async function Page() {
   );
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <QueryBoundary>
         <Suspense fallback={<ShippingMethodFormSkeleton />}>
           <ShippingMethodForm />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrationBoundary>
   );
 }
