@@ -422,6 +422,7 @@ export class ProcessOrder {
       entityId: order.userId,
       entityType: LedgerEntityType.CUSTOMER,
       gatewayReference,
+      gatewayProvider: provider,
       session,
     });
 
@@ -451,12 +452,13 @@ export class ProcessOrder {
     }
 
     // --- COLLECTION_FEE ---
-    // Flutterwave's fee reduces PLATFORM_ESCROW and records a gateway expense.
+    // The gateway's fee reduces PLATFORM_ESCROW and records a gateway expense.
     // DEBIT GATEWAY_FEES_EXPENSE / CREDIT PLATFORM_ESCROW
     if (collectionFeeKobo > 0) {
       await writer.writeCollectionFee({
         feeAmount: collectionFeeKobo,
         orderId: order._id,
+        gatewayProvider: provider,
         session,
       });
     }

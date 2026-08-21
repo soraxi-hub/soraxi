@@ -6,6 +6,7 @@ import {
   LedgerReferenceType,
   LedgerEntryCategory,
 } from "@/enums/financial.enums";
+import { PaymentGateway } from "@/enums";
 import { getLedgerLineModel } from "@/lib/db/models/ledger-line.model";
 import { getJournalEntryModel } from "@/lib/db/models/journal-entry.model";
 import {
@@ -325,6 +326,8 @@ async function deriveLedgerAccountBalance(
     dateFrom?: Date;
     dateTo?: Date;
     increasesOn?: "credit" | "debit";
+    /** Restrict to cash that moved through one gateway. */
+    gatewayProvider?: PaymentGateway;
   },
 ): Promise<number> {
   await connectToDatabase();
@@ -334,6 +337,10 @@ async function deriveLedgerAccountBalance(
 
   if (options?.entityId !== undefined) {
     matchStage.entityId = new mongoose.Types.ObjectId(options.entityId);
+  }
+
+  if (options?.gatewayProvider !== undefined) {
+    matchStage.gatewayProvider = options.gatewayProvider;
   }
 
   if (options?.dateFrom !== undefined || options?.dateTo !== undefined) {
@@ -1135,5 +1142,183 @@ export async function reconcileVendorDebt(
     stored: wallet.debt.amount,
     derived,
     isBalanced: wallet.debt.amount === derived,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// checkCollectionsByGateway
+// ---------------------------------------------------------------------------
+
+export interface GatewayCollectionsPosition {
+  gateway: PaymentGateway;
+  /** Customer payments that entered escrow through this gateway, in Kobo. */
+  paymentsIn: number;
+  /** Collection fees this gateway deducted, in Kobo. */
+  collectionFees: number;
+  /** Refunds returned to customers through this gateway, in Kobo. */
+  refundsOut: number;
+  /**
+   * paymentsIn − collectionFees − refundsOut.
+   *
+   * What our books say this gateway has collected on our behalf, net of what
+   * it took and gave back. This is the figure to compare against that
+   * gateway's own settlement report for the same window.
+   */
+  netCollected: number;
+}
+
+export interface CollectionsByGatewayResult {
+  perGateway: GatewayCollectionsPosition[];
+  /** Sum of netCollected across every gateway, in Kobo. */
+  totalNetCollected: number;
+  /**
+   * Escrow movement recorded WITHOUT a gateway tag, in Kobo.
+   *
+   * Should be zero for collections. A non-zero value means an escrow line was
+   * written by a path that did not record which gateway the cash moved
+   * through, so it cannot be attributed to any provider — the per-gateway
+   * figures are then incomplete by exactly this amount.
+   *
+   * Payout-side escrow movement is deliberately excluded from this check
+   * rather than counted here; see the note on checkCollectionsByGateway.
+   */
+  untaggedCollectionsEscrow: number;
+}
+
+/**
+ * Slices collections activity per payment gateway.
+ *
+ * This is the internal half of the two-layer reconciliation: it produces what
+ * OUR ledger says each gateway is holding for us, ready to be compared against
+ * that gateway's own settlement report. The comparison itself is deliberately
+ * not here — settlement reports need live credentials and lag actual
+ * transactions by a day or more, so pulling them is a separate concern.
+ *
+ * Scope: collections only. Payouts and transfer fees also move escrow, but
+ * they are attributed to the *disbursing* gateway, which is not necessarily
+ * the one that collected — Soraxi can take a payment on one provider and pay
+ * a vendor out through another. Folding them into a collecting-gateway figure
+ * would produce a number that reconciles against nothing. Disbursement
+ * attribution is its own dimension, and payouts are single-provider today.
+ *
+ * Consequence worth stating plainly: the per-gateway totals here do NOT sum to
+ * PLATFORM_ESCROW, and are not meant to. Use checkEscrowSolvency and
+ * checkLedgerAccountingIdentity for whole-ledger integrity.
+ */
+export async function checkCollectionsByGateway(options?: {
+  dateFrom?: Date;
+  dateTo?: Date;
+}): Promise<CollectionsByGatewayResult> {
+  await connectToDatabase();
+  const LedgerLine = await getLedgerLineModel();
+
+  const dateFilter: Record<string, Date> = {};
+  if (options?.dateFrom !== undefined) dateFilter.$gte = options.dateFrom;
+  if (options?.dateTo !== undefined) dateFilter.$lte = options.dateTo;
+  const hasDateFilter = Object.keys(dateFilter).length > 0;
+
+  /**
+   * One aggregation rather than three-per-gateway round trips: group escrow
+   * lines by (gateway, category, side) and let the caller reassemble. The
+   * category is what separates a payment from a fee from a refund, since all
+   * three touch the same account.
+   */
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        accountType: LedgerAccountType.PLATFORM_ESCROW,
+        ...(hasDateFilter ? { createdAt: dateFilter } : {}),
+      },
+    },
+    {
+      $lookup: {
+        from: "journalentries",
+        localField: "journalId",
+        foreignField: "_id",
+        as: "entry",
+      },
+    },
+    { $unwind: "$entry" },
+    {
+      $group: {
+        _id: {
+          gateway: "$gatewayProvider",
+          category: "$entry.category",
+          type: "$type",
+        },
+        total: { $sum: "$amount" },
+      },
+    },
+  ];
+
+  const rows = await LedgerLine.aggregate<{
+    _id: {
+      gateway?: PaymentGateway;
+      category: LedgerEntryCategory;
+      type: LedgerEntryType;
+    };
+    total: number;
+  }>(pipeline);
+
+  const byGateway = new Map<PaymentGateway, GatewayCollectionsPosition>();
+  let untaggedCollectionsEscrow = 0;
+
+  const collectionCategories: LedgerEntryCategory[] = [
+    LedgerEntryCategory.PAYMENT_RECEIVED,
+    LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
+    LedgerEntryCategory.REFUND_CONFIRMED,
+  ];
+
+  for (const row of rows) {
+    const { gateway, category, type } = row._id;
+
+    // Payout-side escrow movement shares the PLATFORM_ESCROW account but is a
+    // different dimension — skip rather than mis-attribute.
+    if (!collectionCategories.includes(category)) continue;
+
+    if (!gateway) {
+      untaggedCollectionsEscrow += row.total;
+      continue;
+    }
+
+    const position =
+      byGateway.get(gateway) ??
+      ({
+        gateway,
+        paymentsIn: 0,
+        collectionFees: 0,
+        refundsOut: 0,
+        netCollected: 0,
+      } satisfies GatewayCollectionsPosition);
+
+    if (
+      category === LedgerEntryCategory.PAYMENT_RECEIVED &&
+      type === LedgerEntryType.DEBIT
+    ) {
+      position.paymentsIn += row.total;
+    } else if (
+      category === LedgerEntryCategory.GATEWAY_FEE_DEDUCTED &&
+      type === LedgerEntryType.CREDIT
+    ) {
+      position.collectionFees += row.total;
+    } else if (
+      category === LedgerEntryCategory.REFUND_CONFIRMED &&
+      type === LedgerEntryType.CREDIT
+    ) {
+      position.refundsOut += row.total;
+    }
+
+    byGateway.set(gateway, position);
+  }
+
+  const perGateway = [...byGateway.values()].map((p) => ({
+    ...p,
+    netCollected: p.paymentsIn - p.collectionFees - p.refundsOut,
+  }));
+
+  return {
+    perGateway,
+    totalNetCollected: perGateway.reduce((sum, p) => sum + p.netCollected, 0),
+    untaggedCollectionsEscrow,
   };
 }

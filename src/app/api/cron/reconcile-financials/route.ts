@@ -7,6 +7,7 @@ import {
   checkLedgerStructuralIntegrity,
   checkEscrowSolvency,
   checkLedgerAccountingIdentity,
+  checkCollectionsByGateway,
 } from "@/lib/utils/reconciliation.util";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
       structuralIntegrity,
       escrowSolvency,
       accountingIdentity,
+      collectionsByGateway,
     ] = await Promise.all([
       checkGlobalBalance(dateFrom, dateTo),
       reconcilePlatformWallet(),
@@ -83,6 +85,7 @@ export async function GET(request: NextRequest) {
       checkLedgerStructuralIntegrity(dateFrom, dateTo),
       checkEscrowSolvency(),
       checkLedgerAccountingIdentity(),
+      checkCollectionsByGateway({ dateFrom, dateTo }),
     ]);
 
     const hasDiscrepancies =
@@ -92,6 +95,10 @@ export async function GET(request: NextRequest) {
       structuralIntegrity.orphanedLines.length > 0 ||
       structuralIntegrity.malformedEntityLines.length > 0 ||
       structuralIntegrity.duplicateJournalGroups.length > 0 ||
+      // Escrow cash that moved without recording which gateway it moved
+      // through cannot be attributed to any provider, so it cannot be
+      // reconciled against a settlement report.
+      collectionsByGateway.untaggedCollectionsEscrow !== 0 ||
       !escrowSolvency.isSolvent ||
       !accountingIdentity.isBalanced;
 
@@ -125,6 +132,12 @@ export async function GET(request: NextRequest) {
           structuralIntegrity.malformedEntityLines.slice(0, MAX_SAMPLE_SIZE),
         duplicateJournalGroupsSample:
           structuralIntegrity.duplicateJournalGroups.slice(0, MAX_SAMPLE_SIZE),
+      },
+      collectionsByGateway: {
+        perGateway: collectionsByGateway.perGateway,
+        totalNetCollected: collectionsByGateway.totalNetCollected,
+        untaggedCollectionsEscrow:
+          collectionsByGateway.untaggedCollectionsEscrow,
       },
       escrowSolvency: {
         isSolvent: escrowSolvency.isSolvent,

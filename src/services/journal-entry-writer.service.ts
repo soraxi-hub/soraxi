@@ -7,6 +7,7 @@ import {
   LedgerReferenceType,
   LedgerAccountType,
 } from "@/enums/financial.enums";
+import { PaymentGateway } from "@/enums";
 import {
   createJournalEntry,
   type IJournalEntry,
@@ -53,6 +54,8 @@ type PendingLedgerLine = Omit<ILedgerLine, "_id" | "createdAt" | "journalId">;
 export interface WriteCollectionFeeParams {
   /** Total Flutterwave collection fee in Kobo (app_fee + VAT). */
   feeAmount: number;
+  /** Which gateway deducted this fee. */
+  gatewayProvider: PaymentGateway;
   /** _id of the order this fee relates to. */
   orderId: mongoose.Types.ObjectId;
   session: mongoose.ClientSession;
@@ -65,6 +68,8 @@ export interface WritePaymentReceivedParams {
   orderId: mongoose.Types.ObjectId;
   /** Our payment reference (cart idempotency key) — stored in metadata. */
   gatewayReference: string;
+  /** Which gateway collected this payment. */
+  gatewayProvider: PaymentGateway;
   /** The id of the entityType that made the payment */
   entityId: mongoose.Types.ObjectId;
   /** Is it a customer or vendor */
@@ -342,6 +347,8 @@ export interface WriteRefundConfirmedParams {
   amountRefunded: number;
   /** _id of the RefundRecord document. */
   refundId: mongoose.Types.ObjectId;
+  /** Which gateway returned the money to the customer. */
+  gatewayProvider: PaymentGateway;
   session: mongoose.ClientSession;
 }
 
@@ -444,7 +451,7 @@ export class JournalEntryWriter {
   // -------------------------------------------------------------------------
 
   async writeCollectionFee(params: WriteCollectionFeeParams): Promise<void> {
-    const { feeAmount, orderId, session } = params;
+    const { feeAmount, orderId, gatewayProvider, session } = params;
 
     assertValidKoboAmount(feeAmount, "feeAmount");
 
@@ -452,11 +459,13 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.GATEWAY_FEES_EXPENSE,
+        gatewayProvider,
         amount: feeAmount,
       },
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.PLATFORM_ESCROW,
+        gatewayProvider,
         amount: feeAmount,
       },
     ];
@@ -495,6 +504,7 @@ export class JournalEntryWriter {
       totalAmount,
       orderId,
       gatewayReference,
+      gatewayProvider,
       session,
       entityId,
       entityType,
@@ -506,6 +516,7 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.DEBIT,
         accountType: LedgerAccountType.PLATFORM_ESCROW,
+        gatewayProvider,
         amount: totalAmount,
       },
       {
@@ -1208,7 +1219,13 @@ export class JournalEntryWriter {
   async writeRefundConfirmed(
     params: WriteRefundConfirmedParams,
   ): Promise<void> {
-    const { customerId, amountRefunded, refundId, session } = params;
+    const {
+      customerId,
+      amountRefunded,
+      refundId,
+      gatewayProvider,
+      session,
+    } = params;
 
     assertValidKoboAmount(amountRefunded, "amountRefunded");
 
@@ -1223,6 +1240,7 @@ export class JournalEntryWriter {
       {
         type: LedgerEntryType.CREDIT,
         accountType: LedgerAccountType.PLATFORM_ESCROW,
+        gatewayProvider,
         amount: amountRefunded,
       },
     ];

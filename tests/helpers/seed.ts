@@ -124,12 +124,15 @@ export async function seedPaidOrder(params: {
   vendorIds: mongoose.Types.ObjectId[];
   customerId?: mongoose.Types.ObjectId;
   collectionFeeKobo?: number;
+  /** Which gateway collected this payment. Defaults to Flutterwave. */
+  gateway?: PaymentGateway;
 }): Promise<SeededPaidOrder> {
   const {
     suborderGrossAmounts,
     vendorIds,
     customerId = new mongoose.Types.ObjectId(),
     collectionFeeKobo = 0,
+    gateway = PaymentGateway.Flutterwave,
   } = params;
 
   if (suborderGrossAmounts.length !== vendorIds.length) {
@@ -161,7 +164,7 @@ export async function seedPaidOrder(params: {
       {
         customerId,
         orderId,
-        paymentProvider: PaymentGateway.Flutterwave,
+        paymentProvider: gateway,
         gatewayReference: `TEST-REF-${orderId.toString()}`,
         gatewayTransactionId: `TEST-TXN-${orderId.toString()}`,
         gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
@@ -191,6 +194,7 @@ export async function seedPaidOrder(params: {
       entityId: customerId,
       entityType: LedgerEntityType.CUSTOMER,
       gatewayReference: `TEST-REF-${orderId.toString()}`,
+      gatewayProvider: gateway,
       session,
     });
 
@@ -216,6 +220,7 @@ export async function seedPaidOrder(params: {
       await writer.writeCollectionFee({
         feeAmount: collectionFeeKobo,
         orderId,
+        gatewayProvider: gateway,
         session,
       });
     }
