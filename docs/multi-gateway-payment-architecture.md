@@ -1,5 +1,22 @@
 # Multi-Gateway Payment Architecture — Discussion Summary
 
+> **Status: implemented, with documented divergences. Superseded by
+> FINANCIAL_ARCHITECTURE.md §16–§17 as the description of what actually
+> exists.**
+>
+> This document is kept as the design record — the reasoning that led to the
+> build. Where the implementation departed from it, the reason is noted inline
+> below. Read §16–§17 of FINANCIAL_ARCHITECTURE.md for current behaviour.
+>
+> **Build status against the plan at the end of this document:**
+>
+> | Step | Status |
+> | ---- | ------ |
+> | 1. Adapter interface + factory | Done |
+> | 2. Second gateway + webhook handling | Done — Paystack built and tested, but gated off pending a refund client and one live payment |
+> | 3. Bounded status-page UX | Done |
+> | 4. Reconciliation with gateway dimension | **Part A done** (ledger dimension + per-gateway collections). **Part B not started** — settlement-report comparison is blocked on credentials, settlement-lag handling, and transaction volume |
+
 ## The Core Problem
 
 Soraxi currently runs on a single payment processor (Flutterwave). This is a single point of failure — a gateway outage (scheduled upgrade or otherwise) takes down checkout entirely. The fix is to introduce additional payment gateways, but that introduces a chain of new problems that all had to be worked through:
@@ -47,6 +64,22 @@ class PaymentGatewayFactory {
 
 - Never trust a `provider` query param from the URL alone — cross-check against the DB record to prevent a manipulated URL from triggering a mismatched verify call.
 
+> **Divergence — the gateway is not customer-selected.** This section assumes
+> "the user selects a gateway at checkout". The implementation has **no gateway
+> picker**: `GatewayRouter` chooses server-side, with failover on initiation
+> failure. A picker does not actually solve the stated problem — when a gateway
+> is down, customers who habitually pick it still hit a dead checkout — and it
+> gives away the ability to steer volume as fee schedules diverge. The
+> consequence is that an enabled second gateway becomes a *silent* failover
+> target. See FINANCIAL_ARCHITECTURE.md §16.
+
+> **Divergence — no namespaced `txRef` prefixes.** An earlier version of this
+> plan suggested prefixing references per gateway (`FLW-`, `PSK-`) as a fallback
+> way to infer the provider. Dropped: the reference *is* the cart idempotency
+> key, already used to look the order up from the status page, and prefixing it
+> would ripple through webhook metadata, order lookup and the cart flow for
+> marginal benefit. The order record is the sole source of provider truth.
+
 ---
 
 ## 2. The Latency Concern
@@ -87,6 +120,18 @@ This decouples customer-facing latency ("how fast is our own DB") from gateway l
 
 Most webhooks land in 2–5 seconds, so most users never see past step 1. No order is ever permanently stuck, and nothing depends on the customer keeping the tab open.
 
+> **Built as designed**, with concrete values: 2.5s poll, fallback verification
+> at 12s, honest hand-off at 40s, cron sweep daily.
+>
+> **What this plan missed:** it assumed the cron "force-verifies and
+> reconciles", which quietly assumes verification always yields an answer. For
+> an **abandoned** checkout it does not — no gateway sends a webhook when a
+> customer walks away, and verification returns "no such transaction", which the
+> original contract could not distinguish from "gateway unreachable". Sweeping
+> such an order therefore changed nothing, forever. Closing that required a
+> third verification outcome and two expiry rules. See
+> FINANCIAL_ARCHITECTURE.md §17.
+
 ---
 
 ## 5. Reconciliation Impact of Multiple Gateways
@@ -106,6 +151,33 @@ Most webhooks land in 2–5 seconds, so most users never see past step 1. No ord
 - **Settlement timing differs per gateway** — a gateway's live balance often lags actual transactions by T+1 or more. Reconcile against that gateway's settlement report for the matching window, not a raw live balance, or every run produces false-positive discrepancies.
 
 **Structural tie-in:** Each `PaymentGatewayAdapter` can expose `getBalance()` / `getSettlementReport()` alongside `verifyTransaction()`, so the reconciliation cron simply loops over registered adapters instead of hardcoding gateway-specific logic.
+
+> **Split into Part A (built) and Part B (not built).**
+>
+> **Part A — the ledger dimension.** `gatewayProvider` lives on `LedgerLine`,
+> not `JournalEntry` as this plan offered as an alternative: every use is an
+> aggregation over that collection, so it is a `$match` there versus a `$lookup`
+> join per query. `checkCollectionsByGateway` produces the per-gateway figures.
+>
+> **Part B — the outward comparison.** Not started. No adapter exposes
+> `getBalance()` or `getSettlementReport()`. Blocked on live credentials, the
+> settlement-lag problem this document itself flags, and having any transaction
+> volume to reconcile.
+>
+> **Two refinements this plan did not anticipate:**
+>
+> - **Payouts must be excluded from per-gateway collections figures.** They are
+>   attributed to the *disbursing* gateway, which need not be the collecting one
+>   — Soraxi can take a payment on one provider and pay out through another.
+>   Consequence: per-gateway totals **do not sum to `PLATFORM_ESCROW`**, and the
+>   "aggregate check" described above therefore cannot be a simple total. The
+>   whole-ledger checks remain `checkEscrowSolvency` and
+>   `checkLedgerAccountingIdentity`.
+> - **Untagged escrow must be surfaced, not absorbed.** Cash that moved without
+>   a recorded gateway is reported separately and treated as a discrepancy;
+>   folding it into a total would let it hide inside whichever provider looked
+>   closest — the same failure mode this document warns about for the aggregate
+>   check.
 
 ---
 
