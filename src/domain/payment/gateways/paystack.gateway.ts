@@ -13,7 +13,7 @@ import {
 /**
  * Paystack adapter.
  *
- * Built fixture-driven against Paystack's documented payloads â€” the live
+ * Built fixture-driven against Paystack's documented payloads - the live
  * integration is unverified until credentials are issued. Everything here is
  * exercised by tests/payment/paystack-adapter.test.ts.
  *
@@ -65,7 +65,7 @@ export interface PaystackTransactionData {
   id: number;
   domain: string;
   status: PaystackTransactionStatus;
-  /** Our internal reference â€” the cart idempotency key. */
+  /** Our internal reference - the cart idempotency key. */
   reference: string;
   /** Amount charged, in Kobo. Paystack is Kobo-native. */
   amount: number;
@@ -73,7 +73,7 @@ export interface PaystackTransactionData {
   gateway_response: string;
   paid_at: string | null;
   created_at: string;
-  /** Payment channel: "card" | "bank" | "ussd" | "bank_transfer" | "qr" | â€¦ */
+  /** Payment channel: "card" | "bank" | "ussd" | "bank_transfer" | "qr" */
   channel: string;
   currency: string;
   ip_address?: string;
@@ -116,7 +116,7 @@ export interface PaystackInitializeResponse {
 
 export type PaystackInitializePayload = {
   email: string;
-  /** Kobo â€” Paystack's native unit; no conversion applied. */
+  /** Kobo - Paystack's native unit; no conversion applied. */
   amount: number;
   reference: string;
   currency: string;
@@ -126,7 +126,7 @@ export type PaystackInitializePayload = {
 
 /**
  * Paystack webhook event names we care about. Transfer events exist too, but
- * payouts remain on Flutterwave â€” collections-only scope for multi-gateway.
+ * payouts remain on Flutterwave - collections-only scope for multi-gateway.
  */
 export enum PaystackWebhookEvent {
   CHARGE_SUCCESS = "charge.success",
@@ -144,7 +144,7 @@ export interface PaystackWebhookPayload {
 /**
  * Paystack's metadata round-trip is not type-stable: it may arrive as the
  * object we sent, as a JSON string of that object, or as an empty string /
- * null when absent. Normalise to a partial object without ever throwing â€”
+ * null when absent. Normalise to a partial object without ever throwing -
  * a malformed metadata blob must not take down verification, it must surface
  * as missing fields the caller can reject on.
  */
@@ -172,7 +172,7 @@ export function parsePaystackMetadata(
  * code alone is a reliable signal; the message is checked as a fallback for
  * the same answer delivered with a different code.
  *
- * As with Flutterwave, erring towards *not* matching is the safe direction â€”
+ * As with Flutterwave, erring towards *not* matching is the safe direction -
  * an unrecognised error is treated as transient, leaving an order pending
  * rather than cancelling one that might be real.
  */
@@ -190,7 +190,7 @@ export function isPaystackNotFound(
 /**
  * Map a raw Paystack verify response into the gateway-neutral result.
  *
- * Pure function â€” exported separately from the class so the mapping (status
+ * Pure function - exported separately from the class so the mapping (status
  * normalisation, metadata coercion, fee handling) is unit-testable without
  * network or environment setup.
  *
@@ -208,7 +208,9 @@ export function normalizePaystackVerifyResponse(
   let status: NormalizedPaymentStatus;
   if (rawStatus === "success") {
     status = NormalizedPaymentStatus.Successful;
-  } else if (["pending", "ongoing", "processing", "queued"].includes(rawStatus)) {
+  } else if (
+    ["pending", "ongoing", "processing", "queued"].includes(rawStatus)
+  ) {
     status = NormalizedPaymentStatus.Pending;
   } else {
     // "failed", "abandoned", "reversed", and anything unrecognised.
@@ -257,7 +259,7 @@ export function normalizePaystackVerifyResponse(
  *
  * Paystack signs the **raw** request body with HMAC-SHA512 keyed on the
  * secret key, and sends the hex digest in `x-paystack-signature`. The body
- * must be hashed exactly as received â€” re-serialising parsed JSON changes
+ * must be hashed exactly as received - re-serialising parsed JSON changes
  * key order and whitespace and will never match.
  *
  * Comparison is timing-safe; a length mismatch short-circuits (timingSafeEqual
@@ -304,12 +306,14 @@ export class PaystackGateway implements IPaymentGateway {
     this.secretKey = process.env.PAYSTACK_SECRET_KEY ?? "";
 
     if (!this.secretKey || this.secretKey === "")
-      throw new Error("Server configuration error: missing Paystack secret key");
+      throw new Error(
+        "Server configuration error: missing Paystack secret key",
+      );
   }
 
   /**
    * Turn the neutral initiation payload into Paystack's transaction-initialize
-   * request and return the hosted checkout link. No business logic here â€”
+   * request and return the hosted checkout link. No business logic here -
    * cart validation and pending-order creation happen in PaymentService.
    */
   async initializePayment(
@@ -324,7 +328,7 @@ export class PaystackGateway implements IPaymentGateway {
      */
     const payload: PaystackInitializePayload = {
       email: customer.email,
-      amount: amountKobo, // Paystack is Kobo-native â€” no conversion.
+      amount: amountKobo, // Paystack is Kobo-native - no conversion.
       reference,
       currency: "NGN",
       callback_url: redirectUrl,
@@ -394,7 +398,7 @@ export class PaystackGateway implements IPaymentGateway {
           .catch(() => null)) as PaystackVerifyResponse | null;
 
         if (isPaystackNotFound(response.status, body)) {
-          // Definitive â€” no retry, the transaction was never created.
+          // Definitive - no retry, the transaction was never created.
           return { kind: "not_found", message: body?.message };
         }
 
@@ -435,4 +439,3 @@ export class PaystackGateway implements IPaymentGateway {
     return { kind: "unavailable", message: "Verification retries exhausted." };
   }
 }
-

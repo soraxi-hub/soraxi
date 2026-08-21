@@ -25,7 +25,7 @@ export function UserOrders() {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             Order History
           </h1>
-          <Badge className="bg-primary/10 text-primary text-sm md:text-base px-3 py-1 rounded-full">
+          <Badge className="bg-primary/10 text-primary text-sm md:text-base px-3 py-1">
             {orders.length} Orders
           </Badge>
         </div>
@@ -58,7 +58,6 @@ export function UserOrders() {
                         {order.paymentStatus && (
                           <Badge
                             className={cn(
-                              `text-xs font-medium px-2 py-1 rounded-full`,
                               order.paymentStatus === PaymentStatus.Paid &&
                                 "bg-green-100 text-green-800",
                               order.paymentStatus === PaymentStatus.Failed &&

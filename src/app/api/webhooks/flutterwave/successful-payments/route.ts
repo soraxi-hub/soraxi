@@ -18,7 +18,7 @@ import {
  * Responsibilities stop at authenticating the request and identifying the
  * transaction. Everything financial is delegated to
  * PaymentConfirmationService, which the Paystack webhook, the status-page
- * fallback and the cron backstop all share â€” so a gateway result is turned
+ * fallback and the cron backstop all share   so a gateway result is turned
  * into ledger truth by exactly one piece of code.
  */
 export async function POST(request: Request) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     // ----------------------------------------------------------------
-    // Event type detection â€” route before any further processing.
+    // Event type detection route before any further processing.
     //
     // Flutterwave sends an "event" field on every webhook payload.
     // We check it here and route accordingly before doing anything else.
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     if (eventType === FlutterwaveWebhookEvent.TRANSFER_COMPLETED) {
       // --- Transfer event (Stage 6) ---
-      // Route to PayoutWebhookHandler â€” completely separate from payment flow
+      // Route to PayoutWebhookHandler   completely separate from payment flow
       const result = await PayoutWebhookHandler.handle(requestBody.data);
 
       return NextResponse.json(
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     // Read our own reference straight off the payload.
     //
-    // It is untrusted, but it is only used to locate the order â€” the
+    // It is untrusted, but it is only used to locate the order   the
     // authoritative status and amount still come from the server-side
     // verification inside confirmFromGateway, so a forged tx_ref cannot mark
     // anything paid. It can only cause us to verify a reference, which is
@@ -74,14 +74,14 @@ export async function POST(request: Request) {
     // very same transaction again.
     const reference: string | undefined = requestBody?.data?.tx_ref;
     if (!reference) {
-      // Malformed payload â€” no amount of redelivery adds a missing tx_ref.
+      // Malformed payload   no amount of redelivery adds a missing tx_ref.
       throw new AppError(
         "BAD_REQUEST",
         "Transaction reference (tx_ref) missing in Flutterwave webhook payload",
       );
     }
 
-    // Single financial write path â€” idempotent, so a webhook racing the
+    // Single financial write path   idempotent, so a webhook racing the
     // status-page fallback settles the order exactly once.
     const result = await PaymentConfirmationService.confirmFromGateway({
       reference,
@@ -119,4 +119,3 @@ export async function POST(request: Request) {
     return handleApiError(error);
   }
 }
-

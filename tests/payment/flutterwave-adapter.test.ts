@@ -9,7 +9,7 @@ import { NormalizedPaymentStatus } from "@/domain/payment/gateways/gateway-inter
 import { PaymentGateway } from "@/enums";
 
 /**
- * Unit tests for the Flutterwave â†’ neutral mapping. This mapping is the seam
+ * Unit tests for the Flutterwave - neutral mapping. This mapping is the seam
  * the whole multi-gateway design rests on: unit conversion (Flutterwave
  * reports Naira, the platform works in Kobo), fee + VAT arithmetic, and
  * status normalization all live here and nowhere else.
@@ -102,16 +102,16 @@ describe("isFlutterwaveNotFound", () => {
 });
 
 describe("normalizeFlutterwaveVerifyResponse", () => {
-  it("maps a successful transaction: Nairaâ†’Kobo amounts, fee + 7.5% VAT, meta, stringified id", () => {
+  it("maps a successful transaction: Naira-Kobo amounts, fee + 7.5% VAT, meta, stringified id", () => {
     const result = normalizeFlutterwaveVerifyResponse(makeVerifyResponse());
 
     expect(result).not.toBeNull();
     expect(result!.provider).toBe(PaymentGateway.Flutterwave);
     expect(result!.status).toBe(NormalizedPaymentStatus.Successful);
     expect(result!.rawStatus).toBe("successful");
-    expect(result!.amountKobo).toBe(500_000); // â‚¦5,000
+    expect(result!.amountKobo).toBe(500_000); // 5,000
     expect(result!.currency).toBe("NGN");
-    // app_fee â‚¦70 â†’ 7,000 Kobo, + 7.5% VAT (525 Kobo) = 7,525 Kobo
+    // app_fee 70 - 7,000 Kobo, + 7.5% VAT (525 Kobo) = 7,525 Kobo
     expect(result!.collectionFeeKobo).toBe(7_525);
     expect(result!.gatewayTransactionId).toBe("8471234");
     expect(result!.reference).toBe("idem-key-abc123");
@@ -128,7 +128,9 @@ describe("normalizeFlutterwaveVerifyResponse", () => {
   it('treats "success" and "completed" provider statuses as Successful', () => {
     for (const status of ["success", "completed"] as const) {
       const result = normalizeFlutterwaveVerifyResponse(
-        makeVerifyResponse({ status: status as FlutterwaveTransactionData["status"] }),
+        makeVerifyResponse({
+          status: status as FlutterwaveTransactionData["status"],
+        }),
       );
       expect(result!.status).toBe(NormalizedPaymentStatus.Successful);
     }
@@ -149,7 +151,7 @@ describe("normalizeFlutterwaveVerifyResponse", () => {
     expect(failed!.status).toBe(NormalizedPaymentStatus.Failed);
     expect(failed!.rawStatus).toBe("failed");
 
-    // Cancelled/abandoned flows must stay distinguishable from failed â€”
+    // Cancelled/abandoned flows must stay distinguishable from failed -
     // updateOrderRecordToFailureState branches on the raw string.
     const cancelled = normalizeFlutterwaveVerifyResponse(
       makeVerifyResponse({
@@ -172,7 +174,7 @@ describe("normalizeFlutterwaveVerifyResponse", () => {
   });
 
   it("rounds the VAT on non-integer fee arithmetic to whole Kobo", () => {
-    // app_fee â‚¦33.33 â†’ 3,333 Kobo; VAT 249.975 â†’ rounds to 250
+    // app_fee 33.33 - 3,333 Kobo; VAT 249.975 - rounds to 250
     const result = normalizeFlutterwaveVerifyResponse(
       makeVerifyResponse({ app_fee: 33.33 }),
     );
@@ -193,4 +195,3 @@ describe("normalizeFlutterwaveVerifyResponse", () => {
     expect(result!.raw).toBe(response);
   });
 });
-

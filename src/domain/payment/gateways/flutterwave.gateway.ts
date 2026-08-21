@@ -116,7 +116,7 @@ export interface IFlutterwaveTransferWebhookData {
   amount: number; // Amount transferred (in Naira)
   currency: string; // Always "NGN"
   status: FlutterwaveTransferWebhookStatus;
-  reference: string; // Our flutterwaveTransferId â€” the DB link
+  reference: string; // Our flutterwaveTransferId  the DB link
   narration: string;
   complete_message: string; // Human-readable status message from Flutterwave
   requires_approval: number;
@@ -174,7 +174,7 @@ export type FlutterwavePayload = {
  * treated as transient, which leaves an order pending rather than cancelling
  * one that might be real.
  *
- * Exported for testing â€” this predicate decides whether an unpaid order is
+ * Exported for testing  this predicate decides whether an unpaid order is
  * eventually cancelled, so it is worth pinning against real payload shapes.
  */
 export function isFlutterwaveNotFound(
@@ -187,12 +187,11 @@ export function isFlutterwaveNotFound(
 /**
  * Map a raw Flutterwave verify response into the gateway-neutral result.
  *
- * Pure function â€” exported separately from the class so the mapping (status
- * normalization, Nairaâ†’Kobo conversion, fee + VAT arithmetic) is unit-testable
+ * Pure function  exported separately from the class so the mapping is unit-testable
  * without network or environment setup.
  *
  * Returns null when the envelope status is not "success" (transaction not
- * found / API-level error) â€” matching the historical behavior where callers
+ * found / API-level error)  matching the historical behavior where callers
  * treated that as "could not retrieve transaction data".
  */
 export function normalizeFlutterwaveVerifyResponse(
@@ -210,7 +209,7 @@ export function normalizeFlutterwaveVerifyResponse(
   } else if (rawStatus === "pending") {
     status = NormalizedPaymentStatus.Pending;
   } else {
-    // "failed", "cancelled", and anything unrecognised â€” consumers use
+    // "failed", "cancelled", and anything unrecognised  consumers use
     // rawStatus to distinguish failed from cancelled.
     status = NormalizedPaymentStatus.Failed;
   }
@@ -262,7 +261,7 @@ export class FlutterwaveGateway implements IPaymentGateway {
 
   /**
    * Turn the neutral initiation payload into Flutterwave's hosted-checkout
-   * request and return the payment link. No business logic here â€” cart
+   * request and return the payment link. No business logic here  cart
    * validation and pending-order creation happen in PaymentService before
    * this is called.
    */
@@ -316,7 +315,7 @@ export class FlutterwaveGateway implements IPaymentGateway {
 
     // One endpoint, always. verify_by_reference answers for our tx_ref whether
     // or not a transaction was ever created, and returns the same error shape
-    // as the by-id endpoint when there is nothing to find â€” so branching
+    // as the by-id endpoint when there is nothing to find  so branching
     // between the two bought nothing and only added a path that could not
     // handle an abandoned checkout, which has no transaction id at all.
     const url = `${this.apiUrl}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`;
@@ -406,4 +405,3 @@ export class FlutterwaveGateway implements IPaymentGateway {
     return result;
   }
 }
-

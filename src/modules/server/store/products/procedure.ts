@@ -17,7 +17,6 @@ import {
 } from "@/lib/utils/telegram/format-error-report";
 
 export const storeProductRouter = createTRPCRouter({
-
   /**
    * This method is used by the edit product page to fetch store product for editing.
    */
@@ -231,7 +230,7 @@ export const storeProductRouter = createTRPCRouter({
             });
 
           case StoreStatusEnum.Active:
-            // âœ… Approved stores are allowed to update product visibility
+            // Approved stores are allowed to update product visibility
             break;
 
           default:
