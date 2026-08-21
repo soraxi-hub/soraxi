@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { StoreSecurityPage } from "@/modules/store/components/store-security-page";
 import { Metadata } from "next";
 import { StoreSecuritySkeleton } from "@/modules/skeletons/store-security-skeleton";
@@ -15,10 +14,10 @@ export default async function Page(props: {
 }) {
   const { store_id } = await props.params;
   return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
+    <QueryBoundary>
       <Suspense fallback={<StoreSecuritySkeleton />}>
         <StoreSecurityPage storeId={store_id} />
       </Suspense>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }

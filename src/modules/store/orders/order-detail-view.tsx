@@ -125,7 +125,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
   // Keyed off the sub-order actually being viewed. This previously read
   // `financialStatuses[subOrderId]`, where `subOrderId` is the *dialog* state
-  // and starts empty â€” so the lookup returned undefined until a status dialog
+  // and starts empty - so the lookup returned undefined until a status dialog
   // had been opened, silently hiding the dispute banner.
   const financialStatus = financialStatuses[order.subOrder._id.toString()];
 
@@ -140,7 +140,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         ? `/d/${deliveryToken}`
         : null;
 
-  // A live link with no confirmation yet â€” the vendor still has a code to
+  // A live link with no confirmation yet - the vendor still has a code to
   // collect. Drives the header badge.
   const awaitingCode =
     Boolean(deliveryToken) && !order.subOrder.deliveryProof?.isConfirmed;
@@ -247,7 +247,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
   return (
     <div className="space-y-6">
       {/* Header. Leads with the human-readable sub-order reference rather than
-          a raw ObjectId â€” this is the string a vendor reads out to a customer
+          a raw ObjectId - this is the string a vendor reads out to a customer
           or searches support by. The summary line carries the four facts they
           need before scrolling: who, how many, how much, when. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -262,16 +262,16 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
             </span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {order.customerInfo.name} Â· {order.totalItems}{" "}
-            {order.totalItems === 1 ? "item" : "items"} Â·{" "}
+            {order.customerInfo.name} · {order.totalItems}{" "}
+            {order.totalItems === 1 ? "item" : "items"} ·{" "}
             {order.subOrder.financials?.formattedAmountPaid ??
               order.formattedTotalAmount}{" "}
-            Â· placed {format(new Date(order.createdAt), "d MMMM yyyy")}
+            · placed {format(new Date(order.createdAt), "d MMMM yyyy")}
           </p>
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {/* Only while a code is actually outstanding â€” a badge that lingers
+          {/* Only while a code is actually outstanding - a badge that lingers
               after delivery would be telling the vendor to chase something
               that is already done. */}
           {awaitingCode && (
@@ -293,7 +293,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Order Information */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Delivery link â€” sits above the status card because sharing it is
+          {/* Delivery link - sits above the status card because sharing it is
               the action we most want the vendor to take, and it disappears once
               delivery is confirmed. */}
           {order.subOrder.deliveryStatus !== DeliveryStatus.Delivered && (
@@ -320,7 +320,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
             <CardContent className="space-y-5 px-4 sm:px-6">
               <StatusStepper status={order.subOrder.deliveryStatus} />
 
-              {/* Dispute banner â€” shown when suborder is DISPUTED or REFUNDED */}
+              {/* Dispute banner - shown when suborder is DISPUTED or REFUNDED */}
               {financialStatus &&
                 (financialStatus.status === SuborderFinancialStatus.DISPUTED ||
                   financialStatus.status ===
@@ -463,7 +463,9 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
             shippingPrice={order.subOrder.shippingMethod?.price}
             paymentStatus={order.paymentStatus}
             financialStatus={financialStatus?.status}
-            hasDeliveryProof={Boolean(order.subOrder.deliveryProof?.isConfirmed)}
+            hasDeliveryProof={Boolean(
+              order.subOrder.deliveryProof?.isConfirmed,
+            )}
           />
 
           {/* Order Timeline */}
@@ -565,4 +567,3 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
     </div>
   );
 }
-

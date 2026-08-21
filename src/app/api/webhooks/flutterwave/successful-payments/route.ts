@@ -1,6 +1,5 @@
-import { connectToDatabase } from "@/lib/db/mongoose";
+﻿import { connectToDatabase } from "@/lib/db/mongoose";
 import { NextResponse } from "next/server";
-import { PaymentService } from "@/services/payment/payment.service";
 import { PaymentConfirmationService } from "@/services/payment/payment-confirmation.service";
 import { FlutterwaveWebhookEvent } from "@/domain/payment/gateways/flutterwave.gateway";
 import { PayoutWebhookHandler } from "@/services/payment/payout/payout-webhook-handler.service";
@@ -19,7 +18,7 @@ import {
  * Responsibilities stop at authenticating the request and identifying the
  * transaction. Everything financial is delegated to
  * PaymentConfirmationService, which the Paystack webhook, the status-page
- * fallback and the cron backstop all share — so a gateway result is turned
+ * fallback and the cron backstop all share   so a gateway result is turned
  * into ledger truth by exactly one piece of code.
  */
 export async function POST(request: Request) {
@@ -44,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     // ----------------------------------------------------------------
-    // Event type detection — route before any further processing.
+    // Event type detection route before any further processing.
     //
     // Flutterwave sends an "event" field on every webhook payload.
     // We check it here and route accordingly before doing anything else.
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
 
     if (eventType === FlutterwaveWebhookEvent.TRANSFER_COMPLETED) {
       // --- Transfer event (Stage 6) ---
-      // Route to PayoutWebhookHandler — completely separate from payment flow
+      // Route to PayoutWebhookHandler   completely separate from payment flow
       const result = await PayoutWebhookHandler.handle(requestBody.data);
 
       return NextResponse.json(
@@ -62,49 +61,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const transactionId: string = requestBody?.id || requestBody?.data?.id;
-    if (!transactionId) {
-      throw new AppError(
-        "BAD_REQUEST",
-        "Transaction ID missing in Flutterwave webhook payload",
-        { transactionId },
-      );
-    }
-
-    // The webhook body carries no trustworthy reference, so resolve the
-    // transaction against Flutterwave first to learn our own tx_ref.
-    const verified = await PaymentService.verifyPayment({
-      gateway: PaymentGateway.Flutterwave,
-      refs: { providerTransactionId: transactionId },
-    });
-
-    if (!verified) {
-      // Flutterwave's own API is unreachable or erroring after the adapter
-      // exhausted its retries. A 4xx here would tell Flutterwave to stop
-      // redelivering and silently strand a real payment, so answer 5xx and
-      // let the webhook come back.
-      throw new AppError(
-        "BAD_GATEWAY",
-        "Could not retrieve transaction data from Flutterwave",
-        { transactionId },
-      );
-    }
-
-    const reference = verified.meta.idempotencyKey || verified.reference;
+    // Read our own reference straight off the payload.
+    //
+    // It is untrusted, but it is only used to locate the order   the
+    // authoritative status and amount still come from the server-side
+    // verification inside confirmFromGateway, so a forged tx_ref cannot mark
+    // anything paid. It can only cause us to verify a reference, which is
+    // exactly what the cron sweep does anyway.
+    //
+    // This also removes a redundant round trip: the route used to verify once
+    // purely to learn the reference, and confirmFromGateway then verified the
+    // very same transaction again.
+    const reference: string | undefined = requestBody?.data?.tx_ref;
     if (!reference) {
-      // Malformed payload — no amount of redelivery adds the reference.
+      // Malformed payload   no amount of redelivery adds a missing tx_ref.
       throw new AppError(
         "BAD_REQUEST",
-        "Missing payment reference in Flutterwave transaction metadata",
-        { transactionId },
+        "Transaction reference (tx_ref) missing in Flutterwave webhook payload",
       );
     }
 
-    // Single financial write path — idempotent, so a webhook racing the
+    // Single financial write path   idempotent, so a webhook racing the
     // status-page fallback settles the order exactly once.
     const result = await PaymentConfirmationService.confirmFromGateway({
       reference,
-      providerTransactionId: transactionId,
       gateway: PaymentGateway.Flutterwave,
     });
 

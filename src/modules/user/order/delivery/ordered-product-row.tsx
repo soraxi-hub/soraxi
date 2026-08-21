@@ -14,6 +14,7 @@ type OrderedProduct = OrderOutput["subOrders"][number]["products"][number];
 
 interface OrderedProductRowProps {
   product: OrderedProduct;
+  canMessageVendor: boolean;
   subOrderId: string;
   /** Dispute and review are only offered once the item has actually arrived. */
   canDispute: boolean;
@@ -41,6 +42,7 @@ interface OrderedProductRowProps {
 export function OrderedProductRow({
   product,
   subOrderId,
+  canMessageVendor,
   canDispute,
   canReview,
   onDispute,
@@ -89,12 +91,14 @@ export function OrderedProductRow({
           </RowAction>
         )}
 
-        <MessageAboutOrderButton
-          subOrderId={subOrderId}
-          role="customer"
-          label="Message vendor"
-          iconOnly
-        />
+        {canMessageVendor && (
+          <MessageAboutOrderButton
+            subOrderId={subOrderId}
+            role="customer"
+            label="Message vendor"
+            iconOnly
+          />
+        )}
 
         {canReview && (
           <RowAction

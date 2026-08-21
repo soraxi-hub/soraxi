@@ -6,15 +6,14 @@ import { useTRPC } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNaira } from "@/lib/utils/naira";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { Calendar } from "lucide-react";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 
 /**
  * Inner component that consumes the wallet data via useSuspenseQuery.
- * Rendered inside Suspense and ErrorBoundary.
+ * Rendered inside Suspense and QueryBoundary.
  */
 function PlatformWalletContent() {
   const trpc = useTRPC();
@@ -88,12 +87,12 @@ function PlatformWalletContent() {
 }
 
 /**
- * Main export – wraps content with Suspense and ErrorBoundary.
+ * Main export – wraps content with Suspense and QueryBoundary.
  * Provides loading skeleton and error fallback.
  */
 function PlatformWalletDashboard() {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryBoundary>
       <Suspense
         fallback={
           <Skeleton className="space-y-4 animate-pulse">
@@ -104,7 +103,7 @@ function PlatformWalletDashboard() {
       >
         <PlatformWalletContent />
       </Suspense>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }
 

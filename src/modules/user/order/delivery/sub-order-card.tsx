@@ -22,6 +22,7 @@ type OrderOutput = inferProcedureOutput<AppRouter["order"]["getByOrderId"]>;
 type SubOrder = OrderOutput["subOrders"][number];
 
 interface SubOrderCardProps {
+  isPaid: boolean;
   subOrder: SubOrder;
   financialStatus?: {
     status: SuborderFinancialStatus;
@@ -50,6 +51,7 @@ export function SubOrderCard({
   onReviewInit,
   onDisputeInit,
   submitting,
+  isPaid,
 }: SubOrderCardProps) {
   const subOrderId = subOrder._id.toString();
   const proof = subOrder.deliveryProof;
@@ -106,14 +108,6 @@ export function SubOrderCard({
               >
                 {deliveryStatusLabel(subOrder.deliveryStatus)}
               </Badge>
-
-              {/* `text-black` in both themes: the warning token is a bright
-                    yellow that white text disappears against. */}
-              {awaitingCode && (
-                <Badge className="bg-soraxi-warning text-[10px] text-black">
-                  Awaiting code
-                </Badge>
-              )}
 
               {proof?.isUnproven && (
                 <Badge className="bg-soraxi-warning text-[10px] text-black">
@@ -252,6 +246,7 @@ export function SubOrderCard({
                   subOrderId={subOrderId}
                   canDispute={canDispute && !submitting}
                   canReview={isDelivered}
+                  canMessageVendor={isPaid}
                   onDispute={() => onDisputeInit(subOrderId, storeName)}
                   onReview={onReviewInit}
                 />

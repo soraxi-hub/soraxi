@@ -15,6 +15,7 @@ import {
 } from "../helpers/seed";
 import { expectSystemConsistent } from "../helpers/invariants";
 import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
+import { PaymentGateway } from "@/enums";
 import {
   getVendorWalletModel,
   getVendorWalletByVendorId,
@@ -127,6 +128,7 @@ async function confirmRefund(
       customerId,
       amountRefunded,
       refundId,
+      gatewayProvider: PaymentGateway.Flutterwave,
       session,
     });
   });

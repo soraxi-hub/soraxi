@@ -1,15 +1,18 @@
 import { caller } from "@/trpc/server";
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
 import { serializeData } from "@/lib/utils";
 import StoreAdminDashboard, {
   AdminAction,
 } from "@/modules/admin/stores/store-admin-dashboard";
 import { StoreProfileSkeleton } from "@/modules/skeletons/store-profile-skeleton";
 
-async function Page(props: { params: Promise<{ storeId: string }> }) {
-  const { storeId } = await props.params;
+/**
+ * The fetch lives in this child rather than in `Page` so that `Suspense` has
+ * something to suspend on. Awaited one level up, it resolved before `Page`
+ * returned any JSX at all — the skeleton could never render, because the
+ * boundary meant to show it only existed once the data was already in hand.
+ */
+async function StoreAdminContent({ storeId }: { storeId: string }) {
   const rawStoreData = await caller.adminStore.getStoreProfileAdminView({
     storeId,
   });
@@ -29,14 +32,23 @@ async function Page(props: { params: Promise<{ storeId: string }> }) {
   };
 
   return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
-      <Suspense fallback={<StoreProfileSkeleton />}>
-        <StoreAdminDashboard
-          storeData={storeData}
-          onAction={handleStoreAction}
-        />
-      </Suspense>
-    </ErrorBoundary>
+    <StoreAdminDashboard storeData={storeData} onAction={handleStoreAction} />
+  );
+}
+
+/*
+ * No client `ErrorBoundary` here. `StoreAdminContent` is an async Server
+ * Component, and a failed fetch inside it rejects during the server render —
+ * before any client boundary exists to catch it. Next.js routes that to
+ * `app/(admin)/error.tsx`, which is where this page's error UI comes from.
+ */
+async function Page(props: { params: Promise<{ storeId: string }> }) {
+  const { storeId } = await props.params;
+
+  return (
+    <Suspense fallback={<StoreProfileSkeleton />}>
+      <StoreAdminContent storeId={storeId} />
+    </Suspense>
   );
 }
 

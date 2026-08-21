@@ -10,13 +10,26 @@ import { GenericError } from "./generic-error";
 interface ErrorFallbackProps {
   error?: Error | TRPCClientErrorLike<AppRouter>;
   resetErrorBoundary?: () => void;
+  /** Correlation token for callers outside tRPC — see `GenericError`. */
+  reference?: string;
+  /** When set, the generic branch offers a mailto escape hatch. */
+  supportEmail?: string;
+  /**
+   * Forces the network branch regardless of the error's shape. Route-level
+   * callers know things the error does not, such as `navigator.onLine`.
+   */
+  forceNetworkError?: boolean;
 }
 
 export function ErrorFallback({
   error,
   resetErrorBoundary,
+  reference,
+  supportEmail,
+  forceNetworkError,
 }: ErrorFallbackProps) {
   const errorCode =
+    (forceNetworkError && "NETWORK_ERROR") ||
     (error as any)?.data?.code ||
     (error as any)?.code ||
     (error?.message?.includes("NETWORK_ERROR") && "NETWORK_ERROR") ||
@@ -37,6 +50,13 @@ export function ErrorFallback({
     case "NOT_FOUND":
       return <NotFoundError />;
     default:
-      return <GenericError onRetry={handleRetry} error={error} />;
+      return (
+        <GenericError
+          onRetry={handleRetry}
+          error={error}
+          reference={reference}
+          supportEmail={supportEmail}
+        />
+      );
   }
 }

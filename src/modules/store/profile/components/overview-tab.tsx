@@ -153,7 +153,6 @@ function QuickActions({ storeId }: { storeId: string }) {
 function AccountCard({
   status,
   isVerified,
-  storeEmail,
   memberSince,
 }: {
   status: StoreStatusView;
@@ -190,10 +189,6 @@ function AccountCard({
           >
             {isVerified ? "Verified" : "Pending"}
           </span>
-        </Row>
-
-        <Row label="Store email">
-          <span className="truncate text-soraxi-green">{storeEmail}</span>
         </Row>
 
         <Row label="Member since">

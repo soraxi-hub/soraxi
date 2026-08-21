@@ -119,18 +119,45 @@ export interface PaymentVerificationResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Identifiers available when verifying a transaction. Callers pass what they
- * have; each adapter picks what its provider needs:
- *  - Flutterwave: prefers the numeric `providerTransactionId` (from redirect
- *    or webhook), falls back to verify-by-reference with `reference`.
- *  - Paystack: verifies by `reference` alone.
+ * Identifier used to verify a transaction.
+ *
+ * Deliberately just our own reference — the cart idempotency key — for every
+ * provider. Both gateways expose a verify-by-reference endpoint, and both
+ * answer an unknown reference with the same "no such transaction" shape they
+ * use for an unknown transaction id, so nothing is lost by standardising.
+ *
+ * The reference is also the only identifier that always exists. A provider's
+ * transaction id is absent precisely when we most need an answer: an
+ * abandoned checkout never creates a transaction, so there is no id to look
+ * up, and abandonment would be undetectable if verification depended on one.
  */
 export interface VerifyPaymentParams {
   /** Our internal reference (the cart idempotency key / tx_ref). */
-  reference?: string;
-  /** The provider's own transaction id, when the caller has it. */
-  providerTransactionId?: string;
+  reference: string;
 }
+
+/**
+ * The result of asking a gateway about a transaction.
+ *
+ * The three cases must stay distinct, because two of them look identical from
+ * the outside and mean opposite things:
+ *
+ *  - `not_found` is a *definitive negative*. The gateway is healthy and is
+ *    telling us this transaction does not exist — the customer abandoned
+ *    checkout without ever attempting payment. No gateway emits a webhook for
+ *    that, so this is the only signal abandonment ever produces.
+ *  - `unavailable` is *transient*. The gateway is down, timing out, or
+ *    erroring, so we know nothing about the transaction and must ask again.
+ *
+ * Collapsing these into a single `null` (as this contract previously did)
+ * makes abandonment indistinguishable from an outage, which in turn makes it
+ * unsafe to ever expire an unpaid order: doing so would cancel live payments
+ * every time a gateway had a wobble.
+ */
+export type VerificationOutcome =
+  | { kind: "verified"; result: PaymentVerificationResult }
+  | { kind: "not_found"; message?: string }
+  | { kind: "unavailable"; message?: string };
 
 export interface IPaymentGateway {
   /** Which provider this adapter talks to. */
@@ -146,11 +173,11 @@ export interface IPaymentGateway {
   ): Promise<InitializePaymentResult>;
 
   /**
-   * Verify a transaction against the provider's API and return the
-   * normalized result, or null when the provider cannot resolve the
-   * transaction (not found / API exhausted retries / no usable identifier).
+   * Ask the provider about a transaction.
+   *
+   * Adapters must map their provider's "no such transaction" response to
+   * `not_found` and everything else that went wrong to `unavailable` — see
+   * VerificationOutcome for why the distinction carries real weight.
    */
-  verifyPayment(
-    params: VerifyPaymentParams,
-  ): Promise<PaymentVerificationResult | null>;
+  verifyPayment(params: VerifyPaymentParams): Promise<VerificationOutcome>;
 }

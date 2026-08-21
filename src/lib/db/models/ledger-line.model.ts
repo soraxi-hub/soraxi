@@ -5,6 +5,7 @@ import {
   LedgerAccountType,
   LedgerEntityType,
 } from "@/enums/financial.enums";
+import { PaymentGateway } from "@/enums";
 
 /**
  * A ledger line represents one side of a journal entry in Soraxi's
@@ -48,6 +49,23 @@ export interface ILedgerLine {
    * Must always be a positive integer — zero-amount lines are never valid.
    */
   amount: number;
+
+  /**
+   * Which payment gateway this money physically moved through.
+   *
+   * Only set on lines representing real gateway cash movement: a customer
+   * payment entering escrow, the collection fee that gateway deducted, and a
+   * refund paid back out through it. Purely internal movements (pending to
+   * available, dispute freezes, commission allocation) have no gateway and
+   * leave this unset.
+   *
+   * Denormalised onto the line rather than held on the parent JournalEntry
+   * because every use of it is an aggregation over this collection: slicing
+   * escrow per provider is a $match here, versus a $lookup join on every
+   * query if it lived on the entry. Ledger lines are immutable, so the usual
+   * objection to denormalising - update anomalies - cannot arise.
+   */
+  gatewayProvider?: PaymentGateway;
 
   /** Set once on creation — never updated (immutability safeguard). */
   createdAt: Date;
@@ -97,6 +115,14 @@ const LedgerLineSchema = new Schema<ILedgerLineDocument>(
       // Zero-amount lines are never valid in a double-entry system
       min: 1,
     },
+    gatewayProvider: {
+      type: String,
+      required: false,
+      enum: [...Object.values(PaymentGateway), null],
+      // Sparse — only gateway-cash lines carry it, and only those are ever
+      // matched on. Indexing the absent majority would be pure overhead.
+      index: { sparse: true },
+    },
   },
   {
     // Only track createdAt — updatedAt is intentionally excluded to enforce immutability
@@ -107,6 +133,11 @@ const LedgerLineSchema = new Schema<ILedgerLineDocument>(
 // Compound index for wallet reconciliation — fetching all lines for a specific
 // entity and account type across a date range without a full collection scan
 LedgerLineSchema.index({ entityId: 1, accountType: 1, createdAt: -1 });
+
+// Compound index for the per-gateway collections reconciliation — matching
+// gateway + account and grouping by side, without touching the untagged
+// internal lines that make up most of the collection.
+LedgerLineSchema.index({ gatewayProvider: 1, accountType: 1, type: 1 });
 
 /**
  * Get the LedgerLine model.

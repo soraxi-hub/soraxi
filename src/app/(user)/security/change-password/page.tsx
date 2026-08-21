@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { UserSecurityPage } from "@/modules/user/user-security-page";
 import { Metadata } from "next";
 import { UserSecuritySkeleton } from "@/modules/skeletons/user-security-skeleton";
@@ -12,10 +11,10 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
+    <QueryBoundary>
       <Suspense fallback={<UserSecuritySkeleton />}>
         <UserSecurityPage />
       </Suspense>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }

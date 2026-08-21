@@ -1,4 +1,4 @@
-import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
+﻿import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
 import { PaymentGateway } from "@/enums";
 import {
   IPaymentGateway,
@@ -7,6 +7,7 @@ import {
   NormalizedPaymentStatus,
   PaymentVerificationResult,
   VerifyPaymentParams,
+  VerificationOutcome,
 } from "./gateway-interface";
 
 export interface FlutterwaveVerifyResponse {
@@ -115,7 +116,7 @@ export interface IFlutterwaveTransferWebhookData {
   amount: number; // Amount transferred (in Naira)
   currency: string; // Always "NGN"
   status: FlutterwaveTransferWebhookStatus;
-  reference: string; // Our flutterwaveTransferId — the DB link
+  reference: string; // Our flutterwaveTransferId  the DB link
   narration: string;
   complete_message: string; // Human-readable status message from Flutterwave
   requires_approval: number;
@@ -157,14 +158,40 @@ export type FlutterwavePayload = {
 };
 
 /**
+ * Does this response mean "Flutterwave has no such transaction"?
+ *
+ * Flutterwave answers a lookup for an unknown transaction with an
+ * error-shaped body rather than a distinct status code:
+ *
+ *   { "status": "error",
+ *     "message": "No transaction was found for this id",
+ *     "data": null }
+ *
+ * The wording varies by lookup type ("for this id" when querying by
+ * transaction id, and a reference-flavoured variant for verify_by_reference),
+ * so the phrase is matched loosely rather than compared exactly. Erring
+ * towards *not* matching is the safe direction: an unrecognised error is
+ * treated as transient, which leaves an order pending rather than cancelling
+ * one that might be real.
+ *
+ * Exported for testing  this predicate decides whether an unpaid order is
+ * eventually cancelled, so it is worth pinning against real payload shapes.
+ */
+export function isFlutterwaveNotFound(
+  response: Pick<FlutterwaveVerifyResponse, "status" | "message" | "data">,
+): boolean {
+  if (response.status !== "error") return false;
+  return /no transaction (was )?found/i.test(response.message ?? "");
+}
+
+/**
  * Map a raw Flutterwave verify response into the gateway-neutral result.
  *
- * Pure function — exported separately from the class so the mapping (status
- * normalization, Naira→Kobo conversion, fee + VAT arithmetic) is unit-testable
+ * Pure function  exported separately from the class so the mapping is unit-testable
  * without network or environment setup.
  *
  * Returns null when the envelope status is not "success" (transaction not
- * found / API-level error) — matching the historical behavior where callers
+ * found / API-level error)  matching the historical behavior where callers
  * treated that as "could not retrieve transaction data".
  */
 export function normalizeFlutterwaveVerifyResponse(
@@ -182,7 +209,7 @@ export function normalizeFlutterwaveVerifyResponse(
   } else if (rawStatus === "pending") {
     status = NormalizedPaymentStatus.Pending;
   } else {
-    // "failed", "cancelled", and anything unrecognised — consumers use
+    // "failed", "cancelled", and anything unrecognised  consumers use
     // rawStatus to distinguish failed from cancelled.
     status = NormalizedPaymentStatus.Failed;
   }
@@ -234,7 +261,7 @@ export class FlutterwaveGateway implements IPaymentGateway {
 
   /**
    * Turn the neutral initiation payload into Flutterwave's hosted-checkout
-   * request and return the payment link. No business logic here — cart
+   * request and return the payment link. No business logic here  cart
    * validation and pending-order creation happen in PaymentService before
    * this is called.
    */
@@ -283,20 +310,15 @@ export class FlutterwaveGateway implements IPaymentGateway {
    */
   async verifyPayment(
     params: VerifyPaymentParams,
-  ): Promise<PaymentVerificationResult | null> {
-    const { reference, providerTransactionId } = params;
+  ): Promise<VerificationOutcome> {
+    const { reference } = params;
 
-    let url: string;
-    if (providerTransactionId) {
-      url = `${this.apiUrl}/transactions/${Number(providerTransactionId)}/verify`;
-    } else if (reference) {
-      url = `${this.apiUrl}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`;
-    } else {
-      console.error(
-        "FlutterwaveGateway.verifyPayment: no transaction identifier provided",
-      );
-      return null;
-    }
+    // One endpoint, always. verify_by_reference answers for our tx_ref whether
+    // or not a transaction was ever created, and returns the same error shape
+    // as the by-id endpoint when there is nothing to find  so branching
+    // between the two bought nothing and only added a path that could not
+    // handle an abandoned checkout, which has no transaction id at all.
+    const url = `${this.apiUrl}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`;
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
@@ -308,20 +330,47 @@ export class FlutterwaveGateway implements IPaymentGateway {
           },
         });
 
-        if (!response.ok) {
+        // Parse the body even on a non-2xx. Flutterwave reports "no such
+        // transaction" as an error-shaped body, and that is a definitive
+        // answer rather than a failure to obtain one.
+        const body = (await response
+          .json()
+          .catch(() => null)) as FlutterwaveVerifyResponse | null;
+
+        if (body && isFlutterwaveNotFound(body)) {
+          // Return immediately: retrying cannot conjure a transaction that was
+          // never created, so the backoff would only delay a known answer.
+          return { kind: "not_found", message: body.message };
+        }
+
+        if (!response.ok || !body) {
           console.error(
             `Attempt ${attempt}: Failed to verify transaction - ${response.statusText}`,
           );
 
-          // If we've reached the max retries, give up
-          if (attempt === this.maxRetries) return null;
+          if (attempt === this.maxRetries) {
+            return {
+              kind: "unavailable",
+              message: `Flutterwave verification failed: ${response.status} ${response.statusText}`,
+            };
+          }
         } else {
-          const data: FlutterwaveVerifyResponse = await response.json();
-          return normalizeFlutterwaveVerifyResponse(data);
+          const result = normalizeFlutterwaveVerifyResponse(body);
+          return result
+            ? { kind: "verified", result }
+            : {
+                kind: "unavailable",
+                message: body.message ?? "Unrecognised verification response.",
+              };
         }
       } catch (error) {
         console.error(`Attempt ${attempt}: Network error -`, error);
-        if (attempt === this.maxRetries) return null;
+        if (attempt === this.maxRetries) {
+          return {
+            kind: "unavailable",
+            message: error instanceof Error ? error.message : "Network error",
+          };
+        }
       }
 
       // Exponential backoff delay before retrying
@@ -329,7 +378,7 @@ export class FlutterwaveGateway implements IPaymentGateway {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    return null;
+    return { kind: "unavailable", message: "Verification retries exhausted." };
   }
 
   private async getPaymentLink(payload: FlutterwavePayload) {

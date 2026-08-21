@@ -1,7 +1,3 @@
-/**
- * Order Header Component
- */
-
 import Link from "next/link";
 
 import {

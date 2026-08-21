@@ -3,9 +3,8 @@ import Profile from "@/modules/user/components/user-profile";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
-import { ErrorBoundary } from "react-error-boundary";
 import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 
@@ -31,11 +30,11 @@ async function Page() {
 
   return (
     <HydrateClient>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <QueryBoundary>
         <Suspense fallback={<ProfileSkeleton />}>
           <Profile />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrateClient>
   );
 }

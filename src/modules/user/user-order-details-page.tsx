@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -13,9 +13,6 @@ import { SubOrderCard } from "@/modules/user/order/delivery/sub-order-card";
 import { ReviewDialog } from "@/modules/user/order/review-dialog";
 import { DisputeDialog } from "@/modules/user/order/dispute-dialog";
 import { DeliveryStatus } from "@/enums";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
-import { OrderDetailsSkeleton } from "../skeletons/user-order-details-skeleton";
 
 export default function OrderDetailsPage({ slug }: { slug: string }) {
   const router = useRouter();
@@ -146,69 +143,72 @@ export default function OrderDetailsPage({ slug }: { slug: string }) {
     0,
   );
 
+  /*
+   * No `ErrorBoundary` or `Suspense` here. `useSuspenseQuery` above suspends
+   * and throws while *this* component renders, so a boundary in its own
+   * returned tree never mounts to catch it. Both live one level up, in
+   * `app/(user)/orders/[slug]/page.tsx`, where they are above the throw.
+   */
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <Suspense fallback={<OrderDetailsSkeleton />}>
-        <main className="space-y-">
-          <OrderHeader
-            orderId={orderDetails.orderId}
-            createdAt={orderDetails.createdAt}
-            storesCount={orderDetails.stores.length}
-            formattedTotalAmount={orderDetails.formattedTotalAmount}
-          />
+    <main className="space-y-">
+      <OrderHeader
+        orderId={orderDetails.orderId}
+        createdAt={orderDetails.createdAt}
+        storesCount={orderDetails.stores.length}
+        formattedTotalAmount={orderDetails.formattedTotalAmount}
+      />
 
-          <OrderSummary orderDetails={orderDetails} />
+      <OrderSummary orderDetails={orderDetails} />
 
-          {/* One card per store. Each carries its own delivery code, receipt
-              or problem prompt — the accordion this replaced treated every
-              sub-order as a passive record, which no longer holds now that each
-              one can be waiting on the customer. */}
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold">
-              {totalProducts} {totalProducts === 1 ? "item" : "items"} from{" "}
-              {orderDetails.stores.length}{" "}
-              {orderDetails.stores.length === 1 ? "store" : "stores"}
-            </h2>
+      {/* One card per store. Each carries its own delivery code, receipt
+          or problem prompt — the accordion this replaced treated every
+          sub-order as a passive record, which no longer holds now that each
+          one can be waiting on the customer. */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">
+          {totalProducts} {totalProducts === 1 ? "item" : "items"} from{" "}
+          {orderDetails.stores.length}{" "}
+          {orderDetails.stores.length === 1 ? "store" : "stores"}
+        </h2>
 
-            {orderDetails.subOrders.map((subOrder) => (
-              <SubOrderCard
-                key={subOrder._id.toString()}
-                subOrder={subOrder}
-                financialStatus={financialStatuses[subOrder._id.toString()]}
-                onConfirmReceipt={updateDeliveryStatus}
-                onReviewInit={handleReviewInit}
-                onDisputeInit={handleDisputeInit}
-                submitting={submitting}
-              />
-            ))}
-          </section>
-
-          <ReviewDialog
-            open={dialogOpen}
-            setOpenAction={setDialogOpen}
-            rating={rating}
-            setRatingAction={setRating}
-            review={review}
-            setReviewAction={setReview}
-            onSubmitAction={handleSubmitReview}
+        {orderDetails.subOrders.map((subOrder) => (
+          <SubOrderCard
+            key={subOrder._id.toString()}
+            subOrder={subOrder}
+            financialStatus={financialStatuses[subOrder._id.toString()]}
+            onConfirmReceipt={updateDeliveryStatus}
+            onReviewInit={handleReviewInit}
+            onDisputeInit={handleDisputeInit}
             submitting={submitting}
+            isPaid={orderDetails.isPaid}
           />
+        ))}
+      </section>
 
-          {/* Dispute dialog — replaces ReturnsDialog */}
-          {orderDetails.orderId && selectedDisputeSubOrderId && (
-            <DisputeDialog
-              open={disputeDialogOpen}
-              setOpenAction={setDisputeDialogOpen}
-              orderId={orderDetails.orderId}
-              subOrderId={selectedDisputeSubOrderId}
-              storeName={selectedDisputeStoreName}
-              onSuccessAction={handleDisputeSuccess}
-              submitting={submitting}
-              setSubmittingAction={setSubmitting}
-            />
-          )}
-        </main>
-      </Suspense>
-    </ErrorBoundary>
+      <ReviewDialog
+        open={dialogOpen}
+        setOpenAction={setDialogOpen}
+        rating={rating}
+        setRatingAction={setRating}
+        review={review}
+        setReviewAction={setReview}
+        onSubmitAction={handleSubmitReview}
+        submitting={submitting}
+      />
+
+      {/* Dispute dialog — replaces ReturnsDialog */}
+      {orderDetails.orderId && selectedDisputeSubOrderId && (
+        <DisputeDialog
+          open={disputeDialogOpen}
+          setOpenAction={setDisputeDialogOpen}
+          orderId={orderDetails.orderId}
+          subOrderId={selectedDisputeSubOrderId}
+          storeName={selectedDisputeStoreName}
+          onSuccessAction={handleDisputeSuccess}
+          submitting={submitting}
+          setSubmittingAction={setSubmitting}
+        />
+      )}
+    </main>
   );
 }

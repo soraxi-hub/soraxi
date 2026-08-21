@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 import { PaymentGateway } from "@/enums";
 import {
   IPaymentGateway,
@@ -7,12 +7,13 @@ import {
   NormalizedPaymentStatus,
   PaymentVerificationResult,
   VerifyPaymentParams,
+  VerificationOutcome,
 } from "./gateway-interface";
 
 /**
  * Paystack adapter.
  *
- * Built fixture-driven against Paystack's documented payloads — the live
+ * Built fixture-driven against Paystack's documented payloads - the live
  * integration is unverified until credentials are issued. Everything here is
  * exercised by tests/payment/paystack-adapter.test.ts.
  *
@@ -64,7 +65,7 @@ export interface PaystackTransactionData {
   id: number;
   domain: string;
   status: PaystackTransactionStatus;
-  /** Our internal reference — the cart idempotency key. */
+  /** Our internal reference - the cart idempotency key. */
   reference: string;
   /** Amount charged, in Kobo. Paystack is Kobo-native. */
   amount: number;
@@ -72,7 +73,7 @@ export interface PaystackTransactionData {
   gateway_response: string;
   paid_at: string | null;
   created_at: string;
-  /** Payment channel: "card" | "bank" | "ussd" | "bank_transfer" | "qr" | … */
+  /** Payment channel: "card" | "bank" | "ussd" | "bank_transfer" | "qr" */
   channel: string;
   currency: string;
   ip_address?: string;
@@ -115,7 +116,7 @@ export interface PaystackInitializeResponse {
 
 export type PaystackInitializePayload = {
   email: string;
-  /** Kobo — Paystack's native unit; no conversion applied. */
+  /** Kobo - Paystack's native unit; no conversion applied. */
   amount: number;
   reference: string;
   currency: string;
@@ -125,7 +126,7 @@ export type PaystackInitializePayload = {
 
 /**
  * Paystack webhook event names we care about. Transfer events exist too, but
- * payouts remain on Flutterwave — collections-only scope for multi-gateway.
+ * payouts remain on Flutterwave - collections-only scope for multi-gateway.
  */
 export enum PaystackWebhookEvent {
   CHARGE_SUCCESS = "charge.success",
@@ -143,7 +144,7 @@ export interface PaystackWebhookPayload {
 /**
  * Paystack's metadata round-trip is not type-stable: it may arrive as the
  * object we sent, as a JSON string of that object, or as an empty string /
- * null when absent. Normalise to a partial object without ever throwing —
+ * null when absent. Normalise to a partial object without ever throwing -
  * a malformed metadata blob must not take down verification, it must surface
  * as missing fields the caller can reject on.
  */
@@ -164,9 +165,32 @@ export function parsePaystackMetadata(
 }
 
 /**
+ * Does this response mean "Paystack has no such transaction"?
+ *
+ * Paystack answers an unknown reference with HTTP 404 and an error-shaped
+ * body (`{ status: false, message: "Transaction not found" }`), so the status
+ * code alone is a reliable signal; the message is checked as a fallback for
+ * the same answer delivered with a different code.
+ *
+ * As with Flutterwave, erring towards *not* matching is the safe direction -
+ * an unrecognised error is treated as transient, leaving an order pending
+ * rather than cancelling one that might be real.
+ */
+export function isPaystackNotFound(
+  httpStatus: number,
+  body: Pick<PaystackVerifyResponse, "status" | "message"> | null,
+): boolean {
+  if (httpStatus === 404) return true;
+  if (!body || body.status !== false) return false;
+  return /(transaction )?not found|could not be found|invalid (transaction )?reference/i.test(
+    body.message ?? "",
+  );
+}
+
+/**
  * Map a raw Paystack verify response into the gateway-neutral result.
  *
- * Pure function — exported separately from the class so the mapping (status
+ * Pure function - exported separately from the class so the mapping (status
  * normalisation, metadata coercion, fee handling) is unit-testable without
  * network or environment setup.
  *
@@ -184,7 +208,9 @@ export function normalizePaystackVerifyResponse(
   let status: NormalizedPaymentStatus;
   if (rawStatus === "success") {
     status = NormalizedPaymentStatus.Successful;
-  } else if (["pending", "ongoing", "processing", "queued"].includes(rawStatus)) {
+  } else if (
+    ["pending", "ongoing", "processing", "queued"].includes(rawStatus)
+  ) {
     status = NormalizedPaymentStatus.Pending;
   } else {
     // "failed", "abandoned", "reversed", and anything unrecognised.
@@ -233,7 +259,7 @@ export function normalizePaystackVerifyResponse(
  *
  * Paystack signs the **raw** request body with HMAC-SHA512 keyed on the
  * secret key, and sends the hex digest in `x-paystack-signature`. The body
- * must be hashed exactly as received — re-serialising parsed JSON changes
+ * must be hashed exactly as received - re-serialising parsed JSON changes
  * key order and whitespace and will never match.
  *
  * Comparison is timing-safe; a length mismatch short-circuits (timingSafeEqual
@@ -280,12 +306,14 @@ export class PaystackGateway implements IPaymentGateway {
     this.secretKey = process.env.PAYSTACK_SECRET_KEY ?? "";
 
     if (!this.secretKey || this.secretKey === "")
-      throw new Error("Server configuration error: missing Paystack secret key");
+      throw new Error(
+        "Server configuration error: missing Paystack secret key",
+      );
   }
 
   /**
    * Turn the neutral initiation payload into Paystack's transaction-initialize
-   * request and return the hosted checkout link. No business logic here —
+   * request and return the hosted checkout link. No business logic here -
    * cart validation and pending-order creation happen in PaymentService.
    */
   async initializePayment(
@@ -300,7 +328,7 @@ export class PaystackGateway implements IPaymentGateway {
      */
     const payload: PaystackInitializePayload = {
       email: customer.email,
-      amount: amountKobo, // Paystack is Kobo-native — no conversion.
+      amount: amountKobo, // Paystack is Kobo-native - no conversion.
       reference,
       currency: "NGN",
       callback_url: redirectUrl,
@@ -344,20 +372,13 @@ export class PaystackGateway implements IPaymentGateway {
    */
   async verifyPayment(
     params: VerifyPaymentParams,
-  ): Promise<PaymentVerificationResult | null> {
-    const { reference, providerTransactionId } = params;
+  ): Promise<VerificationOutcome> {
+    const { reference } = params;
 
-    let url: string;
-    if (reference) {
-      url = `${this.apiUrl}/transaction/verify/${encodeURIComponent(reference)}`;
-    } else if (providerTransactionId) {
-      url = `${this.apiUrl}/transaction/${encodeURIComponent(providerTransactionId)}`;
-    } else {
-      console.error(
-        "PaystackGateway.verifyPayment: no transaction identifier provided",
-      );
-      return null;
-    }
+    // One endpoint, matching the Flutterwave adapter: verify by our own
+    // reference, which Paystack echoes back and which exists even when no
+    // transaction was ever created.
+    const url = `${this.apiUrl}/transaction/verify/${encodeURIComponent(reference)}`;
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
@@ -369,25 +390,52 @@ export class PaystackGateway implements IPaymentGateway {
           },
         });
 
-        if (!response.ok) {
+        // Parse the body even on a non-2xx: Paystack answers an unknown
+        // reference with 404 and an error-shaped body, which is a definitive
+        // answer rather than a failure to obtain one.
+        const body = (await response
+          .json()
+          .catch(() => null)) as PaystackVerifyResponse | null;
+
+        if (isPaystackNotFound(response.status, body)) {
+          // Definitive - no retry, the transaction was never created.
+          return { kind: "not_found", message: body?.message };
+        }
+
+        if (!response.ok || !body) {
           console.error(
             `Attempt ${attempt}: Failed to verify Paystack transaction - ${response.statusText}`,
           );
 
-          if (attempt === this.maxRetries) return null;
+          if (attempt === this.maxRetries) {
+            return {
+              kind: "unavailable",
+              message: `Paystack verification failed: ${response.status} ${response.statusText}`,
+            };
+          }
         } else {
-          const data: PaystackVerifyResponse = await response.json();
-          return normalizePaystackVerifyResponse(data);
+          const result = normalizePaystackVerifyResponse(body);
+          return result
+            ? { kind: "verified", result }
+            : {
+                kind: "unavailable",
+                message: body.message ?? "Unrecognised verification response.",
+              };
         }
       } catch (error) {
         console.error(`Attempt ${attempt}: Network error -`, error);
-        if (attempt === this.maxRetries) return null;
+        if (attempt === this.maxRetries) {
+          return {
+            kind: "unavailable",
+            message: error instanceof Error ? error.message : "Network error",
+          };
+        }
       }
 
       const delay = this.baseDelay * Math.pow(2, attempt - 1);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    return null;
+    return { kind: "unavailable", message: "Verification retries exhausted." };
   }
 }

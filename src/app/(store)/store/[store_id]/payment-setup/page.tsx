@@ -1,8 +1,7 @@
 import UpdatePayoutAccount from "@/modules/store/payment-setup/payout-setup-page";
 import type { Metadata } from "next";
 import { generateStoreMetadata } from "@/lib/helpers/generate-store-metadata";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 
 export async function generateMetadata(): Promise<Metadata> {
   return generateStoreMetadata(
@@ -13,11 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 async function page() {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryBoundary>
       {/* The store is derived from the session, not the URL — a payout
           destination must never be settable by changing a path segment. */}
       <UpdatePayoutAccount />
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }
 

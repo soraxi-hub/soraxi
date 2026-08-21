@@ -1,8 +1,9 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 import { describe, it, expect } from "vitest";
 import {
   normalizePaystackVerifyResponse,
   parsePaystackMetadata,
+  isPaystackNotFound,
   verifyPaystackSignature,
   type PaystackVerifyResponse,
   type PaystackTransactionData,
@@ -14,7 +15,7 @@ import { PaymentGateway } from "@/enums";
 /**
  * Fixture-driven tests for the Paystack adapter. The live integration is
  * unverified until credentials are issued, so these pin the mapping against
- * Paystack's documented payload shapes — especially the two places it
+ * Paystack's documented payload shapes - especially the two places it
  * diverges from Flutterwave: Kobo-native amounts and VAT-inclusive fees.
  */
 
@@ -30,7 +31,7 @@ function makeVerifyResponse(
       domain: "test",
       status: "success",
       reference: "idem-key-abc123",
-      amount: 500_000, // Kobo — Paystack is Kobo-native
+      amount: 500_000, // Kobo - Paystack is Kobo-native
       message: null,
       gateway_response: "Successful",
       paid_at: "2026-08-12T10:00:05.000Z",
@@ -60,14 +61,14 @@ function makeVerifyResponse(
 }
 
 describe("normalizePaystackVerifyResponse", () => {
-  it("maps a successful transaction without converting units — Paystack is Kobo-native", () => {
+  it("maps a successful transaction without converting units - Paystack is Kobo-native", () => {
     const result = normalizePaystackVerifyResponse(makeVerifyResponse());
 
     expect(result).not.toBeNull();
     expect(result!.provider).toBe(PaymentGateway.Paystack);
     expect(result!.status).toBe(NormalizedPaymentStatus.Successful);
     expect(result!.rawStatus).toBe("success");
-    // The fixture's 500_000 is already Kobo — it must pass through untouched.
+    // The fixture's 500_000 is already Kobo - it must pass through untouched.
     // A Naira-style conversion here would produce 50_000_000.
     expect(result!.amountKobo).toBe(500_000);
     expect(result!.currency).toBe("NGN");
@@ -136,7 +137,7 @@ describe("normalizePaystackVerifyResponse", () => {
       makeVerifyResponse({ metadata: "" }),
     );
 
-    // orderId cannot be recovered — the caller rejects on the empty value
+    // orderId cannot be recovered - the caller rejects on the empty value
     // rather than the adapter inventing one.
     expect(result!.meta.orderId).toBe("");
     // The reference IS the idempotency key, so it survives metadata loss.
@@ -162,6 +163,45 @@ describe("normalizePaystackVerifyResponse", () => {
   it("keeps the full raw response for audit", () => {
     const response = makeVerifyResponse();
     expect(normalizePaystackVerifyResponse(response)!.raw).toBe(response);
+  });
+});
+
+describe("isPaystackNotFound", () => {
+  it("treats a 404 as definitive, whatever the body says", () => {
+    expect(isPaystackNotFound(404, null)).toBe(true);
+    expect(
+      isPaystackNotFound(404, { status: false, message: "anything" }),
+    ).toBe(true);
+  });
+
+  it("recognises not-found wording delivered with another status code", () => {
+    for (const message of [
+      "Transaction not found",
+      "Transaction reference not found",
+      "Invalid transaction reference",
+    ]) {
+      expect(isPaystackNotFound(400, { status: false, message })).toBe(true);
+    }
+  });
+
+  it("does not treat other failures as not-found", () => {
+    // Must stay transient - cancelling on an outage would kill live payments.
+    for (const message of [
+      "Invalid key",
+      "Service unavailable",
+      "Too many requests",
+    ]) {
+      expect(isPaystackNotFound(500, { status: false, message })).toBe(false);
+    }
+  });
+
+  it("does not treat a successful response as not-found", () => {
+    expect(
+      isPaystackNotFound(200, {
+        status: true,
+        message: "Verification successful",
+      }),
+    ).toBe(false);
   });
 });
 
@@ -234,7 +274,7 @@ describe("verifyPaystackSignature", () => {
   });
 
   it("rejects a signature of the wrong length without throwing", () => {
-    // timingSafeEqual throws on length mismatch — the guard must short-circuit.
+    // timingSafeEqual throws on length mismatch - the guard must short-circuit.
     expect(() =>
       verifyPaystackSignature({ rawBody, signature: "abc123", secretKey }),
     ).not.toThrow();

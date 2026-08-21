@@ -53,9 +53,29 @@ function verificationResult(
   };
 }
 
-/** Stub the gateway round trip with a fixed verdict. */
-function stubVerify(result: PaymentVerificationResult | null) {
-  return vi.spyOn(PaymentService, "verifyPayment").mockResolvedValue(result);
+/** Stub the gateway round trip with a successful verification. */
+function stubVerify(result: PaymentVerificationResult) {
+  return vi
+    .spyOn(PaymentService, "verifyPayment")
+    .mockResolvedValue({ kind: "verified", result });
+}
+
+/** Stub the gateway as unreachable — transient, tells us nothing. */
+function stubUnavailable(message = "gateway down") {
+  return vi
+    .spyOn(PaymentService, "verifyPayment")
+    .mockResolvedValue({ kind: "unavailable", message });
+}
+
+/**
+ * Stub the gateway reporting no such transaction — the definitive negative an
+ * abandoned checkout produces. Distinct from `unavailable` on purpose: only
+ * this one may ever lead to an order being cancelled.
+ */
+function stubNotFound(message = "No transaction was found for this id") {
+  return vi
+    .spyOn(PaymentService, "verifyPayment")
+    .mockResolvedValue({ kind: "not_found", message });
 }
 
 async function readStatus(reference: string): Promise<PaymentStatus> {
@@ -188,7 +208,7 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
 
   it("reports a RETRYABLE error, without writing, when the gateway cannot be reached", async () => {
     await seedPendingOrder({ reference: REFERENCE });
-    stubVerify(null);
+    stubUnavailable();
 
     const result = await PaymentConfirmationService.confirmFromGateway({
       reference: REFERENCE,
@@ -320,6 +340,75 @@ describe("PaymentConfirmationService.confirmFromGateway", () => {
     await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
   });
 
+  it("leaves a young order pending when the gateway has no transaction yet", async () => {
+    // A customer still on the gateway's page — entering card details, waiting
+    // on an OTP, completing a bank transfer — looks exactly like an abandoned
+    // one from here. Cancelling inside the grace window would kill live
+    // payments, which is far worse than an abandoned order lingering.
+    await seedPendingOrder({ reference: REFERENCE });
+    stubNotFound();
+
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    expect(result).toMatchObject({ ok: true, status: PaymentStatus.Pending });
+    await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
+  });
+
+  it("cancels an abandoned order once past the grace window", async () => {
+    // Flutterwave sends no webhook for abandonment, so a definitive
+    // "no such transaction" is the only signal it ever produces. Without
+    // acting on it the order sits Pending forever, holding the cart's
+    // idempotency key and locking the customer out of that cart.
+    await seedPendingOrder({
+      reference: REFERENCE,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours old
+    });
+    stubNotFound();
+
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    expect(result).toMatchObject({ ok: true, status: PaymentStatus.Cancelled });
+    await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Cancelled);
+  });
+
+  it("never cancels an old order just because the gateway is unreachable", async () => {
+    // The distinction the whole design rests on: `unavailable` means we know
+    // nothing, so an outage must not cancel real in-flight payments no matter
+    // how old they are.
+    await seedPendingOrder({
+      reference: REFERENCE,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    });
+    stubUnavailable();
+
+    const result = await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.retryable).toBe(true);
+    await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Pending);
+  });
+
+  it("never cancels a paid order reported as not found", async () => {
+    await seedPendingOrder({
+      reference: REFERENCE,
+      paymentStatus: PaymentStatus.Paid,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    });
+    stubNotFound();
+
+    await PaymentConfirmationService.confirmFromGateway({
+      reference: REFERENCE,
+    });
+
+    await expect(readStatus(REFERENCE)).resolves.toBe(PaymentStatus.Paid);
+  });
+
   it("rejects a successful verification whose metadata has no orderId", async () => {
     await seedPendingOrder({ reference: REFERENCE });
     stubVerify(verificationResult()); // meta.orderId is "" in the fixture
@@ -404,6 +493,41 @@ describe("PaymentConfirmationService.sweepStalePendingOrders", () => {
     await expect(readStatus("in-flight")).resolves.toBe(PaymentStatus.Pending);
   });
 
+  it("hard-expires an order stuck beyond the ceiling, even with the gateway down", async () => {
+    // The grace window only fires on a definitive not_found. A persistently
+    // unreachable gateway would otherwise let orders accumulate forever, each
+    // holding a cart hostage. This is the unconditional backstop.
+    await seedPendingOrder({
+      reference: "ancient",
+      createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000), // 72 hours
+    });
+    stubUnavailable();
+
+    const summary = await PaymentConfirmationService.sweepStalePendingOrders({
+      olderThanMinutes: 15,
+    });
+
+    expect(summary.expired).toBe(1);
+    await expect(readStatus("ancient")).resolves.toBe(PaymentStatus.Cancelled);
+  });
+
+  it("does not hard-expire an order that is merely old-ish", async () => {
+    await seedPendingOrder({
+      reference: "recent-enough",
+      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours
+    });
+    stubUnavailable();
+
+    const summary = await PaymentConfirmationService.sweepStalePendingOrders({
+      olderThanMinutes: 15,
+    });
+
+    expect(summary.expired).toBe(0);
+    await expect(readStatus("recent-enough")).resolves.toBe(
+      PaymentStatus.Pending,
+    );
+  });
+
   it("keeps sweeping after one order errors", async () => {
     const staleDate = new Date(Date.now() - 60 * 60 * 1000);
     await seedPendingOrder({ reference: "err-1", createdAt: staleDate });
@@ -411,12 +535,13 @@ describe("PaymentConfirmationService.sweepStalePendingOrders", () => {
 
     vi.spyOn(PaymentService, "verifyPayment")
       .mockRejectedValueOnce(new Error("gateway exploded"))
-      .mockResolvedValueOnce(
-        verificationResult({
+      .mockResolvedValueOnce({
+        kind: "verified",
+        result: verificationResult({
           status: NormalizedPaymentStatus.Failed,
           rawStatus: "failed",
         }),
-      );
+      });
 
     const summary = await PaymentConfirmationService.sweepStalePendingOrders({
       olderThanMinutes: 15,

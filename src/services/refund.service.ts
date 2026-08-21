@@ -553,6 +553,9 @@ export class RefundService {
         customerId: refundRecord.customerId,
         amountRefunded: refundRecord.amountBreakdown.amountRefunded,
         refundId: refundObjectId,
+        // Money goes back out through whichever gateway took it in.
+        gatewayProvider:
+          refundRecord.paymentProvider ?? PaymentGateway.Flutterwave,
         session,
       });
 
@@ -605,7 +608,7 @@ export class RefundService {
    * Called from the main Flutterwave webhook route when a refund event arrives.
    * Routes to success or failure handling based on the refund status.
    *
-   * Note: Flutterwave does not send refund webhooks by default â€” you must
+   * Note: Flutterwave does not send refund webhooks by default - you must
    * request enablement from Flutterwave support. Until enabled, the manual
    * admin path is the only way to close a refund.
    *
@@ -679,6 +682,9 @@ export class RefundService {
         customerId: refundRecord.customerId,
         amountRefunded: refundRecord.amountBreakdown.amountRefunded,
         refundId: refundObjectId,
+        // Money goes back out through whichever gateway took it in.
+        gatewayProvider:
+          refundRecord.paymentProvider ?? PaymentGateway.Flutterwave,
         session,
       });
 
@@ -932,7 +938,7 @@ export class RefundService {
 
   /**
    * Notify the customer that their refund has been processed.
-   * Fire-and-forget â€” always called outside the session after commit.
+   * Fire-and-forget - always called outside the session after commit.
    *
    * @param refundRecord - The completed refund record
    */

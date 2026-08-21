@@ -1,9 +1,8 @@
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 import { UserOrdersSkeleton } from "@/modules/skeletons/user-orders-history-skeleton";
 import { UserOrders } from "@/modules/user/user-orders";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 import { Suspense } from "react";
-import { ErrorBoundary } from "react-error-boundary";
 import type { Metadata } from "next";
 import { generateUserMetadata } from "@/lib/helpers/generate-user-metadata";
 
@@ -18,11 +17,11 @@ async function Page() {
   prefetch(trpc.order.getByUserId.queryOptions());
   return (
     <HydrateClient>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <QueryBoundary>
         <Suspense fallback={<UserOrdersSkeleton />}>
           <UserOrders />
         </Suspense>
-      </ErrorBoundary>
+      </QueryBoundary>
     </HydrateClient>
   );
 }

@@ -25,8 +25,7 @@ import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import Image from "next/image";
 import Link from "next/link";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorFallback } from "@/components/errors/error-fallback";
+import { QueryBoundary } from "@/components/errors/query-boundary";
 
 // ---------------------------------------------------------------------------
 // Financial status badge
@@ -404,7 +403,7 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
 
 function AdminOrderDetail({ orderId }: { orderId: string }) {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryBoundary>
       <Suspense
         fallback={
           <div className="space-y-4 animate-pulse">
@@ -416,7 +415,7 @@ function AdminOrderDetail({ orderId }: { orderId: string }) {
       >
         <AdminOrderDetailContent orderId={orderId} />
       </Suspense>
-    </ErrorBoundary>
+    </QueryBoundary>
   );
 }
 

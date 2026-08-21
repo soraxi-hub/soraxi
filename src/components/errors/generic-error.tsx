@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, Mail, RefreshCw } from "lucide-react";
+import Link from "next/link";
 import {
   Card,
   CardHeader,
@@ -15,6 +16,14 @@ import { AppRouter } from "@/trpc/routers/_app";
 interface GenericErrorProps {
   error?: Error | TRPCClientErrorLike<AppRouter>;
   onRetry?: () => void;
+  /**
+   * Correlation token from a caller that has one but did not route it through
+   * tRPC — a Next.js route `error.tsx` passing `error.digest`. Takes
+   * precedence over the tRPC `ref`; both mean the same thing to support.
+   */
+  reference?: string;
+  /** When set, offers a mailto escape hatch alongside the retry. */
+  supportEmail?: string;
 }
 
 const FALLBACK_MESSAGE = "Something went wrong on our end. Please try again.";
@@ -29,15 +38,22 @@ const FALLBACK_MESSAGE = "Something went wrong on our end. Please try again.";
  * the user something concrete to quote to support and gives support something
  * to search, which is what the raw message was accidentally providing before.
  */
-export function GenericError({ error, onRetry }: GenericErrorProps) {
+export function GenericError({
+  error,
+  onRetry,
+  reference,
+  supportEmail,
+}: GenericErrorProps) {
   const data = (error as TRPCClientErrorLike<AppRouter> | undefined)?.data as
     | { ref?: string }
     | undefined;
 
   // Only trust a message that arrived through the tRPC pipeline; anything else
   // is an unfiltered runtime error.
-  const message = data ? (error?.message ?? FALLBACK_MESSAGE) : FALLBACK_MESSAGE;
-  const ref = data?.ref;
+  const message = data
+    ? (error?.message ?? FALLBACK_MESSAGE)
+    : FALLBACK_MESSAGE;
+  const ref = reference ?? data?.ref;
 
   return (
     <div className="flex min-h-[400px] items-center justify-center p-4">
@@ -59,6 +75,15 @@ export function GenericError({ error, onRetry }: GenericErrorProps) {
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
+
+          {supportEmail && (
+            <Button asChild variant="ghost" className="w-full">
+              <Link href={`mailto:${supportEmail}`}>
+                <Mail className="mr-2 h-4 w-4" />
+                Contact Support
+              </Link>
+            </Button>
+          )}
 
           {ref && (
             <p className="text-xs text-muted-foreground">

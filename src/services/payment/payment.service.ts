@@ -1,4 +1,4 @@
-import { PaymentGateway, PaymentStatus } from "@/enums";
+﻿import { PaymentGateway, PaymentStatus } from "@/enums";
 import { PaymentGatewayFactory } from "../../domain/payment/payment.factory";
 import { GatewayRouter } from "../../domain/payment/gateway-routing";
 import { PreparedPaymentData } from "../checkout.service";
@@ -10,16 +10,16 @@ import { getOrderModel } from "@/lib/db/models/order.model";
 import type {
   GatewayInitiationPayload,
   InitializePaymentResult,
-  PaymentVerificationResult,
+  VerificationOutcome,
   VerifyPaymentParams,
 } from "@/domain/payment/gateways/gateway-interface";
 
 /**
  * Orchestrates payment initiation and verification across gateways.
  *
- * The business steps that must happen for EVERY provider — cart validation,
+ * The business steps that must happen for EVERY provider  cart validation,
  * pending-order creation (which records the chosen gateway on the order),
- * building the neutral initiation payload — live here, once. The gateway
+ * building the neutral initiation payload  live here, once. The gateway
  * adapters only translate that payload to their provider's API and normalise
  * the responses back.
  */
@@ -30,7 +30,7 @@ export class PaymentService {
    * GatewayRouter supplies the ordered candidates. The pending order is
    * created once, recording the first candidate; if initiation against that
    * provider fails (API error, outage), the order's paymentGateway is
-   * updated to the next candidate and initiation is retried — the customer
+   * updated to the next candidate and initiation is retried  the customer
    * simply receives the fallback provider's payment link. The order record
    * therefore always names the gateway that actually issued the link.
    */
@@ -44,7 +44,7 @@ export class PaymentService {
   }): Promise<InitializePaymentResult> {
     const { input, user } = props;
 
-    // ── Step 1: Validate cart ────────────────────────────────────────────
+    // Step 1: Validate cart
     const cartDoc = await CartRepository.getCartByUserId(user.userId);
     if (!cartDoc) throw new Error("User cart not found.");
     const cart = CartFactory.createCart({
@@ -59,9 +59,9 @@ export class PaymentService {
 
     const candidates = GatewayRouter.candidateGateways();
 
-    // ── Step 2: Create the pending order, recording WHICH gateway will
+    // Step 2: Create the pending order, recording WHICH gateway will
     // collect the payment. The order record is the single source of truth
-    // for the provider from this point on — the status page and webhook
+    // for the provider from this point on  the status page and webhook
     // handlers derive the gateway from the record, never from the URL.
     const order = await OrderPendingService.createPendingOrder({
       user,
@@ -84,7 +84,7 @@ export class PaymentService {
       },
     };
 
-    // ── Step 3: Try each candidate in order ──────────────────────────────
+    // Step 3: Try each candidate in order
     let lastError: unknown;
     for (let i = 0; i < candidates.length; i++) {
       const gateway = candidates[i]!;
@@ -105,7 +105,7 @@ export class PaymentService {
         lastError = error;
         console.error(
           `[PaymentService] Payment initiation failed on ${gateway}` +
-            (i < candidates.length - 1 ? " — failing over" : ""),
+            (i < candidates.length - 1 ? "  failing over" : ""),
           error,
         );
       }
@@ -113,7 +113,7 @@ export class PaymentService {
 
     // Every gateway refused. The Pending order committed above is now holding
     // the cart's idempotency key, and createPendingOrder's duplicate guard
-    // rejects ANY existing order for that key — Failed and Cancelled included.
+    // rejects ANY existing order for that key  Failed and Cancelled included.
     // Left in place, it locks the customer out of their own cart permanently:
     // the pending-payment sweep cannot help, because no payment was ever
     // initiated for it to verify. Since no payment link was ever issued, this
@@ -130,7 +130,7 @@ export class PaymentService {
    * Remove an order whose payment was never successfully initiated.
    *
    * Deletes only while the order is still Pending. That condition is belt and
-   * braces rather than a live race — no payment link reached the customer — but
+   * braces rather than a live race  no payment link reached the customer  but
    * it guarantees this can never erase an order that somehow got paid.
    *
    * Failures here are logged, never thrown: the caller is already on its way to
@@ -148,7 +148,7 @@ export class PaymentService {
       if (result.deletedCount === 0) {
         console.warn(
           `[PaymentService] Order ${orderId} was not discarded after failed ` +
-            `initiation — it is no longer Pending. Left for manual review.`,
+            `initiation  it is no longer Pending. Left for manual review.`,
         );
       }
     } catch (error) {
@@ -168,7 +168,10 @@ export class PaymentService {
     gateway: PaymentGateway,
   ): Promise<void> {
     const Order = await getOrderModel();
-    await Order.updateOne({ _id: orderId }, { $set: { paymentGateway: gateway } });
+    await Order.updateOne(
+      { _id: orderId },
+      { $set: { paymentGateway: gateway } },
+    );
   }
 
   static async verifyPayment({
@@ -177,7 +180,7 @@ export class PaymentService {
   }: {
     gateway: PaymentGateway;
     refs: VerifyPaymentParams;
-  }): Promise<PaymentVerificationResult | null> {
+  }): Promise<VerificationOutcome> {
     const paymentGateway = PaymentGatewayFactory.getGateway(gateway);
 
     return paymentGateway.verifyPayment(refs);
