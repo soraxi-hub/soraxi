@@ -145,6 +145,62 @@ export const userRouter = createTRPCRouter({
     }),
 
   /**
+   * @procedure acceptTerms
+   * @description
+   * Records that the signed-in user accepted the terms and privacy policy.
+   *
+   * Takes no input. There is nothing for the client to supply: the identity
+   * comes from the session and the timestamp is taken here, so neither can be
+   * chosen by whoever calls it.
+   *
+   * Idempotent — re-accepting keeps the original date rather than refreshing
+   * it, because the date's whole purpose is to record which version of the
+   * terms was agreed to.
+   */
+  acceptTerms: baseProcedure.mutation(async ({ ctx }) => {
+    try {
+      const { user } = ctx;
+
+      if (!user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be signed in to accept the terms.",
+        });
+      }
+
+      const User = await getUserModel();
+
+      const result = await User.updateOne(
+        // The filter is the guard: a document that already has agreement
+        // recorded does not match, so the timestamp cannot be overwritten by a
+        // second call.
+        {
+          _id: new mongoose.Types.ObjectId(user.id),
+          "termsAgreement.hasAgreed": { $ne: true },
+        },
+        {
+          $set: {
+            termsAgreement: { hasAgreed: true, agreedToTermsAt: new Date() },
+          },
+        },
+      );
+
+      return { success: true, alreadyAgreed: result.matchedCount === 0 };
+    } catch (error) {
+      if (isReportableError(error)) {
+        try {
+          await sendTelegramMessage(
+            formatErrorReport(error, { source: "trpc:user.acceptTerms" }),
+          );
+        } catch {
+          // sendTelegramMessage already console.errors; never mask the original
+        }
+      }
+      throw handleTRPCError(error, "We couldn't record your agreement.");
+    }
+  }),
+
+  /**
    * @procedure updateProfile
    * @description
    * Updates the profile details of an authenticated user.

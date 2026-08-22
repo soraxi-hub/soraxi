@@ -21,6 +21,7 @@ import { StoreStatusEnum } from "@/enums";
 import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
 import { cn } from "@/lib/utils";
 import { UserStoreSummary } from "@/domain/users/user-interface";
+import { TermsAgreementDialog } from "./terms-agreement-dialog";
 // import { RecentlyViewed } from "@/modules/products/product-detail/recently-viewed";
 
 const Profile = () => {
@@ -36,6 +37,10 @@ const Profile = () => {
 
   return (
     <FeedbackWrapper page={`user`} delay={120000}>
+      <TermsAgreementDialog
+        hasAgreed={user.termsAgreement?.hasAgreed === true}
+      />
+
       <div className="space-y-6 py-6">
         {/* Profile Header */}
         <section>

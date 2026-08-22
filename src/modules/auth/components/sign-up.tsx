@@ -19,6 +19,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { userSignUpInfoValidation } from "@/validators/user-signUp-info-validation";
 import { siteConfig } from "@/config/site";
 import { playpenSans } from "@/constants/constant";
@@ -37,7 +40,13 @@ const steps = [
   },
   {
     title: "Contact & Security",
-    fields: ["email", "phoneNumber", "password", "confirmPassword"],
+    fields: [
+      "email",
+      "phoneNumber",
+      "password",
+      "confirmPassword",
+      "agreedToTerms",
+    ],
   },
 ];
 
@@ -61,6 +70,10 @@ function SignUp() {
       phoneNumber: "",
       cityOfResidence: "",
       stateOfResidence: "",
+      // Typed `true` by the schema, so the unchecked starting state needs a
+      // cast. Starting it checked would be the wrong default — agreement has
+      // to be an action the user takes.
+      agreedToTerms: false as unknown as true,
     },
   });
 
@@ -75,6 +88,7 @@ function SignUp() {
       | "phoneNumber"
       | "cityOfResidence"
       | "stateOfResidence"
+      | "agreedToTerms"
     >;
     const isValid = await form.trigger(fields);
     if (isValid) setCurrentStep((prev) => Math.min(prev + 1, steps.length));
@@ -334,6 +348,59 @@ function SignUp() {
                         )}
                       />
                     ))}
+
+                    <FormField
+                      control={form.control}
+                      name="agreedToTerms"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className={cn("flex items-center gap-3")}>
+                            <FormControl>
+                              <Checkbox
+                                id="agreedToTerms"
+                                checked={field.value === true}
+                                onCheckedChange={(checked) =>
+                                  field.onChange(checked === true)
+                                }
+                                className={cn("mt-0.5")}
+                              />
+                            </FormControl>
+                            <Label
+                              htmlFor="agreedToTerms"
+                              className={cn(
+                                "text-sm leading-3 font-normal flex-wrap text-gray-600 dark:text-gray-300",
+                              )}
+                            >
+                              I agree to Soraxi&apos;s{" "}
+                              <Link
+                                href="/terms-conditions"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(
+                                  "font-medium text-soraxi-green hover:underline",
+                                )}
+                              >
+                                Terms &amp; Conditions
+                              </Link>{" "}
+                              and{" "}
+                              <Link
+                                href="/privacy-policy"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(
+                                  "font-medium text-soraxi-green hover:underline",
+                                )}
+                              >
+                                Privacy Policy
+                              </Link>
+                              .
+                            </Label>
+                          </div>
+
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 )}
 
