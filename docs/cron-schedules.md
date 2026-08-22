@@ -50,15 +50,15 @@ source of truth — this document explains it, but never overrides it.
 
 ## Execution Times
 
-| Job                      | Time (UTC) | What it does                                                              |
-| ------------------------ | ---------- | ------------------------------------------------------------------------- |
-| auto-confirm-orders      | 01:00      | Auto-confirms deliveries left unconfirmed for 3 days (Stage 2 fund flow)  |
-| auto-resolve-disputes    | 02:00      | Auto-resolves disputes still open at day 5, in the student's favour       |
-| expire-dispute-evidence  | 03:00      | Closes disputes whose 48-hour additional-evidence window elapsed          |
-| reconcile-financials     | 03:00      | System-wide ledger integrity + per-gateway collections check              |
-| reconcile-vendor-wallets | 03:30      | Per-vendor wallet and debt reconciliation against the ledger              |
+| Job                      | Time (UTC) | What it does                                                             |
+| ------------------------ | ---------- | ------------------------------------------------------------------------ |
+| auto-confirm-orders      | 01:00      | Auto-confirms deliveries left unconfirmed for 3 days (Stage 2 fund flow) |
+| auto-resolve-disputes    | 02:00      | Auto-resolves disputes still open at day 5, in the student's favour      |
+| expire-dispute-evidence  | 03:00      | Closes disputes whose 48-hour additional-evidence window elapsed         |
+| reconcile-financials     | 03:00      | System-wide ledger integrity + per-gateway collections check             |
+| reconcile-vendor-wallets | 03:30      | Per-vendor wallet and debt reconciliation against the ledger             |
 | drain-message-outbox     | 11:00      | Flushes queued in-app message notifications                              |
-| sweep-pending-payments   | 14:00      | Re-verifies orders still Pending; expires abandoned and stuck checkouts   |
+| sweep-pending-payments   | 14:00      | Re-verifies orders still Pending; expires abandoned and stuck checkouts  |
 
 > **Note — 03:00 collision.** `expire-dispute-evidence` and
 > `reconcile-financials` are scheduled at the same minute. They touch different
@@ -80,12 +80,6 @@ source of truth — this document explains it, but never overrides it.
 Two of these jobs are **backstops** rather than primary paths, and their cadence
 should be read that way:
 
-- `sweep-pending-payments` is the safety net behind webhook confirmation. Most
-  payments settle within seconds via webhook, and the status page falls back to
-  a direct verification about 12 seconds in. This job only catches what both
-  missed. A daily run bounds worst-case latency for an abandoned checkout at
-  roughly 24 hours before it is cancelled and the customer's cart is freed —
-  raise the frequency if that wait proves too long in practice.
 - `reconcile-*` jobs detect drift; they do not prevent it. Running them more
   often narrows the window in which a discrepancy goes unnoticed, at the cost of
   repeated full-collection aggregations.
