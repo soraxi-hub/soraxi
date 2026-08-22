@@ -266,6 +266,8 @@ export class ProductService {
       page,
       limit = 50,
       category,
+      categories,
+      inStock,
       subCategory,
       targetAudience,
       search,
@@ -275,11 +277,13 @@ export class ProductService {
       ratings,
     } = input;
 
-    const products = await ProductRepository.getPublicProducts({
+    const filters = {
       page,
       limit,
       skip: (page - 1) * limit,
       category: category !== "all" ? category : undefined,
+      categories,
+      inStock,
       subCategory,
       targetAudience,
       search,
@@ -287,7 +291,14 @@ export class ProductService {
       priceMin,
       priceMax,
       ratings,
-    });
+    };
+
+    // Counted alongside the fetch rather than derived from it: the rows are one
+    // page, and a pager needs to know how many pages exist.
+    const [products, total] = await Promise.all([
+      ProductRepository.getPublicProducts(filters),
+      ProductRepository.countPublicProducts(filters),
+    ]);
 
     /**
      * Persistence -> Domain -> Public JSON
@@ -307,9 +318,26 @@ export class ProductService {
       pagination: {
         page,
         limit,
-        total: publicProducts.length,
+        /** Total matching the filters, across all pages. */
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+        /** How many are on this page — what `total` used to report. */
+        count: publicProducts.length,
       },
     };
+  }
+
+  /**
+   * A random slice of the public catalogue, for the home page feed.
+   *
+   * Not paginated by design — see `sampleProducts`.
+   */
+  static async getRandomPublicProducts(size: number) {
+    const products = await ProductRepository.samplePublicProducts(size);
+
+    return products.map((product) =>
+      ProductFactory.fromPersistence(product).toJSON(),
+    );
   }
 
   static async getPublicProductBySlug(slug: string) {

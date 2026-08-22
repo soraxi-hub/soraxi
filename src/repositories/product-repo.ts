@@ -5,6 +5,8 @@ import {
   getProductBySlug,
   getProductModel,
   getProducts,
+  countProducts,
+  sampleProducts,
   IProduct,
   IProductDocument,
 } from "@/lib/db/models/product.model";
@@ -167,6 +169,25 @@ export class ProductRepository {
       visibleOnly: true,
       verified: true,
     });
+  }
+
+  /**
+   * Total matches for the same filters, for pagination.
+   *
+   * Takes the identical `visibleOnly`/`verified` overrides as the fetch above,
+   * so the count can never describe a wider set than the rows it is paging.
+   */
+  static async countPublicProducts(filters: GetPublicProductsInput) {
+    return countProducts({
+      ...filters,
+      visibleOnly: true,
+      verified: true,
+    });
+  }
+
+  /** Random selection for fixed-size feeds. See `sampleProducts`. */
+  static async samplePublicProducts(size: number) {
+    return sampleProducts({ size, visibleOnly: true, verified: true });
   }
 
   static async getPublicProductBySlug(slug: string): Promise<IProduct | null> {

@@ -74,6 +74,10 @@ export type GetPublicProductsInput = {
   page: number;
   visibleOnly?: boolean;
   category?: string;
+  /** Several top-level categories at once, as the all-products filter rail allows. */
+  categories?: string[];
+  /** Hide products with nothing left in stock. */
+  inStock?: boolean;
   subCategory?: string;
   targetAudience?: string;
   limit?: number;
