@@ -4,22 +4,25 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 
-import { Search, Award, Zap, Shield, Truck } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { ProductCard } from "../products/product-detail/product-card";
 import { useQueryState } from "nuqs";
 import { HomeHero } from "./home-page-banner";
-import LawProductSection from "./popular-fields/law";
 import ProductLoadingSkeleton from "../skeletons/product-loading-skeleton";
-import GeneralProductSection from "./popular-fields/general";
-import EngineeringProductSection from "./popular-fields/engineering";
-import AccountingProductSection from "./popular-fields/accounting-finance";
-import MedicineProductSection from "./popular-fields/medicine";
-import ComputerScienceProductSection from "./popular-fields/computer-science-it";
-import DemandListingSection from "../requests/components/home-page-demand-section";
+
+import { HowBuyingWorks } from "./sections/how-buying-works";
+import { ShopByCategory } from "./sections/shop-by-category";
+import { TrendingOnCampus } from "./sections/trending-on-campus";
+import { VendorCta } from "./sections/vendor-cta";
+import { WhySoraxi } from "./sections/why-soraxi";
 
 /**
  * HomePage Component
+ *
+ * Two mutually exclusive views behind one route: the landing page when there is
+ * no `search`, and the results grid when there is. `useQueryState` keeps that in
+ * the URL, so a search stays shareable and survives a refresh.
  */
 export function HomePage() {
   const trpc = useTRPC();
@@ -35,109 +38,35 @@ export function HomePage() {
     }),
   );
 
-  const { data: demandListing, isLoading: listingsLoading } = useQuery(
-    trpc.demandListing.getAllRequests.queryOptions({ limit: 12 }),
-  );
-
   const allProducts = publicProductsData?.products || [];
   const groupedProducts = publicProductsData?.groupedProducts || {};
-  const listings = demandListing?.requests || [];
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       {!search && <HomeHero products={groupedProducts["general"] || []} />}
 
-      {/* Feature Section */}
+      {/*
+        Landing sections. All of them hide while a search is active so the
+        results grid below is the only thing on screen — a shopper who has
+        typed a query is not browsing any more.
+      */}
       {!search && (
-        <section className="py-16 bg-muted/30">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              {[Shield, Truck, Award, Zap].map((Icon, i) => (
-                <div className="space-y-4" key={i}>
-                  <div className="w-16 h-16 bg-soraxi-green/10 rounded-full flex items-center justify-center mx-auto">
-                    <Icon className="w-8 h-8 text-soraxi-green" />
-                  </div>
-                  <h3 className="font-semibold text-lg">
-                    {
-                      [
-                        // "Verified Sellers",
-                        "Trusted Brands",
-                        "Fast Delivery",
-                        "Quality Guaranteed",
-                        "24/7 Support",
-                      ][i]
-                    }
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {
-                      [
-                        // "All our sellers are verified and trusted",
-                        "All our brands are vetted for quality",
-                        "Quick and reliable shipping within Campus",
-                        "Premium products with quality assurance",
-                        "Round-the-clock customer support",
-                      ][i]
-                    }
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+        <>
+          <ShopByCategory />
 
-      {/* General Products Section */}
-      {!search && (
-        <GeneralProductSection
-          products={groupedProducts["general"] || []}
-          isLoading={productsLoading}
-        />
-      )}
+          {/*
+            Fetches its own randomised feed rather than being handed the page
+            query's results — see the note in the component. The old section
+            read from the "general" field bucket, so a band titled "Trending on
+            campus" rendered empty whenever stock sat under any other field.
+          */}
+          <TrendingOnCampus />
 
-      {/* General Products Section */}
-      {!search && (
-        <DemandListingSection demands={listings} isLoading={listingsLoading} />
-      )}
-
-      {/* Law Products Section */}
-      {!search && (
-        <LawProductSection
-          products={groupedProducts["law"] || []}
-          isLoading={productsLoading}
-        />
-      )}
-
-      {/* Engineering Products Section */}
-      {!search && (
-        <EngineeringProductSection
-          products={groupedProducts["engineering"] || []}
-          isLoading={productsLoading}
-        />
-      )}
-
-      {/* Accounting Products Section */}
-      {!search && (
-        <AccountingProductSection
-          products={groupedProducts["accounting-finance"] || []}
-          isLoading={productsLoading}
-        />
-      )}
-
-      {/* Medical Products Section */}
-      {!search && (
-        <MedicineProductSection
-          products={groupedProducts["medicine-health-sciences"] || []}
-          isLoading={productsLoading}
-        />
-      )}
-
-      {/* Computer Science Products Section */}
-      {!search && (
-        <ComputerScienceProductSection
-          products={groupedProducts["computer-science-it"] || []}
-          isLoading={productsLoading}
-        />
+          <WhySoraxi />
+          <HowBuyingWorks />
+          <VendorCta />
+        </>
       )}
 
       {/* Product Filters */}
