@@ -12,7 +12,7 @@ import { useTRPC } from "@/trpc/client";
 import { SectionHeading } from "./section-heading";
 
 /** Four across on desktop is two full rows — enough to browse, not a catalogue. */
-const FEED_SIZE = 6;
+const FEED_SIZE = 8;
 
 /**
  * The main product band on the home page.

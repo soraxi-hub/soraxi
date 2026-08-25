@@ -13,12 +13,12 @@ import {
   Truck,
   Users,
 } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+// import {
+//   Accordion,
+//   AccordionContent,
+//   AccordionItem,
+//   AccordionTrigger,
+// } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { AnimatedCounter } from "@/modules/store/components/animated-counter";
-import SellerTestimonials from "@/modules/store/components/seller-testimonials";
+// import SellerTestimonials from "@/modules/store/components/seller-testimonials";
 import { siteConfig } from "@/config/site";
 import Link from "next/link";
 
@@ -186,13 +186,13 @@ export default function StoreOnboardingLandingPage() {
                 </TableCell>
                 <TableCell>DIY Only</TableCell>
               </TableRow>
-              {/* <TableRow>
+              <TableRow>
                 <TableCell>Order Tracking</TableCell>
                 <TableCell className="font-medium text-soraxi-green">
                   Built-in
                 </TableCell>
                 <TableCell>Manual via DM</TableCell>
-              </TableRow> */}
+              </TableRow>
             </TableBody>
           </Table>
         </div>
@@ -201,11 +201,11 @@ export default function StoreOnboardingLandingPage() {
       {/* Animated Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center pt-6">
         <div>
-          <AnimatedCounter target={10000} className={`text-soraxi-green`} />
+          <AnimatedCounter target={200} className={`text-soraxi-green`} />
           <p className="text-muted-foreground">Active Buyers</p>
         </div>
         <div>
-          <AnimatedCounter target={1200} className={`text-soraxi-green`} />
+          <AnimatedCounter target={30} className={`text-soraxi-green`} />
           <p className="text-muted-foreground">Stores Onboarded</p>
         </div>
         <div>
@@ -249,12 +249,12 @@ export default function StoreOnboardingLandingPage() {
       <Separator className="my-12 bg-green-200/50 dark:bg-green-900/30" />
 
       {/* Testimonials */}
-      <SellerTestimonials />
+      {/* <SellerTestimonials /> */}
 
-      <Separator className="my-12 bg-green-200/50 dark:bg-green-900/30" />
+      {/* <Separator className="my-12 bg-green-200/50 dark:bg-green-900/30" /> */}
 
       {/* FAQ Section */}
-      <div className="pt-12">
+      {/* <div className="pt-12">
         <h2 className="text-2xl font-bold mb-4 text-center">
           Frequently Asked Questions
         </h2>
@@ -292,9 +292,9 @@ export default function StoreOnboardingLandingPage() {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </div>
+      </div> */}
 
-      <Separator className="my-12 bg-green-200/50 dark:bg-green-900/30" />
+      {/* <Separator className="my-12 bg-green-200/50 dark:bg-green-900/30" /> */}
 
       {/* Final CTA */}
       <section className="text-center py-10">
