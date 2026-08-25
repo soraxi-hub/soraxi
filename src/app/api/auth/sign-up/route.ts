@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     phoneNumber,
     cityOfResidence,
     stateOfResidence,
+    agreedToTerms,
   } = requestBody as {
     id: string;
     email: string;
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     cityOfResidence: string;
     stateOfResidence: string;
     isVerified: boolean;
+    agreedToTerms: boolean;
   };
 
   try {
@@ -53,8 +55,22 @@ export async function POST(request: NextRequest) {
       cityOfResidence,
       stateOfResidence,
       isVerified: false,
+      agreedToTerms: agreedToTerms === true,
     };
     await connectToDatabase();
+
+    /*
+     * Re-checked here rather than trusted from the form. The client validates
+     * with the same schema, but this endpoint is reachable directly, and an
+     * account created without agreement is exactly the record the whole
+     * feature exists to keep.
+     */
+    if (agreedToTerms !== true) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "You must accept the Terms and Privacy Policy to create an account.",
+      );
+    }
 
     const emailAlreadyExist = await UserRepository.isExistingUser(email);
     if (emailAlreadyExist) {

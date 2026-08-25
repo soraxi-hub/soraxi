@@ -103,6 +103,15 @@ export class User implements IUserInfo {
   /**
    * Convert domain object into plain JSON object
    */
+
+  get hasAgreedToTerms(): boolean {
+    return this.props.termsAgreement?.hasAgreed === true;
+  }
+
+  get agreedToTermsAt(): Date | undefined {
+    return this.props.termsAgreement?.agreedToTermsAt;
+  }
+
   toJSON(): PublicToJSONUserType {
     if (!this.userId) {
       throw new Error("UserId Required");
@@ -125,6 +134,10 @@ export class User implements IUserInfo {
       lastOtpRequestAt: this.lastOtpRequestAt,
       otpRequestBlockedUntil: this.otpBlockedUntil,
       isOtpBlocked: this.isOtpBlocked,
+      termsAgreement: {
+        hasAgreed: this.hasAgreedToTerms,
+        agreedToTermsAt: this.agreedToTermsAt,
+      },
     };
   }
 }

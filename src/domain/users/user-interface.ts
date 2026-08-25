@@ -42,8 +42,8 @@ export type SignupUserContext = Pick<
   | "cityOfResidence"
   | "stateOfResidence"
 > & {
-  /** Whether the email/phone has been verified; defaults to `false`. */
   isVerified?: boolean;
+  agreedToTerms?: boolean;
 };
 
 export type AuthUserContext = Pick<

@@ -1,7 +1,7 @@
 # Soraxi Financial System — Architecture Documentation
 
 > **Platform:** Soraxi Marketplace
-> **Last Updated:** June 2026
+> **Last Updated:** 20 August 2026
 > **Audience:** Internal developers and new team members
 > **Status:** Living document — update as the system evolves
 
@@ -24,7 +24,9 @@
 13. [Payout System](#13-payout-system)
 14. [Refund System](#14-refund-system)
 15. [Reconciliation](#15-reconciliation)
-16. [Open Items & Future Considerations](#16-open-items--future-considerations)
+16. [Multi-Gateway Payments](#16-multi-gateway-payments)
+17. [Payment Confirmation & Abandonment](#17-payment-confirmation--abandonment)
+18. [Open Items & Future Considerations](#18-open-items--future-considerations)
 
 ---
 
@@ -36,7 +38,8 @@ Soraxi is a marketplace for students and vendors within Nigerian tertiary instit
 
 - **Backend/Frontend:** Next.js (App Router)
 - **Database:** MongoDB via Mongoose
-- **Payment Gateway:** Flutterwave
+- **Payment Gateways (collections):** Flutterwave (live). Paystack is implemented but deliberately gated off — see §16.
+- **Payment Gateway (payouts & refunds):** Flutterwave only
 - **Deployment:** Vercel
 
 All monetary values are stored and processed in **Kobo** (1 Naira = 100 Kobo) to avoid floating-point precision errors. Amounts are always positive integers — fractional Kobo values are never valid.
@@ -118,7 +121,7 @@ A singleton document tracking the platform's accumulated revenue from commission
 
 ### 6. The Transaction Record
 
-The bridge between Flutterwave and the internal system. Links an external payment reference to the internal suborder breakdowns and commission calculations.
+The bridge between a payment gateway and the internal system. Links an external payment reference to the internal suborder breakdowns and commission calculations, and records **which** gateway collected the payment — the only place that fact is authoritative once the order is paid.
 
 ### 7. The Payout System
 
@@ -285,12 +288,36 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
   accountType: LedgerAccountType, // Which account in the chart of accounts
   entityId?: ObjectId,            // Only for VENDOR_* and CUSTOMER_* lines
   entityType?: "vendor" | "customer", // Only when entityId is set
+  gatewayProvider?: PaymentGateway,   // Only on lines where cash moved at a gateway
   amount: number,                 // In Kobo — always a positive integer ≥ 1
   createdAt: Date                 // Immutable — no updatedAt
 }
 ```
 
-**Indexes:** `journalId`, `accountType`, `entityId` (sparse), `{ entityId, accountType, createdAt }` compound
+**Indexes:** `journalId`, `accountType`, `entityId` (sparse), `gatewayProvider` (sparse), `{ entityId, accountType, createdAt }` compound, `{ gatewayProvider, accountType, type }` compound
+
+#### The `gatewayProvider` dimension
+
+Set **only** on lines representing real gateway cash movement:
+
+| Event                                    | Tagged? |
+| ---------------------------------------- | ------- |
+| `PAYMENT_RECEIVED` (money into escrow)   | Yes     |
+| `GATEWAY_FEE_DEDUCTED` (collection fee)  | Yes     |
+| `REFUND_CONFIRMED` (money back out)      | Yes     |
+| Everything else — settlement, funds release, dispute freezes, payouts | No |
+
+Purely internal movements have no gateway, so tagging them would be a fiction.
+Payout-side movements are also left untagged, and that is a deliberate
+decision rather than an omission — see §15's note on
+`checkCollectionsByGateway`.
+
+The field lives on the **line**, not the parent `JournalEntry`, even though the
+provider is logically a property of the event. Every use of it is an
+aggregation over `LedgerLine`: slicing escrow per provider is a `$match` on the
+same collection, versus a `$lookup` join on every query if it lived on the
+entry. Ledger lines are immutable, so the usual objection to denormalising —
+update anomalies — cannot arise.
 
 ---
 
@@ -339,7 +366,7 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
 
 > **Note:** Singleton document — there is only ever one platform wallet. Does not store gateway fees or operational expenses; those are tracked via ledger only (`GATEWAY_FEES_EXPENSE` account).
 >
-> Balances are maintained as a running state updated alongside journal entries via `creditPlatformCommission`, `debitPlatformCommission`, and `creditPlatformPenalty`. The ledger is always authoritative. There is currently no automated platform wallet reconciliation function — only `reconcileVendorWallet` exists for vendor wallets. This is tracked in §16 Open Items.
+> Balances are maintained as a running state updated alongside journal entries via `creditPlatformCommission`, `debitPlatformCommission`, and `creditPlatformPenalty`. The ledger is always authoritative. There is currently no automated platform wallet reconciliation function — only `reconcileVendorWallet` exists for vendor wallets. This is tracked in §18 Open Items.
 
 ---
 
@@ -350,8 +377,10 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
   _id: ObjectId,
   customerId: ObjectId,
   orderId: ObjectId,
-  flutterwaveReference: string,
-  flutterwaveStatus: string,     // "pending" | "successful" | "failed"
+  paymentProvider: PaymentGateway,  // Which gateway collected this payment
+  gatewayReference: string,         // OUR reference — the cart idempotency key
+  gatewayTransactionId: string,     // The provider's own id, as a string
+  gatewayStatus: GatewayPaymentStatus, // "pending" | "successful" | "failed"
   totalAmount: number,           // Total amount paid by student (Kobo)
   suborderBreakdowns: [
     {
@@ -380,6 +409,26 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
 | `DISPUTED` | Active dispute in progress                    |
 | `SETTLED`  | Funds released to vendor's available balance  |
 | `REFUNDED` | Student has been refunded                     |
+
+**Indexes:** `customerId`, `orderId` (unique — one record per order),
+`gatewayReference` (unique), `paymentProvider`, and a **compound unique index on
+`{ paymentProvider, gatewayTransactionId }`**.
+
+> **Why the uniqueness is compound.** A transaction id is only unique within the
+> gateway that issued it, so a single-field unique index would reject a
+> legitimate payment the day two providers happened to emit the same value. This
+> compound index is also what prevents a payment being recorded twice — the
+> guarantee previously provided by a unique index on the retired numeric
+> `flutterwaveTransactionId`.
+
+> **On the field names.** These were `flutterwaveReference`,
+> `flutterwaveTransactionId` (a `number`) and `flutterwaveStatus` until the
+> multi-gateway work. Three things were wrong with that: the names described one
+> provider for data every provider produces; `flutterwaveReference` never held a
+> Flutterwave reference at all, but our own cart idempotency key; and a numeric
+> transaction id forced a `Number()` coercion that silently yields `NaN` for any
+> provider whose ids are not numeric. The legacy fields were removed outright
+> rather than deprecated, since the collection was empty at the time.
 
 ---
 
@@ -432,7 +481,8 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
     settleAmount: number,          // Vendor's net settle amount for this suborder (Kobo)
     commission: number             // Platform commission (Kobo) — reversed for ORDER_CANCELLED and DISPUTE_UPHELD; retained for FAILED_DELIVERY
   },
-  flutterwaveTransactionId: string, // Original payment transaction ID — used to call the refund API
+  paymentProvider?: PaymentGateway, // Which gateway collected the original payment
+  gatewayTransactionId: string,     // That provider's transaction ID — target of the refund API call
   flutterwaveRefundId?: string,     // Flutterwave refund ID returned after API call or pasted by admin
   status: "INITIATED" | "COMPLETED" | "FAILED",
   manualReference?: string,         // Admin-supplied reference for the manual path
@@ -444,6 +494,16 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
 ```
 
 **Indexes:** `suborderId`, `orderId`, `vendorId`, `customerId`, `trigger`, `status`, `flutterwaveRefundId` (sparse), `{ vendorId, createdAt }` compound, partial unique on `{ suborderId, status }` for `INITIATED` and `COMPLETED` states to prevent double-refunds.
+
+> **Only the collecting gateway can refund.** A payment taken on one provider
+> cannot be returned through another, so `paymentProvider` travels with the
+> refund and `RefundService.callGatewayRefund` dispatches on it. Today only
+> Flutterwave has a refund client; any other provider is rejected explicitly and
+> the record is left `INITIATED` for the manual admin path, rather than posting
+> a foreign transaction id to Flutterwave's API and failing confusingly. This is
+> unreachable in practice while Paystack collections stay gated off (§16), but
+> the guard must be removed — and a Paystack refund client written — before
+> that gate opens.
 
 ---
 
@@ -583,18 +643,36 @@ Total VENDOR_AVAILABLE reduction: ₦10,000 + ₦1,000 + ₦89,000 = ₦100,000 
 
 ### Stage 1: Student Payment Confirmed
 
-_Triggered by Flutterwave webhook on successful payment_
+_Triggered by a gateway webhook, the status page's fallback verification, or the
+nightly sweep — all three via `PaymentConfirmationService.confirmFromGateway`
+(see §17)._
 
-1. Create **Transaction Record** with Flutterwave reference and per-vendor suborder breakdowns
-2. Write **PAYMENT_RECEIVED** journal entry (one per order):
+1. Create **Transaction Record** with the gateway reference, provider, and per-vendor suborder breakdowns
+2. Write **PAYMENT_RECEIVED** journal entry (one per order), tagged with the collecting gateway:
    - `DEBIT PLATFORM_ESCROW` (gross order amount)
    - `CREDIT CUSTOMER_REFUND_PAYABLE` (gross order amount)
 3. Write **ORDER_SETTLED** journal entry (one per order, spanning all vendors):
    - `DEBIT CUSTOMER_REFUND_PAYABLE` (gross order amount)
    - `CREDIT VENDOR_PENDING` × n (one line per vendor, settle amount each)
    - `CREDIT PLATFORM_REVENUE_COMMISSION` (total commission)
-4. Update each **Vendor Wallet** — add settle amount to `pending`
-5. Update **Platform Wallet** — add commission to `commission` balance
+4. Write **GATEWAY_FEE_DEDUCTED** (if the provider charged a collection fee), tagged with the same gateway
+5. Update each **Vendor Wallet** — add settle amount to `pending`
+6. Update **Platform Wallet** — add commission to `commission` balance
+
+> **Two guards run before any of this.** `updateOrderRecordToSuccessState`
+> rejects the payment if the verifying provider differs from the gateway
+> recorded on the order, or if the charged amount does not cover
+> `order.totalAmount` in NGN. Overpayment is tolerated; underpayment and
+> currency mismatch block the order and alert an admin. A verified status alone
+> is not proof the order was paid for — bank-transfer flows can underpay and
+> still emit a webhook.
+
+> **This step fails closed.** If any financial write above throws, the whole
+> transaction aborts and the order stays `Pending` for the webhook retry and
+> the cron sweep to resolve. It previously logged the failure and continued,
+> leaving an order marked `Paid` with no transaction record, no journal entries
+> and no vendor credit — a state no reconciliation check can detect, because
+> there is no imbalance to find, only an absence.
 
 **Vendor wallet state after Stage 1:**
 
@@ -1081,7 +1159,7 @@ Minimum refund amount: NGN 100. Soraxi's minimum order value means this is unlik
 
 ## 15. Reconciliation
 
-Eight reconciliation utility functions live in `reconciliation.util.ts`. Seven run automatically via two nightly cron jobs; one runs on-demand.
+Ten reconciliation utility functions live in `reconciliation.util.ts`. Nine run automatically via two nightly cron jobs; one runs on-demand.
 
 ### Global Balance Check (`checkGlobalBalance`)
 
@@ -1094,7 +1172,7 @@ const result = await checkGlobalBalance(dateFrom, dateTo);
 
 ### Platform Wallet Reconciliation (`reconcilePlatformWallet`)
 
-Reconstructs expected `PlatformWallet` balances by aggregating `PLATFORM_REVENUE_COMMISSION` and `PLATFORM_REVENUE_PENALTIES` ledger lines and compares against the stored document. Closes the gap noted below in §16's history — vendor-side reconciliation existed first; this is the platform-side counterpart.
+Reconstructs expected `PlatformWallet` balances by aggregating `PLATFORM_REVENUE_COMMISSION` and `PLATFORM_REVENUE_PENALTIES` ledger lines and compares against the stored document. Closes the gap noted below in §18's history — vendor-side reconciliation existed first; this is the platform-side counterpart.
 
 ```typescript
 const result = await reconcilePlatformWallet();
@@ -1132,7 +1210,7 @@ const result = await checkEscrowSolvency();
 // { escrowBalance, payoutProcessing, platformHeldCash, liabilities, isSolvent, delta }
 ```
 
-**Resolved (2026-08-11):** the `writePayoutCompleted` inversion is fixed, and `PAYOUT_PROCESSING` is now correctly counted on the liabilities side (its backing cash sits in `PLATFORM_ESCROW` until completion — counting it as platform-held double-counted every in-flight payout). In a healthy system `delta` equals retained earnings (commission + penalties − gateway expense); for the exact identity use `checkLedgerAccountingIdentity`. Historical entries written before the fix are not backfilled — see §16.
+**Resolved (2026-08-11):** the `writePayoutCompleted` inversion is fixed, and `PAYOUT_PROCESSING` is now correctly counted on the liabilities side (its backing cash sits in `PLATFORM_ESCROW` until completion — counting it as platform-held double-counted every in-flight payout). In a healthy system `delta` equals retained earnings (commission + penalties − gateway expense); for the exact identity use `checkLedgerAccountingIdentity`. Historical entries written before the fix are not backfilled — see §18.
 
 ### Vendor Wallet Reconciliation (`reconcileVendorWallet`)
 
@@ -1176,10 +1254,43 @@ const result = await reconcileTransactionRecord(orderId);
 // { orderId, isBalanced, suborderDiscrepancies }
 ```
 
+### Per-Gateway Collections (`checkCollectionsByGateway`)
+
+Slices collections activity per payment gateway — the **internal half** of the
+two-layer reconciliation described in the multi-gateway architecture. It reports
+what our ledger says each provider collected on our behalf, ready to be compared
+against that provider's own settlement report.
+
+```typescript
+const result = await checkCollectionsByGateway({ dateFrom, dateTo });
+// { perGateway: [{ gateway, paymentsIn, collectionFees, refundsOut, netCollected }],
+//   totalNetCollected, untaggedCollectionsEscrow }
+```
+
+`netCollected` (`paymentsIn − collectionFees − refundsOut`) is the figure to
+compare against a settlement report. The comparison itself is **not implemented**
+— pulling settlement reports needs live gateway credentials and they lag actual
+transactions by a day or more, which is a separate problem (§16).
+
+**Two things this deliberately does not do:**
+
+- **It excludes payouts and transfer fees**, even though both move escrow. Those
+  belong to the *disbursing* gateway, which need not be the collecting one —
+  Soraxi can take a payment on one provider and pay a vendor out through
+  another. Folding them into a collecting-gateway figure would produce a number
+  that reconciles against nothing. **Consequence: the per-gateway totals do not
+  sum to `PLATFORM_ESCROW`, and are not meant to.** Use `checkEscrowSolvency`
+  and `checkLedgerAccountingIdentity` for whole-ledger integrity.
+- **It does not absorb untagged movement.** Escrow cash recorded without a
+  gateway is reported as `untaggedCollectionsEscrow` and treated as a
+  discrepancy by the nightly cron. Anything unattributable cannot be reconciled
+  against a settlement report, so it has to be loud rather than quietly rounding
+  into whichever provider looks closest.
+
 ### When to Run
 
 **Cron — `/api/cron/reconcile-financials`, daily at 3:00am:**
-`checkGlobalBalance`, `reconcilePlatformWallet`, `verifyJournalEntryIntegrity`, `checkLedgerStructuralIntegrity`, `checkEscrowSolvency` — all cheap, system-wide, no required input. Only discrepancies are logged/returned, not full healthy-state detail. Alerting (`notifyOpsOfDiscrepancies`) is currently a stub — logs only, not yet wired to Slack/email.
+`checkGlobalBalance`, `reconcilePlatformWallet`, `verifyJournalEntryIntegrity`, `checkLedgerStructuralIntegrity`, `checkEscrowSolvency`, `checkLedgerAccountingIdentity`, `checkCollectionsByGateway` — all cheap, system-wide, no required input. Only discrepancies are logged/returned, not full healthy-state detail. Alerting (`notifyOpsOfDiscrepancies`) is currently a stub — logs only, not yet wired to Slack/email.
 
 **Cron — `/api/cron/reconcile-vendor-wallets`, daily at 3:30am:**
 `reconcileVendorWallet` + `reconcileVendorDebt`, looped across every vendor in bounded concurrent batches (25 at a time). Cost scales with vendor count; the loop-per-vendor approach is fine at current scale but should be replaced with a batched `$in`-aggregation version, or a checkpoint/cursor scheme, once vendor count grows enough that job duration risks the serverless execution window.
@@ -1189,7 +1300,171 @@ Not cron-eligible — needs a specific `orderId`, and there's no batch of "all o
 
 ---
 
-## 16. Open Items & Future Considerations
+## 16. Multi-Gateway Payments
+
+Collections can run through more than one payment gateway. Payouts and refunds
+remain Flutterwave-only.
+
+### The adapter layer
+
+| Piece                     | Location                                        | Responsibility                                            |
+| ------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| `IPaymentGateway`         | `domain/payment/gateways/gateway-interface.ts`  | Provider-neutral contract                                 |
+| `FlutterwaveGateway`      | `domain/payment/gateways/flutterwave.gateway.ts`| Flutterwave implementation                                |
+| `PaystackGateway`         | `domain/payment/gateways/paystack.gateway.ts`   | Paystack implementation (fixture-tested, not live)        |
+| `PaymentGatewayFactory`   | `domain/payment/payment.factory.ts`             | Resolves a provider to its adapter                        |
+| `GatewayRouter`           | `domain/payment/gateway-routing.ts`             | Decides which provider a new checkout uses                |
+
+Adapters normalise everything: each maps its provider's response into
+`PaymentVerificationResult` with amounts in **Kobo** and a normalised status, so
+no provider-specific shape ever reaches the financial layer. Two conversions
+that live entirely inside their adapters and must not leak:
+
+- **Flutterwave** charges in **Naira** and reports `app_fee` **excluding** VAT
+  (the adapter adds 7.5%).
+- **Paystack** charges in **Kobo natively** and reports fees **VAT-inclusive**.
+
+Copying either rule into the other adapter would misstate every charge or fee.
+
+### Routing is platform-controlled
+
+Checkout has **no gateway picker**. `GatewayRouter.candidateGateways()` returns
+an ordered list — primary first, then failover — and `PaymentService` tries them
+in order, re-pointing the pending order at whichever provider actually issued
+the payment link. A customer never chooses, and never knows.
+
+This matters for the failure mode it implies: enabling a second gateway makes it
+a **silent failover target**, reached automatically whenever the primary's
+initiation errors. There is no user action gating it.
+
+A gateway is a candidate only if all three hold:
+
+| Gate                                | Question                                    |
+| ----------------------------------- | ------------------------------------------- |
+| `PaymentGatewayFactory.isSupported` | Does an adapter exist?                      |
+| `GatewayRouter.isRoutable`          | May live checkouts be sent here?            |
+| `GatewayRouter.isConfigured`        | Are credentials deployed?                   |
+
+### Paystack is gated off — deliberately
+
+**Both `isRoutable` and `isConfigured` return `false` for Paystack**, and
+neither reads an environment variable. Deploying `PAYSTACK_SECRET_KEY` therefore
+activates nothing; going live requires editing both gates.
+
+The adapter and `/api/webhooks/paystack` are complete and tested against
+documented payloads, but **no Paystack transaction has ever run**. The two gates
+are independent so the webhook can be exercised with real credentials without
+exposing live checkout traffic to an unproven integration.
+
+**Before opening that gate**, three things must be resolved:
+
+1. A Paystack **refund client** — `RefundService` currently rejects
+   non-Flutterwave refunds outright (see §14).
+2. End-to-end verification of at least one real Paystack payment.
+3. A conscious decision to accept silent failover, per the routing note above.
+
+### Per-gateway reconciliation
+
+The ledger carries a `gatewayProvider` dimension on collections lines (see §7),
+and `checkCollectionsByGateway` (§15) reports what each provider collected on
+our behalf.
+
+The **outward half is not implemented**: no adapter exposes `getBalance()` or
+`getSettlementReport()`, and nothing compares our figures against a provider's
+own records. Two obstacles, both real:
+
+- **Settlement lag.** A gateway's live balance and its settlement records trail
+  actual transactions by a day or more, so a naive same-window comparison
+  mismatches on every run. Reconciling against a **settlement report** for the
+  matching window — not a live balance — is the documented approach, and even
+  then the window has to be shifted or the comparison made cumulative.
+- **Fee schedules differ per provider**, so each needs its own fee-deduction
+  logic feeding `GATEWAY_FEE_DEDUCTED`.
+
+---
+
+## 17. Payment Confirmation & Abandonment
+
+### One write path
+
+`PaymentConfirmationService.confirmFromGateway` is the **only** code that turns
+a gateway verdict into financial truth. Three callers share it:
+
+| Caller                          | When                                                      |
+| ------------------------------- | --------------------------------------------------------- |
+| Gateway webhooks                | Primary — usually within seconds of payment               |
+| `orderStatus.forceVerify`       | Status-page fallback, ~12s in if no webhook has landed     |
+| `sweep-pending-payments` cron   | Backstop for anything both missed                          |
+
+All three are safe to run repeatedly and concurrently: an order already in a
+terminal state short-circuits before any gateway call, so a webhook racing the
+status page settles the order exactly once.
+
+Two guards protect the write itself — the order is settled from the reference
+we resolved it by, never the order id in gateway metadata, and a mismatch
+between the two is rejected outright.
+
+### Verification outcomes
+
+Adapters return one of three outcomes, and the distinction between the last two
+carries real weight:
+
+| Outcome       | Meaning                                          | Effect                                        |
+| ------------- | ------------------------------------------------ | --------------------------------------------- |
+| `verified`    | Gateway returned a transaction                   | Settle per its status                         |
+| `not_found`   | Gateway is healthy; no such transaction exists   | Definitive — the customer never paid          |
+| `unavailable` | Gateway unreachable or erroring                  | Transient — we know nothing, so change nothing |
+
+Collapsing `not_found` and `unavailable` into a single failure makes abandonment
+indistinguishable from an outage, which makes it unsafe to ever expire an unpaid
+order: doing so would cancel live payments every time a gateway wobbled.
+
+Both adapters standardise on **verify-by-reference**, using the cart idempotency
+key. It is the only identifier that always exists — an abandoned checkout has no
+provider transaction id to look up.
+
+### How an order leaves `Pending`
+
+**No customer browser action ever changes an order's state.** The URL's `status`
+parameter is attacker-controlled and decides nothing. An order leaves `Pending`
+only by:
+
+1. **Gateway verdict** — `successful` → `Paid`; `failed` → `Failed`;
+   `abandoned` → `Cancelled`.
+2. **Abandonment expiry** — a definitive `not_found` on an order older than a
+   **30-minute grace window** → `Cancelled`. The grace is not zero because an
+   in-progress checkout looks identical from the server: someone entering card
+   details, waiting on an OTP, or completing a bank transfer also has no
+   transaction on record yet.
+3. **Hard expiry** — anything still `Pending` after **48 hours** → `Cancelled`,
+   regardless of what verification says. The grace window only fires on
+   `not_found`, so a persistently unreachable gateway would otherwise accumulate
+   orders forever.
+
+**Why this matters beyond tidiness:** no gateway emits a webhook for
+abandonment — there is nothing server-side to report — so `not_found` is the
+only signal it ever produces. A pending order also holds its cart's idempotency
+key, and `createPendingOrder` rejects any existing order for that key, so an
+unexpired abandoned order locks the customer out of their own cart.
+
+Separately, when **every** gateway refuses initiation, the pending order is
+deleted rather than left behind: no payment link was ever issued, so it can
+never be paid, and leaving it would block the cart permanently.
+
+### Webhook response codes
+
+Webhook routes map failures to HTTP status deliberately, because the status is
+what decides whether a gateway redelivers:
+
+| Failure                                              | Response | Why                                        |
+| ---------------------------------------------------- | -------- | ------------------------------------------ |
+| Transient (gateway unreachable mid-verification)     | 5xx      | Earn a retry — a 4xx would strand a real payment |
+| Deliberate rejection (underpayment, gateway mismatch) | 4xx     | Stop retrying — an admin is already alerted |
+| Malformed payload (missing reference)                | 4xx      | Redelivery cannot add what was never sent  |
+
+---
+
+## 18. Open Items & Future Considerations
 
 ### Defined — Pending Business Decision
 
@@ -1201,6 +1476,9 @@ Not cron-eligible — needs a specific `orderId`, and there's no batch of "all o
 | Platform revenue withdrawal        | Procedure for withdrawing accumulated platform wallet balance — not yet implemented                       |
 | Vercel IP whitelisting             | Migrate to static IP host or proxy to enable fully automated payout and refund API calls                  |
 | Flutterwave refund webhooks        | Must be requested from Flutterwave support — until enabled, only the manual admin path can close a refund |
+| Paystack go-live                   | Needs a refund client, one verified live payment, and acceptance of silent failover — see §16             |
+| Gateway settlement reconciliation  | `getSettlementReport()` on the adapters plus the outward comparison; blocked on credentials, settlement-lag handling, and transaction volume — see §16 |
+| Disbursement gateway dimension     | Payout-side escrow movement is untagged, so per-gateway figures cover collections only — see §15          |
 
 ### Known Issues — Confirmed or Suspected, Needs Resolution
 
@@ -1209,6 +1487,8 @@ Not cron-eligible — needs a specific `orderId`, and there's no batch of "all o
 | `VENDOR_AVAILABLE` debit/credit direction inconsistency         | **Resolved 2026-08-11**            | Conventions normalised across every writer method (CREDIT increases all vendor/revenue/refund-payable accounts). Verified end-to-end by `tests/financial/stage3-disputes.test.ts` (findings-doc Test A, including debt creation).                                                             |
 | `writePayoutCompleted` PLATFORM_ESCROW direction                | **Resolved 2026-08-11**            | Completion now CREDITs `PLATFORM_ESCROW` (net only). Also fixed alongside it: gateway-fee double-count at completion, failed-payout wallet-cache over-restore by the debt-recovery amount, missing platform-wallet mirror for payout processing-fee revenue, and `PAYOUT_PROCESSING` double-counted as a platform asset in `checkEscrowSolvency`/`checkLedgerAccountingIdentity`. Verified by `tests/financial/stage4-payouts.test.ts` (findings-doc Test B). **Historical drift from the pre-fix inversion (e.g. the 2026-07-05 delta of 47,960) has NOT been backfilled — audit old `PAYOUT_COMPLETED` entries before trusting long-range historical reconciliations.** |
 | `CUSTOMER_REFUND_PAYABLE` lines missing `entityId`/`entityType` | Confirmed in production 2026-07-05 | `checkLedgerStructuralIntegrity` found 2 ledger lines on `CUSTOMER_REFUND_PAYABLE` missing both fields. Likely a code path (guest checkout, retry, or missing customerId at call time) in whichever writer method credits this account without passing entity info. Still needs investigation. |
+| Payment financials swallowed on failure                        | **Resolved 2026-08-20**            | `processPaymentConfirmedFinancials` logged and continued, committing an order as `Paid` with no transaction record, journal entries or vendor credit — invisible to every reconciliation check, since nothing was written to be out of balance. Now returns `ok: false`, aborting the transaction so the order stays `Pending` for webhook retry and the cron sweep. |
+| Abandoned checkouts never expired                              | **Resolved 2026-08-20**            | No gateway emits a webhook for abandonment, and verification collapsed "no such transaction" into the same result as "gateway unreachable", so abandoned orders sat `Pending` indefinitely holding their cart's idempotency key. Verification now distinguishes the two; see §17. |
 
 ### Planned Future Features
 
@@ -1222,3 +1502,4 @@ Not cron-eligible — needs a specific `orderId`, and there's no batch of "all o
 ---
 
 _This document must be updated whenever a financial policy, data model, journal entry map, or fund flow stage changes. Never let implementation diverge silently from this document._
+

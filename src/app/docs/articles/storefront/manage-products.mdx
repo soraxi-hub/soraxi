@@ -1,373 +1,158 @@
 export const metadata = {
-  title: "Product Management on Soraxi",
+  title: "Managing Your Products",
   description:
-    "Complete guide to managing your product catalog, adding new products, and optimizing your listings",
+    "How to add, edit, publish and manage products in your Soraxi store, and what the review process looks for.",
 };
 
-# Product Management on Soraxi
+# Managing Your Products
 
-Effectively managing your product catalog is key to running a successful store on Soraxi. This comprehensive guide will walk you through all aspects of product management, from adding your first product to optimizing existing listings.
+Everything about listing what you sell — adding products, getting them approved, and keeping them accurate.
 
-## Accessing Product Management
+Open **Products** from your store menu.
 
-You can access your product management dashboard in two ways:
+## The products dashboard
 
-### Method 1: From Store Sidebar
+The dashboard lists everything you have listed, with:
 
-1. Navigate to your **Store Dashboard**
-2. In the left sidebar, find the **"Store Management"** section
-3. Click on **"Products"** to access your product catalog
+- **Counts** of your products by status
+- **Search** across your listings
+- **Filters** by status and category
+- **Actions** on each product — edit, hide, archive
 
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-2.png"
-  alt="Store sidebar navigation"
-  caption="Access Products from the Store Management section in the sidebar"
-/>
+## Adding a product
 
-### Method 2: From Store Dashboard
+Go to **Products → Upload**.
 
-1. Go to your **Store Dashboard**
-2. Look for the **"Products"** card in the Quick Actions grid
-3. Click **"View Products"** to access your product catalog
+### Product details
 
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-3.png"
-  alt="Store dashboard products card"
-  caption="Click the Products card on your Store Dashboard"
-/>
-
-## Product Management Dashboard Overview
-
-When you first access the product management page, you'll see:
-
-### Dashboard Header
-
-- **Store name and breadcrumb navigation**
-- **"Add Product" button** - Quick access to create new listings
-- **Product statistics** - Total count, approved, pending, and hidden products
-
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-4.png"
-  alt="Product management header"
-  caption="Product management dashboard header with quick actions"
-/>
-
-### Statistics Overview
-
-The dashboard displays four key metrics:
-
-- **Total Products**: All products in your catalog
-- **Approved**: Products that have passed verification and are live
-- **Pending Review**: Products awaiting Soraxi approval
-- **Hidden**: Products you've manually hidden from customers
-
-### Filtering and Search
-
-Easily find specific products using:
-
-- **Search bar**: Search by product name
-- **Status filter**: Filter by approval status (All, Approved, Pending, Rejected)
-- **Visibility filter**: Show visible, hidden, or all products
-- **Apply Filters button**: Refresh results with current filters
-
-## Adding New Products
-
-### Step 1: Access Product Upload Form
-
-Click the **"Add Product"** button from any product management page to start creating a new listing.
-
-### Step 2: Fill Product Information
-
-#### Basic Product Details
-
-- **Product Name** (Required): Clear, descriptive title (max 100 characters)
-- **Product Description** (Required): Detailed description using rich text editor
-- **Product Specifications** (Optional): Technical details, sizes, materials, etc.
+- **Name** (required) — between 5 and 100 characters
+- **Description** (required) — at least 50 characters
+- **Specifications** (required) — at least 50 characters
+- **Price** (required) — between ₦500 and ₦100,000
+- **Quantity** (required) — at least 1
+- **Category and subcategory** (required) — pick where the product belongs
+- **Target audience** (required)
 
 <Tip>
-  **Best Practices for Product Titles:** - Include brand name + product type +
-  key features - Keep under 60 characters for optimal display - Use relevant
-  keywords customers might search for - Example: "Nike Air Max 270 - Men's
-  Running Shoes - Size 10"
+  Write the description a buyer needs, not the one you would skim. Condition, what
+  is included, what is not, and any limitation. Descriptions that answer questions
+  up front get fewer messages and fewer disputes.
 </Tip>
 
-#### Pricing & Inventory
+### Products with sizes
 
-- **Price (₦)** (Required): Set your selling price in Naira
-- **Quantity** (Required): Available stock count
+If a product comes in sizes, add each size with its own **price** and **quantity**. Each size is stocked separately, so a size that sells out stops being orderable without affecting the rest.
 
-<Warning>
-  **Pricing Strategy Tips:** - Research competitor pricing on Soraxi - Factor in
-  Soraxi commission (8-15%) - Include shipping costs in your calculations -
-  Consider psychological pricing (e.g., ₦4,999 vs ₦5,000)
-</Warning>
+### Images
 
-#### Category Selection
+- Up to **3 images** per product
+- Up to **4MB** each
+- **JPG, PNG or WebP**
 
-- **Main Category** (Required): Select the primary category
-- **Subcategory** (Required): Choose the most specific subcategory available
+Your first image is what buyers see in search and category pages. Make it the clearest one.
 
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-5.png"
-  alt="Category selection"
-  caption="Select the most relevant category and subcategory for your product"
-/>
+<Tip>
+  Photograph your actual stock in daylight against a plain background. On a
+  campus marketplace, a real photo of the real item outperforms a manufacturer
+  press shot — buyers are deciding whether to trust *you*, not the brand.
+</Tip>
 
-#### Product Images
+### Writing a description with AI
 
-- Upload up to **6 high-quality images**
-- Supported formats: JPEG, PNG, WebP
-- Maximum file size: 5MB per image
-- **Drag and drop** or click to upload
+If you are stuck, the upload form can draft a description from the details you have already entered. Use it as a starting point and edit it — you know your stock, and a description that does not match what arrives is what disputes are made of.
 
-**Image Requirements:**
+The AI draft is limited to a number of generations per hour per store, so it is there to unblock you rather than to write your whole catalogue.
 
-- First image is your main product image
-- Show product from multiple angles
-- Include close-ups of important features
-- Use natural lighting when possible
-- Show product in use (lifestyle shots)
+### Publishing
 
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-6.png"
-  alt="Image upload interface"
-  caption="Drag and drop or click to upload product images"
-/>
+Publishing requires your **store password**. That is deliberate — it means someone who finds your unlocked phone cannot list items in your name.
 
-#### Security Verification
+You can either:
 
-- **Store Password** (Required): Enter your store account password for security
+- **Save as draft** — kept private, nothing is reviewed, finish it later
+- **Publish** — submitted for review
 
-### Step 3: Save or Publish
+## Product statuses
 
-#### Save as Draft
+- **Draft** — yours only, not submitted, not visible
+- **Pending** — submitted and awaiting review
+- **Approved** — live and visible to buyers
+- **Rejected** — not approved, with a reason
+- **Archived** — taken out of your active catalogue without being deleted
 
-- Use when you're not ready to submit for approval
-- Product won't be visible to customers
-- You can continue editing later
-- Perfect for incomplete listings or seasonal products
+## Review
 
-#### Publish for Review
+Every published product is reviewed before it appears publicly. Review checks that the listing is accurate, the images are of the actual product, the category is right, and the item is allowed on the platform.
 
-- Submits product for Soraxi verification
-- Typically reviewed within 24-48 hours
-- You'll be notified of approval or rejection
-- Once approved, product becomes visible to customers
+### What gets rejected
 
-## Managing Existing Products
+- Images that are not of the product being sold
+- Descriptions that contradict the images or the title
+- Wrong or deliberately misleading category
+- Missing detail a buyer needs to make a decision
+- Prohibited items (below)
 
-### Product Table Overview
+If a product is rejected you are told why. Fix the reason and resubmit.
 
-The main products table displays:
-
-- **Product image and name**
-- **Status badge** (Draft, Pending, Approved, Rejected, Archived)
-- **Price** in Naira
-- **Stock quantity**
-- **Visibility status** (Visible/Hidden)
-- **Creation date**
-- **Action menu**
-
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-7.png"
-  alt="Products table"
-  caption="Complete overview of all your products with status and actions"
-/>
-
-### Quick Actions Menu
-
-Click the **"⋮"** (three dots) menu for each product to access:
-
-- **View Product**: See how customers see your listing
-- **Edit Product**: Modify product details and images
-- **Show/Hide Product**: Toggle visibility without deleting
-
-## Editing Products
-
-### Accessing Edit Mode
-
-1. Find the product in your products table
-2. Click the **"⋮"** action menu
-3. Select **"Edit Product"**
-4. You'll be taken to the product edit form
-
-### What You Can Edit
-
-- **All product information** (name, description, specifications)
-- **Pricing and inventory** (price, quantity)
-- **Categories** (main category and subcategory)
-- **Product images** (add, remove, or reorder)
-- **Visibility status**
+## What you may not sell
 
 <Warning>
-  **Important:** If you edit an approved product, it may require
-  re-verification. Major changes could temporarily remove the product from
-  search results during review.
+  Illegal goods, counterfeit or replica products, hazardous materials, stolen
+  goods, prescription medication, weapons, and anything you cannot legally sell in
+  Nigeria. Listing them gets the product removed and can get your store
+  suspended.
 </Warning>
 
-## Managing Product Visibility
+If you are unsure whether something is allowed, ask [support](/support) before listing it.
 
-### Show/Hide Products
+## Editing a product
 
-You can temporarily hide products without deleting them:
+Open a product and choose **Edit**. You can update the name, description, specifications, price, quantity, images and category.
 
-1. Find the product in your table
-2. Use the **visibility toggle switch** in the table
-3. Or use the **"Show/Hide"** option in the action menu
-
-**When to hide products:**
-
-- Temporarily out of stock
-- Seasonal products out of season
-- Testing different product variations
-- Preparing for product updates
-
-### Bulk Visibility Management
-
-Currently, visibility must be managed per product. For bulk actions, contact store support.
-
-## Product Verification Process
-
-### Understanding Verification
-
-All products go through a verification process to ensure:
-
-- **Accuracy** of product information
-- **Appropriateness** for the Soraxi marketplace
-- **Compliance** with platform policies
-- **Quality** of images and descriptions
-
-### Typical Timeline
-
-- **Draft**: No timeline (you control when to submit)
-- **Pending**: 24-48 hours for initial review
-- **Approved**: Immediately visible upon approval
-- **Rejected**: You'll receive specific feedback for corrections
-
-### Common Rejection Reasons
-
-- **Blurry or low-quality images**
-- **Insufficient product information**
-- **Inappropriate or prohibited items**
-- **Inaccurate category selection**
-- **Pricing significantly above market average**
-
-## Best Practices for Product Management
-
-### Optimizing Product Listings
-
-**1. High-Quality Images**
-
-- Use multiple angles (front, back, sides, close-ups)
-- Include lifestyle shots showing product in use
-- Ensure good lighting and clear focus
-- Use white backgrounds for main images
-
-**2. Compelling Descriptions**
-
-- Start with key benefits and features
-- Use bullet points for easy scanning
-- Include sizing information and specifications
-- Mention shipping and return policies
-
-**3. Strategic Pricing**
-
-- Research competitor pricing
-- Consider bundle pricing for related items
-- Offer occasional promotions
-- Factor in all costs (production, shipping, fees)
-
-### Inventory Management Tips
-
-**1. Stock Level Alerts**
-
-- Regularly update stock quantities
-- Set minimum stock alerts for yourself
-- Plan for restocking lead times
-- Consider seasonal demand fluctuations
-
-**2. Product Organization**
-
-- Use consistent naming conventions
-- Group related products with similar categories
-- Regularly review and update product information
-- Archive discontinued products
-
-## Troubleshooting Common Issues
-
-### "My Product is Stuck in Pending"
-
-**Solution:**
-
-- Check your email for verification status updates
-- Ensure all required fields are completed
-- Verify images meet quality requirements
-- Contact support if pending for more than 48 hours
-
-### "Product Was Rejected"
-
-**Next Steps:**
-
-1. Check email for specific rejection reasons
-2. Make necessary corrections
-3. Resubmit for review
-4. Contact support if you need clarification
-
-### "Can't Upload Images"
-
-**Common Issues:**
-
-- File size too large (max 5MB per image)
-- Wrong file format (use JPEG, PNG, or WebP)
-- Too many images (max 6 per product)
-- Poor internet connection
-
-### "Price/Quantity Changes Not Saving"
-
-**Check:**
-
-- You have edit permissions for the product
-- You're using valid number formats
-- Your store account is in good standing
-- You've clicked "Save" after making changes
-
-## Mobile Management
-
-All product management features are available on mobile:
-
-- **Full product table** with responsive design
-- **Mobile-optimized forms** for adding/editing products
-- **Touch-friendly interfaces** for image management
-- **Same functionality** as desktop version
-
-## Frequently Asked Questions
-
-**Q: How many products can I list?**
-A: There's no limit! You can list as many products as you want.
-
-**Q: Can I transfer products between stores?**
-A: Currently, products are tied to specific stores. You'd need to recreate listings for other stores.
-
-**Q: How long do products stay in draft mode?**
-A: Draft products remain indefinitely until you publish or delete them.
-
-**Q: Can I schedule product releases?**
-A: Not currently, but you can use the hide/show feature to control visibility.
-
-**Q: What happens if I run out of stock?**
-A: Set quantity to 0 or hide the product until restocked to prevent orders.
-
-**Q: Can I sell services, not just products?**
-A: Support for selling services will be available soon. Please stay tuned for updates..
-
-## Pro Tips for Success
-
-<Note type="success">
-  **Seasoned Seller Advice:** - Update product listings regularly to improve
-  search visibility - Use high-quality, original photos rather than manufacturer
-  images - Respond to product reviews and questions promptly - Monitor your
-  competition and adjust pricing accordingly - Take advantage of seasonal trends
-  and holidays
+<Note type="warning">
+  Substantial edits to a live product send it back for review. Changing price or
+  quantity does not — so restocking and repricing are immediate.
 </Note>
 
-Effective product management is the foundation of a successful Soraxi store. By keeping your catalog organized, up-to-date, and customer-focused, you'll build trust and drive more sales!
+### Keep stock accurate
+
+The fastest way to damage your rating is to sell something you cannot supply. If you run out, set the quantity to zero or hide the product rather than cancelling orders after the fact — cancellations refund the buyer and count against you.
+
+## Hiding and archiving
+
+- **Hide** — takes a product out of the catalogue temporarily; use it for seasonal or out-of-stock items
+- **Archive** — retires a product you no longer sell, without losing its history
+
+Both are reversible.
+
+## Common problems
+
+### "My product is still pending"
+
+Reviews are done by people and take a little time. If it has been sitting far longer than your others, contact [support](/support) with the product name.
+
+### "My images will not upload"
+
+Check the file is JPG, PNG or WebP, under 4MB, and that you are not over the 3-image limit. A photo straight from a modern phone camera is often over 4MB — resize before uploading.
+
+### "Price or quantity changes are not saving"
+
+Make sure the price is between ₦500 and ₦100,000, and the quantity is a whole number of at least 1. For sized products, each size needs its own valid price and quantity.
+
+### "I cannot publish"
+
+Every required field must be filled and the length minimums met — 50 characters for both description and specifications — and you need your store password.
+
+## FAQs
+
+**Q: Can I delete a product?**
+A: Archive it. Products are kept so past orders and reviews stay intact.
+
+**Q: How many products can I list?**
+A: There is no cap. List what you can actually supply.
+
+**Q: Can I list something I do not have yet?**
+A: Only if you can deliver it in your stated timeframe. Listing what you cannot supply leads to cancellations, refunds and a falling rating.
+
+**Q: Do rejected products count against my store?**
+A: One rejection is a correction. A pattern of them is a problem — see [Store Status & Suspension](/docs/storefront/store-status).

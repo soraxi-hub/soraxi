@@ -37,6 +37,15 @@ const getCachedPublicProducts = unstable_cache(
   { revalidate: REVALIDATE_SECONDS },
 );
 
+const getCachedRandomProducts = unstable_cache(
+  async (size: number) => {
+    const products = await ProductService.getRandomPublicProducts(size);
+    return JSON.parse(JSON.stringify(products)) as typeof products;
+  },
+  ["home:getRandomProducts"],
+  { revalidate: REVALIDATE_SECONDS },
+);
+
 const getCachedRelatedProducts = unstable_cache(
   async (slug: string, limit: number) => {
     const Product = await getProductModel();
@@ -126,6 +135,8 @@ export const homeRouter = createTRPCRouter({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(20),
         category: z.string().optional(),
+        categories: z.array(z.string()).optional(),
+        inStock: z.boolean().optional(),
         subCategory: z.string().optional(),
         targetAudience: z.string().optional(),
         verified: z.boolean().optional(),
@@ -156,6 +167,39 @@ export const homeRouter = createTRPCRouter({
             );
           } catch {
             // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        throw handleTRPCError(
+          err,
+          "Failed to fetch products. Please try again later.",
+        );
+      }
+    }),
+
+  /**
+   * Procedure: getRandomProducts
+   * A shuffled slice of the catalogue for the home page feed.
+   *
+   * Cached like everything else here, so the shuffle changes once per
+   * revalidation window rather than per request — every visitor inside the same
+   * minute sees the same order. That is the intended behaviour: it keeps the
+   * home page moving without issuing an uncached aggregation per visit.
+   */
+  getRandomProducts: baseProcedure
+    .input(z.object({ size: z.number().min(1).max(24).default(8) }))
+    .query(async ({ input }) => {
+      try {
+        return { products: await getCachedRandomProducts(input.size) };
+      } catch (err) {
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:home.getRandomProducts",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original
           }
         }
         throw handleTRPCError(

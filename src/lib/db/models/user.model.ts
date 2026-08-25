@@ -38,6 +38,10 @@ export interface IUser {
   }[];
   lastOtpRequestAt?: Date; // NEW: Prevent OTP spam
   otpRequestBlockedUntil?: Date; // NEW: Prevent a user from requesting many OTPs within a short period of time
+  termsAgreement?: {
+    hasAgreed: boolean;
+    agreedToTermsAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -129,6 +133,15 @@ const UserSchema = new Schema<IUserDocument>(
     },
     otpRequestBlockedUntil: {
       type: Date,
+    },
+    termsAgreement: {
+      hasAgreed: {
+        type: Boolean,
+        default: false,
+      },
+      agreedToTermsAt: {
+        type: Date,
+      },
     },
   },
   {

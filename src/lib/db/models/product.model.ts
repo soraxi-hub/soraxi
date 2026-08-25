@@ -201,30 +201,50 @@ export async function getProductModel(): Promise<Model<IProductDocument>> {
   );
 }
 
-export async function getProducts(
-  options: {
-    visibleOnly?: boolean;
-    category?: string;
-    subCategory?: string;
-    targetAudience?: string;
-    limit?: number;
-    skip?: number;
-    minRating?: number;
-    search?: string | null;
-    verified?: boolean;
-    sort?: "newest" | "price-asc" | "price-desc" | "rating-desc";
-    priceMin?: number;
-    priceMax?: number;
-    ratings?: number[];
-    cursor?: string;
-  } = {},
-): Promise<IProductDocument[]> {
-  const Product = await getProductModel();
+export type ProductQueryOptions = {
+  visibleOnly?: boolean;
+  category?: string;
+  /**
+   * Multiple top-level categories, OR-ed together. Separate from `category`
+   * rather than widening it to a union: the category page passes exactly one
+   * slug and must keep behaving identically.
+   */
+  categories?: string[];
+  subCategory?: string;
+  targetAudience?: string;
+  limit?: number;
+  skip?: number;
+  minRating?: number;
+  search?: string | null;
+  verified?: boolean;
+  /** Excludes products with no units left. */
+  inStock?: boolean;
+  sort?: "newest" | "price-asc" | "price-desc" | "rating-desc";
+  priceMin?: number;
+  priceMax?: number;
+  ratings?: number[];
+  cursor?: string;
+};
 
+/**
+ * Translates listing options into a Mongo filter.
+ *
+ * Extracted so `getProducts` and `countProducts` are guaranteed to be asking
+ * about the same set of documents. When the count was derived separately the
+ * two could disagree, and a pager built on a count that does not match the rows
+ * shows page numbers that lead nowhere.
+ */
+export function buildProductQuery(
+  options: ProductQueryOptions,
+): Record<string, any> {
   const query: { [key: string]: any } = {};
 
   if (options.visibleOnly) query.isVisible = true;
   if (options.category) query.category = options.category;
+  if (options.categories && options.categories.length > 0) {
+    query.category = { $in: options.categories };
+  }
+  if (options.inStock) query.productQuantity = { $gt: 0 };
   if (options.subCategory) {
     query.subCategory = {
       $elemMatch: { $regex: `^${options.subCategory}$`, $options: "i" },
@@ -250,6 +270,16 @@ export async function getProducts(
     query.rating = { $in: options.ratings.map((r) => Number(r)) };
   }
 
+  return query;
+}
+
+export async function getProducts(
+  options: ProductQueryOptions = {},
+): Promise<IProductDocument[]> {
+  const Product = await getProductModel();
+
+  const query = buildProductQuery(options);
+
   // Build sort logic
   let sortQuery: { [key: string]: 1 | -1 } = { createdAt: -1 }; // default sort: newest
   switch (options.sort) {
@@ -273,6 +303,41 @@ export async function getProducts(
     productQuery = productQuery.limit(options.limit);
 
   return productQuery;
+}
+
+/**
+ * How many documents match, ignoring `skip`/`limit`.
+ *
+ * Needed by any pager: without it the only figure available is the length of
+ * the page just fetched, which cannot answer "how many pages are there".
+ */
+export async function countProducts(
+  options: ProductQueryOptions = {},
+): Promise<number> {
+  const Product = await getProductModel();
+  return Product.countDocuments(buildProductQuery(options));
+}
+
+/**
+ * A random selection of matching products.
+ *
+ * Uses `$sample`, which draws without replacement inside a single query — so
+ * unlike sorting on a random value it does not need a field on the document,
+ * and unlike a random `skip` it does not degrade as the collection grows.
+ *
+ * Deliberately not paginated. Every call draws an independent sample, so
+ * consecutive "pages" would repeat some products and omit others. This is for
+ * fixed-size feeds only; anything with a pager must use `getProducts`.
+ */
+export async function sampleProducts(
+  options: ProductQueryOptions & { size: number },
+): Promise<IProduct[]> {
+  const Product = await getProductModel();
+
+  return Product.aggregate<IProduct>([
+    { $match: buildProductQuery(options) },
+    { $sample: { size: options.size } },
+  ]);
 }
 
 export async function getProductBySlug(slug: string): Promise<IProduct | null> {

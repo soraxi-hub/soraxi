@@ -1,0 +1,113 @@
+export const metadata = {
+  title: "Fulfilling an Order",
+  description:
+    "How to process a Soraxi order from arrival to delivery, which status to set when, and how to handle problems.",
+};
+
+# Fulfilling an Order
+
+When a buyer pays, you are notified and the order appears under **Orders** in your store. This guide covers what to do with it.
+
+## First: the money is already secured
+
+The buyer has paid, and Soraxi is holding the money. You can pack and send with confidence — you are not waiting to find out whether payment clears.
+
+You are paid once delivery is confirmed. See [How You Get Paid](/docs/payouts/how-you-get-paid).
+
+## Your part of the order
+
+A buyer can order from several vendors at once. You see **only your part** — your items, and the buyer's delivery details. You fulfil and update your part independently of anyone else's.
+
+## Updating the status
+
+Keeping the status current is not admin work — it is what tells the buyer what is happening, and it is what issues the delivery code at the right moment.
+
+### Order Placed → Processing
+
+Set this when you have seen the order and are preparing it. It tells the buyer a person has picked it up.
+
+### Processing → Shipped
+
+Set this when the item leaves you.
+
+<Note type="success">
+  Marking an order **Shipped** issues the buyer's 6-digit delivery code and
+  creates the confirmation link you will use at handover. Do not skip this
+  status — it is what makes proof of delivery possible.
+</Note>
+
+### Shipped → Out for Delivery
+
+Set this when the item is with a rider or with you for the final leg. Useful on a longer delivery; you can skip it on a short campus run and go straight to Delivered.
+
+### → Delivered
+
+Set this when the buyer has the item. Confirm it properly — see [Proof of Delivery](/docs/fulfilment/proof-of-delivery).
+
+## The order the statuses must follow
+
+Orders move forward only:
+
+- **Order Placed** → Processing, or Canceled
+- **Processing** → Shipped, or Canceled
+- **Shipped** → Out for Delivery, Delivered, or Returned
+- **Out for Delivery** → Delivered, or Failed Delivery
+- **Delivered**, **Canceled**, **Returned**, **Failed Delivery** — final
+
+<Note type="warning">
+  You cannot go backwards, and you cannot cancel after shipping. Set each status
+  when it is actually true — marking something Shipped before it leaves means
+  the buyer starts expecting it, and marking Delivered before it arrives is a
+  serious breach.
+</Note>
+
+## Cancelling an order
+
+You can cancel while the order is **Order Placed** or **Processing** — before it ships. The buyer is refunded in full, including delivery.
+
+Cancel when you genuinely cannot supply the item. Message the buyer first and explain; a buyer who is told why usually orders again.
+
+<Warning>
+  Cancellations are visible in your record and repeated ones damage your
+  standing. The cure is not cancelling less — it is keeping stock counts honest
+  so the orders never arrive in the first place.
+</Warning>
+
+## Failed delivery
+
+If you attempted delivery and it could not be completed — the buyer was unreachable, or the address was wrong — mark it **Failed Delivery**. The buyer is refunded for the items.
+
+Try to reach the buyer before doing this. Most failed deliveries are a missed phone call, and a message through Soraxi will often solve it the same day.
+
+## Handling buyer messages
+
+Buyers can message you about a product or about an order. Open **Messages** in your store menu; conversations are grouped so you can see which order one refers to.
+
+- **Answer quickly.** A buyer who gets a reply almost never escalates.
+- **Answer honestly about timing.** "Tomorrow morning" that happens beats "within an hour" that does not.
+- **Keep it on Soraxi.** Never ask a buyer to pay you directly — it strips their protection and is grounds for suspension. See [Store Status & Suspension](/docs/storefront/store-status).
+
+## A working routine
+
+1. Check **Orders** at the start of the day
+2. Move new orders to **Processing** as you pack them
+3. Mark **Shipped** as they leave, and note the delivery code arrangement
+4. Confirm delivery with the buyer's code at handover
+5. Clear your **Messages** before you close up
+
+## FAQs
+
+**Q: How quickly should I ship?**
+A: Within the timeframe your shipping method promises. If you advertise same-day, the order needs to move that day.
+
+**Q: The buyer wants to change their order.**
+A: Before you ship, help if you can. After shipping, it is a return conversation.
+
+**Q: The buyer is not answering and I cannot deliver.**
+A: Message them through Soraxi so there is a record, try again, and only then mark the delivery failed.
+
+**Q: I marked the wrong status.**
+A: Statuses only move forward. Contact [support](/support) with the order reference if you have set something incorrectly.
+
+**Q: Can I deliver myself instead of using a rider?**
+A: Yes. Confirm delivery the same way either way — see [Proof of Delivery](/docs/fulfilment/proof-of-delivery).

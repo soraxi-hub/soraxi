@@ -1,6 +1,3 @@
-// Force dynamic rendering for this page
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,37 +9,13 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Store, User, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  categoryEntryHref,
+  helpCenterCategories,
+} from "@/lib/utils/mdx-utils/help-center-data";
+import { Store, ShieldCheck, CheckCircle2, ArrowRight } from "lucide-react";
 
 export default function DocumentationHome() {
-  const docCategories = [
-    {
-      title: "Getting Started",
-      description: "New to Soraxi? Start your journey here",
-      href: "/docs/account/create-account",
-      icon: User,
-      color: "text-soraxi-green",
-      bgColor: "bg-soraxi-green/15",
-      features: ["Create Account", "Account Verification", "Platform Basics"],
-      popular: true,
-    },
-    {
-      title: "For Sellers & Entrepreneurs",
-      description: "Everything you need to start and grow your business",
-      href: "/docs/storefront/create-storefront",
-      icon: Store,
-      color: "text-soraxi-green",
-      bgColor: "bg-soraxi-green/15",
-      features: [
-        "Create Storefront",
-        "Product Management",
-        "Shipping Setup",
-        "Payment Configuration",
-      ],
-      popular: true,
-    },
-  ];
-
   return (
     <div className="min-h-screen w-full">
       {/* Hero Section */}
@@ -59,24 +32,24 @@ export default function DocumentationHome() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/docs/storefront/create-storefront">
+            <Link href="/docs/storefront/vendor-waitlist">
               <Button
                 size="lg"
                 className="gap-2 bg-soraxi-green hover:bg-soraxi-green-hover text-white"
               >
                 <Store className="w-4 h-4" />
-                For Entrepreneurs
+                I want to sell
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/docs/account/create-account">
+            <Link href="/docs/protection/how-escrow-works">
               <Button
                 size="lg"
                 variant="outline"
                 className="gap-2 border-soraxi-green text-soraxi-green dark:text-white hover:text-soraxi-green-hover"
               >
-                <User className="w-4 h-4" />
-                Account & Verification
+                <ShieldCheck className="w-4 h-4" />
+                How you're protected
               </Button>
             </Link>
           </div>
@@ -96,60 +69,67 @@ export default function DocumentationHome() {
             </p>
           </div>
 
+          {/*
+            Cards are derived from `helpCenterCategories` — the same list the
+            sidebar and the route's static params read. Adding a category is one
+            edit, and this page cannot drift out of step with the nav.
+          */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {docCategories.map((category, index) => (
-              <Link key={index} href={category.href}>
-                <Card
-                  className={cn(
-                    "cursor-pointer hover:shadow-lg transition-all duration-300 h-full group",
-                    "hover:border-soraxi-green border border-transparent"
-                  )}
-                >
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={cn("p-3 rounded-xl", category.bgColor)}>
-                        <category.icon
-                          className={cn("w-6 h-6", category.color)}
-                        />
+            {helpCenterCategories.map((category) => {
+              const CategoryIcon = category.card.icon;
+
+              return (
+                <Link key={category.id} href={categoryEntryHref(category)}>
+                  <Card
+                    className={cn(
+                      "cursor-pointer hover:shadow-lg transition-all duration-300 h-full group",
+                      "hover:border-soraxi-green border border-transparent"
+                    )}
+                  >
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="p-3 rounded-xl bg-soraxi-green/15">
+                          <CategoryIcon className="w-6 h-6 text-soraxi-green" />
+                        </div>
+                        {category.card.popular && (
+                          <Badge className="bg-soraxi-green/10 text-soraxi-green border-soraxi-green/20">
+                            Popular
+                          </Badge>
+                        )}
                       </div>
-                      {category.popular && (
-                        <Badge className="bg-soraxi-green/10 text-soraxi-green border-soraxi-green/20">
-                          Popular
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-xl group-hover:text-soraxi-green transition-colors">
-                      {category.title}
-                    </CardTitle>
-                    <CardDescription className="text-base">
-                      {category.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {category.features.map((feature, featureIndex) => (
-                        <li
-                          key={featureIndex}
-                          className="flex items-center text-sm text-foreground/70"
+                      <CardTitle className="text-xl group-hover:text-soraxi-green transition-colors">
+                        {category.card.title}
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        {category.card.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {category.pages.map((page) => (
+                          <li
+                            key={page.id}
+                            className="flex items-center text-sm text-foreground/70"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-soraxi-green mr-2" />
+                            {page.title}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between group-hover:text-soraxi-green hover:text-soraxi-green-hover"
                         >
-                          <CheckCircle2 className="w-4 h-4 text-soraxi-green mr-2" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-between group-hover:text-soraxi-green hover:text-soraxi-green-hover"
-                      >
-                        Explore Guide
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                          Explore Guide
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -35,7 +35,7 @@ UnauthorizedErrorProps) {
             asChild
             className="w-full bg-soraxi-green-hover text-white hover:bg-soraxi-green-hover"
           >
-            <Link href="/auth/sign-in">Go to Login</Link>
+            <Link href="/sign-in">Go to Login</Link>
           </Button>
         </CardContent>
       </Card>

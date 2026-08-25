@@ -1,11 +1,18 @@
-// Force dynamic rendering for this page
-export const dynamic = "force-dynamic";
-
 import { notFound } from "next/navigation";
 import { MDXComponents } from "@/lib/utils/mdx-utils/mdx-components";
 import { TableOfContents } from "@/lib/utils/mdx-utils/table-of-contents";
-import { helpCenterCategories } from "@/lib/utils/mdx-utils/help-center-data";
+import {
+  allArticleSlugs,
+  getArticleLoader,
+} from "@/lib/utils/mdx-utils/article-registry";
 import { cn } from "@/lib/utils";
+
+/**
+ * Only the slugs enumerated by `generateStaticParams` are routable; anything
+ * else 404s before this module runs. Documentation changes when we deploy, so
+ * there is nothing to render per-request.
+ */
+export const dynamicParams = false;
 
 interface DocsPageProps {
   params: Promise<{
@@ -13,43 +20,28 @@ interface DocsPageProps {
   }>;
 }
 
-async function getArticleComponent(slug: string[]) {
-  try {
-    const category = slug[0];
-    const page = slug[1];
-    const modulePath = `@/app/docs/articles/${category}/${page}.mdx`;
-    const module = await import(modulePath);
-    // const module = await import(`../articles/${category}/${page}.mdx`);
-    return module.default;
-  } catch (error) {
-    return null;
-  }
-}
-
 export async function generateStaticParams() {
-  const params = [];
-  for (const category of helpCenterCategories) {
-    for (const page of category.pages) {
-      params.push({
-        slug: [category.id, page.id],
-      });
-    }
-  }
-  return params;
+  return allArticleSlugs().map((slug) => ({ slug: slug.split("/") }));
 }
 
 export default async function DocsPage({ params }: DocsPageProps) {
   const { slug } = await params;
 
-  if (!slug || slug.length < 2) {
+  if (!slug || slug.length !== 2) {
     notFound();
   }
 
-  const ArticleComponent = await getArticleComponent(slug);
+  const loadArticle = getArticleLoader(slug.join("/"));
 
-  if (!ArticleComponent) {
+  // A slug with no registered article is the only legitimate 404 here. Failures
+  // *inside* the article — an MDX syntax error, a bad import — are deliberately
+  // left to throw into the error boundary. Swallowing them into a 404 used to
+  // make a broken article indistinguishable from a missing one.
+  if (!loadArticle) {
     notFound();
   }
+
+  const { default: ArticleComponent } = await loadArticle();
 
   return (
     <div className="flex flex-1">

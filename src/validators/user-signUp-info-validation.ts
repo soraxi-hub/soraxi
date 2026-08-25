@@ -69,6 +69,11 @@ export const userSignUpInfoValidation = z.object({
     })
     .min(2, { message: "Minimum 2 Characters" })
     .max(50),
+  agreedToTerms: z.literal(true, {
+    errorMap: () => ({
+      message: "Please accept the Terms and Privacy Policy to continue",
+    }),
+  }),
 });
 
 /**
@@ -81,6 +86,11 @@ export const editProfileValidation = userSignUpInfoValidation
   .omit({
     password: true,
     confirmPassword: true,
+    // Agreement is captured once at signup and re-confirmed through its own
+    // dialog. Inheriting it here would make every profile save fail for the
+    // existing users who have not agreed yet — the exact people the dialog is
+    // meant to reach.
+    agreedToTerms: true,
   })
   .extend({
     institution: z.string().max(100).optional().or(z.literal("")),
