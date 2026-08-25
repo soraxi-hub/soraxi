@@ -1,0 +1,107 @@
+export const metadata = {
+  title: "Withdrawing Your Earnings",
+  description:
+    "How to request a withdrawal from your Soraxi wallet, the limits and fees, and what to do if one fails.",
+};
+
+# Withdrawing Your Earnings
+
+When money is **available** in your wallet, you can withdraw it to your bank account.
+
+## Before your first withdrawal
+
+Add your bank account under **Payment Setup**. See [Payout Configuration](/docs/storefront/payout-settings).
+
+<Note type="warning">
+  The account name on your bank account must match your store's registered
+  details. Withdrawals to a mismatched account fail and take time to unwind.
+</Note>
+
+## Requesting a withdrawal
+
+1. Open **Wallet** in your store menu
+2. Check your **available** balance — pending and frozen amounts cannot be withdrawn
+3. Choose **Withdraw**
+4. Enter the amount
+5. Review the fee and the amount that will reach your bank
+6. Confirm
+
+## Limits and fees
+
+- **Minimum:** ₦1,000 per request
+- **Maximum:** ₦100,000 per request
+- **Fee:** 1% of the amount, plus ₦50
+
+**Example:** withdrawing ₦20,000 costs ₦200 + ₦50 = **₦250**, so ₦19,750 reaches your bank.
+
+<Tip>
+  The ₦50 is charged per withdrawal regardless of size, so batching matters. One
+  ₦20,000 withdrawal costs ₦250; twenty ₦1,000 withdrawals cost ₦1,200.
+</Tip>
+
+To move more than ₦100,000, make more than one request.
+
+## What happens after you request
+
+Your withdrawal moves through these stages, visible under **Withdrawals**:
+
+- **Initiated** — your request has been received
+- **Processing** — the transfer has been sent to your bank
+- **Completed** — the money has been sent to your account
+- **Failed** — the transfer did not go through, and the amount has been returned to your wallet
+
+You are emailed when a withdrawal completes or fails.
+
+<Note type="info">
+  Bank transfer times are outside Soraxi's control. Once a withdrawal shows
+  **Completed**, the money has been sent; how quickly it appears depends on your
+  bank.
+</Note>
+
+## If a withdrawal fails
+
+A failed withdrawal returns the money to your wallet — it is not lost.
+
+The usual causes:
+
+- **Wrong account number** — check it digit by digit
+- **Account name mismatch** — the name on the bank account does not match your details
+- **Closed or dormant account** — banks reject transfers to inactive accounts
+- **Wrong bank selected** — easy to do with similarly named banks
+
+Fix the payout details under **Payment Setup**, then request again. If it fails a second time with correct details, contact [support](/support) with the withdrawal reference.
+
+## Withdrawals that are held
+
+Withdrawals can be restricted if:
+
+- **You have an open dispute** — the disputed amount is frozen, though the rest of your available balance is not affected
+- **Your account carries an outstanding balance** from penalties — withdrawals can be limited until it is cleared
+- **Your store is under review** — see [Store Status & Suspension](/docs/storefront/store-status)
+
+## Planning around it
+
+<Tip>
+  Withdraw on a rhythm — weekly, or when you cross a threshold — rather than
+  every time a sale lands. Fewer, larger withdrawals cost less in fees and are
+  easier to reconcile against your own records.
+</Tip>
+
+Keep enough working capital in the business to restock. The vendors who struggle are usually the ones who withdraw everything the moment it clears and then cannot buy stock for the next order.
+
+## FAQs
+
+**Q: How long until the money is in my account?**
+A: Once processed, arrival depends on your bank — typically a few business days.
+
+**Q: Can I cancel a withdrawal?**
+A: Not once submitted. If the details were wrong, wait for it to fail and the amount will return to your wallet.
+
+**Q: Can I withdraw to someone else's account?**
+A: No. The payout account must be yours and must match your store details.
+
+**Q: Why can I not withdraw my full balance?**
+A: Only the **available** portion can be withdrawn. Pending amounts are awaiting delivery confirmation; frozen amounts relate to an open dispute. See [How You Get Paid](/docs/payouts/how-you-get-paid).
+
+**Q: I was charged a fee on a withdrawal that failed.**
+A: A failed transfer returns the amount to your wallet. If the figures do not reconcile, contact [support](/support) with the withdrawal reference.

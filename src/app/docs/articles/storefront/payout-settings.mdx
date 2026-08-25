@@ -1,309 +1,137 @@
 export const metadata = {
-  title: "Payout Configuration & Bank Account Setup",
+  title: "Payout Configuration",
   description:
-    "Complete guide to setting up and managing payout accounts for receiving payments from your Soraxi store",
+    "How to add and manage the bank account your Soraxi earnings are paid into.",
 };
 
-# Payout Configuration & Bank Account Setup
+# Payout Configuration
 
-This guide will walk you through setting up your payout accounts to receive payments from sales on Soraxi. Proper payout configuration ensures you get paid quickly and securely for your sales.
+Your payout account is the bank account your earnings are transferred to. Set it up before your first sale so nothing is waiting when you want to withdraw.
 
-## Accessing Payout Settings
+Open **Payment Setup** from your store menu.
 
-1. Navigate to your **Store Dashboard**:
-   - In the left sidebar, find the **"Store Settings"** section
-   - Click on **"Payment Setup"** to access your Store's Payment Setup page
+## Before you start
 
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-12.png"
-  alt="Payment Setup option in sidebar navigation"
-  caption="Access payout settings from the Store Settings section in your sidebar"
-/>
+You need:
 
-## Understanding Payout Accounts
-
-Payout accounts are the bank accounts where Soraxi transfers your earnings. Key features:
-
-- **Secure bank verification** with real-time account validation
-- **Multiple account support** (you can add several bank accounts)
-- **Automatic payouts** based on your store's payout schedule
-- **Encrypted storage** of your banking information
-
-<Note type="info">
-  Your bank account details are encrypted and stored securely. Soraxi never
-  stores your full account numbers in plain text.
-</Note>
-
-## Viewing Existing Payout Accounts
-
-When you first access the Payment Setup page, you'll see:
-
-- **Current payout accounts** displayed as cards
-- **Bank name and account number** (partially masked for security)
-- **Account holder name** for verification
-- **Empty state** if no accounts are configured
-
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-13.png"
-  alt="Payout accounts overview"
-  caption="View all your configured payout accounts in one place"
-/>
-
-## Adding a New Payout Account
-
-### Step 1: Access the Add Form
-
-1. Scroll to the **"Add New Account"** section
-2. The form includes all necessary fields for bank account setup
-
-### Step 2: Select Your Bank
-
-**Bank Selection** (Required):
-
-- Click the dropdown to see all supported Nigerian banks
-- Search or scroll to find your bank
-- The list is alphabetically organized for easy navigation
-
-<Tip>
-  If you can't find your bank, it might not be supported yet. Contact support
-  for assistance with less common banks.
-</Tip>
-
-<Screenshot
-  src="/docs-images/storefront/soraxi-storefront-product-management-step-14.png"
-  alt="Bank selection dropdown"
-  caption="Select your bank from the comprehensive list of supported Nigerian banks"
-/>
-
-### Step 3: Enter Account Number
-
-**Account Number** (Required):
-
-- Enter your 10-digit account number
-- The field is masked by default for security
-- Click the eye icon to reveal/hide the number
-- Auto-validation occurs when you complete 10 digits
+- Your **bank name**
+- Your **10-digit account number**
+- An account whose **name matches your store's registered details**
 
 <Warning>
-  Never share your account number with anyone. Soraxi's system automatically
-  validates it without exposing it to human operators.
+  The account holder name must match the details your store is registered with.
+  Transfers to a mismatched account fail, and unwinding a failed transfer takes
+  far longer than getting it right the first time.
 </Warning>
 
-### Step 4: Account Verification
+## Adding a payout account
 
-**Automatic Validation**:
+### Step 1 — Open the form
 
-- System automatically verifies your account number against the selected bank
-- Account holder name is fetched and displayed automatically
-- Verification typically takes 2-5 seconds
+On the Payment Setup page, choose **Add Account**. Any accounts you have already added are listed above.
 
-**If verification fails**:
+### Step 2 — Select your bank
 
-- Double-check your account number
-- Ensure you selected the correct bank
-- Try again or contact your bank if issues persist
-
-### Step 5: Review and Submit
-
-**Final Checks**:
-
-- Verify the automatically populated account name matches your bank records
-- Ensure all information is correct before submitting
-- Click **"Add Account"** to save the configuration
-
-<Note type="success">
-  The account name must exactly match your bank records. If it doesn't, the
-  payout transfers will fail.
-</Note>
-
-## Payout Process & Timeline
-
-### How Payouts Work
-
-1. **Sales accumulate** in your store wallet
-2. **You initiate payout requests** (minimum ₦1,000)
-3. **Soraxi processes transfers** weekly (Friday-Sunday)
-4. **Funds reflect** in your bank account within 1-3 business days
-
-### Payout Schedule
-
-- **Processing window**: Friday to Sunday weekly
-- **Bank processing**: 1-3 business days after Soraxi processing
-- **Cut-off time**: Requests made before Friday 11:59 PM are included in that week's batch
+Pick your bank from the list. It covers Nigerian commercial banks and the major digital banks.
 
 <Tip>
-  Submit payout requests by Thursday evening to ensure they're processed in the
-  Friday-Sunday window.
+  Several banks have similar names. Check you have the exact one — the wrong
+  selection is the most common cause of a failed transfer.
 </Tip>
 
-## Payout Best Practices
+### Step 3 — Enter your account number
 
-### Account Management
+Enter your **10-digit** account number. No spaces or dashes.
 
-**Multiple Account Strategy**:
+### Step 4 — Confirm the account name
 
-- Consider having separate accounts for business and personal use
-- Primary account for regular payouts
-- Backup account in case of issues with primary
+Soraxi looks the account up automatically and shows the account holder name registered with the bank. This takes a few seconds.
 
-**Verification Tips**:
+**Check the name that comes back carefully.** It is the name your bank has on file, and it is what the transfer will go to.
 
-- Use the exact account name as it appears on your bank statements
-- Double-check bank selection - common banks have similar names
-- Test with a small payout first if possible
+If the lookup fails:
 
-### Financial Planning
+- Re-check the account number, digit by digit
+- Confirm you selected the right bank
+- Try again in a moment — bank lookup services are occasionally briefly unavailable
+- If it keeps failing, check with your bank that the account is active
 
-**Minimum Payout Amount**:
+### Step 5 — Save
 
-- **₦1,000 minimum** per payout request
-- Plan your withdrawals to minimize transaction frequency
-- Consider weekly or bi-weekly payout schedules
+Review everything and save. The account is then available for withdrawals.
 
-## Security & Privacy
+## Managing your accounts
 
-### Data Protection
+You can hold up to **three** payout accounts. Useful if you keep a business account separate from a personal one, or want a backup for when a bank is having problems.
 
-**What we protect**:
+- Set which account withdrawals default to
+- Remove an account you no longer use
+- Add a replacement before removing an old one, so you are never without a route to withdraw
 
-- Full bank account numbers are encrypted
-- Bank verification happens through secure channels
-- Only necessary information is stored
+<Note type="warning">
+  Update your payout details **before** the old account closes. A withdrawal to a
+  closed account fails and the money returns to your wallet, but only after a
+  delay.
+</Note>
 
-**Your responsibility**:
+## What it costs to withdraw
 
-- Keep your Soraxi account credentials secure
-- Use strong, unique passwords
-- Enable two-factor authentication if available
+- **Minimum:** ₦1,000 per request
+- **Maximum:** ₦100,000 per request
+- **Fee:** 1% of the amount, plus ₦50
 
-<Warning>
-  Never share your Soraxi login credentials with anyone. Soraxi support will
-  never ask for your password or full bank account number.
-</Warning>
+See [Fees & Commission](/docs/payouts/fees-and-commission) for the full picture, including sales commission.
 
-## Common Setup Scenarios
+## How withdrawals work
 
-### Scenario 1: Individual Seller
+Adding a payout account does not move any money — you request each withdrawal yourself, when you want it.
 
-**Recommended Setup**:
+A request moves through **Initiated → Processing → Completed**, or **Failed** if the transfer is rejected, in which case the amount returns to your wallet. You are emailed when it completes or fails.
 
-- **Primary account**: Your main personal bank account
-- **Verification**: Use your legal name as it appears on bank records
-- **Payout frequency**: Weekly or when you reach ₦5,000-₦10,000
+How quickly the money lands once sent depends on your bank.
 
-### Scenario 2: Registered Business
+Full details are in [Withdrawing Your Earnings](/docs/payouts/withdrawals).
 
-**Recommended Setup**:
+## Security
 
-- **Primary account**: Business corporate account
-- **Verification**: Use registered business name exactly
-- **Backup account**: Add a second account for contingency
+- Your bank details are only ever used to pay you
+- Soraxi never asks for your **card details**, your **bank password**, or any **OTP** from your bank
+- Only someone signed in to your store can view or change payout details — which is another reason to keep your store password strong and private
 
-## Troubleshooting Common Issues
+<Note type="error">
+  No one from Soraxi will ever ask you to "verify" your payout account by sending
+  money, sharing a bank OTP, or entering your bank login anywhere. Anyone asking
+  is attempting fraud.
+</Note>
+
+## Common problems
 
 ### "Account verification failed"
 
-**Possible causes**:
+Almost always a wrong digit or the wrong bank. Re-check both. If the account is new, very recently opened accounts sometimes take time to appear in bank lookup systems.
 
-- Incorrect account number
-- Wrong bank selected
-- Bank server temporarily unavailable
-- Account is dormant or restricted
+### "Account name does not match"
 
-**Solutions**:
+The name returned by your bank differs from your store details. Use an account in the correct name — you cannot withdraw to an account belonging to someone else.
 
-- Double-check account number and bank selection
-- Wait a few minutes and try again
-- Contact your bank to ensure account is active
-- Try a different bank account if available
+### "I cannot find my bank"
 
-### "Account name doesn't match"
+Check for alternative spellings or the bank's former name. If it is genuinely missing, contact [support](/support) with the bank's full name.
 
-**Common issues**:
+### A withdrawal failed
 
-- Nicknames vs legal names (Chike vs Chikamso)
-- Middle name inclusion/exclusion
-- Business name vs personal name confusion
-
-**Solutions**:
-
-- Use the exact name on your bank account statement
-- Contact your bank to confirm the registered account name
-- Try variations of your name if unsure
-
-### Payout delays
-
-**Typical timeline**:
-
-- Soraxi processing: 1-3 days (Friday-Sunday)
-- Bank processing: 1-3 business days
-- **Total**: 2-6 days from request to bank credit
-
-**If longer than 6 business days**:
-
-- Check your wallet for payout status
-- Contact Soraxi support with transaction details
-- Verify with your bank if they see pending transfers
-
-### Can't find my bank
-
-**If your bank isn't in the list**:
-
-- It might not be supported yet
-- Contact Soraxi support to request bank addition
-- Consider opening an account with a supported bank temporarily
-
-## Payout Management Tips
-
-### Monitoring Your Earnings
-
-- **Regularly check your wallet** for accumulated balance
-- **Set payout reminders** to avoid letting large balances sit
-- **Track payout history** for accounting purposes
-
-<Note type="success">
-  **Pro Tips**: - **Reconcile regularly**: Match your Soraxi payouts with bank
-  deposits weekly - **Keep records**: Maintain separate records for tax purposes
-  - **Plan for growth**: As sales increase, adjust your payout strategy
-  accordingly - **Emergency fund**: Keep some balance in your Soraxi wallet for
-  refunds or adjustments
-</Note>
+The amount is returned to your wallet. Correct the account details and request again. See [Withdrawing Your Earnings](/docs/payouts/withdrawals).
 
 ## FAQs
 
-**Q: How many payout accounts can I add?**
-A: You can add multiple payout accounts, but only one can be set as primary for automatic payouts.
+**Q: Can I withdraw to a friend's or family member's account?**
+A: No. The payout account must be in the name your store is registered under.
 
-**Q: Can I change my payout account?**
-A: Yes, you can add new accounts and set a different primary account at any time.
+**Q: Can I change my payout account after requesting a withdrawal?**
+A: Yes, but a withdrawal already in progress goes to the account it was requested against.
 
-**Q: What happens if my bank account is closed?**
-A: Payouts will fail and be returned. You'll need to update your payout account information.
+**Q: Do I need a business account?**
+A: No. A personal account in your own name is fine.
 
-**Q: How secure is my banking information?**
-A: Very secure. We use bank-level encryption and never store full account numbers in readable format.
-
-**Q: Can I receive payouts on weekends?**
-A: Soraxi processes payouts Friday-Sunday, but banks typically process transfers on business days only.
-
-**Q: What's the minimum payout amount?**
-A: ₦1,000 minimum per payout request.
-
-**Q: How do I know if my payout was successful?**
-A: You'll see the status in your wallet, and the funds should reflect in your bank account within 1-3 business days after processing.
-
-## Next Steps After Setup
-
-After configuring your payout accounts:
-
-1. **Verify a test transaction** if possible (small payout)
-2. **Set up payout alerts** in your wallet settings
-3. **Review your store performance** regularly
-4. **Monitor your first few payouts** to ensure smooth operation
-
-You're now ready to receive payments from your Soraxi store! Proper payout setup ensures you get paid quickly and securely for your hard work.
-
-<Note type="info">
-  Need help with payout setup? Contact our support team through the Support
-  section in your sidebar.
-</Note>
+**Q: Is my account number visible to buyers?**
+A: No. Payout details are visible only to you.

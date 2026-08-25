@@ -1,0 +1,99 @@
+export const metadata = {
+  title: "Understanding Order Statuses",
+  description:
+    "What each order status means on Soraxi, in what order they happen, and what you should do at each stage.",
+};
+
+# Understanding Order Statuses
+
+Every order you place is split into one part per vendor. Each part moves through its own statuses, so an order containing items from two vendors can show two different stages at once.
+
+Open **Orders** from your account menu to see them.
+
+## The stages
+
+### Order Placed
+
+Payment has been confirmed and the vendor has been notified. Nothing has been packed yet.
+
+**What you can do:** message the vendor with any changes. This is the best moment to correct a mistake.
+
+### Processing
+
+The vendor has accepted the order and is preparing your items.
+
+**What you can do:** wait, or message the vendor for an update. Your delivery code is not issued yet.
+
+### Shipped
+
+Your items have left the vendor and are on their way.
+
+**What you can do:** this is when your **delivery code** appears on the order. Have it ready — you will give it to whoever hands you the item. See [Your Delivery Code](/docs/buying/delivery-code).
+
+### Out for Delivery
+
+The item is with a rider or the vendor and arriving shortly.
+
+**What you can do:** be reachable, and keep your delivery code to hand.
+
+### Delivered
+
+The item has reached you and delivery has been confirmed — either by you in the app, or by your code being entered at the doorstep.
+
+**What you can do:** if something is wrong with what you received, you can raise a dispute. See [Opening a Dispute](/docs/protection/opening-a-dispute) and act promptly; the window closes once the order settles.
+
+## Statuses you hope not to see
+
+### Canceled
+
+The vendor cancelled before shipping — usually because the item turned out to be unavailable. You are refunded in full, including delivery.
+
+### Failed Delivery
+
+The vendor attempted delivery and it could not be completed. You are refunded for the item.
+
+### Returned
+
+The item came back to the vendor after shipping.
+
+### Refunded
+
+Money for this part of the order has been sent back to you. See [Refunds & Cancellations](/docs/protection/refunds-and-cancellations).
+
+## How the stages follow each other
+
+An order moves forward, never backward:
+
+- **Order Placed** → Processing, or Canceled
+- **Processing** → Shipped, or Canceled
+- **Shipped** → Out for Delivery, Delivered, or Returned
+- **Out for Delivery** → Delivered, or Failed Delivery
+- **Delivered**, **Canceled**, **Returned**, **Failed Delivery** — final
+
+<Note type="info">
+  A vendor can go straight from **Shipped** to **Delivered** without passing
+  through Out for Delivery — common for a short hostel run. Your delivery code
+  works either way, because it is issued as soon as the item ships.
+</Note>
+
+<Note type="warning">
+  Once an order is **Delivered**, the vendor can no longer cancel it. If
+  something is wrong, raise a dispute rather than waiting.
+</Note>
+
+## Confirming delivery
+
+Delivery gets confirmed one of two ways: you mark it received in the app, or your delivery code is entered when the item is handed over. If neither happens, Soraxi confirms it for you **3 days** after the item goes out for delivery, and the vendor is paid.
+
+That 3-day window is your window to speak up. See [Confirming Delivery](/docs/buying/confirming-delivery).
+
+## FAQs
+
+**Q: One part of my order is Delivered and the other has not shipped. Is that normal?**
+A: Yes. Each vendor fulfils independently.
+
+**Q: The status has not changed in days.**
+A: Message the vendor first — most delays are ordinary. If you get no response and the item has not arrived, contact [support](/support).
+
+**Q: Can I cancel an order myself?**
+A: Not from the app. Message the vendor before they ship. See [Refunds & Cancellations](/docs/protection/refunds-and-cancellations).
