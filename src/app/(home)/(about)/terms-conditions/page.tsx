@@ -1,6 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  SoraxiCard,
+  SoraxiCardContent,
+  SoraxiCardHeader,
+  SoraxiCardTitle,
+} from "@/components/ui/soraxi-card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -19,19 +24,19 @@ export default function TermsAndConditionsPage() {
             Please read these terms carefully before using our platform
           </p>
           <Badge variant="outline" className="mt-2">
-            Last updated: August 2025
+            Last updated: August 2026
           </Badge>
         </div>
 
         <div className="space-y-6">
           {/* Introduction */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle className="flex items-center gap-2">
                 1. Introduction
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
                 Welcome to {siteConfig.name} Marketplace (&#34;{siteConfig.name}
                 &#34;, &#34;Platform&#34;, &#34;Service&#34;, &#34;we&#34;,
@@ -47,13 +52,11 @@ export default function TermsAndConditionsPage() {
                 Terms. If you do not agree, you must discontinue use of the
                 Service immediately.
               </p>
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <div>
                 <div className="flex items-start gap-2">
                   <div>
-                    <p className="font-medium text-amber-800 dark:text-amber-200">
-                      Important Notice
-                    </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                    <p className="font-medium">Important Notice</p>
+                    <p className="text-sm mt-1 text-muted-foreground">
                       These Terms constitute a legally binding agreement between
                       you and our Platform. Use of the Service implies
                       acceptance of all rights and obligations set forth herein,
@@ -62,17 +65,17 @@ export default function TermsAndConditionsPage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* User Accounts */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle className="flex items-center gap-2">
                 2. User Accounts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
               <p className="text-muted-foreground">
                 To access and use certain features of our Platform, you may be
                 required to create a user account. By registering, you agree to
@@ -93,11 +96,6 @@ export default function TermsAndConditionsPage() {
                   </li>
                   <li>
                     You must be at least 18 years old to create an account.
-                  </li>
-                  <li>
-                    You may not register or maintain more than one account,
-                    whether as an individual or on behalf of an entity, without
-                    our prior written consent.
                   </li>
                 </ul>
               </div>
@@ -124,18 +122,18 @@ export default function TermsAndConditionsPage() {
                   </li>
                 </ul>
               </div>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Store Operations */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle className="flex items-center gap-2">
                 3. Store Operations
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground text-sm">
+              </SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
+              <p className="text-muted-foreground ">
                 Store owners are required to operate their stores in compliance
                 with our guidelines, applicable laws, and ethical business
                 practices. By creating and managing a store on our platform, you
@@ -193,36 +191,29 @@ export default function TermsAndConditionsPage() {
                     Sellers must process and ship orders within the specified
                     timeframe.
                   </li>
-                  {/* <li>
-                    Accurate tracking information must be provided when
-                    available.
-                  </li>
-                  <li>
-                    Sellers are responsible for packaging products securely.
-                  </li> */}
                   <li>
                     Customer service inquiries must be responded to promptly.
                   </li>
                 </ul>
               </div>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Payment Terms */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle className="flex items-center gap-2">
                 4. Payment Terms
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              </SoraxiCardTitle>
+              <p className=" text-muted-foreground mt-1">
                 This section outlines the rules governing payments on our
                 platform, including how fees are applied, how the escrow system
                 ensures secure transactions, and how sellers receive payouts. By
                 using our services, you agree to comply with these payment terms
                 as part of your seller or buyer obligations.
               </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
               <div>
                 <h4 className="font-semibold mb-2">4.1 Platform Fees</h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
@@ -243,9 +234,6 @@ export default function TermsAndConditionsPage() {
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>
                     Payments are held in escrow until delivery is confirmed.
-                  </li>
-                  <li>
-                    Funds are released once the return window has expired.
                   </li>
                   <li>
                     Disputed transactions may result in extended hold periods.
@@ -269,18 +257,18 @@ export default function TermsAndConditionsPage() {
                   </li>
                 </ul>
               </div>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Prohibited Activities */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle className="flex items-center gap-2">
                 5. Prohibited Activities
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
+              </SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent>
+              <p className=" text-muted-foreground mb-4">
                 To maintain a safe, fair, and trustworthy marketplace, the
                 following activities are strictly prohibited. Engaging in any of
                 these actions may result in account suspension, termination, or
@@ -302,22 +290,22 @@ export default function TermsAndConditionsPage() {
                   Using the platform for money laundering or unlawful activities
                 </li>
               </ul>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Intellectual Property */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle>6. Intellectual Property</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle>6. Intellectual Property</SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
+              <p className=" text-muted-foreground leading-relaxed">
                 The Platform, along with its original content, design, features,
                 and functionality, is owned by us and protected under
                 international copyright, trademark, patent, trade secret, and
                 other intellectual property laws.
               </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className=" text-muted-foreground leading-relaxed">
                 You retain ownership of the content you post or upload. However,
                 by submitting content to the Platform, you grant us a
                 non-exclusive, worldwide, royalty-free license to use, display,
@@ -325,46 +313,45 @@ export default function TermsAndConditionsPage() {
                 operating and promoting the Platform. You are solely responsible
                 for ensuring you have the necessary rights to post such content.
               </p>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Limitation of Liability */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle>7. Limitation of Liability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle>7. Limitation of Liability</SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
+              <p className=" text-muted-foreground leading-relaxed">
                 We act solely as a marketplace platform connecting buyers and
                 sellers. We do not control and are not responsible for the
                 quality, safety, or legality of products listed, the truth or
                 accuracy of listings, or the ability of sellers to sell items or
-                buyers to complete purchases. Any disputes that arise between
-                users remain the sole responsibility of the parties involved.
+                buyers to complete purchases.
               </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className=" text-muted-foreground leading-relaxed">
                 To the fullest extent permitted by law, we disclaim all
                 liability for any indirect, incidental, special, consequential,
                 or punitive damages, including but not limited to loss of
                 profits, data, goodwill, or other intangible losses, resulting
                 from your use of or inability to use the Platform.
               </p>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Dispute Resolution */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle>8. Dispute Resolution</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle>8. Dispute Resolution</SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
+              <p className=" text-muted-foreground leading-relaxed">
                 This section explains how disputes will be handled between you
                 and the Platform.
               </p>
               <div>
                 <h4 className="font-semibold mb-2">8.1 Internal Resolution</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className=" text-muted-foreground leading-relaxed">
                   We encourage users to resolve disputes directly whenever
                   possible. Our customer support team may mediate disputes in
                   good faith, but we are not obligated to resolve every
@@ -374,41 +361,41 @@ export default function TermsAndConditionsPage() {
               <Separator />
               <div>
                 <h4 className="font-semibold mb-2">8.2 Governing Law</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className=" text-muted-foreground leading-relaxed">
                   These Terms shall be governed by and construed in accordance
                   with the laws of Nigeria, without regard to its conflict of
                   law provisions. Any disputes arising under these Terms shall
                   be subject to the jurisdiction of Nigerian courts.
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Changes to Terms */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle>9. Changes to Terms</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle>9. Changes to Terms</SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent className="space-y-4">
+              <p className=" text-muted-foreground leading-relaxed">
                 We may update or revise these Terms from time to time. If a
                 revision is material, we will provide at least 30 days&#39;
                 notice before the new terms take effect. What constitutes a
                 material change will be determined at our sole discretion.
               </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className=" text-muted-foreground leading-relaxed">
                 By continuing to access or use the Platform after any revisions
                 become effective, you agree to be bound by the updated Terms.
               </p>
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
 
           {/* Contact Information */}
-          <Card className="shadow-none border-0">
-            <CardHeader>
-              <CardTitle>10. Contact Information</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <SoraxiCard>
+            <SoraxiCardHeader>
+              <SoraxiCardTitle>10. Contact Information</SoraxiCardTitle>
+            </SoraxiCardHeader>
+            <SoraxiCardContent>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 If you have any questions about these Terms and Conditions,
                 please contact us via{" "}
@@ -419,22 +406,8 @@ export default function TermsAndConditionsPage() {
                   <strong>{process.env.NEXT_PUBLIC_SORAXI_INFO_EMAIL}</strong>
                 </Link>
               </p>
-              {/* <div className="bg-muted/50 rounded-lg p-4">
-                <ul className="space-y-2 text-sm">
-                  <li>
-                    <strong>Email:</strong> legal@yourplatform.com
-                  </li>
-                  <li>
-                    <strong>Phone:</strong> +234 (0) 123 456 7890
-                  </li>
-                  <li>
-                    <strong>Address:</strong> 123 Business District, Lagos,
-                    Nigeria
-                  </li>
-                </ul>
-              </div> */}
-            </CardContent>
-          </Card>
+            </SoraxiCardContent>
+          </SoraxiCard>
         </div>
       </div>
     </div>
