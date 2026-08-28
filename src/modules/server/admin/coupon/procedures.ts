@@ -81,7 +81,10 @@ export const adminCouponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch coupons");
+        throw handleTRPCError(
+          error,
+          "We couldn't load coupons. Please try again.",
+        );
       }
     }),
 
@@ -119,7 +122,10 @@ export const adminCouponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch coupon");
+        throw handleTRPCError(
+          error,
+          "We couldn't load that coupon. Please try again.",
+        );
       }
     }),
 
@@ -170,7 +176,10 @@ export const adminCouponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to create coupon");
+        throw handleTRPCError(
+          error,
+          "We couldn't create that coupon. Please try again.",
+        );
       }
     }),
 
@@ -217,7 +226,10 @@ export const adminCouponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to update coupon");
+        throw handleTRPCError(
+          error,
+          "We couldn't update that coupon. Please try again.",
+        );
       }
     }),
 
@@ -252,7 +264,10 @@ export const adminCouponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to delete coupon");
+        throw handleTRPCError(
+          error,
+          "We couldn't delete that coupon. Please try again.",
+        );
       }
     }),
 
@@ -313,7 +328,10 @@ export const adminCouponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch coupon usage");
+        throw handleTRPCError(
+          error,
+          "We couldn't load this coupon's usage. Please try again.",
+        );
       }
     }),
 });

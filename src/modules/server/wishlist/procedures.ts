@@ -73,7 +73,10 @@ export const wishlistRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original error
         }
       }
-      throw handleTRPCError(err, "Failed to fetch wishlist data.");
+      throw handleTRPCError(
+        err,
+        "We couldn't load your wishlist. Please try again.",
+      );
     }
   }),
 
@@ -122,7 +125,10 @@ export const wishlistRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original error
         }
       }
-      throw handleTRPCError(err, "Failed to fetch user wishlist.");
+      throw handleTRPCError(
+        err,
+        "We couldn't load your wishlist. Please try again.",
+      );
     }
   }),
 
@@ -167,7 +173,10 @@ export const wishlistRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to add item to wishlist.");
+        throw handleTRPCError(
+          err,
+          "We couldn't add that item to your wishlist. Please try again.",
+        );
       }
     }),
 
@@ -218,7 +227,10 @@ export const wishlistRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to remove item from wishlist.");
+        throw handleTRPCError(
+          err,
+          "We couldn't remove that item from your wishlist. Please try again.",
+        );
       }
     }),
 });

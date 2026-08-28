@@ -402,7 +402,10 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch platform metrics.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load platform metrics. Please try again.",
+        );
       }
     }),
 
@@ -647,7 +650,7 @@ export const adminFinancialMetricsRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           error,
-          "Failed to fetch platform metrics breakdown.",
+          "We couldn't load the platform metrics breakdown. Please try again.",
         );
       }
     }),
