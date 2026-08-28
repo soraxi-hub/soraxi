@@ -22,6 +22,13 @@ export const siteConfig = {
   ],
   name: "Soraxi" as const,
   logo: `/svg/soraxi.svg`,
+  /**
+   * The social share card, used wherever a page defines its own `openGraph`.
+   * Next replaces that field rather than merging it, so any page setting
+   * openGraph must repeat the image — hence one constant rather than a literal
+   * copied per route.
+   */
+  ogImage: `/og-soraxi.png` as const,
   url: process.env.NEXT_PUBLIC_APP_URL,
   footer: [
     { name: "About us", href: "/about" },

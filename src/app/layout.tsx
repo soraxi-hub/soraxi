@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: "/og-soraxi.png", // 👈 place your OG image here
+        url: siteConfig.ogImage,
         width: 1200,
         height: 630,
         alt: siteConfig.siteTitle,
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteConfig.siteTitle,
     description: siteConfig.description,
-    images: ["/og-soraxi.png"],
+    images: [siteConfig.ogImage],
     // creator: "@yourtwitterhandle", // 👈 replace if you have one. when we create an X account
   },
   icons: {

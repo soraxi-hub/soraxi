@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXComponents } from "@/lib/utils/mdx-utils/mdx-components";
 import { TableOfContents } from "@/lib/utils/mdx-utils/table-of-contents";
@@ -5,6 +6,7 @@ import {
   allArticleSlugs,
   getArticleLoader,
 } from "@/lib/utils/mdx-utils/article-registry";
+import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,6 +24,58 @@ interface DocsPageProps {
 
 export async function generateStaticParams() {
   return allArticleSlugs().map((slug) => ({ slug: slug.split("/") }));
+}
+
+type ArticleMetadata = {
+  title?: unknown;
+  description?: unknown;
+};
+
+const asString = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
+export async function generateMetadata({
+  params,
+}: DocsPageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  if (!slug || slug.length !== 2) return {};
+
+  const path = slug.join("/");
+  const loadArticle = getArticleLoader(path);
+
+  // No article: say nothing and inherit the defaults. The page itself renders
+  // the 404 — metadata generation is not the place to decide that.
+  if (!loadArticle) return {};
+
+  const { metadata } = await loadArticle();
+  const article = (metadata ?? {}) as ArticleMetadata;
+
+  const title = asString(article.title);
+  const description = asString(article.description);
+
+  if (!title) return {};
+
+  const url = `/docs/${path}`;
+
+  return {
+    title: { absolute: `${title} | ${siteConfig.name} Help` },
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      title,
+      description,
+      images: [{ url: siteConfig.ogImage, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [siteConfig.ogImage],
+    },
+  };
 }
 
 export default async function DocsPage({ params }: DocsPageProps) {
