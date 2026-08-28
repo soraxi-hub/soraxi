@@ -65,7 +65,11 @@ export class ProductRepository {
       .executeOne();
 
     if (!product) {
-      throw new AppError("NOT_FOUND", "Product not found", { productId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that product. It may have been removed by the vendor.",
+        { productId },
+      );
     }
 
     // Update product fields for draft (only update provided fields)
@@ -116,9 +120,7 @@ export class ProductRepository {
 
     return ProductModel.findById(productId)
       .select("_id name price images storeId")
-      .lean<
-        Pick<IProduct, "_id" | "name" | "price" | "images" | "storeId">
-      >();
+      .lean<Pick<IProduct, "_id" | "name" | "price" | "images" | "storeId">>();
   }
 
   static async findByIds(ids: string[]) {

@@ -25,7 +25,7 @@ export const couponRouter = createTRPCRouter({
         orderTotal: z.number().positive(),
         storeId: z.array(z.string()).optional(),
         productIds: z.array(z.string()).optional(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       try {
@@ -35,7 +35,7 @@ export const couponRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to use a coupon on your order.",
             cause: "UserNotAuthenticated",
           });
         }
@@ -65,7 +65,10 @@ export const couponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to validate coupon");
+        throw handleTRPCError(
+          err,
+          "We couldn't validate coupon. Please try again.",
+        );
       }
     }),
 
@@ -79,7 +82,7 @@ export const couponRouter = createTRPCRouter({
         code: z.string().min(2, "Coupon code is required"),
         orderTotal: z.number().positive(),
         storeIds: z.array(z.string()).optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -89,7 +92,7 @@ export const couponRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to use a coupon on your order.",
             cause: "UserNotAuthenticated",
           });
         }
@@ -120,7 +123,10 @@ export const couponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to apply coupon");
+        throw handleTRPCError(
+          err,
+          "We couldn't apply that coupon. Please try again.",
+        );
       }
     }),
 
@@ -141,13 +147,18 @@ export const couponRouter = createTRPCRouter({
       if (isReportableError(err)) {
         try {
           await sendTelegramMessage(
-            formatErrorReport(err, { source: "trpc:coupon.getHomepageCoupons" }),
+            formatErrorReport(err, {
+              source: "trpc:coupon.getHomepageCoupons",
+            }),
           );
         } catch {
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
-      throw handleTRPCError(err, "Failed to fetch homepage coupons");
+      throw handleTRPCError(
+        err,
+        "We couldn't load homepage coupons. Please try again.",
+      );
     }
   }),
 
@@ -159,7 +170,7 @@ export const couponRouter = createTRPCRouter({
     .input(
       z.object({
         code: z.string().min(2),
-      })
+      }),
     )
     .query(async ({ input }) => {
       try {
@@ -185,7 +196,10 @@ export const couponRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to fetch coupon");
+        throw handleTRPCError(
+          err,
+          "We couldn't load that coupon. Please try again.",
+        );
       }
     }),
 });

@@ -42,15 +42,20 @@ async function loadOwnSubOrder(
   const order = await Order.findById(orderId);
 
   if (!order) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message:
+        "We couldn't find that order. Refresh your orders list and try again.",
+    });
   }
 
-  const subOrder = order.subOrders.find(
-    (s) => s._id.toString() === subOrderId,
-  );
+  const subOrder = order.subOrders.find((s) => s._id.toString() === subOrderId);
 
   if (!subOrder) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Sub-order not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "This order doesn't contain any items from your store.",
+    });
   }
 
   if (subOrder.storeId.toString() !== storeId) {

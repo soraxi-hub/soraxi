@@ -66,7 +66,10 @@ export const cartRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Failed to fetch user cart");
+      throw handleTRPCError(
+        error,
+        "We couldn't load your cart. Please try again.",
+      );
     }
   }),
 
@@ -106,7 +109,10 @@ export const cartRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Failed to hydrate cart");
+      throw handleTRPCError(
+        error,
+        "We couldn't load your cart. Please try again.",
+      );
     }
   }),
 
@@ -164,7 +170,8 @@ export const cartRouter = createTRPCRouter({
         if (!product) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Product not found",
+            message:
+              "That product is no longer available. It may have sold out or been removed by the vendor.",
           });
         }
 
@@ -203,7 +210,10 @@ export const cartRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to add item to cart");
+        throw handleTRPCError(
+          error,
+          "We couldn't add that item to your cart. Please try again.",
+        );
       }
     }),
 
@@ -245,7 +255,7 @@ export const cartRouter = createTRPCRouter({
         if (!updatedCart) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Cart or item not found",
+            message: "That item is no longer in your cart. Refresh the page.",
           });
         }
 
@@ -261,7 +271,10 @@ export const cartRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to remove item from cart");
+        throw handleTRPCError(
+          error,
+          "We couldn't remove that item from your cart. Please try again.",
+        );
       }
     }),
 
@@ -323,7 +336,10 @@ export const cartRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to update cart item quantity");
+        throw handleTRPCError(
+          error,
+          "We couldn't update that quantity. Please try again.",
+        );
       }
     }),
 
@@ -362,7 +378,10 @@ export const cartRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch product details");
+        throw handleTRPCError(
+          error,
+          "We couldn't load product details. Please try again.",
+        );
       }
     }),
 
@@ -392,7 +411,7 @@ export const cartRouter = createTRPCRouter({
       if (!updatedCart) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Cart not found",
+          message: "Your cart is empty.",
         });
       }
 
@@ -410,7 +429,10 @@ export const cartRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Failed to add idempotency key");
+      throw handleTRPCError(
+        error,
+        "We couldn't start checkout. Please try again.",
+      );
     }
   }),
 });

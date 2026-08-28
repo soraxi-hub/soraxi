@@ -517,7 +517,7 @@ export const adminDisputeRouter = createTRPCRouter({
         if (!updatedDispute) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to update dispute record.",
+            message: "We couldn't update this dispute. Please try again.",
           });
         }
 
@@ -553,7 +553,10 @@ export const adminDisputeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to mark dispute as inconclusive.");
+        throw handleTRPCError(
+          error,
+          "We couldn't mark this dispute inconclusive. Please try again.",
+        );
       }
     }),
 
@@ -646,7 +649,10 @@ export const adminDisputeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch disputes.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load disputes. Please try again.",
+        );
       }
     }),
 
@@ -679,7 +685,8 @@ export const adminDisputeRouter = createTRPCRouter({
         if (!dispute) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Dispute not found.",
+            message:
+              "No dispute exists with that ID. It may have been resolved and archived.",
           });
         }
 
@@ -785,7 +792,10 @@ export const adminDisputeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch dispute details.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load these dispute details. Please try again.",
+        );
       }
     }),
 });

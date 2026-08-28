@@ -94,7 +94,11 @@ export class ProductService {
     const existingProduct = await ProductRepository.findById(productId);
 
     if (!existingProduct) {
-      throw new AppError("NOT_FOUND", "Product not found", { productId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that product. It may have been deleted — refresh your product list.",
+        { productId },
+      );
     }
 
     const images = existingProduct.images ?? [];

@@ -262,10 +262,14 @@ export class WaitlistService {
         await this.vendorApplicationRepository.findById(applicationId);
 
       if (!application) {
-        throw new AppError("NOT_FOUND", "Application not found.", {
-          applicationId,
-          adminId,
-        });
+        throw new AppError(
+          "NOT_FOUND",
+          "We couldn't find an application with that email and reference ID. Check both against your confirmation email.",
+          {
+            applicationId,
+            adminId,
+          },
+        );
       }
 
       application.approve(adminId);
@@ -333,11 +337,15 @@ export class WaitlistService {
       await this.vendorApplicationRepository.findById(applicationId);
 
     if (!application) {
-      throw new AppError("NOT_FOUND", "Application not found.", {
-        applicationId,
-        adminId,
-        reason,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find an application with that email and reference ID. Check both against your confirmation email.",
+        {
+          applicationId,
+          adminId,
+          reason,
+        },
+      );
     }
 
     application.reject(reason, adminId);

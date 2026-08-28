@@ -46,7 +46,7 @@ export const storeOrdersRouter = createTRPCRouter({
         if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch order details. Please try again later.",
+          message: "We couldn't load this order. Please try again.",
         });
       }
     }),
@@ -130,7 +130,7 @@ export const storeOrdersRouter = createTRPCRouter({
         // Generic error response
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch orders. Please try again later.",
+          message: "We couldn't load your orders. Please try again.",
         });
       }
     }),

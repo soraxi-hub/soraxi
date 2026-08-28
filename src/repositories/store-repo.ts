@@ -89,7 +89,11 @@ export class StoreRepository {
       .withLean(false)
       .executeOne();
 
-    if (!store) throw new AppError("NOT_FOUND", "Store not found");
+    if (!store)
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that store. It may no longer be trading.",
+      );
 
     store.walletId = new mongoose.Types.ObjectId(
       vendorWalletId,

@@ -193,12 +193,20 @@ export class DeliveryProofService {
       // render a page; between then and now the customer may have confirmed in
       // their own app, or another rider may have used a second link.
       const order = await Order.findById(orderId).session(session);
-      if (!order) throw new AppError("NOT_FOUND", "Order not found");
+      if (!order)
+        throw new AppError(
+          "NOT_FOUND",
+          "We couldn't find that order. Refresh your orders list and try again.",
+        );
 
       const subOrder = order.subOrders.find(
         (s) => s._id.toString() === subOrderId,
       );
-      if (!subOrder) throw new AppError("NOT_FOUND", "Sub-order not found");
+      if (!subOrder)
+        throw new AppError(
+          "NOT_FOUND",
+          "This order doesn't contain any items from your store.",
+        );
 
       const proof = subOrder.deliveryProof;
 
@@ -343,12 +351,20 @@ export class DeliveryProofService {
     const Order = await getOrderModel();
     const order = await Order.findById(orderId);
 
-    if (!order) throw new AppError("NOT_FOUND", "Order not found");
+    if (!order)
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. Refresh your orders list and try again.",
+      );
 
     const subOrder = order.subOrders.find(
       (s) => s._id.toString() === subOrderId,
     );
-    if (!subOrder) throw new AppError("NOT_FOUND", "Sub-order not found");
+    if (!subOrder)
+      throw new AppError(
+        "NOT_FOUND",
+        "This order doesn't contain any items from your store.",
+      );
 
     if (subOrder.deliveryStatus === DeliveryStatus.Delivered) {
       throw new AppError("CONFLICT", "This sub-order is already delivered.");

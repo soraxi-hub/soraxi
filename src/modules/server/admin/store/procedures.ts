@@ -172,7 +172,8 @@ export const adminStoreRouter = createTRPCRouter({
         if (!storeData) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found.",
+            message:
+              "No store exists with that ID. It may have been deleted since the list was loaded.",
           });
         }
 
@@ -271,7 +272,8 @@ export const adminStoreRouter = createTRPCRouter({
         if (!store) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found.",
+            message:
+              "No store exists with that ID. It may have been deleted since the list was loaded.",
           });
         }
 
@@ -415,7 +417,8 @@ export const adminStoreRouter = createTRPCRouter({
             try {
               await sendTelegramMessage(
                 formatErrorReport(error, {
-                  source: "trpc:admin.store.storeActionForAdmins.logAdminAction",
+                  source:
+                    "trpc:admin.store.storeActionForAdmins.logAdminAction",
                 }),
               );
             } catch {

@@ -41,7 +41,7 @@ export const userRouter = createTRPCRouter({
       if (!userTokenData || !userTokenData.id) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "Unauthorized access",
+          message: "Sign in to view or update your profile.",
           cause: "UserNotAuthenticated",
         });
       }
@@ -140,7 +140,10 @@ export const userRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch user by email");
+        throw handleTRPCError(
+          error,
+          "We couldn't look up that account. Please try again.",
+        );
       }
     }),
 
@@ -196,7 +199,10 @@ export const userRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original
         }
       }
-      throw handleTRPCError(error, "We couldn't record your agreement.");
+      throw handleTRPCError(
+        error,
+        "We couldn't record your agreement. Please try again.",
+      );
     }
   }),
 
@@ -216,7 +222,7 @@ export const userRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to view or update your profile.",
           });
         }
 
@@ -274,7 +280,10 @@ export const userRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to update user profile");
+        throw handleTRPCError(
+          error,
+          "We couldn't update user profile. Please try again.",
+        );
       }
     }),
 });

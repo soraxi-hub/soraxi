@@ -46,7 +46,8 @@ export const paymentRouter = createTRPCRouter({
         if (!userDataDoc) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "User not found",
+            message:
+              "We couldn't find your account. Try signing out and back in.",
           });
         }
 

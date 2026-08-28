@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
     // STEP 1: Authenticate the student
     const authSession = await getUserDataFromToken(req);
     if (!authSession) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Sign in to raise a dispute on your order.",
+      );
     }
     const customerId = authSession.id;
 
@@ -113,7 +116,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      throw new AppError("NOT_FOUND", "Order not found.", { mainOrderId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order on your account. Check your Orders page and try again.",
+        { mainOrderId },
+      );
     }
 
     // Guard 2: Suborder must exist

@@ -37,10 +37,14 @@ export async function POST(request: NextRequest) {
 
     // ---- Ownership check ----
     if (body.storeId && body.storeId !== storeSession.id) {
-      throw new AppError("FORBIDDEN", "Unauthorized store access", {
-        storeId: storeSession.id,
-        requestedStoreId: body.storeId,
-      });
+      throw new AppError(
+        "FORBIDDEN",
+        "You are signed in to a different store. Switch to the store you want to write a description for.",
+        {
+          storeId: storeSession.id,
+          requestedStoreId: body.storeId,
+        },
+      );
     }
 
     // ---- Store status check ----
@@ -53,21 +57,29 @@ export async function POST(request: NextRequest) {
       .executeOne();
 
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", {
-        storeId: storeSession.id,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find your store. Sign out and sign in again.",
+        {
+          storeId: storeSession.id,
+        },
+      );
     }
     if (store.status === StoreStatusEnum.Suspended) {
       throw new AppError(
         "FORBIDDEN",
-        "Store suspended. You cannot perform this action.",
+        "Your store is suspended, so it cannot be used until the review is resolved. Check your email for the suspension notice, or contact support.",
         { storeId: storeSession.id },
       );
     }
     if (store.status !== StoreStatusEnum.Active) {
-      throw new AppError("FORBIDDEN", "Store is not verified or active.", {
-        storeId: storeSession.id,
-      });
+      throw new AppError(
+        "FORBIDDEN",
+        "Your store isn't live yet. Finish onboarding — store profile, shipping and terms — first.",
+        {
+          storeId: storeSession.id,
+        },
+      );
     }
 
     // ---- Rate limit ----

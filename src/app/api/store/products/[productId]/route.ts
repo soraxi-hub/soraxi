@@ -42,10 +42,14 @@ export async function PUT(
     const imageFiles = body.getAll("images") as File[];
 
     if (storeId !== storeSession.id) {
-      throw new AppError("FORBIDDEN", "Unauthorized store access", {
-        storeId: storeSession.id,
-        requestedStoreId: storeId,
-      });
+      throw new AppError(
+        "FORBIDDEN",
+        "You are signed in to a different store. Switch to the store that owns this product.",
+        {
+          storeId: storeSession.id,
+          requestedStoreId: storeId,
+        },
+      );
     }
 
     const { productId } = await params;
@@ -59,15 +63,23 @@ export async function PUT(
       .select("_id", "storeId")
       .executeOne();
     if (!product) {
-      throw new AppError("NOT_FOUND", "Product not found", { productId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that product. It may have been deleted — refresh your product list.",
+        { productId },
+      );
     }
 
     if (product.storeId.toString() !== storeSession.id) {
-      throw new AppError("FORBIDDEN", "Unauthorized access to product", {
-        productId,
-        storeId: storeSession.id,
-        productStoreId: product.storeId,
-      });
+      throw new AppError(
+        "FORBIDDEN",
+        "This product belongs to a different store, so it cannot be changed from here.",
+        {
+          productId,
+          storeId: storeSession.id,
+          productStoreId: product.storeId,
+        },
+      );
     }
 
     const store = await QueryBuilderFactory.queryBuilder<IStore>(StoreModel)
@@ -75,15 +87,19 @@ export async function PUT(
       .select("password", "status", "verification")
       .executeOne();
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", {
-        storeId: storeSession.id,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find your store. Sign out and sign in again.",
+        {
+          storeId: storeSession.id,
+        },
+      );
     }
 
     if (store.status === StoreStatusEnum.Suspended) {
       throw new AppError(
         "FORBIDDEN",
-        "Store Suspended. You can not perform this action",
+        "Your store is suspended, so it cannot be used until the review is resolved. Check your email for the suspension notice, or contact support.",
         {
           storeId: storeSession.id,
           status: store.status,
@@ -92,10 +108,14 @@ export async function PUT(
     }
 
     if (store.status !== StoreStatusEnum.Active) {
-      throw new AppError("FORBIDDEN", "Store is not verified or active.", {
-        storeId: storeSession.id,
-        status: store.status,
-      });
+      throw new AppError(
+        "FORBIDDEN",
+        "Your store isn't live yet. Finish onboarding — store profile, shipping and terms — before editing products.",
+        {
+          storeId: storeSession.id,
+          status: store.status,
+        },
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
@@ -131,11 +151,15 @@ export async function PUT(
     });
 
     if (!result) {
-      throw new AppError("INTERNAL_SERVER_ERROR", "Error updating product", {
-        storeId: storeSession.id,
-        productId,
-        action: submitAction,
-      });
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "We couldn't save your changes to this product. Nothing was changed — please try again.",
+        {
+          storeId: storeSession.id,
+          productId,
+          action: submitAction,
+        },
+      );
     }
 
     await session.commitTransaction();

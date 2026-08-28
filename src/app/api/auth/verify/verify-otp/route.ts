@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
     const user = await User.findById(userId).select("email isVerified");
 
     if (!user) {
-      throw new AppError("NOT_FOUND", "User not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find an account for this verification link. Sign in and request a new code.",
+      );
     }
 
     const otpDoc = await OTPModel.findOne({
@@ -99,7 +102,9 @@ export async function POST(request: NextRequest) {
     if (isReportableError(error)) {
       try {
         await sendTelegramMessage(
-          formatErrorReport(error, { source: "POST /api/auth/verify/verify-otp" }),
+          formatErrorReport(error, {
+            source: "POST /api/auth/verify/verify-otp",
+          }),
         );
       } catch {
         // sendTelegramMessage already console.errors internally; never mask the original error

@@ -36,7 +36,7 @@ export const requestRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to post and manage your requests.",
             cause: "UserNotAuthenticated",
           });
         }
@@ -64,7 +64,10 @@ export const requestRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to create request");
+        throw handleTRPCError(
+          err,
+          "We couldn't create that request. Please try again.",
+        );
       }
     }),
 
@@ -104,7 +107,10 @@ export const requestRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to fetch requests");
+        throw handleTRPCError(
+          err,
+          "We couldn't load requests. Please try again.",
+        );
       }
     }),
 
@@ -148,7 +154,10 @@ export const requestRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to fetch request");
+        throw handleTRPCError(
+          err,
+          "We couldn't load that request. Please try again.",
+        );
       }
     }),
 
@@ -163,7 +172,7 @@ export const requestRouter = createTRPCRouter({
       if (!user || !user.id) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "Unauthorized access",
+          message: "Sign in to post and manage your requests.",
           cause: "UserNotAuthenticated",
         });
       }
@@ -188,7 +197,10 @@ export const requestRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
-      throw handleTRPCError(err, "Failed to fetch user requests");
+      throw handleTRPCError(
+        err,
+        "We couldn't load your requests. Please try again.",
+      );
     }
   }),
 
@@ -215,7 +227,7 @@ export const requestRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to post and manage your requests.",
           });
         }
 
@@ -242,7 +254,10 @@ export const requestRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to update request");
+        throw handleTRPCError(
+          err,
+          "We couldn't update request. Please try again.",
+        );
       }
     }),
 
@@ -263,7 +278,7 @@ export const requestRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to post and manage your requests.",
           });
         }
 
@@ -290,7 +305,10 @@ export const requestRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to delete request");
+        throw handleTRPCError(
+          err,
+          "We couldn't delete that request. Please try again.",
+        );
       }
     }),
 
@@ -311,7 +329,7 @@ export const requestRouter = createTRPCRouter({
         if (!user || !user.id) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access",
+            message: "Sign in to post and manage your requests.",
           });
         }
 
@@ -338,7 +356,10 @@ export const requestRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to update request status");
+        throw handleTRPCError(
+          err,
+          "We couldn't update request status. Please try again.",
+        );
       }
     }),
 });

@@ -123,7 +123,11 @@ export class ProcessOrder {
     ).populate("subOrders.storeId");
 
     if (!order) {
-      return { ok: false, error: "Order not found" };
+      return {
+        ok: false,
+        error:
+          "No order exists for this payment reference. It may have been cleared as an abandoned checkout.",
+      };
     }
 
     // check idempotencyKey to prevent duplicate processing
@@ -499,7 +503,11 @@ export class ProcessOrder {
       .select("paymentStatus");
 
     if (!order) {
-      return { ok: false, error: "Order not found" };
+      return {
+        ok: false,
+        error:
+          "No order exists for this payment reference. It may have been cleared as an abandoned checkout.",
+      };
     }
 
     if (terminalStatusArr.includes(order.paymentStatus)) {
@@ -541,7 +549,11 @@ export class ProcessOrder {
       .select("paymentStatus expireAt");
 
     if (!order) {
-      return { ok: false, error: "Order not found" };
+      return {
+        ok: false,
+        error:
+          "No order exists for this payment reference. It may have been cleared as an abandoned checkout.",
+      };
     }
 
     if (statusArr.includes(order.paymentStatus)) {

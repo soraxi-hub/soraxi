@@ -140,7 +140,7 @@ export const auditLogRouter = createTRPCRouter({
 
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch audit logs",
+          message: "We couldn't load the audit log. Please try again.",
         });
       }
     }),
@@ -229,7 +229,7 @@ export const auditLogRouter = createTRPCRouter({
 
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch audit log",
+          message: "We couldn't load that audit entry. Please try again.",
         });
       }
     }),

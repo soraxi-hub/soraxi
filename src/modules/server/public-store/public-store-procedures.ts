@@ -102,7 +102,8 @@ export const publicStoreRouter = createTRPCRouter({
         if (!result)
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found",
+            message:
+              "This storefront isn't available. The vendor may no longer be trading.",
           });
 
         return result;

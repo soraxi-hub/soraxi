@@ -81,7 +81,7 @@ export const adminOrdersRouter = createTRPCRouter({
 
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch orders. Please try again later.",
+          message: "We couldn't load orders. Please try again later.",
         });
       }
     }),
@@ -117,7 +117,7 @@ export const adminOrdersRouter = createTRPCRouter({
         if (!order) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Order not found.",
+            message: "No order exists with that ID.",
           });
         }
 
@@ -221,7 +221,10 @@ export const adminOrdersRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch order details.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load these order details. Please try again.",
+        );
       }
     }),
 });
