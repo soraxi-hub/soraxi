@@ -9,6 +9,8 @@ import type { CouponType } from "@/validators/coupon-validations";
 import type { Types } from "mongoose";
 import { formatNaira } from "@/lib/utils/naira";
 import { DiscountCalculator } from "@/lib/utils/discount-calculator";
+import { DateFormatter } from "@/lib/utils/date-formatter";
+import { AppError } from "@/lib/errors/app-error";
 
 /**
  * Utility type: LeanDocumentWithId
@@ -103,17 +105,27 @@ export class CouponService {
     const coupon = await this.Coupon.findOne({ code }).lean<
       LeanDocumentWithId<CouponType>
     >();
-    if (!coupon) throw new Error("Coupon not found");
+    if (!coupon)
+      throw new AppError(
+        "NOT_FOUND",
+        "That coupon code doesn't exist. Check the spelling and try again.",
+      );
 
     // 1️⃣ Date validity
     const now = new Date();
-    if (now < coupon.startDate || now > coupon.endDate) {
-      throw new Error("Coupon has expired or is not yet active");
+    if (now > coupon.endDate) {
+      throw new AppError("BAD_REQUEST", "This coupon has expired.");
+    }
+    if (now < coupon.startDate) {
+      throw new AppError(
+        "BAD_REQUEST",
+        `This coupon isn't active yet — it can be used from ${DateFormatter.shortDate(coupon.startDate)}.`,
+      );
     }
 
     // 2️⃣ Active state
     if (!coupon.isActive) {
-      throw new Error("Coupon is not active");
+      throw new AppError("BAD_REQUEST", "This coupon is no longer active.");
     }
 
     // 3️⃣ Max redemption check
@@ -122,13 +134,19 @@ export class CouponService {
         couponId: coupon.code,
       });
       if (totalUses >= coupon.maxRedemptions) {
-        throw new Error("Coupon redemption limit reached");
+        throw new AppError(
+          "BAD_REQUEST",
+          "This coupon has reached its usage limit and can no longer be redeemed.",
+        );
       }
     }
 
     // 4️⃣ Per-user restriction
     if (coupon.userId && coupon.userId.toString() !== userId) {
-      throw new Error("This coupon is not assigned to your account");
+      throw new AppError(
+        "FORBIDDEN",
+        "This coupon was issued to a different account.",
+      );
     }
 
     // 5️⃣ Product/Store restriction
@@ -136,20 +154,27 @@ export class CouponService {
       coupon.productIds.length > 0 &&
       !coupon.productIds.some((id) => productIds.includes(id.toString()))
     ) {
-      throw new Error("This coupon does not apply to selected products");
+      throw new AppError(
+        "BAD_REQUEST",
+        "This coupon doesn't apply to any of the items in your cart.",
+      );
     }
 
     if (
       coupon.storeIds.length > 0 &&
       !coupon.storeIds.some((id) => storeIds.includes(id.toString()))
     ) {
-      throw new Error("This coupon does not apply to selected store(s)");
+      throw new AppError(
+        "BAD_REQUEST",
+        "This coupon only applies to items from certain vendors, and your cart has none of them.",
+      );
     }
 
     // 6️⃣ Minimum order total. Both order Total and Min Order value are in kobo
     if (coupon.minOrderValue && orderTotal < coupon.minOrderValue) {
-      throw new Error(
-        `Order total must be at least ${formatNaira(coupon.minOrderValue)}`,
+      throw new AppError(
+        "BAD_REQUEST",
+        `This coupon needs a minimum order of ${formatNaira(coupon.minOrderValue)}. Add ${formatNaira(coupon.minOrderValue - orderTotal)} more to use it.`,
       );
     }
 
@@ -159,7 +184,10 @@ export class CouponService {
       userId,
     );
     if (isUsedByUser) {
-      throw new Error(`You have already used this coupon`);
+      throw new AppError(
+        "CONFLICT",
+        "You've already used this coupon. Each coupon can only be used once per account.",
+      );
     }
 
     return coupon;
@@ -185,7 +213,11 @@ export class CouponService {
    */
   async redeemCoupon(couponId: string, userId: string, orderId: string) {
     const existing = await this.Redemption.findOne({ couponId, userId });
-    if (existing) throw new Error("You have already used this coupon");
+    if (existing)
+      throw new AppError(
+        "CONFLICT",
+        "You've already used this coupon. Each coupon can only be used once per account.",
+      );
 
     await this.Redemption.create({
       couponId: couponId,
@@ -254,7 +286,10 @@ export class CouponService {
     code: string,
   ): Promise<LeanDocumentWithId<CouponType> | null> {
     if (!mongoose.Types.ObjectId.isValid(code)) {
-      throw new Error(`Invalid code.`);
+      throw new AppError(
+        "BAD_REQUEST",
+        "That coupon reference isn't valid. Check the link you followed and try again.",
+      );
     }
 
     const coupon = await this.Coupon.findById(

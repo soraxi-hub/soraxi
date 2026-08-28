@@ -93,7 +93,7 @@ export class CouponQueryService {
    */
   static async listCoupons(
     filters: CouponFilters,
-    pagination: PaginationParams
+    pagination: PaginationParams,
   ): Promise<CouponQueryResult> {
     const Coupon = await getCouponModel();
 
@@ -137,7 +137,7 @@ export class CouponQueryService {
     if (!coupon) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Coupon not found",
+        message: "That coupon no longer exists. It may have been withdrawn.",
       });
     }
 
@@ -186,7 +186,7 @@ export class CouponQueryService {
     if (!coupon) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Coupon not found",
+        message: "That coupon no longer exists. It may have been withdrawn.",
       });
     }
 
@@ -232,7 +232,7 @@ export class CouponQueryService {
     if (!deleted) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Coupon not found",
+        message: "That coupon no longer exists. It may have been withdrawn.",
       });
     }
 
@@ -255,7 +255,7 @@ export class CouponQueryService {
     if (coupons.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Coupon not found",
+        message: "That coupon no longer exists. It may have been withdrawn.",
       });
     }
 

@@ -4,6 +4,7 @@ import { GatewayRouter } from "../../domain/payment/gateway-routing";
 import { PreparedPaymentData } from "../checkout.service";
 import { PublicToJSONUserType } from "@/domain/users/user-interface";
 import { CartRepository } from "@/repositories/cart-repo";
+import { AppError } from "@/lib/errors/app-error";
 import { CartFactory } from "@/domain/cart/cart-factory";
 import { OrderPendingService } from "@/services/orders/order-pending.service";
 import { getOrderModel } from "@/lib/db/models/order.model";
@@ -46,7 +47,11 @@ export class PaymentService {
 
     // Step 1: Validate cart
     const cartDoc = await CartRepository.getCartByUserId(user.userId);
-    if (!cartDoc) throw new Error("User cart not found.");
+    if (!cartDoc)
+      throw new AppError(
+        "BAD_REQUEST",
+        "Your cart is empty or has expired. Add items again before paying.",
+      );
     const cart = CartFactory.createCart({
       ...cartDoc,
       _id: cartDoc._id?.toString(),
@@ -55,7 +60,10 @@ export class PaymentService {
 
     const idempotencyKey = cart.idempotencyKey;
     if (!idempotencyKey)
-      throw new Error("Idempotency key is missing from the cart.");
+      throw new AppError(
+        "CONFLICT",
+        "This checkout session has expired. Go back to your cart and start checkout again.",
+      );
 
     const candidates = GatewayRouter.candidateGateways();
 
