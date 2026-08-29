@@ -1,3 +1,4 @@
+import { MIN_IMAGE_NUMBER } from "@/constants/image.constants";
 import { ProductDecorator } from "./product-decorator";
 import {
   productCategory,
@@ -26,10 +27,6 @@ export type ProductValidationErrors = Partial<
     string
   >
 >;
-
-export const MIN_IMAGE_NUMBER = 1;
-export const MAX_IMAGE_NUMBER = 3;
-export const MAX_IMAGE_FILE_SIZE = 4 * 1024 * 1024; // 4MB
 
 export class ProductValidation extends ProductDecorator {
   private getFirstError(result: any) {

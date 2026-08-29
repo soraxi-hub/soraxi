@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  MAX_IMAGE_UPLOAD_COUNT,
+} from "@/constants/image.constants";
+import { useImageUpload } from "@/hooks/use-image-upload";
+import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 
 interface DisputeDialogProps {
   open: boolean;
@@ -25,7 +32,6 @@ interface DisputeDialogProps {
   setSubmittingAction: (submitting: boolean) => void;
 }
 
-const MAX_IMAGES = 5;
 const MIN_REASON_LENGTH = 20;
 
 export function DisputeDialog({
@@ -39,43 +45,21 @@ export function DisputeDialog({
   setSubmittingAction,
 }: DisputeDialogProps) {
   const [reason, setReason] = useState("");
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-
-    const remaining = MAX_IMAGES - images.length;
-    const selected = files.slice(0, remaining);
-
-    // Generate previews
-    selected.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPreviews((prev) => [...prev, ev.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    setImages((prev) => [...prev, ...selected]);
-
-    // Reset input so same file can be re-selected if removed
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
-  };
+  const {
+    files: images,
+    previews,
+    isProcessing: isProcessingImages,
+    handleImageChange: handleImageSelect,
+    removeImage: handleRemoveImage,
+    reset: resetImages,
+  } = useImageUpload();
 
   const handleClose = () => {
     if (submitting) return;
     setReason("");
-    setImages([]);
-    setPreviews([]);
+    resetImages();
     setError(null);
     setOpenAction(false);
   };
@@ -109,12 +93,13 @@ export function DisputeDialog({
         body: formData,
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        setError(result.error ?? "Failed to submit dispute. Please try again.");
+        const { message } = await parseErrorFromResponse(response);
+        setError(message);
         return;
       }
+
+      const result = await response.json();
 
       handleClose();
       onSuccessAction(result.data.disputeId);
@@ -127,7 +112,9 @@ export function DisputeDialog({
 
   const reasonLength = reason.trim().length;
   const isReasonValid = reasonLength >= MIN_REASON_LENGTH;
-  const isFormValid = isReasonValid && images.length > 0;
+  // Submitting while compression is still running would send whichever photos
+  // happened to have finished.
+  const isFormValid = isReasonValid && images.length > 0 && !isProcessingImages;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -188,7 +175,7 @@ export function DisputeDialog({
                 Photo Evidence <span className="text-destructive">*</span>
               </Label>
               <span className="text-xs text-muted-foreground">
-                {images.length}/{MAX_IMAGES} photos
+                {images.length}/{MAX_IMAGE_UPLOAD_COUNT} photos
               </span>
             </div>
 
@@ -217,7 +204,7 @@ export function DisputeDialog({
                 ))}
 
                 {/* Add more slot */}
-                {images.length < MAX_IMAGES && (
+                {images.length < MAX_IMAGE_UPLOAD_COUNT && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={submitting}
@@ -243,7 +230,10 @@ export function DisputeDialog({
                     Upload photos
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Up to {MAX_IMAGES} photos showing the issue
+                    Photos showing the issue
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {IMAGE_UPLOAD_HINT}
                   </p>
                 </div>
               </button>
@@ -252,7 +242,7 @@ export function DisputeDialog({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_UPLOAD_ACCEPT}
               multiple
               className="hidden"
               onChange={handleImageSelect}

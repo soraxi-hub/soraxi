@@ -14,13 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import type { ProofStepProps } from "@/types/waitlist-wizard.types";
 import {
-  ALLOWED_IMAGE_TYPES,
-  IMAGE_FILE_SIZE,
-  MAX_IMAGE_FILE_SIZE,
-  MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES,
+  IMAGE_UPLOAD_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  MAX_IMAGE_UPLOAD_COUNT,
 } from "@/constants/image.constants";
 
 export const BusinessProofStep: React.FC<ProofStepProps> = ({
@@ -33,65 +31,12 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
   productSampleFiles,
   productSamplePreviews,
   dragActive,
-  onProductSampleFilesChange,
-  onProductSamplePreviewsChange,
-  onDragActiveChange,
+  isProcessingSamples,
+  onSampleChange,
+  onDrop,
+  onDrag,
   onRemoveSample,
 }) => {
-  // ─── Image handlers — same pattern as ProductImagesStep ──────────────────
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      onDragActiveChange(true);
-    } else if (e.type === "dragleave") {
-      onDragActiveChange(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDragActiveChange(false);
-    if (e.dataTransfer.files?.[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) handleFiles(e.target.files);
-  };
-
-  const handleFiles = (files: FileList) => {
-    const fileArray = Array.from(files);
-
-    if (
-      productSampleFiles.length + fileArray.length >
-      MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES
-    ) {
-      toast.info(
-        `You can upload up to ${MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES} samples. You currently have ${productSampleFiles.length}.`,
-      );
-      return;
-    }
-
-    for (const file of fileArray) {
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        toast.info("Only JPEG, PNG, and WebP images are allowed");
-        return;
-      }
-      if (file.size > MAX_IMAGE_FILE_SIZE) {
-        toast.info(`Each image must be less than ${IMAGE_FILE_SIZE}MB`);
-        return;
-      }
-    }
-
-    onProductSampleFilesChange([...productSampleFiles, ...fileArray]);
-    const newPreviews = fileArray.map((f) => URL.createObjectURL(f));
-    onProductSamplePreviewsChange([...productSamplePreviews, ...newPreviews]);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -199,7 +144,7 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
           <SoraxiCardTitle className="text-xl">Product Samples</SoraxiCardTitle>
           <SoraxiCardDescription>
             Upload photos of products you plan to sell (min 1, max{" "}
-            {MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES})
+            {MAX_IMAGE_UPLOAD_COUNT})
           </SoraxiCardDescription>
         </SoraxiCardHeader>
 
@@ -216,10 +161,10 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
 
           {/* Upload area — same pattern as ProductImagesStep */}
           <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
+            onDragEnter={onDrag}
+            onDragLeave={onDrag}
+            onDragOver={onDrag}
+            onDrop={onDrop}
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
               dragActive
                 ? "border-[#14a800] bg-[#14a800]/5"
@@ -230,11 +175,12 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
               type="file"
               id="sample-upload"
               multiple
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handleImageChange}
+              accept={IMAGE_UPLOAD_ACCEPT}
+              onChange={onSampleChange}
               disabled={
                 isLoading ||
-                productSampleFiles.length >= MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES
+                isProcessingSamples ||
+                productSampleFiles.length >= MAX_IMAGE_UPLOAD_COUNT
               }
               className="hidden"
             />
@@ -246,9 +192,7 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
               <p className="text-xs text-gray-500 mb-3">
                 or click to select files
               </p>
-              <p className="text-xs text-gray-500">
-                JPEG, PNG, WebP · Max {IMAGE_FILE_SIZE}MB each
-              </p>
+              <p className="text-xs text-gray-500">{IMAGE_UPLOAD_HINT}</p>
             </label>
           </div>
 
@@ -256,13 +200,12 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
           {productSampleFiles.length > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                {productSampleFiles.length}/{MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES}{" "}
-                samples
+                {productSampleFiles.length}/{MAX_IMAGE_UPLOAD_COUNT} samples
               </Badge>
               <p className="text-xs text-gray-500">
-                {productSampleFiles.length >= MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES
+                {productSampleFiles.length >= MAX_IMAGE_UPLOAD_COUNT
                   ? "Maximum reached"
-                  : `${MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES - productSampleFiles.length} more allowed`}
+                  : `${MAX_IMAGE_UPLOAD_COUNT - productSampleFiles.length} more allowed`}
               </p>
             </div>
           )}
@@ -274,7 +217,7 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
                 {productSamplePreviews.map((preview, index) => (
                   <div
                     key={index}
-                    className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group"
+                    className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
                   >
                     <Image
                       src={preview}
@@ -286,7 +229,7 @@ export const BusinessProofStep: React.FC<ProofStepProps> = ({
                     <button
                       onClick={() => onRemoveSample(index)}
                       disabled={isLoading}
-                      className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer disabled:opacity-50"
                       title="Remove sample"
                     >
                       <X className="h-4 w-4" />

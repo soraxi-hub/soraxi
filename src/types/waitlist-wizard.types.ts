@@ -1,5 +1,3 @@
-// ─── Form data ────────────────────────────────────────────────────────────────
-
 export interface WaitlistFormData {
   // Step 1 — Business, contact & what you sell
   businessName: string;
@@ -29,12 +27,6 @@ export const initialWaitlistFormData: WaitlistFormData = {
   otherProofUrl: "",
 };
 
-/**
- * Contact details read from the applicant's account on the server and used to
- * prefill step 1, so a signed-in vendor never retypes what we already hold.
- * Every field stays editable — a business email or phone often differs from the
- * one on the personal account.
- */
 export interface WaitlistApplicantDefaults {
   ownerName: string;
   email: string;
@@ -77,9 +69,11 @@ export interface ProofStepProps extends BaseStepProps {
   productSampleFiles: File[];
   productSamplePreviews: string[];
   dragActive: boolean;
-  onProductSampleFilesChange: (files: File[]) => void;
-  onProductSamplePreviewsChange: (previews: string[]) => void;
-  onDragActiveChange: (active: boolean) => void;
+  /** True while samples are being compressed. */
+  isProcessingSamples?: boolean;
+  onSampleChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onDrop: (event: React.DragEvent) => void;
+  onDrag: (event: React.DragEvent) => void;
   onRemoveSample: (index: number) => void;
 }
 

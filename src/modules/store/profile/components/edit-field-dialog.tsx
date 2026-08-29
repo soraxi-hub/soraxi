@@ -35,13 +35,6 @@ interface EditFieldDialogProps {
 
 /**
  * One dialog for editing one field.
- *
- * The store name and description are edited from two different places — the
- * pencil beside the name, and the Edit button on "What students see" — and both
- * want the same thing: a focused box, a length rule, and a save button that
- * refuses until the rule is met. A single component keeps those rules stated
- * once rather than drifting apart in two inline forms, which is what the
- * previous 620-line page did.
  */
 export function EditFieldDialog({
   open,

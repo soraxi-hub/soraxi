@@ -13,8 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { EditProductFormData } from "@/types/edit-wizard.types";
-import { useProductImages } from "@/hooks/use-product-images.edit";
-import { MAX_PRODUCT_IMAGES } from "@/constants/image.constants";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  MAX_IMAGE_UPLOAD_COUNT,
+} from "@/constants/image.constants";
 
 interface ProductImagesStepProps {
   images: {
@@ -24,6 +27,9 @@ interface ProductImagesStepProps {
   };
   onRemoveImage: (index: number, isNewFile: boolean) => void;
   onImagesChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDrag: (e: React.DragEvent) => void;
+  dragActive: boolean;
   onNext: () => Promise<void>;
   onPrevious: () => Promise<void>;
   currentStep: number;
@@ -35,17 +41,16 @@ export function ProductImagesStep({
   images,
   onRemoveImage,
   onImagesChange,
+  onDrop,
+  onDrag,
+  dragActive,
   onNext,
   onPrevious,
   isLoading = false,
   errors,
   currentStep,
 }: ProductImagesStepProps) {
-  // Hook provides drag & drop and file handling logic
-  const { imageFiles, dragActive, handleDrag, handleDrop, handleImageChange } =
-    useProductImages({ existingImageCount: images.existingUrls.length });
-
-  const totalImages = images.existingUrls.length + imageFiles.length;
+  const totalImages = images.existingUrls.length + images.newFiles.length;
 
   return (
     <div className="space-y-6">
@@ -55,7 +60,8 @@ export function ProductImagesStep({
           Product Images
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Update your product images (minimum 1, maximum {MAX_PRODUCT_IMAGES})
+          Update your product images (minimum 1, maximum{" "}
+          {MAX_IMAGE_UPLOAD_COUNT})
         </p>
       </div>
 
@@ -73,10 +79,10 @@ export function ProductImagesStep({
         <SoraxiCardContent className="space-y-6">
           {/* Drag & Drop Upload Area */}
           <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
+            onDragEnter={onDrag}
+            onDragLeave={onDrag}
+            onDragOver={onDrag}
+            onDrop={onDrop}
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
               dragActive
                 ? "border-[#14a800] bg-[#14a800]/5"
@@ -87,12 +93,9 @@ export function ProductImagesStep({
               type="file"
               id="image-upload"
               multiple
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={(e) => {
-                handleImageChange(e); // hook handles file validation and state
-                onImagesChange(e); // parent's onChange if needed
-              }}
-              disabled={isLoading || totalImages >= MAX_PRODUCT_IMAGES}
+              accept={IMAGE_UPLOAD_ACCEPT}
+              onChange={onImagesChange}
+              disabled={isLoading || totalImages >= MAX_IMAGE_UPLOAD_COUNT}
               className="hidden"
             />
 
@@ -104,9 +107,7 @@ export function ProductImagesStep({
               <p className="text-xs text-gray-500 mb-3">
                 or click to select files from your computer
               </p>
-              <p className="text-xs text-gray-500">
-                Supported: JPEG, PNG, WebP (Max 5MB each)
-              </p>
+              <p className="text-xs text-gray-500">{IMAGE_UPLOAD_HINT}</p>
             </label>
           </div>
 
@@ -124,12 +125,12 @@ export function ProductImagesStep({
           {totalImages > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                {totalImages}/{MAX_PRODUCT_IMAGES} images
+                {totalImages}/{MAX_IMAGE_UPLOAD_COUNT} images
               </Badge>
               <p className="text-xs text-gray-500">
-                {totalImages >= MAX_PRODUCT_IMAGES
+                {totalImages >= MAX_IMAGE_UPLOAD_COUNT
                   ? "Maximum images reached"
-                  : `${MAX_PRODUCT_IMAGES - totalImages} more allowed`}
+                  : `${MAX_IMAGE_UPLOAD_COUNT - totalImages} more allowed`}
               </p>
             </div>
           )}
@@ -172,19 +173,19 @@ export function ProductImagesStep({
           )}
 
           {/* New Images Section */}
-          {imageFiles.length > 0 && (
+          {images.newFiles.length > 0 && (
             <>
               <div>
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
                   New Images
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {imageFiles.map((file, index) => {
+                  {images.newFiles.map((file, index) => {
                     const previewUrl = URL.createObjectURL(file);
                     return (
                       <div
                         key={`new-${index}`}
-                        className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group"
+                        className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
                       >
                         <Image
                           src={previewUrl}
@@ -201,7 +202,7 @@ export function ProductImagesStep({
                             )
                           }
                           disabled={isLoading}
-                          className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Remove image"
                         >
                           <X className="h-4 w-4" />
@@ -228,8 +229,10 @@ export function ProductImagesStep({
             <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
               <li>• Click the X button to remove any image</li>
               <li>• New images are marked with a green badge</li>
-              <li>• Keep file sizes under 5MB for best performance</li>
-              <li>• You can have up to {MAX_PRODUCT_IMAGES} images total</li>
+              <li>• Large photos are fine — we shrink them before uploading</li>
+              <li>
+                • You can have up to {MAX_IMAGE_UPLOAD_COUNT} images total
+              </li>
             </ul>
           </div>
         </SoraxiCardContent>

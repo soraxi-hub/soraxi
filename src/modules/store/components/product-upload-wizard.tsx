@@ -18,7 +18,7 @@ import { parseErrorFromResponse } from "@/lib/utils/parse-error-from-response";
 import { slugify } from "@/constants/constant";
 import type { ProductFormData } from "@/validators/product-validators";
 import { ProductTypeEnum } from "@/enums";
-import { useProductImages } from "@/hooks/use-product-images.upload";
+import { useImageUpload } from "@/hooks/use-image-upload";
 import type { ProductUploadWizardProps } from "@/types/upload-wizard.types";
 import {
   BasicInfoStep,
@@ -54,28 +54,20 @@ const initialFormData: ProductFormData = {
  *
  * Main container for the multi-step product upload wizard
  * Orchestrates all step components and manages centralized state
- *
- * Features:
- * - 5-step guided product creation
- * - Centralized state management
- * - Step-level validation
- * - Image upload with drag/drop
- * - Draft save functionality
- * - Unsaved changes protection
- * - Full TypeScript support
  */
 export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
   const router = useRouter();
   const {
-    imageFiles,
-    imagePreviews,
+    files: imageFiles,
+    previews: imagePreviews,
     dragActive,
+    isProcessing: isProcessingImages,
+    handleImageChange,
+    handleDrop,
+    handleDrag,
     removeImage,
-    setDragActive,
-    setImageFiles,
-    setImagePreviews,
-  } = useProductImages();
+  } = useImageUpload();
   const { errors, validateStep, validatePublish, clearFieldError, setErrors } =
     useStepValidation();
   const { currentStep, nextStep, previousStep, stepProgress } =
@@ -344,9 +336,10 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
             imagePreviews={imagePreviews}
             dragActive={dragActive}
             errors={errors}
-            onImageFilesChange={setImageFiles}
-            onImagePreviewsChange={setImagePreviews}
-            onDragActiveChange={setDragActive}
+            isProcessingImages={isProcessingImages}
+            onImageChange={handleImageChange}
+            onDrop={handleDrop}
+            onDrag={handleDrag}
             onRemoveImage={removeImage}
             onNext={handleNextStep}
             onPrevious={handlePreviousStep}
@@ -376,10 +369,6 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
         return null;
     }
   };
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   return (
     <div className="min-h-screen">

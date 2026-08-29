@@ -21,6 +21,7 @@ import { DeliveryStatus } from "@/enums";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import { AppError } from "@/lib/errors/app-error";
+import { assertValidImageUpload } from "@/validators/validate-image-files";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { MessagingEvents } from "@/services/messaging/messaging-events";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
@@ -104,6 +105,11 @@ export async function POST(req: NextRequest) {
         "At least one evidence image is required.",
       );
     }
+
+    // The dialog validates too, but a route that trusts its client for file
+    // size and type has no limit at all — this one previously accepted any
+    // number of files of any size and sent them straight to Cloudinary.
+    assertValidImageUpload(evidenceFiles);
 
     // STEP 3: Run all guards before touching any financial data
     await connectToDatabase();

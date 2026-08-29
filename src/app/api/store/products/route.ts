@@ -3,6 +3,7 @@ import { getProductModel, IProduct } from "@/lib/db/models/product.model";
 import { getStoreDataFromToken } from "@/lib/helpers/get-store-data-from-token";
 import { getStoreModel, IStore } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
+import { assertValidImageUpload } from "@/validators/validate-image-files";
 import bcrypt from "bcryptjs";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
@@ -55,6 +56,10 @@ export async function POST(request: NextRequest) {
 
     // Extract image files
     const imageFiles = body.getAll("images") as File[];
+
+    // Count, size and type enforced server-side. The wizard applies the same
+    // rules, but until now nothing stopped a request that skipped it.
+    assertValidImageUpload(imageFiles);
 
     // Validate store ownership
     if (storeId !== storeSession.id) {

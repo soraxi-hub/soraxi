@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useCallback, ChangeEvent } from "react";
+import { useCallback, useEffect, useRef, useState, ChangeEvent } from "react";
 import { toast } from "sonner";
+
 import type { UseProductImagesReturn } from "@/types/edit-wizard.types";
+import { MAX_IMAGE_UPLOAD_COUNT } from "@/constants/image.constants";
+import { compressImages } from "@/lib/utils/compress-image";
 import {
-  ALLOWED_IMAGE_TYPES,
-  MAX_IMAGE_FILE_SIZE,
-  MAX_PRODUCT_IMAGES,
-} from "@/constants/image.constants";
+  summariseRejections,
+  validateImageFiles,
+} from "@/validators/validate-image-files";
 
 interface UseProductImagesProps {
   existingImageCount: number;
 }
 
 /**
- * Hook for handling product image uploads in the edit wizard
- * Manages both existing images (URLs) and new files
+ * Image handling for the product **edit** wizard.
  */
 export function useProductImages({
   existingImageCount = 0,
@@ -24,9 +25,50 @@ export function useProductImages({
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
-  /**
-   * Handle file drag events
-   */
+  // Both counts are read through refs at call time. The previous version listed
+  // `[]` as the dependencies of its drop and change handlers while calling a
+  // `handleFiles` that closed over `existingImageCount` and `imageFiles.length`,
+  // so after the first add the limit was checked against stale numbers.
+  const filesRef = useRef<File[]>([]);
+  filesRef.current = imageFiles;
+
+  const existingCountRef = useRef(existingImageCount);
+  existingCountRef.current = existingImageCount;
+
+  const previewsRef = useRef<string[]>([]);
+  previewsRef.current = imagePreviews;
+
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const selected = Array.from(files);
+    if (selected.length === 0) return;
+
+    const { accepted, rejected } = validateImageFiles(selected, {
+      existingCount: existingCountRef.current + filesRef.current.length,
+      maxCount: MAX_IMAGE_UPLOAD_COUNT,
+    });
+
+    for (const message of summariseRejections(rejected)) {
+      toast.error(message);
+    }
+
+    if (accepted.length === 0) return;
+
+    try {
+      const prepared = await compressImages(accepted);
+
+      setImageFiles((current) => [...current, ...prepared]);
+      setImagePreviews((current) => [
+        ...current,
+        ...prepared.map((file) => URL.createObjectURL(file)),
+      ]);
+    } catch (error) {
+      console.error("Image processing failed:", error);
+      toast.error(
+        "We couldn't process those images. Please try again, or pick smaller files.",
+      );
+    }
+  }, []);
+
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -38,108 +80,62 @@ export function useProductImages({
     }
   }, []);
 
-  /**
-   * Handle file drop
-   */
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  }, []);
-
-  /**
-   * Handle file input change (click to select)
-   */
-  const handleImageChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(e.target.files);
-    }
-  }, []);
-
-  /**
-   * Process selected files
-   * Validates file count, type, and size
-   */
-  const handleFiles = useCallback(
-    (files: FileList) => {
-      const fileArray = Array.from(files);
-
-      // Check total image count
-      const totalImages =
-        existingImageCount + imageFiles.length + fileArray.length;
-      if (totalImages > MAX_PRODUCT_IMAGES) {
-        toast.error(
-          `You can only have up to ${MAX_PRODUCT_IMAGES} images total. Currently: ${existingImageCount} existing + ${imageFiles.length} new = ${existingImageCount + imageFiles.length}. Cannot add ${fileArray.length} more.`,
-        );
-        return;
-      }
-
-      // Validate each file
-      for (const file of fileArray) {
-        // Check file type
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-          toast.error(
-            `File "${file.name}" is not supported. Only JPEG, PNG, and WebP images are allowed.`,
-          );
-          return;
-        }
-
-        // Check file size
-        if (file.size > MAX_IMAGE_FILE_SIZE) {
-          toast.error(`File "${file.name}" is too large. Maximum size is 5MB.`);
-          return;
-        }
-      }
-
-      // Add files and create previews
-      setImageFiles((prevFiles) => [...prevFiles, ...fileArray]);
-
-      const newPreviews = fileArray.map((file) => URL.createObjectURL(file));
-      setImagePreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
-
-      toast.success(`${fileArray.length} image(s) added successfully`);
+      if (e.dataTransfer.files?.length) void handleFiles(e.dataTransfer.files);
     },
-    [existingImageCount, imageFiles.length],
+    [handleFiles],
+  );
+
+  const handleImageChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) void handleFiles(e.target.files);
+      e.target.value = "";
+    },
+    [handleFiles],
   );
 
   /**
-   * Remove an image
-   * Handles both existing images (URLs) and new files
+   * Removes an image.
+   *
+   * `index` is a position in the combined list the UI renders — existing images
+   * first, then new files — so it has to be rebased before it can index the
+   * new-file arrays. The previous version rebased it for `imageFiles` but used
+   * the un-rebased index against `imagePreviews`, which holds new previews
+   * only; with any existing image present that revoked and removed the wrong
+   * preview.
    */
-  const removeImage = useCallback(
-    (index: number, isNewFile: boolean) => {
-      if (isNewFile) {
-        const newFileIndex = index - existingImageCount;
+  const removeImage = useCallback((index: number, isNewFile: boolean) => {
+    if (!isNewFile) {
+      toast.info(
+        "Images already saved on this product can't be removed here yet.",
+      );
+      return;
+    }
 
-        // Revoke object URL to free memory
-        if (imagePreviews[index]) {
-          URL.revokeObjectURL(imagePreviews[index]);
-        }
+    const newFileIndex = index - existingCountRef.current;
+    if (newFileIndex < 0 || newFileIndex >= filesRef.current.length) return;
 
-        // Remove from files and previews
-        setImageFiles((prevFiles) =>
-          prevFiles.filter((_, i) => i !== newFileIndex),
-        );
+    setImagePreviews((current) => {
+      const url = current[newFileIndex];
+      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      return current.filter((_, i) => i !== newFileIndex);
+    });
 
-        setImagePreviews((prevPreviews) =>
-          prevPreviews.filter((_, i) => i !== newFileIndex),
-        );
+    setImageFiles((current) => current.filter((_, i) => i !== newFileIndex));
+  }, []);
 
-        toast.success("Image removed");
-      } else {
-        // Existing image - cannot be removed directly
-        // Would need backend support to remove from existing product images
-        toast.info(
-          "To remove existing images, they need to be deleted through the backend",
-        );
+  useEffect(() => {
+    return () => {
+      for (const url of previewsRef.current) {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
       }
-    },
-    [existingImageCount, imagePreviews],
-  );
+    };
+  }, []);
 
   return {
     imageFiles,

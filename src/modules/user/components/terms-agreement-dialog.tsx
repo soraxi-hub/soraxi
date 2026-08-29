@@ -31,6 +31,7 @@ export function TermsAgreementDialog({ hasAgreed }: TermsAgreementDialogProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [checked, setChecked] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(true);
 
   const accept = useMutation(
     trpc.user.acceptTerms.mutationOptions({
@@ -41,6 +42,7 @@ export function TermsAgreementDialog({ hasAgreed }: TermsAgreementDialogProps) {
         queryClient.invalidateQueries({
           queryKey: trpc.user.getById.queryKey(),
         });
+        setDialogOpen(false);
       },
       onError: (error) => {
         toast.error(error.message || "Could not record your agreement");
@@ -51,7 +53,7 @@ export function TermsAgreementDialog({ hasAgreed }: TermsAgreementDialogProps) {
   if (hasAgreed) return null;
 
   return (
-    <Dialog open>
+    <Dialog open={dialogOpen}>
       <DialogContent
         showCloseButton={false}
         onEscapeKeyDown={(event) => event.preventDefault()}
