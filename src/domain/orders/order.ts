@@ -1,5 +1,11 @@
 import { IOrder } from "@/lib/db/models/order.model";
-import { DeliveryStatus, PaymentStatus, StatusHistory } from "@/enums";
+import {
+  DeliveryStatus,
+  deliveryStatusLabel,
+  PaymentStatus,
+  StatusHistory,
+} from "@/enums";
+import { AppError } from "@/lib/errors/app-error";
 import {
   IOrderInfo,
   ISubOrderFinancialsFormatted,
@@ -258,19 +264,28 @@ export class Order implements IOrderInfo {
 
   assertCanModify() {
     if (this.isPaid && this.isFullyDelivered) {
-      throw new Error("Completed orders cannot be modified");
+      throw new AppError(
+        "CONFLICT",
+        "This order is already complete and delivered, so it can no longer be changed.",
+      );
     }
   }
 
   private assertCanMarkPaid() {
     if (this.isPaid) {
-      throw new Error("Order is already paid");
+      throw new AppError(
+        "CONFLICT",
+        "This order has already been paid for. No further payment is needed.",
+      );
     }
   }
 
   private assertCanFailPayment() {
     if (this.isPaid) {
-      throw new Error("Cannot fail a paid order");
+      throw new AppError(
+        "CONFLICT",
+        "This order has already been paid for, so its payment cannot be marked as failed.",
+      );
     }
   }
 
@@ -289,12 +304,15 @@ export class Order implements IOrderInfo {
   }
 
   // -------------------------------------------------------------------------
-  // ❌ ORDER CANCELLATION RULES
+  // ORDER CANCELLATION RULES
   // -------------------------------------------------------------------------
 
   cancelOrder(_reason?: string) {
     if (this.isPaid && this.isFullyDelivered) {
-      throw new Error("Cannot cancel completed order");
+      throw new AppError(
+        "CONFLICT",
+        "This order has already been delivered and can no longer be cancelled.",
+      );
     }
     this.props.paymentStatus = PaymentStatus.Cancelled;
   }
@@ -303,34 +321,47 @@ export class Order implements IOrderInfo {
   // DELIVERY STATE MACHINE
   // -------------------------------------------------------------------------
 
-  private canTransition(from: DeliveryStatus, to: DeliveryStatus): boolean {
-    const map: Record<DeliveryStatus, DeliveryStatus[]> = {
-      [DeliveryStatus.OrderPlaced]: [
-        DeliveryStatus.Processing,
-        DeliveryStatus.Canceled,
-      ],
-      [DeliveryStatus.Processing]: [
-        DeliveryStatus.Shipped,
-        DeliveryStatus.Canceled,
-      ],
-      [DeliveryStatus.Shipped]: [
-        DeliveryStatus.OutForDelivery,
-        DeliveryStatus.Delivered,
-        DeliveryStatus.Returned,
-      ],
-      [DeliveryStatus.OutForDelivery]: [
-        DeliveryStatus.Delivered,
-        DeliveryStatus.FailedDelivery,
-      ],
-      [DeliveryStatus.Delivered]: [],
-      [DeliveryStatus.Canceled]: [],
-      [DeliveryStatus.Returned]: [],
-      [DeliveryStatus.FailedDelivery]: [],
-      [DeliveryStatus.Refunded]: [],
-    };
-
-    return map[from]?.includes(to);
+  /**
+   * The statuses a sub-order may legally move to from where it is now.
+   *
+   * Exposed separately from `canTransition` so a rejection can tell the vendor
+   * what they *can* do, rather than only that this particular move is refused.
+   */
+  private allowedTransitionsFrom(from: DeliveryStatus): DeliveryStatus[] {
+    return Order.DELIVERY_TRANSITIONS[from] ?? [];
   }
+
+  private canTransition(from: DeliveryStatus, to: DeliveryStatus): boolean {
+    return this.allowedTransitionsFrom(from).includes(to);
+  }
+
+  private static readonly DELIVERY_TRANSITIONS: Record<
+    DeliveryStatus,
+    DeliveryStatus[]
+  > = {
+    [DeliveryStatus.OrderPlaced]: [
+      DeliveryStatus.Processing,
+      DeliveryStatus.Canceled,
+    ],
+    [DeliveryStatus.Processing]: [
+      DeliveryStatus.Shipped,
+      DeliveryStatus.Canceled,
+    ],
+    [DeliveryStatus.Shipped]: [
+      DeliveryStatus.OutForDelivery,
+      DeliveryStatus.Delivered,
+      DeliveryStatus.Returned,
+    ],
+    [DeliveryStatus.OutForDelivery]: [
+      DeliveryStatus.Delivered,
+      DeliveryStatus.FailedDelivery,
+    ],
+    [DeliveryStatus.Delivered]: [],
+    [DeliveryStatus.Canceled]: [],
+    [DeliveryStatus.Returned]: [],
+    [DeliveryStatus.FailedDelivery]: [],
+    [DeliveryStatus.Refunded]: [],
+  };
 
   updateSubOrderStatus(
     storeId: string,
@@ -344,18 +375,35 @@ export class Order implements IOrderInfo {
       (s) => s.storeId.toString() === storeId,
     );
 
-    if (!subOrder) throw new Error("Sub-order not found");
+    if (!subOrder)
+      throw new AppError(
+        "NOT_FOUND",
+        "This order doesn't contain any items from your store.",
+      );
 
     if (!this.canTransition(subOrder.deliveryStatus, status)) {
-      throw new Error(
-        `Invalid transition: ${subOrder.deliveryStatus} → ${status}`,
+      // Phrased with the labels the vendor sees in the dashboard, not the raw
+      // enum values. `shipped → processing` means nothing to the person reading
+      // it; "Shipped" and "Processing" are the words on their own screen.
+      const allowed = this.allowedTransitionsFrom(subOrder.deliveryStatus);
+
+      throw new AppError(
+        "CONFLICT",
+        allowed.length === 0
+          ? `This order is already marked ${deliveryStatusLabel(subOrder.deliveryStatus)}, which is final — its status can't be changed again.`
+          : `An order marked ${deliveryStatusLabel(subOrder.deliveryStatus)} can't be changed to ${deliveryStatusLabel(status)}. From here you can only mark it ${allowed
+              .map((s) => deliveryStatusLabel(s))
+              .join(" or ")}.`,
       );
     }
 
     if (
       !Object.values(StatusHistory).includes(status as unknown as StatusHistory)
     ) {
-      throw new Error(`Cannot update status: ${status}`);
+      throw new AppError(
+        "BAD_REQUEST",
+        `"${deliveryStatusLabel(status)}" isn't a status an order can be set to.`,
+      );
     }
 
     const now = new Date();
@@ -385,7 +433,10 @@ export class Order implements IOrderInfo {
     ];
 
     if (requiresPayment.includes(status) && !this.isPaid) {
-      throw new Error("Order must be paid before fulfillment");
+      throw new AppError(
+        "PRECONDITION_FAILED",
+        `This order hasn't been paid for yet, so it can't be marked ${deliveryStatusLabel(status)}. Wait for payment to be confirmed before fulfilling it.`,
+      );
     }
   }
 
@@ -398,10 +449,17 @@ export class Order implements IOrderInfo {
       (s) => s.storeId.toString() === storeId,
     );
 
-    if (!sub) throw new Error("Sub-order not found");
+    if (!sub)
+      throw new AppError(
+        "NOT_FOUND",
+        "That part of your order couldn't be found. It may have been removed — refresh the page and try again.",
+      );
 
     if (sub.deliveryStatus !== DeliveryStatus.Delivered) {
-      throw new Error("Cannot confirm undelivered order");
+      throw new AppError(
+        "PRECONDITION_FAILED",
+        `This order is still marked ${deliveryStatusLabel(sub.deliveryStatus)}. You can confirm it once it has been delivered to you.`,
+      );
     }
 
     sub.customerConfirmedDelivery = {
@@ -467,7 +525,10 @@ export class Order implements IOrderInfo {
     );
 
     if (!subOrder) {
-      throw new Error("Sub-order not found for this store");
+      throw new AppError(
+        "NOT_FOUND",
+        "This order doesn't contain any items from your store.",
+      );
     }
 
     const storeTotalItems = subOrder.products.reduce(
@@ -489,9 +550,6 @@ export class Order implements IOrderInfo {
         ...subOrder,
         storeId: subOrder.storeId.toString(),
         financials: formattedFinancials,
-        // ⚠️ Replaced, never spread. The raw proof carries the customer's
-        // 6-digit code; a vendor who could read it would confirm their own
-        // deliveries and be paid for goods never handed over.
         deliveryProof: toVendorProofView(subOrder.deliveryProof),
       },
       shippingAddress: this.shippingAddress,

@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { scrollToTop } from "@/lib/utils";
-import { useProductImages } from "@/hooks/use-product-images.upload";
+import { useImageUpload } from "@/hooks/use-image-upload";
 import { useWizardNavigation } from "@/hooks/use-wizard-navigation.upload";
 import { useWaitlistStepValidation } from "@/hooks/use-waitlist-step-validation";
 import { WaitlistProgressIndicator } from "./waitlist-progress-indicator";
@@ -22,10 +22,6 @@ import Link from "next/link";
 const TOTAL_STEPS = 2;
 
 interface VendorWaitlistWizardProps {
-  /**
-   * Contact details read from the signed-in applicant's account on the server.
-   * Any field the account doesn't have simply arrives empty.
-   */
   applicantDefaults: WaitlistApplicantDefaults;
 }
 
@@ -52,14 +48,15 @@ export function VendorWaitlistWizard({
     email: string;
   } | null>(null);
   const {
-    imageFiles: productSampleFiles,
-    imagePreviews: productSamplePreviews,
+    files: productSampleFiles,
+    previews: productSamplePreviews,
     dragActive,
+    isProcessing: isProcessingSamples,
+    handleImageChange: handleSampleChange,
+    handleDrop,
+    handleDrag,
     removeImage: removeSample,
-    setDragActive,
-    setImageFiles: setSampleFiles,
-    setImagePreviews: setSamplePreviews,
-  } = useProductImages({ maxFiles: 4 });
+  } = useImageUpload();
 
   const { errors, validateStep, clearFieldError } = useWaitlistStepValidation();
 
@@ -210,9 +207,10 @@ export function VendorWaitlistWizard({
             productSampleFiles={productSampleFiles}
             productSamplePreviews={productSamplePreviews}
             dragActive={dragActive}
-            onProductSampleFilesChange={setSampleFiles}
-            onProductSamplePreviewsChange={setSamplePreviews}
-            onDragActiveChange={setDragActive}
+            isProcessingSamples={isProcessingSamples}
+            onSampleChange={handleSampleChange}
+            onDrop={handleDrop}
+            onDrag={handleDrag}
             onRemoveSample={removeSample}
           />
         );

@@ -83,15 +83,15 @@ Articles are now resolved through an **explicit registry of static imports**
 
 ### The three files that matter
 
-| File                                          | Role                                                                                       |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/lib/utils/mdx-utils/article-registry.ts` | `server-only`. Maps every slug to a static import. The set of articles that exist.          |
-| `src/lib/utils/mdx-utils/help-center-data.ts` | Client-safe. Categories, titles and ordering. What the sidebar and landing page display.     |
-| `src/app/docs/[...slug]/page.tsx`             | Looks the slug up, renders it. Contains no knowledge of individual articles.                 |
+| File                                          | Role                                                                                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `src/lib/utils/mdx-utils/article-registry.ts` | `server-only`. Maps every slug to a static import. The set of articles that exist.       |
+| `src/lib/utils/mdx-utils/help-center-data.ts` | Client-safe. Categories, titles and ordering. What the sidebar and landing page display. |
+| `src/app/docs/[...slug]/page.tsx`             | Looks the slug up, renders it. Contains no knowledge of individual articles.             |
 
 The split exists because `SidebarNav` is a **client component**. If the loaders
 lived in `help-center-data.ts`, every MDX article would be pulled into the client
-graph. `help-center-data.ts` imports only the `ArticleSlug` *type* from the
+graph. `help-center-data.ts` imports only the `ArticleSlug` _type_ from the
 registry — a type-only import, erased at compile time — which is what gives the
 compile-time slug check without the bundle cost.
 
@@ -187,8 +187,7 @@ More body text.
 
 ### Rules
 
-- **`metadata` export** at the top. See §12 — it is not yet wired to page
-  metadata, but keep exporting it so the fix is a one-line change.
+- **`metadata` export** at the top, with a `title` and a `description`.
 - **Exactly one `#`** — the article title. Never a second one.
 - **`##` and `###` only** for structure. The table of contents scrapes `h2, h3`
   from inside `.prose-content`; `####` renders but is invisible to the ToC.
@@ -204,14 +203,14 @@ More body text.
 Defined in `src/lib/utils/mdx-utils/mdx-components.tsx` and passed to every
 article. No import statement is needed inside the `.mdx` file.
 
-| Component        | Props                  | Use for                                                    |
-| ---------------- | ---------------------- | ---------------------------------------------------------- |
-| `<Note>`         | `type`, children       | A framed aside. `type` is `info` \| `success` \| `warning` \| `error` |
-| `<Warning>`      | children               | A hazard the reader can walk into                           |
-| `<Tip>`          | children               | Advice that improves an outcome but is not required         |
-| `<Steps>`        | children               | An ordered list with generous spacing                       |
-| `<Screenshot>`   | `src`, `alt`, `caption`| A captioned, bordered image                                 |
-| `<YouTubeEmbed>` | `videoId`              | An embedded video                                           |
+| Component        | Props                   | Use for                                                               |
+| ---------------- | ----------------------- | --------------------------------------------------------------------- |
+| `<Note>`         | `type`, children        | A framed aside. `type` is `info` \| `success` \| `warning` \| `error` |
+| `<Warning>`      | children                | A hazard the reader can walk into                                     |
+| `<Tip>`          | children                | Advice that improves an outcome but is not required                   |
+| `<Steps>`        | children                | An ordered list with generous spacing                                 |
+| `<Screenshot>`   | `src`, `alt`, `caption` | A captioned, bordered image                                           |
+| `<YouTubeEmbed>` | `videoId`               | An embedded video                                                     |
 
 Plain `img` and `video` tags are also styled.
 
@@ -296,17 +295,17 @@ by people probing for weaknesses, and by anyone who wants to game the platform.
 
 Agreed with the founders, August 2026. Change these only with the same authority:
 
-| Topic                | Decision                                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| Commission and fees  | **Publish exact figures.** The tiered commission, withdrawal limits and withdrawal fee are all public. |
-| Penalties and debt   | **State that they exist; publish no numbers.** No percentage, no cap, no debt threshold.               |
-| Buyer-facing deadlines | **Publish all.** Auto-confirmation, dispute review and evidence windows are commitments to users.    |
-| Payment providers    | **Do not name.** "A secure payment partner." Keeps the provider mix and any future switch invisible.   |
+| Topic                  | Decision                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| Commission and fees    | **Publish exact figures.** The tiered commission, withdrawal limits and withdrawal fee are all public. |
+| Penalties and debt     | **State that they exist; publish no numbers.** No percentage, no cap, no debt threshold.               |
+| Buyer-facing deadlines | **Publish all.** Auto-confirmation, dispute review and evidence windows are commitments to users.      |
+| Payment providers      | **Do not name.** "A secure payment partner." Keeps the provider mix and any future switch invisible.   |
 
 ### The test to apply
 
-Before writing a sentence about how something works, ask: *does the reader need
-this to use Soraxi, or does it only satisfy curiosity about how Soraxi is built?*
+Before writing a sentence about how something works, ask: _does the reader need
+this to use Soraxi, or does it only satisfy curiosity about how Soraxi is built?_
 Public docs answer **what to do and what to expect**. They never explain the
 implementation.
 
@@ -353,16 +352,16 @@ Framing paragraph — what this page gives you
 Public prose now hard-codes values that live in the codebase. When a constant
 changes, these articles are part of the change.
 
-| Value in prose                  | Source of truth                                              | Articles affected                                                        |
-| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| 3-day auto-confirmation         | `AUTO_CONFIRM_DAYS`, `services/orders/order-auto-confirm.service.ts` | order-statuses, confirming-delivery, delivery-code, how-escrow-works, how-you-get-paid, proof-of-delivery |
-| 5 business days dispute review  | `DISPUTE_RESOLUTION_BUSINESS_DAYS`                           | opening-a-dispute, vendor-disputes, refunds-and-cancellations             |
-| 48-hour evidence window         | `ADDITIONAL_EVIDENCE_WINDOW_HOURS`                           | opening-a-dispute, vendor-disputes                                       |
-| Commission: 5% + ₦100/₦200 tiers | `lib/utils/calculate-commission.ts`                          | fees-and-commission                                                      |
-| Withdrawal min ₦1,000 / max ₦100,000 | `WITHDRAWAL_LIMITS`, `MINIMUM_PAYOUT_AMOUNT_KOBO`        | fees-and-commission, withdrawals, payout-settings                        |
-| Withdrawal fee 1% + ₦50         | `WITHDRAWAL_FEES`                                            | fees-and-commission, withdrawals, payout-settings                        |
-| Product limits (₦500–₦100,000, 3 images, 4MB) | `validators/product-validators.ts`, `constants/image.constants.ts` | manage-products                                     |
-| Order status transitions        | `domain/orders/order.ts` — `canTransition`                   | order-statuses, order-fulfilment                                         |
+| Value in prose                                | Source of truth                                                      | Articles affected                                                                                         |
+| --------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 3-day auto-confirmation                       | `AUTO_CONFIRM_DAYS`, `services/orders/order-auto-confirm.service.ts` | order-statuses, confirming-delivery, delivery-code, how-escrow-works, how-you-get-paid, proof-of-delivery |
+| 5 business days dispute review                | `DISPUTE_RESOLUTION_BUSINESS_DAYS`                                   | opening-a-dispute, vendor-disputes, refunds-and-cancellations                                             |
+| 48-hour evidence window                       | `ADDITIONAL_EVIDENCE_WINDOW_HOURS`                                   | opening-a-dispute, vendor-disputes                                                                        |
+| Commission: 5% + ₦100/₦200 tiers              | `lib/utils/calculate-commission.ts`                                  | fees-and-commission                                                                                       |
+| Withdrawal min ₦1,000 / max ₦100,000          | `WITHDRAWAL_LIMITS`, `MINIMUM_PAYOUT_AMOUNT_KOBO`                    | fees-and-commission, withdrawals, payout-settings                                                         |
+| Withdrawal fee 1% + ₦50                       | `WITHDRAWAL_FEES`                                                    | fees-and-commission, withdrawals, payout-settings                                                         |
+| Product limits (₦500–₦100,000, 3 images, 4MB) | `validators/product-validators.ts`, `constants/image.constants.ts`   | manage-products                                                                                           |
+| Order status transitions                      | `domain/orders/order.ts` — `canTransition`                           | order-statuses, order-fulfilment                                                                          |
 
 > **Note.** `grep -rn "3 days\|5 business days\|48 hours" src/app/docs/articles`
 > before shipping a change to any of these constants.
@@ -440,30 +439,30 @@ comm -23 /tmp/links.txt /tmp/slugs.txt   # must be empty
 
 ## 11. File Inventory
 
-| Path                                          | Purpose                                                   |
-| --------------------------------------------- | --------------------------------------------------------- |
-| `src/app/docs/page.tsx`                       | Landing page; derives cards from `helpCenterCategories`    |
-| `src/app/docs/layout.tsx`                     | Header, sidebar, mobile sidebar, mobile ToC, footer        |
-| `src/app/docs/[...slug]/page.tsx`             | Article route                                              |
-| `src/app/docs/articles/<category>/<page>.mdx` | The articles themselves                                    |
-| `src/lib/utils/mdx-utils/article-registry.ts` | Slug → static import map (`server-only`)                   |
-| `src/lib/utils/mdx-utils/help-center-data.ts` | Categories, titles, ordering, landing-page cards           |
-| `src/lib/utils/mdx-utils/mdx-components.tsx`  | The components available inside MDX                        |
-| `src/lib/utils/mdx-utils/table-of-contents.tsx` | Desktop ToC; scrapes `h2, h3` from `.prose-content`      |
-| `src/lib/utils/mdx-utils/mobile-table-of-contents.tsx` | Mobile ToC                                        |
-| `src/components/sidebar-nav.tsx`              | Sidebar (client component — see §2)                        |
-| `public/docs-images/<category>/`              | Screenshots                                                |
+| Path                                                   | Purpose                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------- |
+| `src/app/docs/page.tsx`                                | Landing page; derives cards from `helpCenterCategories` |
+| `src/app/docs/layout.tsx`                              | Header, sidebar, mobile sidebar, mobile ToC, footer     |
+| `src/app/docs/[...slug]/page.tsx`                      | Article route                                           |
+| `src/app/docs/articles/<category>/<page>.mdx`          | The articles themselves                                 |
+| `src/lib/utils/mdx-utils/article-registry.ts`          | Slug → static import map (`server-only`)                |
+| `src/lib/utils/mdx-utils/help-center-data.ts`          | Categories, titles, ordering, landing-page cards        |
+| `src/lib/utils/mdx-utils/mdx-components.tsx`           | The components available inside MDX                     |
+| `src/lib/utils/mdx-utils/table-of-contents.tsx`        | Desktop ToC; scrapes `h2, h3` from `.prose-content`     |
+| `src/lib/utils/mdx-utils/mobile-table-of-contents.tsx` | Mobile ToC                                              |
+| `src/components/sidebar-nav.tsx`                       | Sidebar (client component — see §2)                     |
+| `public/docs-images/<category>/`                       | Screenshots                                             |
 
 ### Current categories
 
-| Category      | Sidebar name           | Articles |
-| ------------- | ---------------------- | -------- |
-| `account`     | Account & Verification | 4        |
-| `buying`      | Buying on Soraxi       | 8        |
-| `protection`  | Buyer Protection       | 4        |
-| `storefront`  | Selling on Soraxi      | 6        |
-| `fulfilment`  | Orders & Fulfilment    | 3        |
-| `payouts`     | Getting Paid           | 4        |
+| Category     | Sidebar name           | Articles |
+| ------------ | ---------------------- | -------- |
+| `account`    | Account & Verification | 4        |
+| `buying`     | Buying on Soraxi       | 8        |
+| `protection` | Buyer Protection       | 4        |
+| `storefront` | Selling on Soraxi      | 6        |
+| `fulfilment` | Orders & Fulfilment    | 3        |
+| `payouts`    | Getting Paid           | 4        |
 
 `updates` (announcements, policy changes) is scaffolded and commented out in
 `help-center-data.ts`.
@@ -472,11 +471,6 @@ comm -23 /tmp/links.txt /tmp/slugs.txt   # must be empty
 
 ## 12. Known Gaps and Future Work
 
-- **`metadata` is exported but unused.** Articles export `title` and
-  `description`, and the route has no `generateMetadata`, so every docs page
-  shares the root layout's tags. Every article page currently competes for the
-  same search snippet. The fix is to load the article module in
-  `generateMetadata` and return its `metadata`.
 - **No search.** With six categories and 29 articles, the sidebar is at the edge
   of what browsing alone supports.
 - **Docs render dynamically** because the shared header reads cookies (§2).

@@ -115,7 +115,10 @@ export const adminPayoutRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch payout records.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load payout records. Please try again.",
+        );
       }
     }),
 
@@ -147,7 +150,7 @@ export const adminPayoutRouter = createTRPCRouter({
         if (!payout) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Payout record not found.",
+            message: "No payout record exists with that ID.",
           });
         }
 
@@ -196,7 +199,10 @@ export const adminPayoutRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch payout details.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load these payout details. Please try again.",
+        );
       }
     }),
 
@@ -260,7 +266,7 @@ export const adminPayoutRouter = createTRPCRouter({
         if (!payout) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Payout record not found.",
+            message: "No payout record exists with that ID.",
           });
         }
 
@@ -295,7 +301,10 @@ export const adminPayoutRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to process manual payout action.");
+        throw handleTRPCError(
+          error,
+          "We couldn't record that manual payout. Please try again.",
+        );
       }
     }),
 });

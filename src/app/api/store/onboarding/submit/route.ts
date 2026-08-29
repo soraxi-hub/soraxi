@@ -16,6 +16,8 @@ import {
 } from "@/domain/notification";
 import React from "react";
 import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
+import { AppError } from "@/lib/errors/app-error";
+import { handleApiError } from "@/lib/utils/handle-api-error";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -80,16 +82,25 @@ async function getStoreOwnerName(storeOwnerId: string): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL) {
-      console.error("Missing required environment variables");
-      throw new Error(
-        "Server configuration error: Missing required SORAXI EMAIL CONFIG environment variables",
+      // The specific variable is named in the log, never in the thrown message:
+      // AppError messages are returned to the caller verbatim, and our
+      // deployment configuration is not the vendor's business.
+      console.error(
+        "Missing required environment variable: SORAXI_ADMIN_NOTIFICATION_EMAIL",
+      );
+      throw new AppError(
+        "SERVICE_UNAVAILABLE",
+        "Store setup is temporarily unavailable. Our team has been notified — please try again shortly.",
       );
     }
 
     // Check authentication
     const userData = await getUserDataFromToken(request);
     if (!userData) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Your session has expired. Sign in again to finish setting up your store.",
+      );
     }
 
     // Parse incoming body with expected shape
@@ -98,9 +109,9 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!storeId || !onboardingData) {
-      return NextResponse.json(
-        { error: "Store ID and onboarding data are required" },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "Some of your onboarding details didn't reach us. Go back through the steps and submit again.",
       );
     }
 
@@ -109,14 +120,17 @@ export async function POST(request: NextRequest) {
     const store = await Store.findById(storeId);
 
     if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that store. It may have been removed — check your profile for the store you're setting up.",
+      );
     }
 
     // Verify that the authenticated user owns this store
     if (store.storeOwner.toString() !== userData.id) {
-      return NextResponse.json(
-        { error: "Unauthorized - not store owner" },
-        { status: 403 },
+      throw new AppError(
+        "FORBIDDEN",
+        "This store belongs to a different account. Sign in with the account you applied to sell with.",
       );
     }
 
@@ -125,25 +139,27 @@ export async function POST(request: NextRequest) {
 
     // Validate profile info
     if (!profile?.name || !profile?.description) {
-      return NextResponse.json(
-        { error: "Store profile is incomplete" },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        !profile?.name
+          ? "Your store needs a name before you can go live. Go back to the Store Profile step."
+          : "Your store needs a description before you can go live. Go back to the Store Profile step.",
       );
     }
 
     // Validate at least one shipping method
     if (!shipping || shipping.length === 0) {
-      return NextResponse.json(
-        { error: "At least one shipping method is required" },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "Add at least one delivery method so buyers know how their orders will reach them. Go back to the Shipping step.",
       );
     }
 
     // Ensure terms were agreed to
     if (!termsAgreed) {
-      return NextResponse.json(
-        { error: "Terms agreement is required" },
-        { status: 400 },
+      throw new AppError(
+        "BAD_REQUEST",
+        "You need to accept the vendor terms before your store can go live. Go back to the Terms step.",
       );
     }
 
@@ -208,9 +224,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (!updatedStore) {
-      return NextResponse.json(
-        { error: "Failed to update store" },
-        { status: 500 },
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "We couldn't save your store setup. Nothing has been changed — please try submitting again.",
       );
     }
 
@@ -257,11 +273,6 @@ export async function POST(request: NextRequest) {
         fromAddress: "admin@soraxihub.com",
         html: adminHtml,
         text: adminText,
-        // metadata: {
-        //   storeId: updatedStore._id.toString(),
-        //   storeName: updatedStore.name,
-        //   notificationType: "store_submission",
-        // },
       });
 
       await adminNotification.send();
@@ -338,9 +349,6 @@ export async function POST(request: NextRequest) {
         // sendTelegramMessage already console.errors internally; never mask the original error
       }
     }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

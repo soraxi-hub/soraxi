@@ -25,7 +25,7 @@ export const storeShippingRouter = createTRPCRouter({
     if (!store) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Store not found.",
+        message: "We couldn't find your store. Sign out and sign in again.",
       });
     }
     // console.log("Store Shipping Methods:", store.shippingMethods);
@@ -96,7 +96,7 @@ export const storeShippingRouter = createTRPCRouter({
       if (!store) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Store not found.",
+          message: "We couldn't find your store. Sign out and sign in again.",
         });
       }
 
@@ -118,7 +118,8 @@ export const storeShippingRouter = createTRPCRouter({
         if (methodIndex === -1) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Shipping method not found.",
+            message:
+              "That delivery method is no longer on your store. Refresh the page and try again.",
           });
         }
 

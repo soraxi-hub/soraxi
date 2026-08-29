@@ -57,7 +57,11 @@ export class PayoutService implements IPayoutService {
       .executeOne();
 
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", { storeId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that store, so its payout could not be processed.",
+        { storeId },
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(storePassword, store.password);
@@ -82,10 +86,14 @@ export class PayoutService implements IPayoutService {
       (acc) => acc._id?.toString() === accountId,
     );
     if (!selectedAccount) {
-      throw new AppError("NOT_FOUND", "Selected bank account not found", {
-        storeId,
-        accountId,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "That payout account is no longer on your store. Add it again under Payment Setup, then request the withdrawal.",
+        {
+          storeId,
+          accountId,
+        },
+      );
     }
 
     // -----------------------------------------------------------------
@@ -93,7 +101,11 @@ export class PayoutService implements IPayoutService {
     // -----------------------------------------------------------------
     const vendorWallet = await VendorWalletRepository.findByVendorId(storeId);
     if (!vendorWallet) {
-      throw new AppError("NOT_FOUND", "Vendor wallet not found", { storeId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't open your wallet. Your balance is safe — please try again, or contact support if this persists.",
+        { storeId },
+      );
     }
 
     if (vendorWallet.debt.recoveryType === DebtRecoveryType.FULL_BLOCK) {
@@ -321,7 +333,11 @@ export class PayoutService implements IPayoutService {
     // Retrieve existing payout
     const payout = await this.payoutRepository.findById(id);
     if (!payout) {
-      throw new AppError("NOT_FOUND", `Payout ${id} not found`, { id });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that withdrawal. Check your Withdrawals list for its current status.",
+        { id },
+      );
     }
 
     // Domain transition
@@ -338,7 +354,11 @@ export class PayoutService implements IPayoutService {
   async completePayout(id: string, session: mongoose.ClientSession) {
     const payout = await this.payoutRepository.findById(id);
     if (!payout) {
-      throw new AppError("NOT_FOUND", `Payout ${id} not found`, { id });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that withdrawal. Check your Withdrawals list for its current status.",
+        { id },
+      );
     }
 
     const completedPayout = payout.markCompleted();
@@ -357,7 +377,11 @@ export class PayoutService implements IPayoutService {
   ) {
     const payout = await this.payoutRepository.findById(id);
     if (!payout) {
-      throw new AppError("NOT_FOUND", `Payout ${id} not found`, { id });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that withdrawal. Check your Withdrawals list for its current status.",
+        { id },
+      );
     }
 
     const failedPayout = payout.markFailed(reason);

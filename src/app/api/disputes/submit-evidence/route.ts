@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
     // STEP 1: Authenticate the student
     const authSession = await getUserDataFromToken(req);
     if (!authSession) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Sign in to submit evidence for your dispute.",
+      );
     }
     const customerId = authSession.id;
 
@@ -72,7 +75,11 @@ export async function POST(req: NextRequest) {
     const dispute = await getDisputeRecordById(disputeId);
 
     if (!dispute) {
-      throw new AppError("NOT_FOUND", "Dispute not found.", { disputeId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that dispute. Open it from your order to submit evidence.",
+        { disputeId },
+      );
     }
 
     // Guard 2: Dispute must belong to this student

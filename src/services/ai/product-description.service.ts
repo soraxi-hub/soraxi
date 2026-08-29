@@ -257,7 +257,8 @@ export class ProductDescriptionService {
       console.error("[ProductDescriptionService] Unexpected API error:", err);
       return {
         success: false,
-        error: "Failed to generate description. Please try again.",
+        error:
+          "We couldn't draft a description just now. Try again, or write one yourself.",
         kind: "retryable",
       };
     }

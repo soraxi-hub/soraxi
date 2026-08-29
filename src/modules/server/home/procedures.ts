@@ -171,7 +171,7 @@ export const homeRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           err,
-          "Failed to fetch products. Please try again later.",
+          "We couldn't load products. Please try again later.",
         );
       }
     }),
@@ -204,7 +204,7 @@ export const homeRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           err,
-          "Failed to fetch products. Please try again later.",
+          "We couldn't load products. Please try again later.",
         );
       }
     }),
@@ -267,7 +267,7 @@ export const homeRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           err,
-          "Failed to fetch product. Please try again later.",
+          "We couldn't load that product. Please try again later.",
         );
       }
     }),
@@ -298,7 +298,10 @@ export const homeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(err, "Failed to fetch related products.");
+        throw handleTRPCError(
+          err,
+          "We couldn't load related products. Please try again.",
+        );
       }
     }),
 
@@ -322,7 +325,10 @@ export const homeRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors; never mask the original error
         }
       }
-      throw handleTRPCError(err, "Failed to fetch featured products.");
+      throw handleTRPCError(
+        err,
+        "We couldn't load featured products. Please try again.",
+      );
     }
   }),
 });

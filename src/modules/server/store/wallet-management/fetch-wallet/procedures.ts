@@ -71,7 +71,8 @@ export const storeWalletRouter = createTRPCRouter({
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch wallet data",
+        message:
+          "We couldn't load your wallet. Your balance is safe — please try again.",
       });
     }
   }),

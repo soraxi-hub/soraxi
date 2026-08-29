@@ -91,13 +91,19 @@ export function ProductEditWizard({
       },
     });
 
-  // 1. Manage all image state here in the parent
-  const { imageFiles, imagePreviews, handleImageChange, removeImage } =
-    useProductImages({
-      existingImageCount: initialProductData.images?.length || 0,
-    });
+  const {
+    imageFiles,
+    imagePreviews,
+    dragActive,
+    handleImageChange,
+    handleDrop,
+    handleDrag,
+    removeImage,
+  } = useProductImages({
+    existingImageCount: initialProductData.images?.length || 0,
+  });
 
-  // 2. Prepare the images object to pass down
+  // Prepare the images object to pass down
   const imagesState = {
     existingUrls: initialProductData.images || [],
     newFiles: imageFiles,
@@ -320,10 +326,11 @@ export function ProductEditWizard({
         return (
           <ProductImagesStep
             images={imagesState}
-            onImagesChange={(file) => {
-              handleImageChange(file);
-            }} // If needed for custom triggers
-            onRemoveImage={removeImage} // Pass the handler down
+            onImagesChange={handleImageChange}
+            onDrop={handleDrop}
+            onDrag={handleDrag}
+            dragActive={dragActive}
+            onRemoveImage={removeImage}
             onNext={handleNextStep}
             onPrevious={handlePreviousStep}
             isLoading={isLoading}

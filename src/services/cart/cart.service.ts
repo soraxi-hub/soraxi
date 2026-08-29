@@ -43,7 +43,7 @@ export class CartService {
         throw error;
       }
 
-      throw new Error("Cart not found");
+      throw error;
     }
   }
 
@@ -55,7 +55,10 @@ export class CartService {
       const existingCartData = await CartRepository.getCartByUserId(userId);
 
       if (!existingCartData)
-        throw new AppError("BAD_REQUEST", "Cart not found");
+        throw new AppError(
+          "NOT_FOUND",
+          "Your cart is already empty, so there is nothing to remove.",
+        );
 
       const cart = CartFactory.createCart({
         ...existingCartData,
@@ -74,7 +77,7 @@ export class CartService {
         throw error;
       }
 
-      throw new Error("Cart not found");
+      throw error;
     }
   }
 
@@ -87,7 +90,10 @@ export class CartService {
       const existingCartData = await CartRepository.getCartByUserId(userId);
 
       if (!existingCartData)
-        throw new AppError("BAD_REQUEST", "Cart not found");
+        throw new AppError(
+          "NOT_FOUND",
+          "Your cart is empty, so there is nothing to update. Add the item again.",
+        );
 
       const cart = CartFactory.createCart({
         ...existingCartData,
@@ -106,7 +112,7 @@ export class CartService {
         throw error;
       }
 
-      throw new Error("Cart not found");
+      throw error;
     }
   }
 
@@ -276,7 +282,10 @@ export class CartService {
       .executeOne();
 
     if (!cart || cart.items.length === 0) {
-      throw new Error("Cart is empty");
+      throw new AppError(
+        "BAD_REQUEST",
+        "Your cart is empty. Add something to it before checking out.",
+      );
     }
 
     const productIds = cart.items.map((item) => item.productId);

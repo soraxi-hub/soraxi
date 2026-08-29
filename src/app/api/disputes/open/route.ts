@@ -21,6 +21,7 @@ import { DeliveryStatus } from "@/enums";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import { AppError } from "@/lib/errors/app-error";
+import { assertValidImageUpload } from "@/validators/validate-image-files";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { MessagingEvents } from "@/services/messaging/messaging-events";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
@@ -56,7 +57,10 @@ export async function POST(req: NextRequest) {
     // STEP 1: Authenticate the student
     const authSession = await getUserDataFromToken(req);
     if (!authSession) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Sign in to raise a dispute on your order.",
+      );
     }
     const customerId = authSession.id;
 
@@ -102,6 +106,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // The dialog validates too, but a route that trusts its client for file
+    // size and type has no limit at all — this one previously accepted any
+    // number of files of any size and sent them straight to Cloudinary.
+    assertValidImageUpload(evidenceFiles);
+
     // STEP 3: Run all guards before touching any financial data
     await connectToDatabase();
     const Order = await getOrderModel();
@@ -113,7 +122,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      throw new AppError("NOT_FOUND", "Order not found.", { mainOrderId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order on your account. Check your Orders page and try again.",
+        { mainOrderId },
+      );
     }
 
     // Guard 2: Suborder must exist

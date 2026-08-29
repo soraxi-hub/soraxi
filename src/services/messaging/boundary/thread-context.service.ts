@@ -1,9 +1,6 @@
 import mongoose from "mongoose";
 
-import {
-  MessageParticipantKindEnum,
-  MessageScopeKindEnum,
-} from "@/enums";
+import { MessageParticipantKindEnum, MessageScopeKindEnum } from "@/enums";
 import type {
   IConversationParticipant,
   IOrderRef,
@@ -67,7 +64,10 @@ export class ThreadContextService {
     const product = await ProductRepository.findSnapshotById(productId);
 
     if (!product) {
-      throw new AppError("NOT_FOUND", "Product not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "That product is no longer listed, so a conversation about it can't be opened.",
+      );
     }
 
     const storeId = product.storeId.toString();
@@ -109,7 +109,10 @@ export class ThreadContextService {
     const found = await OrderRepository.findSubOrderById(subOrderId);
 
     if (!found) {
-      throw new AppError("NOT_FOUND", "Order not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "That order no longer exists, so a conversation about it can't be opened.",
+      );
     }
 
     const { order, subOrder } = found;
@@ -148,10 +151,7 @@ export class ThreadContextService {
    * order's customer or the sub-order's store.
    */
   static assertOrderParticipant(
-    {
-      customerId,
-      storeId,
-    }: { customerId: string; storeId: string },
+    { customerId, storeId }: { customerId: string; storeId: string },
     initiator: { kind: MessageParticipantKindEnum; id: string },
   ): void {
     const permitted =
@@ -180,7 +180,10 @@ export class ThreadContextService {
       }>();
 
     if (!user) {
-      throw new AppError("NOT_FOUND", "Customer not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that customer's account, so this conversation can't be opened.",
+      );
     }
 
     const name = `${user.firstName} ${user.lastName}`.trim();
@@ -212,7 +215,10 @@ export class ThreadContextService {
       }>();
 
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "That vendor is no longer trading, so a conversation can't be opened.",
+      );
     }
 
     return {

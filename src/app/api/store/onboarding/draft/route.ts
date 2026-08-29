@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
   try {
     const userData = await getUserDataFromToken(request);
     if (!userData) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Your session has expired. Sign in again to save your progress.",
+      );
     }
 
     const body = await request.json();
@@ -47,14 +50,22 @@ export async function POST(request: NextRequest) {
     const store = await Store.findById(storeId);
 
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", { storeId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find your store. Sign out and sign in again, or check your profile for the right store.",
+        { storeId },
+      );
     }
 
     if (store.storeOwner.toString() !== userData.id) {
-      throw new AppError("FORBIDDEN", "Unauthorized - not store owner", {
-        storeOwner: store.storeOwner,
-        userId: userData.id,
-      });
+      throw new AppError(
+        "FORBIDDEN",
+        "This store belongs to a different account. Sign in with the account you applied to sell with.",
+        {
+          storeOwner: store.storeOwner,
+          userId: userData.id,
+        },
+      );
     }
 
     const updateData: UpdateData = {};
@@ -118,7 +129,11 @@ export async function GET(request: NextRequest) {
     const store = await Store.findById(storeId);
 
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", { storeId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find your store. Sign out and sign in again, or check your profile for the right store.",
+        { storeId },
+      );
     }
 
     // // Verify store ownership

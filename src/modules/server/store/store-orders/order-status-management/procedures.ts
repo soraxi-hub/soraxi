@@ -20,6 +20,8 @@ import {
 } from "@/lib/utils/telegram/format-error-report";
 import { OrderRepository } from "@/repositories/order.repository";
 import { MessagingEvents } from "@/services/messaging/messaging-events";
+import { AppError } from "@/lib/errors/app-error";
+import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 
 export const orderStatusRouter = createTRPCRouter({
   /**
@@ -125,9 +127,8 @@ export const orderStatusRouter = createTRPCRouter({
           await session.commitTransaction();
         } catch (domainError) {
           await session.abortTransaction();
-          // This branch always converts to a BAD_REQUEST below, so the real
-          // cause (which may be a genuine DB/unexpected failure, not just an
-          // invalid transition) would otherwise never reach the outer catch.
+          // The real cause may be a genuine DB/unexpected failure, not just an
+          // invalid transition, so report it before deciding how to surface it.
           if (isReportableError(domainError)) {
             try {
               await sendTelegramMessage(
@@ -140,13 +141,22 @@ export const orderStatusRouter = createTRPCRouter({
               // sendTelegramMessage already console.errors; never mask the original error
             }
           }
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              domainError instanceof Error
-                ? domainError.message
-                : "Invalid status transition",
-          });
+          // Only the aggregate's own rule violations are safe to show. This
+          // used to forward `domainError.message` for *any* throw, so a driver
+          // failure inside the transaction reached the vendor verbatim, as a
+          // 400 — and because no `cause` was attached, the masking middleware
+          // saw an authored message and let it through. Anything that is not an
+          // AppError is rethrown for `handleTRPCError` to classify, which is
+          // what distinguishes a retryable outage from a rejected transition.
+          if (domainError instanceof AppError) {
+            throw new TRPCError({
+              code: domainError.code,
+              message: domainError.message,
+              cause: domainError,
+            });
+          }
+
+          throw domainError;
         } finally {
           session.endSession();
         }
@@ -317,10 +327,13 @@ export const orderStatusRouter = createTRPCRouter({
           throw error;
         }
 
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update order status. Please try again later.",
-        });
+        // Via handleTRPCError rather than a bare INTERNAL_SERVER_ERROR so a
+        // transient database outage is classified as a retryable 503 — the
+        // difference between "try again" being honest advice and a dead end.
+        throw handleTRPCError(
+          error,
+          "We couldn't update this order's status. Please try again.",
+        );
       }
     }),
 });

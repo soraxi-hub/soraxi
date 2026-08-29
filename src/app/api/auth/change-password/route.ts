@@ -39,7 +39,10 @@ export async function PATCH(req: NextRequest) {
     const token = req.cookies.get(tokenName)?.value;
 
     if (!token) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "You need to be signed in to change your password.",
+      );
     }
 
     // Verify the token and extract the email
@@ -49,7 +52,10 @@ export async function PATCH(req: NextRequest) {
         : await CookieService.verifyStoreToken(token);
 
     if (!payload) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Your session has expired. Sign in again to change your password.",
+      );
     }
 
     const identifierEmail =
@@ -89,7 +95,9 @@ export async function PATCH(req: NextRequest) {
     if (isReportableError(error)) {
       try {
         await sendTelegramMessage(
-          formatErrorReport(error, { source: "PATCH /api/auth/change-password" }),
+          formatErrorReport(error, {
+            source: "PATCH /api/auth/change-password",
+          }),
         );
       } catch {
         // sendTelegramMessage already console.errors internally; never mask the original error

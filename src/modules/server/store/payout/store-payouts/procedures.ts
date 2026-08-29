@@ -69,14 +69,18 @@ export const vendorPayoutRouter = createTRPCRouter({
           try {
             await sendTelegramMessage(
               formatErrorReport(error, {
-                source: "trpc:store.payout.store-payouts.createWithdrawalRequest",
+                source:
+                  "trpc:store.payout.store-payouts.createWithdrawalRequest",
               }),
             );
           } catch {
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to create withdrawal request.");
+        throw handleTRPCError(
+          error,
+          "We couldn't create that withdrawal request. Please try again.",
+        );
       }
     }),
 
@@ -144,7 +148,10 @@ export const vendorPayoutRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch withdrawal history.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load your withdrawal history. Please try again.",
+        );
       }
     }),
 
@@ -205,7 +212,10 @@ export const vendorPayoutRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch withdrawal details.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load your withdrawal details. Please try again.",
+        );
       }
     }),
 });

@@ -5,6 +5,7 @@ import { cache } from "react";
 import { StoreStatusEnum } from "@/enums";
 import { siteConfig } from "@/config/site";
 import { Metadata } from "next";
+import { truncateAtWordBoundary } from "@/constants/constant";
 
 interface ProductPageProps {
   params: Promise<{
@@ -25,9 +26,12 @@ export async function generateMetadata({
 
   if (!product) return {};
 
-  const plainDescription =
-    product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
-    `Buy ${product.name} online`;
+  const strippedDescription = product.description
+    ? truncateAtWordBoundary(product.description.replace(/<[^>]*>/g, " "))
+    : "";
+
+  // The fallback is already short and complete, so it never takes an ellipsis.
+  const plainDescription = strippedDescription || `Buy ${product.name} online`;
 
   const productImages = product.images.map((url) => ({
     url,

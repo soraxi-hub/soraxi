@@ -32,6 +32,47 @@ export const publicPaths = [
   "/store/waitlist/status",
 ];
 
+/** Search engines truncate meta descriptions around this length. */
+const META_DESCRIPTION_LIMIT = 160;
+const ELLIPSIS = "...";
+
+/**
+ * Shortens a description to the meta-description limit without cutting a word
+ * in half, appending an ellipsis when — and only when — something was removed.
+ *
+ * A plain `slice(0, 160)` severed the final word mid-character ("...comes with
+ * a charging ca"), which reads as a rendering fault rather than a summary. It
+ * also gave no indication that anything followed.
+ *
+ * The ellipsis is counted against the limit rather than added on top of it, so
+ * the finished string still fits in 160 characters.
+ */
+export function truncateAtWordBoundary(
+  text: string,
+  limit = META_DESCRIPTION_LIMIT,
+): string {
+  // Collapse the whitespace left behind by stripped HTML tags, so the limit is
+  // spent on words rather than on runs of newlines between them.
+  const collapsed = text.replace(/\s+/g, " ").trim();
+
+  if (collapsed.length <= limit) return collapsed;
+
+  const room = limit - ELLIPSIS.length;
+
+  // Take one character beyond `room`: if that character is the space ending the
+  // last word, the search below finds it and keeps that word whole.
+  const candidate = collapsed.slice(0, room + 1);
+  const lastSpace = candidate.lastIndexOf(" ");
+
+  // A description with no space inside the limit is one very long token, so
+  // there is no word boundary to fall back to — cut it hard.
+  const body =
+    lastSpace > 0 ? candidate.slice(0, lastSpace) : candidate.slice(0, room);
+
+  // Strip trailing punctuation so we never produce ",..." or "....".
+  return `${body.replace(/[\s–—.,;:!?-]+$/, "")}${ELLIPSIS}`;
+}
+
 {
   /* IMPORTANT: This slugs must be changed else, it will not match what is stored in the DB which will cause filtering and sorting to break */
 }

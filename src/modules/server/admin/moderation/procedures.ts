@@ -2,10 +2,7 @@ import { z } from "zod";
 
 import { AdminGuard } from "@/domain/admin/admin-guard";
 import { ConversationProjector } from "@/domain/messaging/conversation-projector";
-import {
-  ConversationStatusEnum,
-  ModerationReviewStatusEnum,
-} from "@/enums";
+import { ConversationStatusEnum, ModerationReviewStatusEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { formatOrderNumber } from "@/lib/utils/order-number";
 import {
@@ -51,9 +48,7 @@ export const adminModerationRouter = createTRPCRouter({
     )
     .query(async ({ input, ctx }) => {
       try {
-        AdminGuard.from(ctx.admin).require(
-          PERMISSIONS.VIEW_MODERATION_QUEUE,
-        );
+        AdminGuard.from(ctx.admin).require(PERMISSIONS.VIEW_MODERATION_QUEUE);
 
         const flags = await ModerationFlagRepository.list({
           status: input.status,
@@ -99,7 +94,10 @@ export const adminModerationRouter = createTRPCRouter({
           }),
         );
 
-        return { items, pendingCount: await ModerationFlagRepository.countPending() };
+        return {
+          items,
+          pendingCount: await ModerationFlagRepository.countPending(),
+        };
       } catch (error) {
         throw handleTRPCError(error, "Could not load the moderation queue");
       }
@@ -141,7 +139,8 @@ export const adminModerationRouter = createTRPCRouter({
         if (!conversation) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Conversation not found",
+            message:
+              "No conversation exists with that ID. It may have been deleted.",
           });
         }
 
@@ -246,7 +245,7 @@ export const adminModerationRouter = createTRPCRouter({
             : ConversationStatusEnum.Open,
           input.locked
             ? (input.reason ??
-              "This conversation is locked while we review it.")
+                "This conversation is locked while we review it.")
             : "",
         );
 

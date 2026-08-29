@@ -19,27 +19,24 @@ import {
 } from "@/components/ui/soraxi-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MAX_IMAGE_NUMBER } from "@/domain/products/product-upload";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  MAX_IMAGE_UPLOAD_COUNT,
+} from "@/constants/image.constants";
 import type { ProductImagesStepProps } from "@/types/upload-wizard.types";
-import { toast } from "sonner";
 
 /**
  * Product Images Step Component
- *
- * Handles image upload with drag/drop, preview, and removal
- *
- * Fields:
- * - Product Images (required: min 1, max 5)
- * - Supports JPEG, PNG, WebP
- * - Max 5MB per image
  */
 export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
   imageFiles,
   imagePreviews,
   dragActive,
-  onImageFilesChange,
-  onImagePreviewsChange,
-  onDragActiveChange,
+  isProcessingImages,
+  onImageChange,
+  onDrop,
+  onDrag,
   onRemoveImage,
   onNext,
   onPrevious,
@@ -49,76 +46,6 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
   currentStep,
   errors,
 }) => {
-  // ============================================================================
-  // EVENT HANDLERS
-  // ============================================================================
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.type === "dragenter" || e.type === "dragover") {
-      onDragActiveChange(true);
-    } else if (e.type === "dragleave") {
-      onDragActiveChange(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDragActiveChange(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(e.target.files);
-    }
-  };
-
-  const handleFiles = (files: FileList) => {
-    const fileArray = Array.from(files);
-
-    // Check if adding these files would exceed the limit
-    if (imageFiles.length + fileArray.length > MAX_IMAGE_NUMBER) {
-      toast.info(
-        `You can only upload up to ${MAX_IMAGE_NUMBER} images total. You currently have ${imageFiles.length} image(s).`,
-      );
-      return;
-    }
-
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-    // Validate all files
-    for (const file of fileArray) {
-      if (!allowedTypes.includes(file.type)) {
-        toast.info("Only JPEG, PNG, and WebP images are allowed");
-        return;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        toast.info("Each image must be less than 5MB");
-        return;
-      }
-    }
-
-    // Add new files to existing files
-    const newImageFiles = [...imageFiles, ...fileArray];
-    onImageFilesChange(newImageFiles);
-
-    // Generate previews for new files
-    const newPreviews = fileArray.map((file) => URL.createObjectURL(file));
-    onImagePreviewsChange([...imagePreviews, ...newPreviews]);
-  };
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -128,7 +55,7 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
           Upload high-quality images of your product (minimum 1, maximum{" "}
-          {MAX_IMAGE_NUMBER})
+          {MAX_IMAGE_UPLOAD_COUNT})
         </p>
       </div>
 
@@ -146,10 +73,10 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
         <SoraxiCardContent className="space-y-6">
           {/* Upload Area */}
           <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
+            onDragEnter={onDrag}
+            onDragLeave={onDrag}
+            onDragOver={onDrag}
+            onDrop={onDrop}
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
               dragActive
                 ? "border-[#14a800] bg-[#14a800]/5"
@@ -160,9 +87,13 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
               type="file"
               id="image-upload"
               multiple
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handleImageChange}
-              disabled={isLoading || imageFiles.length >= MAX_IMAGE_NUMBER}
+              accept={IMAGE_UPLOAD_ACCEPT}
+              onChange={onImageChange}
+              disabled={
+                isLoading ||
+                isProcessingImages ||
+                imageFiles.length >= MAX_IMAGE_UPLOAD_COUNT
+              }
               className="hidden"
             />
 
@@ -174,9 +105,7 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
               <p className="text-xs text-gray-500 mb-3">
                 or click to select files from your computer
               </p>
-              <p className="text-xs text-gray-500">
-                Supported: JPEG, PNG, WebP (Max 5MB each)
-              </p>
+              <p className="text-xs text-gray-500">{IMAGE_UPLOAD_HINT}</p>
             </label>
           </div>
 
@@ -192,12 +121,12 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
           {imageFiles.length > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                {imageFiles.length}/{MAX_IMAGE_NUMBER} images
+                {imageFiles.length}/{MAX_IMAGE_UPLOAD_COUNT} images
               </Badge>
               <p className="text-xs text-gray-500">
-                {imageFiles.length >= MAX_IMAGE_NUMBER
+                {imageFiles.length >= MAX_IMAGE_UPLOAD_COUNT
                   ? "Maximum images reached"
-                  : `${MAX_IMAGE_NUMBER - imageFiles.length} more allowed`}
+                  : `${MAX_IMAGE_UPLOAD_COUNT - imageFiles.length} more allowed`}
               </p>
             </div>
           )}
@@ -213,7 +142,7 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
                   {imagePreviews.map((preview, index) => (
                     <div
                       key={index}
-                      className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group"
+                      className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
                     >
                       <Image
                         src={preview}
@@ -227,7 +156,7 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
                       <button
                         onClick={() => onRemoveImage(index)}
                         disabled={isLoading}
-                        className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Remove image"
                       >
                         <X className="h-4 w-4" />
@@ -252,7 +181,6 @@ export const ProductImagesStep: React.FC<ProductImagesStepProps> = ({
             <ul className="text-sm space-y-1">
               <li>• Use clear, well-lit photos</li>
               <li>• Show product from multiple angles</li>
-              <li>• Keep file sizes under 5MB</li>
               <li>• Use JPEG or PNG format for best quality</li>
               <li>• Include product in use if possible</li>
             </ul>

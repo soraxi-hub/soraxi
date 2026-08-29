@@ -82,7 +82,10 @@ export const adminProductRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch products.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load products. Please try again.",
+        );
       }
     }),
 
@@ -108,7 +111,8 @@ export const adminProductRouter = createTRPCRouter({
         if (!product) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Product not found",
+            message:
+              "No product exists with that ID. It may have been deleted since the list was loaded.",
           });
         }
 
@@ -146,7 +150,10 @@ export const adminProductRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch product.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load that product. Please try again.",
+        );
       }
     }),
 
@@ -174,7 +181,8 @@ export const adminProductRouter = createTRPCRouter({
         if (!product) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Product not found",
+            message:
+              "No product exists with that ID. It may have been deleted since the list was loaded.",
           });
         }
 
@@ -273,7 +281,10 @@ export const adminProductRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to process product action.");
+        throw handleTRPCError(
+          error,
+          "We couldn't complete that action on this product. Please try again.",
+        );
       }
     }),
 });

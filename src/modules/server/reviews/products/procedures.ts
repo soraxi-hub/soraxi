@@ -52,7 +52,8 @@ export const productReviewRouter = createTRPCRouter({
       if (!productType) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Product not found.",
+          message:
+            "That product is no longer available, so it can't be reviewed.",
         });
       }
 

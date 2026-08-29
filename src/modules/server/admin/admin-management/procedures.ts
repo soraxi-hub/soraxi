@@ -52,7 +52,7 @@ export const adminManagementRouter = createTRPCRouter({
       if (!admins) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Admins not found",
+          message: "No admin accounts matched this query.",
         });
       }
 
@@ -246,7 +246,7 @@ export const adminManagementRouter = createTRPCRouter({
         if (!admin) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Admin not found",
+            message: "No admin account exists with that ID.",
           });
         }
 
@@ -395,7 +395,7 @@ export const adminManagementRouter = createTRPCRouter({
         if (!admin) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Admin not found",
+            message: "No admin account exists with that ID.",
           });
         }
 

@@ -175,7 +175,10 @@ export class MessagingService implements IMessagingService {
       throw new AppError("BAD_REQUEST", "Message cannot be empty");
     }
 
-    const conversation = await this.loadForParticipant(conversationId, sender.id);
+    const conversation = await this.loadForParticipant(
+      conversationId,
+      sender.id,
+    );
 
     if (conversation.status !== ConversationStatusEnum.Open) {
       throw new AppError(
@@ -202,9 +205,9 @@ export class MessagingService implements IMessagingService {
     const productRef = attachProductId
       ? (
           await ThreadContextService.forProduct({
-            customerId: conversation.participants.find(
-              (p) => p.kind === MessageParticipantKindEnum.User,
-            )!.id.toString(),
+            customerId: conversation.participants
+              .find((p) => p.kind === MessageParticipantKindEnum.User)!
+              .id.toString(),
             productId: attachProductId,
           })
         ).productRef
@@ -333,7 +336,10 @@ export class MessagingService implements IMessagingService {
     const conversation = await ConversationRepository.findById(conversationId);
 
     if (!conversation) {
-      throw new AppError("NOT_FOUND", "Conversation not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "That conversation no longer exists. It may have been removed.",
+      );
     }
 
     const sentAt = new Date();
@@ -530,11 +536,17 @@ export class MessagingService implements IMessagingService {
     const conversation = await ConversationRepository.findById(conversationId);
 
     if (!conversation) {
-      throw new AppError("NOT_FOUND", "Conversation not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "That conversation no longer exists. It may have been removed.",
+      );
     }
 
     if (!ConversationRepository.participantOf(conversation, participantId)) {
-      throw new AppError("NOT_FOUND", "Conversation not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "That conversation no longer exists. It may have been removed.",
+      );
     }
 
     return conversation;

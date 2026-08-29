@@ -8,7 +8,7 @@ import type {
   UseStepValidationReturn,
 } from "@/types/edit-wizard.types";
 import { EditWizardStep as EditStep } from "../types/edit-wizard.types";
-import { MAX_PRODUCT_IMAGES } from "@/constants/image.constants";
+import { MAX_IMAGE_UPLOAD_COUNT } from "@/constants/image.constants";
 
 /**
  * Hook for validating edit wizard steps and form data
@@ -135,8 +135,8 @@ export function useStepValidation(): UseStepValidationReturn {
       }
 
       // Maximum images check
-      if (totalImages > MAX_PRODUCT_IMAGES) {
-        stepErrors.images = `Maximum ${MAX_PRODUCT_IMAGES} images allowed`;
+      if (totalImages > MAX_IMAGE_UPLOAD_COUNT) {
+        stepErrors.images = `You can have up to ${MAX_IMAGE_UPLOAD_COUNT} images on a product.`;
       }
 
       return {

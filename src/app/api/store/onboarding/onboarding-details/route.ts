@@ -22,7 +22,10 @@ export async function GET(_request: NextRequest) {
     const storeData = await getStoreFromCookie();
 
     if (!storeData) {
-      throw new AppError("UNAUTHORIZED", "Unauthorized");
+      throw new AppError(
+        "UNAUTHORIZED",
+        "Your session has expired. Sign in again to continue setting up your store.",
+      );
     }
 
     const Store = await getStoreModel();
@@ -33,9 +36,13 @@ export async function GET(_request: NextRequest) {
       .lean()) as IStore | null;
 
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", {
-        storeId: storeData.id,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find your store. Sign out and sign in again, or check your profile for the right store.",
+        {
+          storeId: storeData.id,
+        },
+      );
     }
 
     const progressSteps = {

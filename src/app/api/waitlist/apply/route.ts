@@ -5,7 +5,7 @@ import { VendorApplicationRepository } from "@/repositories/vendor-application-r
 import { WaitlistService } from "@/services/waitlist.service";
 import { z } from "zod";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
-import { MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES } from "@/constants/image.constants";
+import { assertValidImageUpload } from "@/validators/validate-image-files";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
         "At least one product sample image is required",
       );
     }
-    if (productSampleFiles.length > MAX_WAITLIST_PRODUCT_SAMPLE_IMAGES) {
-      throw new AppError("BAD_REQUEST", "Maximum 4 product samples allowed");
-    }
+    // Count, size and type, enforced server-side — the wizard checks the same
+    // rules but a route cannot rely on that.
+    assertValidImageUpload(productSampleFiles, { required: true });
 
     // 4. Prepare input for WaitlistService
     const serviceInput = {

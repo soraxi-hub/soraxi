@@ -36,14 +36,6 @@ const TONE_ICON = {
   suspended: ShieldAlert,
 } as const;
 
-/**
- * Identity strip: who this store is, whether it is trading, and the two things
- * an owner reaches for most — seeing and sharing their public page.
- *
- * The status badge sits beside the name rather than in a corner, because
- * "Suspended" or "Not live yet" is the single most important fact on the page
- * and must not be findable only by scrolling.
- */
 export function StoreHeaderCard({
   storeName,
   initials,
@@ -57,11 +49,6 @@ export function StoreHeaderCard({
 
   const handleCopy = async () => {
     try {
-      // publicUrl is a relative path ("/brand/<storeId>"). That is fine for
-      // <Link>, which resolves it against the current origin, but a copied
-      // link leaves the app — pasted into a chat or a post, a bare path
-      // resolves to nothing. Absolutise it against the current origin so what
-      // the vendor shares actually opens.
       const absoluteUrl = new URL(publicUrl, window.location.origin).toString();
       await navigator.clipboard.writeText(absoluteUrl);
       setCopied(true);

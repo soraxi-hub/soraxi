@@ -30,7 +30,10 @@ export const storeProfileRouter = createTRPCRouter({
       const storeDoc = await StoreRepository.findStoreById(store.id);
 
       if (!storeDoc)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "We couldn't find your store. Sign out and sign in again.",
+        });
 
       const baseStore = StoreFactory.store({
         ...storeDoc,
@@ -130,7 +133,7 @@ export const storeProfileRouter = createTRPCRouter({
       if (!updatedStore) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Store not found.",
+          message: "We couldn't find your store. Sign out and sign in again.",
         });
       }
 
@@ -171,7 +174,7 @@ export const storeProfileRouter = createTRPCRouter({
         if (!updatedStore) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found.",
+            message: "We couldn't find your store. Sign out and sign in again.",
           });
         }
 

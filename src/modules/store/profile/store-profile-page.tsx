@@ -30,15 +30,6 @@ import { ownerStatusView } from "./store-status";
 
 /**
  * The vendor's private view of their own store.
- *
- * Composition only — every section is its own component under `./components`.
- * The version this replaced was a single 620-line file with two inline edit
- * forms, which is why the same "is this store live?" logic appeared in three
- * places with three different labels.
- *
- * The page owns the horizontal gutter and the cards render flush inside it on
- * mobile, becoming boxed at `lg`. See `page-card.styles.ts` for why that
- * matters at 375px.
  */
 export default function StoreProfilePage() {
   const trpc = useTRPC();
@@ -162,7 +153,7 @@ export default function StoreProfilePage() {
         open={editing === "name"}
         onOpenChange={(open) => setEditing(open ? "name" : null)}
         title="Store name"
-        description="This is what students see on your storefront and on every order."
+        description="This is what customers see on your storefront and on every order."
         label="Store name"
         value={storeData.storeName}
         maxLength={100}
@@ -173,8 +164,8 @@ export default function StoreProfilePage() {
       <EditFieldDialog
         open={editing === "description"}
         onOpenChange={(open) => setEditing(open ? "description" : null)}
-        title="What students see"
-        description="Tell students what you sell, where you deliver, and anything that helps them trust you."
+        title="What customers see"
+        description="Tell customers what you sell, where you deliver, and anything that helps them trust you."
         label="Description"
         value={storeData.description}
         multiline

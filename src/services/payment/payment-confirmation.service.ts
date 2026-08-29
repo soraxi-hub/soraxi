@@ -140,7 +140,8 @@ export class PaymentConfirmationService {
       // timing out, or erroring. We know nothing, so change nothing.
       return {
         ok: false,
-        error: `Could not retrieve transaction data from the gateway. ${outcome.message ?? ""}`.trim(),
+        error:
+          `Could not retrieve transaction data from the gateway. ${outcome.message ?? ""}`.trim(),
         retryable: true,
       };
     }
@@ -172,7 +173,8 @@ export class PaymentConfirmationService {
         ? { ok: true, status }
         : {
             ok: false,
-            error: "Failed to cancel abandoned order.",
+            error:
+              "We couldn't close this abandoned checkout. It will be retried automatically.",
             retryable: true,
           };
     }
@@ -219,7 +221,9 @@ export class PaymentConfirmationService {
           if (!result.ok) {
             throw new RejectedPayment({
               ok: false,
-              error: result.error ?? "Failed to update order",
+              error:
+                result.error ??
+                "We couldn't record this payment against your order. Your money is safe — contact support with your order reference if this persists.",
               retryable: false,
             });
           }
@@ -280,7 +284,9 @@ export class PaymentConfirmationService {
           // decision. Redelivery would only repeat the same rejection.
           throw new RejectedPayment({
             ok: false,
-            error: result.error ?? "Failed to update order",
+            error:
+              result.error ??
+              "We couldn't record this payment against your order. Your money is safe — contact support with your order reference if this persists.",
             retryable: false,
           });
         }
@@ -345,7 +351,9 @@ export class PaymentConfirmationService {
       });
 
       if (status) {
-        console.log(`[PaymentConfirmation] Order ${orderId} cancelled: ${reason}`);
+        console.log(
+          `[PaymentConfirmation] Order ${orderId} cancelled: ${reason}`,
+        );
       }
 
       return status;
@@ -470,7 +478,8 @@ export class PaymentConfirmationService {
         }
 
         if (result.status === PaymentStatus.Paid) summary.paid++;
-        else if (result.status === PaymentStatus.Pending) summary.stillPending++;
+        else if (result.status === PaymentStatus.Pending)
+          summary.stillPending++;
         else summary.failed++;
       } catch (error) {
         summary.errored++;

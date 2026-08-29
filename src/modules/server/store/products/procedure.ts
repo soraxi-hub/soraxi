@@ -49,7 +49,8 @@ export const storeProductRouter = createTRPCRouter({
         if (!productDoc) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Product not found",
+            message:
+              "We couldn't find that product. It may have been deleted — refresh your product list.",
           });
         }
 
@@ -63,7 +64,8 @@ export const storeProductRouter = createTRPCRouter({
           // Ensure comparison is string to string
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Unauthorized access to product",
+            message:
+              "This product belongs to a different store, so it cannot be changed from here.",
           });
         }
 
@@ -83,7 +85,10 @@ export const storeProductRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch store product.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load that product. Please try again.",
+        );
       }
     }),
 
@@ -202,7 +207,7 @@ export const storeProductRouter = createTRPCRouter({
         if (!storeDoc) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found",
+            message: "We couldn't find your store. Sign out and sign in again.",
           });
         }
 
@@ -248,14 +253,16 @@ export const storeProductRouter = createTRPCRouter({
         if (!product) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Product not found",
+            message:
+              "We couldn't find that product. It may have been deleted — refresh your product list.",
           });
         }
 
         if (product.storeId.toString() !== store.id) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Unauthorized access to product",
+            message:
+              "This product belongs to a different store, so it cannot be changed from here.",
           });
         }
 
@@ -318,7 +325,10 @@ export const storeProductRouter = createTRPCRouter({
         // everything else with a safe message — Mongoose validation errors
         // otherwise describe our schema paths, and unrecognised library
         // errors were being echoed to the client verbatim.
-        throw handleTRPCError(error, "Failed to update product visibility.");
+        throw handleTRPCError(
+          error,
+          "We couldn't update product visibility. Please try again.",
+        );
       }
     }),
 
@@ -349,7 +359,8 @@ export const storeProductRouter = createTRPCRouter({
         if (!product) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Product not found",
+            message:
+              "We couldn't find that product. It may have been deleted — refresh your product list.",
           });
         }
 
@@ -374,7 +385,8 @@ export const storeProductRouter = createTRPCRouter({
         if (result.matchedCount === 0) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Product not found or unauthorized",
+            message:
+              "That product either no longer exists or belongs to a different store.",
           });
         }
 
@@ -403,7 +415,10 @@ export const storeProductRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to update product images.");
+        throw handleTRPCError(
+          error,
+          "We couldn't update product images. Please try again.",
+        );
       }
     }),
 });

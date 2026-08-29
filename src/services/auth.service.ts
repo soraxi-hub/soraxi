@@ -29,8 +29,20 @@ export class AuthService {
   ): Promise<{ tokenPayload: UserTokenPayload }> {
     const user = await UserRepository.findUserByEmail(email);
 
+    // A missing account and a wrong password deliberately produce the SAME
+    // error. Answering "User not found" for one and "Invalid credentials" for
+    // the other turns this endpoint into an account-enumeration oracle: anyone
+    // could discover which email addresses have Soraxi accounts by watching
+    // which of the two comes back.
+    const invalidCredentials = () =>
+      new AppError(
+        "UNAUTHORIZED",
+        "That email and password don't match an account. Check both, or use Forgot Password to reset it.",
+        { email },
+      );
+
     if (!user) {
-      throw new AppError("NOT_FOUND", "User not found", { email });
+      throw invalidCredentials();
     }
 
     const authUser = UserFactory.createAuthUser(user);
@@ -38,7 +50,7 @@ export class AuthService {
     const isValidPassword = await authUser.validatePassword(password);
 
     if (!isValidPassword) {
-      throw new AppError("UNAUTHORIZED", "Invalid Credentials", { email });
+      throw invalidCredentials();
     }
 
     const tokenPayload = CookieService.generateUserToken(authUser);
@@ -64,15 +76,24 @@ export class AuthService {
   }> {
     const store = await StoreRepository.findStoreByEmail(storeEmail);
 
+    // Same reasoning as userLogin: one message for both branches, so this
+    // endpoint cannot be used to discover which store emails exist.
+    const invalidCredentials = () =>
+      new AppError(
+        "UNAUTHORIZED",
+        "That store email and password don't match a store. Remember your store login is separate from your personal account.",
+        { storeEmail },
+      );
+
     if (!store) {
-      throw new AppError("NOT_FOUND", "Store not found", { storeEmail });
+      throw invalidCredentials();
     }
 
     const authStore = StoreFactory.buildAuthenticatedStore(store);
     const isPasswordValid = await authStore.validatePassword(password);
 
     if (!isPasswordValid) {
-      throw new AppError("UNAUTHORIZED", "Invalid credentials", { storeEmail });
+      throw invalidCredentials();
     }
 
     const tokenPayload = CookieService.generateStoreToken(store);
@@ -140,9 +161,11 @@ export class AuthService {
         .executeOne();
 
       if (!store) {
-        throw new AppError("NOT_FOUND", "Store not found", {
-          email: identifierEmail,
-        });
+        throw new AppError(
+          "NOT_FOUND",
+          "We couldn't find the store for this session. Sign out and sign in again.",
+          { email: identifierEmail },
+        );
       }
 
       const authStore = StoreFactory.buildAuthenticatedStore(store);
@@ -158,9 +181,11 @@ export class AuthService {
     const user = await UserRepository.findUserByEmail(identifierEmail);
 
     if (!user) {
-      throw new AppError("NOT_FOUND", "User not found", {
-        email: identifierEmail,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find the account for this session. Sign out and sign in again.",
+        { email: identifierEmail },
+      );
     }
 
     const authUser = UserFactory.createAuthUser(user);
@@ -185,9 +210,11 @@ export class AuthService {
         .executeOne();
 
       if (!rawDoc)
-        throw new AppError("NOT_FOUND", "Store not found", {
-          email: identifierEmail,
-        });
+        throw new AppError(
+          "NOT_FOUND",
+          "We couldn't find the store for this session. Sign out and sign in again.",
+          { email: identifierEmail },
+        );
 
       const store = StoreFactory.store({
         ...rawDoc,
@@ -198,10 +225,14 @@ export class AuthService {
 
       const updatedStore = await StoreRepository.persistUpdatedPassword(store);
 
+      // A failure here is a failed write, not a missing store — the store was
+      // read successfully a few lines above.
       if (!updatedStore)
-        throw new AppError("NOT_FOUND", "User not found", {
-          email: identifierEmail,
-        });
+        throw new AppError(
+          "INTERNAL_SERVER_ERROR",
+          "We couldn't save your new password. Your old one still works — please try again.",
+          { email: identifierEmail },
+        );
 
       return updatedStore;
     }
@@ -209,9 +240,11 @@ export class AuthService {
     const rawDoc = await UserRepository.findUserByEmail(identifierEmail);
 
     if (!rawDoc)
-      throw new AppError("NOT_FOUND", "User not found", {
-        email: identifierEmail,
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find the account for this session. Sign out and sign in again.",
+        { email: identifierEmail },
+      );
 
     const user = UserFactory.createBaseUser(rawDoc);
 
@@ -219,10 +252,13 @@ export class AuthService {
 
     const updatedUser = await UserRepository.persistUpdatedPassword(user);
 
+    // As above: a failed write, not a missing account.
     if (!updatedUser)
-      throw new AppError("NOT_FOUND", "User not found", {
-        email: identifierEmail,
-      });
+      throw new AppError(
+        "INTERNAL_SERVER_ERROR",
+        "We couldn't save your new password. Your old one still works — please try again.",
+        { email: identifierEmail },
+      );
 
     return updatedUser;
   }

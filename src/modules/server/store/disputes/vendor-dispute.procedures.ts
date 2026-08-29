@@ -132,7 +132,7 @@ export const vendorDisputeRouter = createTRPCRouter({
         }
         throw handleTRPCError(
           error,
-          "Failed to fetch order financial statuses.",
+          "We couldn't load the payment status for this order. Please try again.",
         );
       }
     }),
@@ -172,7 +172,8 @@ export const vendorDisputeRouter = createTRPCRouter({
         if (!dispute) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Dispute not found.",
+            message:
+              "We couldn't find that dispute. Open it from the order in your Disputes list.",
           });
         }
 
@@ -213,7 +214,10 @@ export const vendorDisputeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch dispute details.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load these dispute details. Please try again.",
+        );
       }
     }),
 
@@ -267,7 +271,10 @@ export const vendorDisputeRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch store disputes.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load your store's disputes. Please try again.",
+        );
       }
     }),
 });

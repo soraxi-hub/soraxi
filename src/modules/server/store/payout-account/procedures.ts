@@ -75,7 +75,10 @@ export const paymentRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Failed to fetch store payout accounts.");
+      throw handleTRPCError(
+        error,
+        "We couldn't load your store's payout accounts. Please try again.",
+      );
     }
   }),
 
@@ -131,7 +134,10 @@ export const paymentRouter = createTRPCRouter({
           // sendTelegramMessage already console.errors internally; never mask the original error
         }
       }
-      throw handleTRPCError(error, "Failed to fetch bank list.");
+      throw handleTRPCError(
+        error,
+        "We couldn't load the bank list. Please try again.",
+      );
     }
   }),
 
@@ -219,7 +225,10 @@ export const paymentRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to resolve account number.");
+        throw handleTRPCError(
+          error,
+          "We couldn't verify that account number with the bank. Please try again.",
+        );
       }
     }),
 
@@ -271,7 +280,7 @@ export const paymentRouter = createTRPCRouter({
         if (!store) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found",
+            message: "We couldn't find your store. Sign out and sign in again.",
           });
         }
 
@@ -299,7 +308,10 @@ export const paymentRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally.
           }
         }
-        throw handleTRPCError(error, "Failed to save payout account.");
+        throw handleTRPCError(
+          error,
+          "We couldn't save that payout account. Please try again.",
+        );
       }
     }),
 
@@ -330,7 +342,7 @@ export const paymentRouter = createTRPCRouter({
         if (!store) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found",
+            message: "We couldn't find your store. Sign out and sign in again.",
           });
         }
 
@@ -376,7 +388,10 @@ export const paymentRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors internally; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to add payout account.");
+        throw handleTRPCError(
+          error,
+          "We couldn't save that payout account. Please try again.",
+        );
       }
     }),
 });

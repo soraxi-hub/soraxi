@@ -161,7 +161,10 @@ export const adminRefundRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch refund records.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load refund records. Please try again.",
+        );
       }
     }),
 
@@ -192,7 +195,7 @@ export const adminRefundRouter = createTRPCRouter({
         if (!refund) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Refund record not found.",
+            message: "No refund record exists with that ID.",
           });
         }
 
@@ -252,7 +255,10 @@ export const adminRefundRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to fetch refund details.");
+        throw handleTRPCError(
+          error,
+          "We couldn't load these refund details. Please try again.",
+        );
       }
     }),
 
@@ -320,7 +326,7 @@ export const adminRefundRouter = createTRPCRouter({
         if (!refund) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Refund record not found.",
+            message: "No refund record exists with that ID.",
           });
         }
 
@@ -392,7 +398,10 @@ export const adminRefundRouter = createTRPCRouter({
             // sendTelegramMessage already console.errors; never mask the original error
           }
         }
-        throw handleTRPCError(error, "Failed to process manual refund action.");
+        throw handleTRPCError(
+          error,
+          "We couldn't record that manual refund. Please try again.",
+        );
       }
     }),
 });

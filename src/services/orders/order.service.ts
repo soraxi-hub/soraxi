@@ -37,7 +37,11 @@ export class OrderService implements IOrderService {
     const orderDoc = await OrderRepository.getOrderById(orderId, true);
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found", { orderId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+        { orderId },
+      );
     }
 
     return new Order(orderDoc).toJSON();
@@ -54,7 +58,11 @@ export class OrderService implements IOrderService {
     const orderDoc = await OrderRepository.getOrderById(orderId, true);
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found", { orderId });
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+        { orderId },
+      );
     }
 
     return new Order(orderDoc).toStoreJSON(storeId);
@@ -78,7 +86,10 @@ export class OrderService implements IOrderService {
     const orderDoc = await OrderRepository.getOrderById(orderId);
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+      );
     }
 
     return new Order(orderDoc).toStoreJSON(storeId);
@@ -236,7 +247,10 @@ export class OrderService implements IOrderService {
     )) as IOrderDocument | null;
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+      );
     }
 
     const order = new Order(orderDoc);
@@ -258,7 +272,10 @@ export class OrderService implements IOrderService {
     )) as IOrderDocument | null;
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+      );
     }
 
     const order = new Order(orderDoc);
@@ -286,7 +303,10 @@ export class OrderService implements IOrderService {
     )) as IOrderDocument | null;
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+      );
     }
 
     const order = OrderFactory.createOrder(orderDoc);
@@ -443,7 +463,10 @@ export class OrderService implements IOrderService {
     const orderDoc = await OrderRepository.getOrderById(orderId);
 
     if (!orderDoc) {
-      throw new AppError("NOT_FOUND", "Order not found");
+      throw new AppError(
+        "NOT_FOUND",
+        "We couldn't find that order. It may have been removed.",
+      );
     }
 
     const order = new Order(orderDoc);

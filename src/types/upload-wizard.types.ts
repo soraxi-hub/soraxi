@@ -1,9 +1,5 @@
 import type { ProductFormData } from "@/validators/product-validators";
 
-// ============================================================================
-// RICH TEXT EDITOR CONFIGURATION
-// ============================================================================
-
 export const quillModules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
@@ -51,33 +47,16 @@ export interface StepConfig {
  * Complete state shape for the product upload wizard
  */
 export interface WizardState {
-  // Form data
   formData: ProductFormData;
-
-  // Validation
   errors: Partial<Record<keyof ProductFormData, string>>;
-
-  // Images
   imageFiles: File[];
   imagePreviews: string[];
-
-  // Navigation
   currentStep: WizardStep;
-
-  // Upload progress
   uploadProgress: number;
-
-  // Draft management
   draftProductId: string | null;
-
-  // Loading states
   isLoading: boolean;
   isLoadingDraft: boolean;
-
-  // Unsaved changes
   isDirty: boolean;
-
-  // UI
   dragActive: boolean;
 }
 
@@ -152,10 +131,12 @@ export interface ProductImagesStepProps {
   imageFiles: File[];
   imagePreviews: string[];
   dragActive: boolean;
+  /** True while images are being compressed. */
+  isProcessingImages?: boolean;
   errors: Partial<Record<keyof ProductFormData | "images", string>>;
-  onImageFilesChange: (files: File[]) => void;
-  onImagePreviewsChange: (previews: string[]) => void;
-  onDragActiveChange: (active: boolean) => void;
+  onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onDrop: (event: React.DragEvent) => void;
+  onDrag: (event: React.DragEvent) => void;
   onRemoveImage: (index: number) => void;
   onNext: () => void;
   onPrevious: () => void;

@@ -72,7 +72,7 @@ export const storeRouter = createTRPCRouter({
         if (!store) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Store not found",
+            message: "We couldn't find your store. Sign out and sign in again.",
           });
         }
 
@@ -95,9 +95,7 @@ export const storeRouter = createTRPCRouter({
         );
 
         return {
-          storeId: (
-            store._id as unknown as mongoose.Types.ObjectId
-          ).toString(),
+          storeId: (store._id as unknown as mongoose.Types.ObjectId).toString(),
           data: {
             profile: {
               name: store.name,
