@@ -1263,9 +1263,18 @@ export async function checkCollectionsByGateway(options?: {
   const byGateway = new Map<PaymentGateway, GatewayCollectionsPosition>();
   let untaggedCollectionsEscrow = 0;
 
+  /**
+   * The three ways money moves at a gateway on the COLLECTIONS side.
+   *
+   * `TRANSFER_FEE_DEDUCTED` is deliberately absent: a payout's transfer fee
+   * touches the same account and posts the same lines, but it is a
+   * disbursement. It used to share the collection fee's category, which made
+   * every payout fee land in `untaggedCollectionsEscrow` and the nightly cron
+   * report a false discrepancy after each valid payout.
+   */
   const collectionCategories: LedgerEntryCategory[] = [
     LedgerEntryCategory.PAYMENT_RECEIVED,
-    LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
+    LedgerEntryCategory.COLLECTION_FEE_DEDUCTED,
     LedgerEntryCategory.REFUND_CONFIRMED,
   ];
 
@@ -1297,7 +1306,7 @@ export async function checkCollectionsByGateway(options?: {
     ) {
       position.paymentsIn += row.total;
     } else if (
-      category === LedgerEntryCategory.GATEWAY_FEE_DEDUCTED &&
+      category === LedgerEntryCategory.COLLECTION_FEE_DEDUCTED &&
       type === LedgerEntryType.CREDIT
     ) {
       position.collectionFees += row.total;

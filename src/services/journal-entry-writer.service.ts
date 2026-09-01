@@ -472,11 +472,11 @@ export class JournalEntryWriter {
 
     await this.commitEntry(
       {
-        category: LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
+        category: LedgerEntryCategory.COLLECTION_FEE_DEDUCTED,
         referenceType: LedgerReferenceType.SUBORDER,
         referenceId: orderId,
-        description: `Flutterwave collection fee of ${feeAmount} Kobo deducted from escrow for order ${orderId}`,
-        metadata: { orderId, feeAmount, feeType: "COLLECTION" },
+        description: `${gatewayProvider} collection fee of ${feeAmount} Kobo deducted from escrow for order ${orderId}`,
+        metadata: { orderId, feeAmount, feeType: "COLLECTION", gatewayProvider },
       },
       lines,
       session,
@@ -1469,11 +1469,11 @@ export class JournalEntryWriter {
 
     await this.commitEntry(
       {
-        category: LedgerEntryCategory.GATEWAY_FEE_DEDUCTED,
+        category: LedgerEntryCategory.TRANSFER_FEE_DEDUCTED,
         referenceType: LedgerReferenceType.PAYOUT,
         referenceId: payoutId,
-        description: `Gateway fee of ${feeAmount} Kobo recorded for payout ${payoutId}`,
-        metadata: { payoutId, feeAmount },
+        description: `Gateway transfer fee of ${feeAmount} Kobo recorded for payout ${payoutId}`,
+        metadata: { payoutId, feeAmount, feeType: "TRANSFER" },
       },
       lines,
       session,

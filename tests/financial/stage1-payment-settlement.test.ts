@@ -29,7 +29,7 @@ import { calculateCommission } from "@/lib/utils/calculate-commission";
  * Ledger expectations under the verified conventions:
  *   PAYMENT_RECEIVED:      DEBIT PLATFORM_ESCROW / CREDIT CUSTOMER_REFUND_PAYABLE (gross)
  *   VENDOR_SETTLEMENT ×n:  DEBIT CUSTOMER_REFUND_PAYABLE / CREDIT VENDOR_PENDING + PLATFORM_REVENUE_COMMISSION
- *   GATEWAY_FEE_DEDUCTED:  DEBIT GATEWAY_FEES_EXPENSE / CREDIT PLATFORM_ESCROW (collection fee)
+ *   COLLECTION_FEE_DEDUCTED: DEBIT GATEWAY_FEES_EXPENSE / CREDIT PLATFORM_ESCROW (collection fee)
  */
 describe("Stage 1 — payment received + suborder settlement", () => {
   beforeAll(async () => {
