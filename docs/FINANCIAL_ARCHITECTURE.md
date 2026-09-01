@@ -186,7 +186,7 @@ The canonical definition of which accounts move for each financial event:
 | **DEBT_RECOVERY**                      | `VENDOR_AVAILABLE` (recovered)                                               | `VENDOR_DEBT_RECEIVABLE` (recovered)                      |
 | **PAYOUT_PROCESSING_FEE**              | `VENDOR_AVAILABLE` (fee)                                                     | `PLATFORM_REVENUE_COMMISSION` (fee)                       |
 | **PAYOUT_INITIATED**                   | `VENDOR_AVAILABLE` (net)                                                     | `PAYOUT_PROCESSING` (net)                                 |
-| **GATEWAY_FEE** (at initiation)        | `GATEWAY_FEES_EXPENSE` (fee)                                                 | `PLATFORM_ESCROW` (fee)                                   |
+| **TRANSFER_FEE_DEDUCTED** (at payout initiation) | `GATEWAY_FEES_EXPENSE` (fee)                                       | `PLATFORM_ESCROW` (fee)                                   |
 | **PAYOUT_COMPLETED**                   | `PAYOUT_PROCESSING` (net)                                                    | `PLATFORM_ESCROW` (net)                                   |
 | **PAYOUT_FAILED**                      | `PAYOUT_PROCESSING` (net)                                                    | `VENDOR_AVAILABLE` (net)                                  |
 | **PAYOUT_PROCESSING_FEE_REVERSAL**     | `PLATFORM_REVENUE_COMMISSION` (fee)                                          | `VENDOR_AVAILABLE` (fee)                                  |
@@ -201,7 +201,7 @@ The canonical definition of which accounts move for each financial event:
 > vendor's outstanding `VENDOR_DEBT_RECEIVABLE` from their available funds.
 >
 > **PAYOUT_COMPLETED** carries the net amount only — the gateway fee was
-> already expensed at initiation (**GATEWAY_FEE**) and is reversed on failure.
+> already expensed at initiation (**TRANSFER_FEE_DEDUCTED**) and is reversed on failure.
 > Recording it again at completion double-counted the fee (bug fixed
 > 2026-08-11).
 
@@ -300,17 +300,33 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
 
 Set **only** on lines representing real gateway cash movement:
 
-| Event                                    | Tagged? |
-| ---------------------------------------- | ------- |
-| `PAYMENT_RECEIVED` (money into escrow)   | Yes     |
-| `GATEWAY_FEE_DEDUCTED` (collection fee)  | Yes     |
-| `REFUND_CONFIRMED` (money back out)      | Yes     |
+| Event                                      | Tagged? |
+| ------------------------------------------ | ------- |
+| `PAYMENT_RECEIVED` (money into escrow)     | Yes     |
+| `COLLECTION_FEE_DEDUCTED` (collection fee) | Yes     |
+| `REFUND_CONFIRMED` (money back out)        | Yes     |
+| `TRANSFER_FEE_DEDUCTED` (payout fee)       | No — disbursement |
 | Everything else — settlement, funds release, dispute freezes, payouts | No |
 
 Purely internal movements have no gateway, so tagging them would be a fiction.
 Payout-side movements are also left untagged, and that is a deliberate
 decision rather than an omission — see §15's note on
 `checkCollectionsByGateway`.
+
+> **Why collection fees and transfer fees have separate categories.**
+> `writeCollectionFee` and `writeGatewayFee` post byte-identical ledger lines —
+> `DEBIT GATEWAY_FEES_EXPENSE / CREDIT PLATFORM_ESCROW` — because both record a
+> gateway taking a fee out of escrow. They differ only in which direction the
+> money was flowing when it happened.
+>
+> They shared one category (`GATEWAY_FEE_DEDUCTED`) until 2026-08-20. Because
+> `checkCollectionsByGateway` selects escrow lines by category, every payout's
+> transfer fee matched the collections filter, and — being untagged — landed in
+> `untaggedCollectionsEscrow`, making the nightly cron report a gateway
+> attribution discrepancy after every valid payout. Splitting the category
+> removes the ambiguity at its root rather than filtering around it.
+> `tests/financial/gateway-collections.test.ts` guards against them being merged
+> back together.
 
 The field lives on the **line**, not the parent `JournalEntry`, even though the
 provider is logically a property of the event. Every use of it is an
@@ -655,7 +671,7 @@ nightly sweep — all three via `PaymentConfirmationService.confirmFromGateway`
    - `DEBIT CUSTOMER_REFUND_PAYABLE` (gross order amount)
    - `CREDIT VENDOR_PENDING` × n (one line per vendor, settle amount each)
    - `CREDIT PLATFORM_REVENUE_COMMISSION` (total commission)
-4. Write **GATEWAY_FEE_DEDUCTED** (if the provider charged a collection fee), tagged with the same gateway
+4. Write **COLLECTION_FEE_DEDUCTED** (if the provider charged a collection fee), tagged with the same gateway
 5. Update each **Vendor Wallet** — add settle amount to `pending`
 6. Update **Platform Wallet** — add commission to `commission` balance
 
@@ -811,7 +827,7 @@ _Triggered when vendor initiates a withdrawal_
 5. If `recoveryDeduction > 0`: write **DEBT_RECOVERY** journal entry, reduce wallet debt cache
 6. If `processingFee > 0`: write **PAYOUT_PROCESSING_FEE** journal entry
 7. Write **PAYOUT_INITIATED** journal entry — net amount enters `PAYOUT_PROCESSING`
-8. If `gatewayFee > 0`: write **GATEWAY_FEE** journal entry
+8. If `gatewayFee > 0`: write **TRANSFER_FEE_DEDUCTED** journal entry
 9. Update **Vendor Wallet** — deduct full `requestedAmount` from `available`
 10. Automated path: background job picks up `INITIATED` payouts and calls Flutterwave Transfer API. Manual path: admin executes transfer on Flutterwave dashboard and confirms via admin panel (see §13)
 
@@ -1379,7 +1395,7 @@ own records. Two obstacles, both real:
   matching window — not a live balance — is the documented approach, and even
   then the window has to be shifted or the comparison made cumulative.
 - **Fee schedules differ per provider**, so each needs its own fee-deduction
-  logic feeding `GATEWAY_FEE_DEDUCTED`.
+  logic feeding `COLLECTION_FEE_DEDUCTED`.
 
 ---
 

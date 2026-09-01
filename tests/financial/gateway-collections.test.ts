@@ -29,20 +29,22 @@ import {
  * gateway it actually moved through, and money that moved without a recorded
  * gateway must be surfaced rather than silently folded into a total.
  */
+// One database for the whole file: a second describe starting its own replica
+// set would tear the connection out from under the first.
+beforeAll(async () => {
+  await startTestDb();
+});
+
+afterAll(async () => {
+  await stopTestDb();
+});
+
+beforeEach(async () => {
+  await clearAllCollections();
+  await seedPlatformWallet();
+});
+
 describe("checkCollectionsByGateway", () => {
-  beforeAll(async () => {
-    await startTestDb();
-  });
-
-  afterAll(async () => {
-    await stopTestDb();
-  });
-
-  beforeEach(async () => {
-    await clearAllCollections();
-    await seedPlatformWallet();
-  });
-
   it("reports nothing when no payments have been collected", async () => {
     const result = await checkCollectionsByGateway();
 
@@ -199,5 +201,89 @@ describe("checkCollectionsByGateway", () => {
     expect(paystack.paymentsIn).toBe(500_000);
     expect(paystack.refundsOut).toBe(200_000);
     expect(paystack.netCollected).toBe(300_000);
+  });
+});
+
+describe("checkCollectionsByGateway — payout fees stay out of collections", () => {
+  it("ignores a payout transfer fee, which posts identical ledger lines", async () => {
+    // writeGatewayFee (payout transfer charge) and writeCollectionFee
+    // (collection charge) post byte-identical ledger lines: same accounts,
+    // same direction, same amount shape. Only their CATEGORY separates them,
+    // and they shared one until COLLECTION_FEE_DEDUCTED and
+    // TRANSFER_FEE_DEDUCTED were split apart.
+    //
+    // While they shared it, every payout fee fell through to
+    // untaggedCollectionsEscrow, and the nightly cron reported a gateway
+    // attribution discrepancy after each valid payout. This test is what
+    // stops the two categories being merged back together.
+    const vendorId = new mongoose.Types.ObjectId();
+    await seedVendorWallet(vendorId);
+
+    await seedPaidOrder({
+      suborderGrossAmounts: [500_000],
+      vendorIds: [vendorId],
+      collectionFeeKobo: 7_525,
+      gateway: PaymentGateway.Flutterwave,
+    });
+
+    const writer = await JournalEntryWriter.init();
+    await withTransaction(async (session) => {
+      await writer.writeGatewayFee({
+        feeAmount: 5_375,
+        payoutId: new mongoose.Types.ObjectId(),
+        session,
+      });
+    });
+
+    const result = await checkCollectionsByGateway();
+
+    const flutterwave = result.perGateway.find(
+      (p) => p.gateway === PaymentGateway.Flutterwave,
+    )!;
+
+    // Only the COLLECTION fee counts against collections.
+    expect(flutterwave.collectionFees).toBe(7_525);
+    expect(flutterwave.netCollected).toBe(500_000 - 7_525);
+
+    // And the payout fee must not be mistaken for unattributable collections
+    // cash — that would make the cron cry wolf on every single payout.
+    expect(result.untaggedCollectionsEscrow).toBe(0);
+  });
+
+  it("files the two fees under distinct categories", async () => {
+    // The guard above is behavioural; this one is structural. If someone ever
+    // points both writers at one category again, this fails immediately and
+    // names the reason, rather than surfacing as a puzzling cron alert weeks
+    // later.
+    const vendorId = new mongoose.Types.ObjectId();
+    await seedVendorWallet(vendorId);
+
+    await seedPaidOrder({
+      suborderGrossAmounts: [500_000],
+      vendorIds: [vendorId],
+      collectionFeeKobo: 7_525,
+      gateway: PaymentGateway.Flutterwave,
+    });
+
+    const writer = await JournalEntryWriter.init();
+    await withTransaction(async (session) => {
+      await writer.writeGatewayFee({
+        feeAmount: 5_375,
+        payoutId: new mongoose.Types.ObjectId(),
+        session,
+      });
+    });
+
+    const JournalEntry = mongoose.connection.collection("journalentries");
+
+    const collectionFees = await JournalEntry.countDocuments({
+      category: LedgerEntryCategory.COLLECTION_FEE_DEDUCTED,
+    });
+    const transferFees = await JournalEntry.countDocuments({
+      category: LedgerEntryCategory.TRANSFER_FEE_DEDUCTED,
+    });
+
+    expect(collectionFees).toBe(1);
+    expect(transferFees).toBe(1);
   });
 });

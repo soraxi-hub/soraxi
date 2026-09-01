@@ -140,14 +140,14 @@ Most webhooks land in 2–5 seconds, so most users never see past step 1. No ord
 
 **Solution:**
 
-- **Extend the ledger with a gateway dimension.** Add a `gatewayProvider` field to `LedgerLine`/`JournalEntry` (alongside existing categories like `PLATFORM_ESCROW`, `GATEWAY_FEE_DEDUCTED`), so the ledger can be sliced per gateway at query time without needing separate ledgers.
+- **Extend the ledger with a gateway dimension.** Add a `gatewayProvider` field to `LedgerLine`/`JournalEntry` (alongside existing categories like `PLATFORM_ESCROW`, `COLLECTION_FEE_DEDUCTED`), so the ledger can be sliced per gateway at query time without needing separate ledgers.
 - **Reconcile in two layers:**
   1. **Per-gateway check** — sum internal ledger lines tagged with each `gatewayProvider`, compare against that gateway's own balance/settlement report. Catches gateway-specific issues early (as already happened with Flutterwave's net-of-fee settlement).
   2. **Aggregate check** — total across all gateways should equal the sum of _passing_ per-gateway checks, not a standalone comparison (otherwise one gateway's discrepancy can hide inside a coincidentally-matching total).
 
 **Two things that will bite if skipped:**
 
-- **Fee schedules differ per gateway** — each new gateway likely needs its own fee-deduction logic feeding into `GATEWAY_FEE_DEDUCTED`, since gross-vs-net settlement isn't universal (Flutterwave's 1.4% + VAT precedent).
+- **Fee schedules differ per gateway** — each new gateway likely needs its own fee-deduction logic feeding into `COLLECTION_FEE_DEDUCTED`, since gross-vs-net settlement isn't universal (Flutterwave's 1.4% + VAT precedent).
 - **Settlement timing differs per gateway** — a gateway's live balance often lags actual transactions by T+1 or more. Reconcile against that gateway's settlement report for the matching window, not a raw live balance, or every run produces false-positive discrepancies.
 
 **Structural tie-in:** Each `PaymentGatewayAdapter` can expose `getBalance()` / `getSettlementReport()` alongside `verifyTransaction()`, so the reconciliation cron simply loops over registered adapters instead of hardcoding gateway-specific logic.
