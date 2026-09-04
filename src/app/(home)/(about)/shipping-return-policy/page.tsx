@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import {
   SoraxiCard,
   SoraxiCardContent,
@@ -9,6 +8,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: "Shipping & Return Policy",
+  description: `Delivery timelines, shipping costs, and return eligibility for orders placed on ${siteConfig.name}.`,
+};
 
 export default function ShippingReturnsPage() {
   return (

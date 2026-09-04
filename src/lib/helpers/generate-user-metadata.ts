@@ -7,7 +7,13 @@ import { getUserFromCookie } from "./get-user-from-cookie";
  * @param description - Page description
  */
 export async function generateUserMetadata(
-  page: "Edit Profile" | "My Wishlist" | "My Orders",
+  page:
+    | "Edit Profile"
+    | "My Wishlist"
+    | "My Orders"
+    | "Order Details"
+    | "My Requests"
+    | "Dispute Details",
   description: string
 ): Promise<Metadata> {
   const user = await getUserFromCookie();

@@ -1,8 +1,7 @@
-"use client";
-
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import {
   CheckCircleIcon,
   Headset,
@@ -41,6 +40,11 @@ import { AnimatedCounter } from "@/modules/store/components/animated-counter";
 // import SellerTestimonials from "@/modules/store/components/seller-testimonials";
 import { siteConfig } from "@/config/site";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Become a Vendor",
+  description: `Start selling to students on ${siteConfig.name}, the campus marketplace for Nigerian universities.`,
+};
 
 function BenefitCard({ icon, title, description }: any) {
   return (

@@ -1,34 +1,62 @@
-"use client";
-
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface CategoryHeaderProps {
   categoryName: string;
-  subcategoryName?: string;
-  productCount: number;
   categorySlug: string;
+  subcategoryName?: string;
 }
 
+/**
+ * Server-rendered so the heading and the trail are in the initial HTML.
+ * The breadcrumb doubles as the link back up to the parent category, which is
+ * the only route from a subcategory to its siblings.
+ */
 export function CategoryHeader({
   categoryName,
+  categorySlug,
   subcategoryName,
-  productCount,
 }: CategoryHeaderProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {subcategoryName || categoryName}
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            {productCount} {productCount === 1 ? "product" : "products"} found
-          </p>
-        </div>
-        <Badge variant="secondary" className="text-sm hidden sm:inline-flex">
-          {categoryName}
-        </Badge>
-      </div>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/">Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            {subcategoryName ? (
+              <BreadcrumbLink asChild>
+                <Link href={`/category/${categorySlug}`}>{categoryName}</Link>
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbPage>{categoryName}</BreadcrumbPage>
+            )}
+          </BreadcrumbItem>
+          {subcategoryName && (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{subcategoryName}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        {subcategoryName || categoryName}
+      </h1>
     </div>
   );
 }

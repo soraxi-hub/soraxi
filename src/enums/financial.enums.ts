@@ -39,11 +39,6 @@ export enum LedgerEntryCategory {
   /**
    * The gateway's charge for sending money OUT to a vendor's bank.
    * Written by writeGatewayFee, scoped to a payout.
-   *
-   * Kept separate from COLLECTION_FEE_DEDUCTED even though both post the same
-   * ledger lines: they are opposite ends of the money flow, and a single
-   * category made collections reconciliation count payout fees as
-   * unattributable collections cash.
    */
   TRANSFER_FEE_DEDUCTED = "transfer_fee_deducted",
   DEBT_RECOVERED = "debt_recovered", // Debt repayment from payout

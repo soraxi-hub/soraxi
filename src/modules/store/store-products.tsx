@@ -25,12 +25,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "@/trpc/routers/_app";
-import { ProductStatusEnum } from "@/enums";
+import { ProductStatusEnum, StoreStatusEnum } from "@/enums";
 import { ReOrderDialog } from "./components/drag-n-drop/dialog-container";
 import { ProductsTable } from "./components/products-table";
+import { ShareStorePromptCard } from "./components/share-store-prompt-card";
 
 type Output = inferProcedureOutput<AppRouter["storeProducts"]["getStoreProducts"]>;
 type StoreProduct = Output["products"][number];
@@ -58,6 +59,12 @@ export function StoreProductsManagement({
   >("all");
 
   const trpc = useTRPC();
+  // Same query the dashboard makes for this store, so react-query serves it
+  // from cache rather than firing a second request in the common case where
+  // a vendor lands here straight from the dashboard.
+  const { data: storeData } = useQuery(
+    trpc.store.getById.queryOptions({ id: store_id }),
+  );
   const [showReOrderDialog, setShowReOrderDialog] = useState(false);
   const [reOrderedimages, setReOrderedImages] = useState<string[]>([]);
   const [currentProductId, setCurrentProductId] = useState<string | null>(null);
@@ -206,6 +213,11 @@ export function StoreProductsManagement({
           </Button>
         </Link>
       </div>
+
+      {/* Sharing only makes sense once the store can actually take orders. */}
+      {storeData?.status === StoreStatusEnum.Active && (
+        <ShareStorePromptCard storeId={store_id} storeName={storeData.name} />
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

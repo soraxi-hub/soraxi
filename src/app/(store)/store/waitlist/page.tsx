@@ -19,14 +19,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Vendor Application Waitlist Page
- *
- * Signed-in applicants only: `POST /api/waitlist/apply` reads the user token, so
- * an anonymous visitor could previously fill the entire wizard, upload sample
- * photos, and lose all of it to a 401 on submit. Gating here also lets us read
- * the applicant's saved contact details and prefill step 1.
- */
 export default async function VendorWaitlistPage() {
   const tokenUser = await getUserFromCookie();
 

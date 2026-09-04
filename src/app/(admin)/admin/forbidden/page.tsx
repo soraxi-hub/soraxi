@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Access Forbidden",
+  description:
+    "You do not have permission to view this page.",
+};
 
 export default function ForbiddenPage() {
   return (

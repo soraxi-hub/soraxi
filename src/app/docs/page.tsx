@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,12 @@ import {
   helpCenterCategories,
 } from "@/lib/utils/mdx-utils/help-center-data";
 import { Store, ShieldCheck, CheckCircle2, ArrowRight } from "lucide-react";
+import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: "Help Center",
+  description: `Guides and answers for buying, selling, and using ${siteConfig.name} — the campus marketplace for Nigerian university students and vendors.`,
+};
 
 export default function DocumentationHome() {
   return (

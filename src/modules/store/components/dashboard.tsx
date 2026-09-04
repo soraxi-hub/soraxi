@@ -18,7 +18,6 @@ import {
   // BarChart3,
   Package,
   AlertCircle,
-  CheckCircle,
   WalletIcon,
   BookOpen,
 } from "lucide-react";
@@ -30,6 +29,7 @@ import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import Link from "next/link";
 import { StoreStatusEnum } from "@/enums";
 import { cn } from "@/lib/utils";
+import { ShareStorePromptCard } from "@/modules/store/components/share-store-prompt-card";
 
 /**
  * Store Dashboard Page
@@ -156,16 +156,14 @@ export default function StoreDashboardPage({
             </Alert>
           )}
 
-          {storeData.status === StoreStatusEnum.Active &&
-            storeData.verification?.isVerified && (
-              <Alert className="mb-6">
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Your store is active and verified! You can now start selling
-                  products.
-                </AlertDescription>
-              </Alert>
-            )}
+          {/* Sharing only makes sense once the store can actually take orders. */}
+          {storeData.status === StoreStatusEnum.Active && (
+            <ShareStorePromptCard
+              storeId={store_id}
+              storeName={storeData.name}
+              className="mb-6"
+            />
+          )}
 
           {/* Onboarding Progress */}
           {!storeData.onboarding?.isComplete && (

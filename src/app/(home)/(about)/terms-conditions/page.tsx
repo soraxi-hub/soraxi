@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import {
   SoraxiCard,
   SoraxiCardContent,
@@ -10,6 +9,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: "Terms & Conditions",
+  description: `The terms governing your use of ${siteConfig.name} as a buyer or vendor.`,
+};
 
 export default function TermsAndConditionsPage() {
   return (

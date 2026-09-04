@@ -7,7 +7,7 @@ import {
   StoreIcon,
   HelpCircleIcon,
   BuildingIcon,
-  BadgeInfoIcon,
+  // BadgeInfoIcon,
   MessageSquareIcon,
   ShieldIcon,
   // AlertTriangleIcon,
@@ -22,7 +22,7 @@ export const userSidebarItems = (user: UserTokenPayload) => [
       { title: "Order History", url: "/orders", icon: PackageIcon },
       // { title: "My Disputes", url: "/disputes", icon: AlertTriangleIcon },
       { title: "Wishlist", url: "/wishlist", icon: HeartIcon },
-      { title: "My Requests", url: "/my-requests", icon: BadgeInfoIcon },
+      // { title: "My Requests", url: "/my-requests", icon: BadgeInfoIcon },
     ],
   },
   {

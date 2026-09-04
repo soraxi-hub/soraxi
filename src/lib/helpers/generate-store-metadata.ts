@@ -14,7 +14,9 @@ export async function generateStoreMetadata(
     | "Edit Product"
     | "Escrow Management"
     | "Escrow Release Details"
-    | "Upload Product",
+    | "Upload Product"
+    | "Store Profile"
+    | "Dispute Details",
   description: string,
 ): Promise<Metadata> {
   const store = await getStoreFromCookie();

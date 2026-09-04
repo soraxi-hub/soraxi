@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { serializeData } from "@/lib/utils";
 import { EmptyCart } from "@/modules/cart/empty-cart";
 import { CheckoutPageClient } from "@/modules/checkout/checkout-page-client";
@@ -5,6 +6,20 @@ import { ProfileErrorFallback } from "@/modules/checkout/profile-error-fallback"
 import { caller } from "@/trpc/server";
 
 export const dynamic = "force-dynamic";
+
+// Per-session cart contents, not a page anyone should land on from search.
+export const metadata: Metadata = {
+  title: "Checkout",
+  description: "Complete your purchase securely.",
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 export default async function Page() {
   /**

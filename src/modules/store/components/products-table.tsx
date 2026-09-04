@@ -15,15 +15,21 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Package, Eye, Edit, MoreHorizontal } from "lucide-react";
+import { Package, Eye, Edit, MoreHorizontal, Share2, Copy } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import { formatNaira } from "@/lib/utils/naira";
 import { siteConfig } from "@/config/site";
 import { truncateText } from "@/lib/utils";
 import { ProductStatusEnum } from "@/enums";
+import { buildShareLinks } from "@/lib/utils/share-links";
+import { FacebookIcon, WhatsappIcon, XIcon } from "@/components/icons";
 
 import type { inferProcedureOutput } from "@trpc/server";
 import type { AppRouter } from "@/trpc/routers/_app";
@@ -168,6 +174,19 @@ export function ProductsTable({
                       </Link>
                     </DropdownMenuItem>
 
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="hover:cursor-pointer">
+                        <Share2 className="mr-2 w-4 h-4" />
+                        Share
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <ShareProductMenuItems
+                          slug={product.slug}
+                          name={product.name}
+                        />
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem
@@ -193,5 +212,58 @@ export function ProductsTable({
         )}
       </TableBody>
     </Table>
+  );
+}
+
+/**
+ * The share channels for a single product, as dropdown items rather than the
+ * icon-button row used elsewhere — this is one entry in an existing "Actions"
+ * menu, not a standalone widget.
+ */
+function ShareProductMenuItems({ slug, name }: { slug: string; name: string }) {
+  const url = `${siteConfig.url}/products/${slug}`;
+  const text = `Check out ${name} on my ${siteConfig.name} store!`;
+  const links = buildShareLinks({ url, text });
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Product link copied to clipboard!");
+    } catch {
+      toast.error("Couldn't copy the link. Copy it from the address bar.");
+    }
+  };
+
+  return (
+    <>
+      <DropdownMenuItem asChild className="hover:cursor-pointer">
+        <a href={links.whatsapp} target="_blank" rel="noopener noreferrer">
+          <WhatsappIcon className="mr-2 w-4 h-4" />
+          WhatsApp
+        </a>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="hover:cursor-pointer">
+        <a href={links.x} target="_blank" rel="noopener noreferrer">
+          <XIcon className="mr-2 w-4 h-4" />
+          X
+        </a>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem asChild className="hover:cursor-pointer">
+        <a href={links.facebook} target="_blank" rel="noopener noreferrer">
+          <FacebookIcon className="mr-2 w-4 h-4" />
+          Facebook
+        </a>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem
+        onClick={handleCopyLink}
+        className="hover:cursor-pointer"
+      >
+        <Copy className="mr-2 w-4 h-4" />
+        Copy link
+      </DropdownMenuItem>
+    </>
   );
 }
