@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Info } from "lucide-react";
 import {
   SoraxiCard,
   SoraxiCardContent,
@@ -20,6 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { categories, INSTITUTIONS } from "@/constants/constant";
 
 export const BusinessContactStep: React.FC<FirstStepProps> = ({
@@ -173,6 +183,40 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
                 Institution <span className="text-red-500">*</span>
               </Label>
               {getValidationIcon("institution")}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Institution information"
+                    className="p-1 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>What is Institution?</DialogTitle>
+                    <DialogDescription>
+                      Choose the tertiary institution or campus closest to you.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="py-2">
+                    <p className="text-sm text-gray-700">
+                      This field helps us localize search results and surface
+                      nearby vendors. For example, if you are in Lagos and the
+                      nearest tertiary institution is UNILAG, select "UNILAG".
+                      Pick the campus closest to your primary business location.
+                    </p>
+                  </div>
+
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Got it</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
             <Select
               value={formData.institution}

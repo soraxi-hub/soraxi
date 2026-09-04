@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Refund Details",
+  description:
+    "Full breakdown of a single refund record.",
+};
 
 import AdminRefundDetail from "@/modules/admin/refunds/refund-record-detail";
 

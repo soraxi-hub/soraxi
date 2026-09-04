@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,6 +19,11 @@ import Image from "next/image";
 import { AnimatedCounter } from "@/modules/store/components/animated-counter";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: "About Us",
+  description: `Learn about ${siteConfig.name}, the campus marketplace connecting Nigerian university students with trusted vendors for fashion, gadgets, school supplies, and more.`,
+};
 
 export default function AboutPage() {
   const stats = [

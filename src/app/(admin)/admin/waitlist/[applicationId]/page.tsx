@@ -1,12 +1,14 @@
+import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Vendor Application Details",
+  description:
+    "Full vendor application view with status, documents, and review actions.",
+};
 
 import AdminWaitlistDetail from "@/modules/admin/waitlist/admin-waitlist-detail";
 
-/**
- * Admin Waitlist Detail Page
- * Full vendor application view with status, documents, and review actions
- * Route: /admin/waitlist/[applicationId]
- */
 export default async function AdminWaitlistDetailPage({
   params,
 }: {

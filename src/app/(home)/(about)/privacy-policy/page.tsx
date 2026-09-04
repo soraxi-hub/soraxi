@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import {
   SoraxiCard,
   SoraxiCardContent,
@@ -10,6 +9,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: `Learn how ${siteConfig.name} collects, uses, and protects your personal data.`,
+};
 
 export default function PrivacyPolicyPage() {
   return (

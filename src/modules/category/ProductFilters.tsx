@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,13 @@ export function ProductFilters({
   maxPrice,
 }: ProductFiltersProps) {
   const [localFilters, setLocalFilters] = useState(filters);
+
+  // The filters now live in the URL, so they can change from outside this
+  // component - a back-navigation, or a link into a filtered view. Without
+  // this the controls keep showing the previous selection.
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
 
   const debouncedFilterUpdate = useMemo(
     () => debounce(onFiltersChangeAction, 1000),
@@ -62,7 +69,6 @@ export function ProductFilters({
       priceRange: [0, maxPrice] as [number, number],
       inStock: false,
       ratings: [],
-      brands: [],
     };
     setLocalFilters(clearedFilters);
     onFiltersChangeAction(clearedFilters);

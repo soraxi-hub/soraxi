@@ -1,12 +1,14 @@
+import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Order Details",
+  description:
+    "Full order view with financial breakdown and dispute links.",
+};
 
 import AdminOrderDetail from "@/modules/admin/orders/admin-order-detail";
 
-/**
- * Admin Order Detail Page
- * Full order view with financial breakdown and dispute links
- * Route: /admin/orders/[orderId]
- */
 export default async function AdminOrderDetailPage({
   params,
 }: {

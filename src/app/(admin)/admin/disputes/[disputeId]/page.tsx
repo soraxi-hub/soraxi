@@ -1,12 +1,14 @@
+import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Dispute Details",
+  description:
+    "Case evidence, timeline, and resolution controls for a single dispute.",
+};
 
 import AdminDisputeDetail from "@/modules/admin/disputes/admin-dispute-detail";
 
-/**
- * Admin Dispute Detail Page
- * Full case view with evidence and resolution controls
- * Route: /admin/disputes/[disputeId]
- */
 export default async function AdminDisputeDetailPage({
   params,
 }: {

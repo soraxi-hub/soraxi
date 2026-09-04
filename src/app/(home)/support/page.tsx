@@ -8,7 +8,6 @@ import {
   HelpCircle,
   ShoppingCart,
   Store,
-  Code,
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
@@ -77,7 +76,7 @@ export default function HelpPage() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 items-stretch">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickLinkCard
             icon={<ShoppingCart className="h-6 w-6 text-soraxi-green" />}
             title="Shopping & Orders"
@@ -97,16 +96,10 @@ export default function HelpPage() {
             className="h-full"
           />
           <QuickLinkCard
-            icon={<Code className="h-6 w-6 text-soraxi-green" />}
-            title="Technical Support"
-            href="#technical-support"
-            className="h-full"
-          />
-          <QuickLinkCard
             icon={<MessageSquare className="h-6 w-6 text-soraxi-green" />}
             title="Contact Us"
             href="#contact-us"
-            className="h-full col-span-2 sm:col-span-1"
+            className="h-full"
           />
         </div>
 
@@ -115,19 +108,19 @@ export default function HelpPage() {
           <SectionHeading icon={ShoppingCart} title="Shopping & Orders" />
           <FAQItem
             question="How do I place an order?"
-            answer="Browse products, add them to your cart, and proceed to checkout. All payments are secured in escrow until your order is delivered and accepted."
+            answer="Browse products, add them to your cart, and proceed to checkout. Your payment is held in escrow until delivery is confirmed, not paid out to the vendor upfront."
           />
           <FAQItem
             question="What are the available payment methods?"
-            answer="We accept various payment methods including credit/debit cards, bank transfers, and mobile money. All transactions are secured by our payment partners."
+            answer="You can pay by card or bank transfer, handled by our secure payment partner at checkout."
           />
           <FAQItem
             question="How do I track my order?"
-            answer="You'll get real-time updates via your account and email. Once shipped, you can track your package directly within your Orders dashboard."
+            answer="Open Orders to see each item's status — Order Placed, Processing, Shipped, Out for Delivery, or Delivered. You'll get an email once your order is placed, and a delivery code appears as soon as your item ships."
           />
           <FAQItem
             question="Can I return or exchange a product?"
-            answer="Yes — returns are possible within the seller's return policy. Funds remain in escrow until the return period ends, giving you peace of mind."
+            answer="If an item is faulty, damaged, or not what was described, raise a dispute and you'll be refunded if it's upheld in your favor."
           />
         </section>
 
@@ -135,19 +128,19 @@ export default function HelpPage() {
           <SectionHeading icon={Store} title="Selling & Store Setup" />
           <FAQItem
             question="How do I open a store?"
-            answer="Go to 'Open a Store' in your dashboard, fill out your details, upload your products, and set your shipping options. Approval is quick and easy."
+            answer="Soraxi is invite-only for vendors — there's no self-service sign-up. You submit an application with your business details and product samples, and our team reviews it. If you're approved, we create your store for you and email your details."
           />
           <FAQItem
             question="Are there listing fees?"
-            answer="No listing fees. We only take a small commission from each completed sale, so you earn more."
+            answer="No listing fees, no monthly fee, and nothing to open a store. We charge a commission on each completed sale, plus a small fee when you withdraw to your bank account."
           />
           <FAQItem
             question="How do I get paid?"
-            answer="Funds from your sales are held in escrow until the return window passes. Once eligible, funds are released directly to your linked bank account."
+            answer="Once delivery is confirmed, your earnings (minus commission) move from escrow into your store wallet. From there, you request a withdrawal to your bank account — a small platform withdrawal fee applies."
           />
           <FAQItem
             question="How do I manage my products and orders?"
-            answer="Our intuitive seller dashboard allows you to easily list new products, manage inventory, process orders, and communicate with buyers."
+            answer="Use your store dashboard to add and edit products, track stock (by size, where products have one), update each order's status as you fulfil it, and message buyers directly."
           />
         </section>
 
@@ -155,26 +148,11 @@ export default function HelpPage() {
           <SectionHeading icon={ShieldCheck} title="Escrow & Payments" />
           <FAQItem
             question="What is escrow protection?"
-            answer="Escrow ensures that funds are only released to the seller once the buyer confirms they received their order in good condition."
+            answer="Soraxi holds your payment until delivery is confirmed, so the vendor never has your money and your item at the same time. Confirmation happens when you mark the order received, when your delivery code is entered, or automatically 3 days after the item ships if neither happens — only then is the vendor paid."
           />
           <FAQItem
             question="What payment methods are supported?"
-            answer="We accept major credit/debit cards, bank transfers, and mobile money — all processed securely."
-          />
-        </section>
-
-        <section id="technical-support" className="space-y-8">
-          <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <Code className="h-7 w-7 text-soraxi-green" />
-            Technical Support
-          </h2>
-          <FAQItem
-            question="I'm having trouble logging in."
-            answer="Ensure you are using the correct email and password. If you've forgotten your password, use the 'Forgot Password' link on the login page to reset it."
-          />
-          <FAQItem
-            question="The website is not loading correctly."
-            answer="Try clearing your browser's cache and cookies, or try accessing the site from a different browser or device. If the issue persists, please contact us."
+            answer="Card and bank transfer, through our secure payment partner — the same options as regular checkout."
           />
         </section>
 
@@ -289,7 +267,7 @@ function SectionHeading({
 }) {
   return (
     <h2 className="text-3xl font-bold flex items-center gap-3">
-      <Icon className="h-7 w-7 text-soraxi-green" />
+      <Icon className="h-7 w-7 text-soraxi-green hidden md:inline-flex" />
       {title}
     </h2>
   );
