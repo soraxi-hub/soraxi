@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import type { z } from "zod";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -31,32 +31,27 @@ import {
 import { cn } from "@/lib/utils";
 import { addNairaSign, koboToNaira, nairaToKobo } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
+import { shippingMethodSchema } from "@/validators/store-validators";
+import {
+  MIN_DELIVERY_DAYS,
+  MIN_SHIPPING_DESCRIPTION_LENGTH,
+} from "@/constants/shipping.constants";
 
 import { pageCardLg, pageGutter } from "../components/page-card.styles";
 import { Badge } from "@/components/ui/badge";
 
-/** A store offers one delivery option. The server enforces the same limit. */
-export const MAX_METHODS = 1;
-
-const MIN_DESCRIPTION = 25;
-const MIN_DELIVERY_DAYS = 2;
-
-const formSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(2, "Give the option a name customers will recognise"),
-  price: z
-    .number({ invalid_type_error: "Enter a fee, or 0 for free delivery" })
-    .min(0, "A fee cannot be negative"),
-  estimatedDeliveryDays: z
-    .number({ invalid_type_error: "Enter the number of days" })
-    .min(MIN_DELIVERY_DAYS, `Minimum ${MIN_DELIVERY_DAYS} days`),
-  isActive: z.boolean().optional(),
-  description: z
-    .string()
-    .min(
-      MIN_DESCRIPTION,
-      `Tell customers a bit more — at least ${MIN_DESCRIPTION} characters`,
-    ),
+/**
+ * A store offers one delivery option, so this form never touches
+ * `applicableRegions`/`conditions` — the server-side schema has them for the
+ * future, but nothing here collects them yet.
+ */
+const formSchema = shippingMethodSchema.pick({
+  id: true,
+  name: true,
+  price: true,
+  estimatedDeliveryDays: true,
+  isActive: true,
+  description: true,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -71,27 +66,6 @@ const EMPTY_FORM: FormValues = {
 
 /**
  * Delivery configuration for a store.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- * ONE OPTION, EDITED IN PLACE
- * ─────────────────────────────────────────────────────────────────────────────
- * A store offers exactly one delivery option, so this is a settings screen, not
- * a list with an add form. The previous version showed a "Shipping Methods"
- * list card, a `1/1` counter, an "Add Shipping Method" form that greyed itself
- * out once full, and an Edit button to move between them — a lot of machinery
- * for a single record. The form is now simply seeded with whatever is saved.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- * WHY THE PREVIEW EARNS ITS SPACE
- * ─────────────────────────────────────────────────────────────────────────────
- * A vendor is writing copy that a student reads at checkout while deciding
- * whether to buy. Showing that line live, as it will actually appear, is what
- * stops "Hostel delivery — 2 days" from turning out to mean something else in
- * practice. Late deliveries are the most common complaint, and most of them
- * start with a vendor guessing at this form.
- *
- * Layout: the page owns the horizontal gutter, cards are flush on mobile and
- * boxed from `lg`. See `page-card.styles.ts`.
  */
 export default function ShippingMethodForm() {
   const trpc = useTRPC();
@@ -144,10 +118,6 @@ export default function ShippingMethodForm() {
 
   const onSubmit = (values: FormValues) => {
     setIsSubmitting(true);
-    // Mirror of the reset above: the form edits naira, everything persisted is
-    // kobo, and the mutation stores price verbatim. Without this the saved fee
-    // shrinks 100x on every save — and because the reload then converts that
-    // smaller number back to naira, each edit compounds the loss silently.
     update.mutate({
       ...values,
       price: nairaToKobo(values.price),
@@ -271,7 +241,7 @@ export default function ShippingMethodForm() {
                           type="number"
                           inputMode="numeric"
                           min={MIN_DELIVERY_DAYS}
-                          placeholder="2"
+                          placeholder={String(MIN_DELIVERY_DAYS)}
                           value={Number.isNaN(field.value) ? "" : field.value}
                           onChange={(event) =>
                             field.onChange(
@@ -283,7 +253,8 @@ export default function ShippingMethodForm() {
                         />
                       </FormControl>
                       <FormDescription>
-                        Minimum {MIN_DELIVERY_DAYS} days.
+                        Minimum {MIN_DELIVERY_DAYS} day
+                        {MIN_DELIVERY_DAYS === 1 ? "" : "s"}.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -306,12 +277,12 @@ export default function ShippingMethodForm() {
                       <span
                         className={cn(
                           "text-xs tabular-nums",
-                          description.length >= MIN_DESCRIPTION
+                          description.length >= MIN_SHIPPING_DESCRIPTION_LENGTH
                             ? "text-soraxi-green"
                             : "text-muted-foreground",
                         )}
                       >
-                        {description.length}/{MIN_DESCRIPTION} min
+                        {description.length}/{MIN_SHIPPING_DESCRIPTION_LENGTH} min
                       </span>
                     </div>
                     <FormControl>

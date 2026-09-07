@@ -24,8 +24,6 @@ import {
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 
-// ----------- Types for incoming request -----------
-
 // Store profile section
 interface OnboardingProfile {
   name: string;
@@ -67,18 +65,6 @@ async function getStoreOwnerName(storeOwnerId: string): Promise<string> {
   }
 }
 
-/**
- * API Route: Complete Onboarding
- *
- * Finalizes onboarding and takes the store live immediately.
- *
- * There is deliberately no second review here. The vendor was already vetted at
- * the waitlist stage — product samples, category, and proof of business were all
- * reviewed before their store was created. Onboarding adds a description, a
- * shipping price, and a terms timestamp, none of which a reviewer can act on, so
- * a second approval queue only kept a vetted vendor waiting. Admins retain
- * suspend and moderation powers over a live store.
- */
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.SORAXI_ADMIN_NOTIFICATION_EMAIL) {

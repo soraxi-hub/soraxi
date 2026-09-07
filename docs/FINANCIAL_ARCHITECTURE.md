@@ -189,8 +189,8 @@ The canonical definition of which accounts move for each financial event:
 | **TRANSFER_FEE_DEDUCTED** (at payout initiation) | `GATEWAY_FEES_EXPENSE` (fee)                                       | `PLATFORM_ESCROW` (fee)                                   |
 | **PAYOUT_COMPLETED**                   | `PAYOUT_PROCESSING` (net)                                                    | `PLATFORM_ESCROW` (net)                                   |
 | **PAYOUT_FAILED**                      | `PAYOUT_PROCESSING` (net)                                                    | `VENDOR_AVAILABLE` (net)                                  |
-| **PAYOUT_PROCESSING_FEE_REVERSAL**     | `PLATFORM_REVENUE_COMMISSION` (fee)                                          | `VENDOR_AVAILABLE` (fee)                                  |
-| **GATEWAY_FEE_REVERSAL**               | `PLATFORM_ESCROW` (fee)                                                      | `GATEWAY_FEES_EXPENSE` (fee)                              |
+| **COMMISSION_REVERSED** (payout failed) | `PLATFORM_REVENUE_COMMISSION` (fee)                                         | `VENDOR_AVAILABLE` (fee)                                  |
+| **TRANSFER_FEE_REVERSED** (payout failed) | `PLATFORM_ESCROW` (fee)                                                   | `GATEWAY_FEES_EXPENSE` (fee)                              |
 
 > **SUBORDER_SETTLED** replaced the deprecated order-level **ORDER_SETTLED**
 > (`writeOrderSettlement`): settlement is now one balanced entry per suborder
@@ -851,8 +851,13 @@ _Triggered by Flutterwave transfer webhook (automated) or admin confirmation (ma
 2. Write **PAYOUT_FAILED** journal entry:
    - `DEBIT VENDOR_AVAILABLE` (net amount)
    - `CREDIT PAYOUT_PROCESSING` (net amount)
-3. If `processingFee > 0`: write **PAYOUT_PROCESSING_FEE_REVERSAL** journal entry
-4. If `gatewayFee > 0`: write **GATEWAY_FEE_REVERSAL** journal entry
+3. If `processingFee > 0`: write **COMMISSION_REVERSED** journal entry
+4. If `gatewayFee > 0`: write **TRANSFER_FEE_REVERSED** journal entry
+
+> All three reversals reference the same payout but carry **distinct**
+> categories, each mirroring the entry it undoes. Filing them all under
+> `PAYOUT_FAILED` made them indistinguishable from a reversal that had run
+> twice — see §15's note on duplicate detection.
 5. Update **Vendor Wallet** — restore full `requestedAmount` to `available`
 6. Notify vendor of failure and reason
 
@@ -1210,7 +1215,22 @@ Cheap structural checks that don't require replaying balances:
 
 - Orphaned `LedgerLine`s whose `journalId` doesn't resolve to a `JournalEntry`
 - `VENDOR_*`/`CUSTOMER_*` lines missing `entityId` or `entityType`
-- Duplicate journal entries for the same `referenceId` + `referenceType` + `category` (not automatically a bug — some categories can legitimately repeat — but worth investigating)
+- Duplicated journal entries — the **same movement** written more than once against one reference
+
+> **What "duplicated" means here.** Identical accounts, directions and amounts —
+> not merely two entries sharing a category. The check originally flagged any
+> entries sharing a `referenceId` + `referenceType` + `category` triple, which
+> fired on a legitimate pattern: a failed payout writes three reversals against
+> one payout, and while all three shared `PAYOUT_FAILED` the nightly cron
+> reported a discrepancy after every valid payout failure (observed in
+> production, 2026-09-07).
+>
+> Two things changed as a result. The reversals now mirror the entries they
+> undo (`COMMISSION_REVERSED`, `TRANSFER_FEE_REVERSED`) rather than all naming
+> why they happened, and the check compares what each entry actually moved
+> before reporting it. A genuine double-write is always identical, so this is
+> both quieter and stricter — the result carries a `fingerprint` naming the
+> repeated movement.
 
 ```typescript
 const result = await checkLedgerStructuralIntegrity(dateFrom, dateTo);

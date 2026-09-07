@@ -1,9 +1,9 @@
-import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { MAX_METHODS } from "@/modules/store/shipping/shipping-methods";
+import { shippingMethodSchema } from "@/validators/store-validators";
+import { MAX_SHIPPING_METHODS_PER_STORE } from "@/constants/shipping.constants";
 
 export const storeShippingRouter = createTRPCRouter({
   // Fetch Store Profile Data. This is used for private store profiles.
@@ -59,27 +59,7 @@ export const storeShippingRouter = createTRPCRouter({
   }),
 
   handleStoreShippingMethodUpdate: baseProcedure
-    .input(
-      z.object({
-        id: z.string().optional(),
-        name: z.string().min(1, "Shipping method name is required"),
-        price: z.number().min(0, "Shipping price must be a positive number"),
-        estimatedDeliveryDays: z.number(),
-        isActive: z.boolean().optional(),
-        description: z
-          .string()
-          .min(25, "Description must be at least 25 characters"),
-        applicableRegions: z.array(z.string()).optional(),
-        conditions: z
-          .object({
-            minOrderValue: z.number().optional(),
-            maxOrderValue: z.number().optional(),
-            minWeight: z.number().optional(),
-            maxWeight: z.number().optional(),
-          })
-          .optional(),
-      }),
-    )
+    .input(shippingMethodSchema)
     .mutation(async ({ ctx, input }) => {
       const { store: StoreTokenData } = ctx;
 
@@ -97,15 +77,6 @@ export const storeShippingRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "We couldn't find your store. Sign out and sign in again.",
-        });
-      }
-
-      // console.log("Input for Shipping Method Update:", input);
-
-      if (store.shippingMethods.length >= MAX_METHODS) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Maximum of ${MAX_METHODS} shipping methods allowed.`,
         });
       }
 
@@ -130,7 +101,16 @@ export const storeShippingRouter = createTRPCRouter({
           _id: new mongoose.Types.ObjectId(input.id),
         };
       } else {
-        // Add new shipping method
+        // Adding a new method — this is the only path the store-count limit
+        // applies to. Checked here rather than up front, or an update to the
+        // store's one existing method would trip it on every single save.
+        if (store.shippingMethods.length >= MAX_SHIPPING_METHODS_PER_STORE) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Maximum of ${MAX_SHIPPING_METHODS_PER_STORE} shipping methods allowed.`,
+          });
+        }
+
         store.shippingMethods.push({
           ...input,
           price: input.price,

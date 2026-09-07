@@ -1,10 +1,14 @@
 import { z } from "zod";
 import { passwordValidation } from "./user-signUp-info-validation";
 import {
-  StoreBusinessInfoEnum,
-  StoreStatusEnum,
-  StoreVerificationStatusEnum,
-} from "@/enums";
+  MAX_SHIPPING_DESCRIPTION_LENGTH,
+  MIN_DELIVERY_DAYS,
+  MIN_SHIPPING_DESCRIPTION_LENGTH,
+  MIN_SHIPPING_METHOD_NAME_LENGTH,
+} from "@/constants/shipping.constants";
+
+/** "1 day", "2 days" — the minimum is 1 elsewhere in the app too, so this earns its keep. */
+const dayWord = (days: number) => `${days} day${days === 1 ? "" : "s"}`;
 
 export const storeName = z
   .string()
@@ -31,120 +35,45 @@ export const storeEmail = z
 // -------------------------
 // Sub-schemas
 // -------------------------
-export const ShippingMethodSchema = z.object({
-  _id: z.string().optional(), // mongoose ObjectId as string
-  name: z.string().min(1, "Shipping method name is required"),
-  price: z.number().nonnegative("Price must be non-negative"),
-  estimatedDeliveryDays: z.number().int().min(1).optional(), // Estimated number of days for delivery after order placement (e.g., "3-5 days")
-  isActive: z.boolean().optional().default(true),
-  description: z.string().optional(),
+
+/**
+ * The single source of truth for what makes a store's delivery option valid.
+ */
+export const shippingMethodSchema = z.object({
+  id: z.string().optional(),
+  name: z
+    .string()
+    .min(
+      MIN_SHIPPING_METHOD_NAME_LENGTH,
+      `Give the option a name customers will recognise — at least ${MIN_SHIPPING_METHOD_NAME_LENGTH} characters`,
+    ),
+  price: z.number().min(0, "Price must be 0 or greater"),
+  estimatedDeliveryDays: z
+    .number({ invalid_type_error: "Enter the number of days" })
+    .min(MIN_DELIVERY_DAYS, `Minimum ${dayWord(MIN_DELIVERY_DAYS)}`),
+  isActive: z.boolean().optional(),
+  description: z
+    .string()
+    .min(
+      MIN_SHIPPING_DESCRIPTION_LENGTH,
+      `Tell customers a bit more — at least ${MIN_SHIPPING_DESCRIPTION_LENGTH} characters`,
+    )
+    .max(
+      MAX_SHIPPING_DESCRIPTION_LENGTH,
+      `Description must be less than ${MAX_SHIPPING_DESCRIPTION_LENGTH} characters`,
+    ),
   applicableRegions: z.array(z.string()).optional(),
   conditions: z
     .object({
-      minOrderValue: z.number().optional(),
-      maxOrderValue: z.number().optional(),
-      minWeight: z.number().optional(),
-      maxWeight: z.number().optional(),
+      minOrderValue: z.number().min(0).optional(),
+      maxOrderValue: z.number().min(0).optional(),
+      minWeight: z.number().min(0).optional(),
+      maxWeight: z.number().min(0).optional(),
     })
     .optional(),
 });
 
-export const PayoutAccountSchema = z.object({
-  payoutMethod: z.literal("Bank Transfer"), // only one supported
-  bankDetails: z.object({
-    bankName: z.string().min(1, "Bank name is required"),
-    accountNumber: z.string().min(1, "Bank account number is required"),
-    accountHolderName: z.string().min(1, "Account holder name is required"),
-    // String: provider bank codes carry significant leading zeros ("044").
-    bankCode: z.string().min(1, "Bank code is required"),
-    bankId: z.number().optional(),
-  }),
-});
-
-// -------------------------
-// Store Schema
-// -------------------------
-export const StoreSchema = z.object({
-  _id: z.string().optional(), // mongoose ObjectId as string
-  name: storeName,
-  password: storePassword,
-  storeOwner: z.string(), // ObjectId
-  storeEmail: storeEmail,
-  uniqueId: z.string(),
-
-  followers: z.array(z.string()).default([]), // ObjectId[]
-  physicalProducts: z.array(z.string()).default([]), // ObjectId[]
-
-  // Branding
-  logoUrl: z.string().url().optional(),
-  bannerUrl: z.string().url().optional(),
-  description: storeDescription,
-
-  // Verification
-  verification: z
-    .object({
-      isVerified: z.boolean().default(false),
-      method: z
-        .nativeEnum(StoreVerificationStatusEnum)
-        .default(StoreVerificationStatusEnum.Email),
-      verifiedAt: z.date().optional(),
-      notes: z.string().optional(),
-    })
-    .optional(),
-
-  // Business Registration Info
-  businessInfo: z
-    .object({
-      businessName: z.string().optional(),
-      registrationNumber: z.string().optional(),
-      taxId: z.string().optional(),
-      type: z
-        .nativeEnum(StoreBusinessInfoEnum)
-        .default(StoreBusinessInfoEnum.Individual),
-      documentUrls: z.array(z.string().url()).optional(),
-    })
-    .optional(),
-
-  // Ratings
-  ratings: z
-    .object({
-      averageRating: z.number().default(0),
-      reviewCount: z.number().default(0),
-      complaintCount: z.number().default(0),
-    })
-    .optional(),
-
-  // Store Status & Moderation
-  status: z.nativeEnum(StoreStatusEnum).default(StoreStatusEnum.Pending),
-  suspensionReason: z.string().optional(),
-
-  // Legal Agreement
-  agreedToTermsAt: z.date().optional(),
-
-  // Security
-  forgotpasswordToken: z.string().optional(),
-  forgotpasswordTokenExpiry: z.date().optional(),
-
-  // Financials
-  walletId: z.string(), // ObjectId
-
-  // Shipping
-  shippingMethods: z.array(ShippingMethodSchema).default([]),
-
-  // Payouts
-  payoutAccounts: z.array(PayoutAccountSchema).default([]),
-
-  // Metadata
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional(),
-});
-
-// -------------------------
-// Inferred Type
-// -------------------------
-export type StoreType = z.infer<typeof StoreSchema>;
-export type StorePayoutAccount = z.infer<typeof PayoutAccountSchema>;
-export type StoreShippingMethod = z.infer<typeof ShippingMethodSchema>;
+export type ShippingMethodInput = z.infer<typeof shippingMethodSchema>;
 
 /**
  * Store Creation Form Schema

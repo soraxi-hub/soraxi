@@ -1,6 +1,7 @@
 import { PasswordService } from "@/lib/utils";
 import { Store } from "./store";
 import { IStore } from "@/lib/db/models/store.model";
+import { computeStoreOnboardingStats } from "./onboarding-stats";
 
 export class AuthenticatedStore extends Store {
   constructor(store: IStore) {
@@ -27,23 +28,11 @@ export class AuthenticatedStore extends Store {
   }
 
   getOnboardingStats() {
-    const onboardingStatus = {
-      termsComplete: this.isTermsComplete(),
-      profileComplete: this.isProfileComplete(),
-      shippingComplete: this.isShippingComplete(),
-    };
-
-    const completedSteps =
-      Object.values(onboardingStatus).filter(Boolean).length;
-    const totalSteps = Object.keys(onboardingStatus).length;
-    const isComplete = completedSteps === totalSteps;
-
-    return {
-      ...onboardingStatus,
-      isComplete,
-      completedSteps,
-      totalSteps,
-      percentage: Math.round((completedSteps / totalSteps) * 100),
-    };
+    return computeStoreOnboardingStats({
+      name: this.storeName,
+      description: this.description,
+      shippingMethods: this.shippingMethods,
+      agreedToTermsAt: this.agreedToTermsAt,
+    });
   }
 }

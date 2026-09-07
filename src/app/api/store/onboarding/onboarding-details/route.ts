@@ -10,6 +10,7 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
+import { computeStoreOnboardingStats } from "@/domain/stores/onboarding-stats";
 
 /**
  * API Route: Get Store Onboarding Details
@@ -45,19 +46,7 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    const progressSteps = {
-      profile: !!(store.name && store.description),
-      shipping: !!(store.shippingMethods?.length > 0),
-      terms: !!store.agreedToTermsAt,
-    };
-
-    const completedSteps = Object.entries(progressSteps)
-      .filter(([_, complete]) => complete)
-      .map(([key]) => key);
-
-    const totalSteps = Object.keys(progressSteps).length;
-    const currentStep = completedSteps.length;
-    const percentage = Math.round((completedSteps.length / totalSteps) * 100);
+    const onboardingStats = computeStoreOnboardingStats(store);
 
     const shippingMethods = (store.shippingMethods ?? []).map(
       (shippingMethod) => {
@@ -81,10 +70,10 @@ export async function GET(_request: NextRequest) {
           terms: store.agreedToTermsAt,
         },
         progress: {
-          currentStep,
-          completedSteps,
-          totalSteps,
-          percentage,
+          currentStep: onboardingStats.completedSteps,
+          completedSteps: onboardingStats.completedStepIds,
+          totalSteps: onboardingStats.totalSteps,
+          percentage: onboardingStats.percentage,
         },
       },
     });

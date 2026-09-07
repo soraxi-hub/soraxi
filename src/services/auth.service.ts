@@ -21,6 +21,7 @@ import {
   IStore,
   IStoreDocument,
 } from "@/lib/db/models/store.model";
+import { StoreOnboardingStats } from "@/domain/stores/onboarding-stats";
 
 export class AuthService {
   static async userLogin(
@@ -64,20 +65,10 @@ export class AuthService {
   ): Promise<{
     store: AuthenticatedStore;
     tokenData: StoreTokenPayload;
-    onboarding: {
-      profileComplete: boolean;
-      shippingComplete: boolean;
-      termsComplete: boolean;
-      isComplete: boolean;
-      completedSteps: number;
-      totalSteps: number;
-      percentage: number;
-    };
+    onboarding: StoreOnboardingStats;
   }> {
     const store = await StoreRepository.findStoreByEmail(storeEmail);
 
-    // Same reasoning as userLogin: one message for both branches, so this
-    // endpoint cannot be used to discover which store emails exist.
     const invalidCredentials = () =>
       new AppError(
         "UNAUTHORIZED",

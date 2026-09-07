@@ -202,7 +202,7 @@ export const BusinessContactStep: React.FC<FirstStepProps> = ({
                   </DialogHeader>
 
                   <div className="py-2">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm">
                       This field helps us localize search results and surface
                       nearby vendors. For example, if you are in Lagos and the
                       nearest tertiary institution is UNILAG, select "UNILAG".

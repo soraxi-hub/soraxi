@@ -19,38 +19,31 @@ import { pageCardLg } from "@/modules/store/components/page-card.styles";
 import { Plus, Trash2, ArrowLeft, Truck, Clock } from "lucide-react";
 import { useStoreOnboarding } from "@/contexts/store-onboarding-context";
 import type { ShippingMethodData } from "@/types/onboarding";
+import { shippingMethodSchema } from "@/validators/store-validators";
+import {
+  MAX_SHIPPING_METHODS_PER_STORE,
+  MIN_DELIVERY_DAYS,
+} from "@/constants/shipping.constants";
 
 /**
- * Shipping Methods Form Schema
- * Validates shipping method configurations with pricing and delivery options
+ * A single method here is the shared `shippingMethodSchema`, minus the
+ * fields this step never collects — `id` (nothing exists to update yet) and
+ * `isActive` (new methods start active; that toggle lives on the settings
+ * page, for a method that already exists).
  */
-const shippingMethodSchema = z.object({
-  name: z.string().min(2, "Shipping method name must be at least 2 characters"),
-  price: z.number().min(0, "Price must be 0 or greater"),
-  estimatedDeliveryDays: z
-    .number()
-    .min(1, "Delivery time must be at least 1 day")
-    .optional(),
-  description: z
-    .string()
-    .max(200, "Description must be less than 200 characters")
-    .optional(),
-  applicableRegions: z.array(z.string()).optional(),
-  conditions: z
-    .object({
-      minOrderValue: z.number().min(0).optional(),
-      maxOrderValue: z.number().min(0).optional(),
-      minWeight: z.number().min(0).optional(),
-      maxWeight: z.number().min(0).optional(),
-    })
-    .optional(),
+const onboardingShippingMethodSchema = shippingMethodSchema.omit({
+  id: true,
+  isActive: true,
 });
 
 const shippingMethodsFormSchema = z.object({
   shippingMethods: z
-    .array(shippingMethodSchema)
+    .array(onboardingShippingMethodSchema)
     .min(1, "At least one shipping method is required")
-    .max(1, "Maximum 1 shipping method allowed"),
+    .max(
+      MAX_SHIPPING_METHODS_PER_STORE,
+      `Maximum ${MAX_SHIPPING_METHODS_PER_STORE} shipping method allowed`,
+    ),
 });
 
 type ShippingMethodsFormData = z.infer<typeof shippingMethodsFormSchema>;
@@ -87,7 +80,7 @@ export function ShippingMethodsForm({
               {
                 name: "Standard Delivery",
                 price: 1000,
-                estimatedDeliveryDays: 3,
+                estimatedDeliveryDays: MIN_DELIVERY_DAYS,
                 description: "Regular delivery within 3-5 business days",
                 applicableRegions: [],
                 conditions: {},
@@ -111,7 +104,7 @@ export function ShippingMethodsForm({
     append({
       name: "",
       price: 0,
-      estimatedDeliveryDays: 3,
+      estimatedDeliveryDays: MIN_DELIVERY_DAYS,
       description: "",
       applicableRegions: [],
       conditions: {},
@@ -295,17 +288,17 @@ export function ShippingMethodsForm({
                       htmlFor={`delivery-${index}`}
                       className="text-sm font-medium"
                     >
-                      Estimated Delivery (Days)
+                      Estimated Delivery (Days) *
                     </Label>
                     <Input
                       id={`delivery-${index}`}
                       type="number"
-                      min="1"
+                      min={MIN_DELIVERY_DAYS}
                       {...register(
                         `shippingMethods.${index}.estimatedDeliveryDays`,
                         { valueAsNumber: true },
                       )}
-                      placeholder="3"
+                      placeholder={String(MIN_DELIVERY_DAYS)}
                       className={
                         errors.shippingMethods?.[index]?.estimatedDeliveryDays
                           ? "border-destructive"
@@ -349,12 +342,12 @@ export function ShippingMethodsForm({
                     htmlFor={`description-${index}`}
                     className="text-sm font-medium"
                   >
-                    Description (Optional)
+                    Description *
                   </Label>
                   <Textarea
                     id={`description-${index}`}
                     {...register(`shippingMethods.${index}.description`)}
-                    placeholder="Describe this shipping method, delivery conditions, or special instructions"
+                    placeholder="Describe this shipping method, delivery conditions, or special instructions — customers see this at checkout"
                     rows={2}
                     className={
                       errors.shippingMethods?.[index]?.description

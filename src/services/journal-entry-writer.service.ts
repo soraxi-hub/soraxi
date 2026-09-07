@@ -1599,7 +1599,7 @@ export class JournalEntryWriter {
 
     await this.commitEntry(
       {
-        category: LedgerEntryCategory.PAYOUT_FAILED,
+        category: LedgerEntryCategory.COMMISSION_REVERSED,
         referenceType: LedgerReferenceType.PAYOUT,
         referenceId: payoutId,
         description: `Processing fee reversal of ${processingFee} Kobo returned to vendor ${vendorId} — payout ${payoutId} failed`,
@@ -1641,7 +1641,7 @@ export class JournalEntryWriter {
 
     await this.commitEntry(
       {
-        category: LedgerEntryCategory.PAYOUT_FAILED,
+        category: LedgerEntryCategory.TRANSFER_FEE_REVERSED,
         referenceType: LedgerReferenceType.PAYOUT,
         referenceId: payoutId,
         description: `Gateway fee reversal of ${feeAmount} Kobo — payout ${payoutId} failed`,

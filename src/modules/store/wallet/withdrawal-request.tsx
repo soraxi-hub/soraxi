@@ -47,8 +47,6 @@ export function WithdrawalRequest({
     errors,
     loading,
     bankAccounts,
-    // `setSelectedAccount` is gone: the store has one payout account and the
-    // hook selects it on load, so there is nothing left to switch between.
     selectedAccount,
     isLoadingAccounts,
     amountInKobo,
@@ -95,7 +93,7 @@ export function WithdrawalRequest({
               <Input
                 id="amount"
                 type="number"
-                step="500"
+                step="1"
                 min="1000"
                 placeholder="Enter amount"
                 value={form.amount}
@@ -179,17 +177,8 @@ export function WithdrawalRequest({
                   </Button>
                 </div>
               ) : (
-                /*
-                 * A statement, not a picker. A store has exactly one payout
-                 * account, so there is nothing to choose between — and a
-                 * selectable list of one invites the vendor to wonder which
-                 * option they are on. The account id is already set by the
-                 * hook, so nothing here needs to be interactive.
-                 */
                 <div className="rounded-lg border border-border p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Paid into
-                  </p>
+                  <p className="text-xs text-muted-foreground">Paid into</p>
                   <p className="mt-1 font-semibold">
                     {bankAccounts[0].bankDetails.bankName}
                   </p>
@@ -209,7 +198,12 @@ export function WithdrawalRequest({
                     {bankAccounts[0].bankDetails.accountHolderName}
                   </p>
 
-                  <Button variant="link" size="sm" className="mt-1 px-0" asChild>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="mt-1 px-0"
+                    asChild
+                  >
                     <Link href={`/store/${storeId}/payment-setup`}>
                       Change payout account
                     </Link>

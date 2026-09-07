@@ -16,10 +16,6 @@ import mongoose from "mongoose";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
 import { ProductService } from "@/services/products/product.service";
 
-/**
- * API Route: Store Product Management
- * Handles product creation (draft or publish) for stores
- */
 export async function POST(request: NextRequest) {
   let session: mongoose.ClientSession | null = null;
 
