@@ -3,6 +3,9 @@ name: MongoDB Database Backup
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "0 1 * * *"
+
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -17,39 +20,51 @@ jobs:
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
-          sudo ./aws/install
+          sudo ./aws/install --update
           rm -rf aws awscliv2.zip
 
       - name: Create MongoDB backup
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
           mkdir -p backups
 
           TIMESTAMP=$(date -u +"%Y-%m-%d-%H-%M-%S")
+          BACKUP_FILE="soraxi-${TIMESTAMP}.archive.gz"
 
           mongodump \
-            --uri="${{ secrets.MONGODB_URI }}" \
-            --archive="backups/soraxi-${TIMESTAMP}.archive.gz" \
+            --uri="$MONGODB_URI" \
+            --archive="backups/${BACKUP_FILE}" \
             --gzip
+
+          echo "BACKUP_FILE=${BACKUP_FILE}" >> "$GITHUB_ENV"
 
       - name: Upload backup to Cloudflare R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
-          BACKUP_FILE=$(find backups -type f -name "*.archive.gz")
-
           aws s3 cp \
-            "$BACKUP_FILE" \
-            "s3://${{ secrets.R2_BUCKET }}/" \
-            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+            "backups/${BACKUP_FILE}" \
+            "s3://${R2_BUCKET}/${BACKUP_FILE}" \
+            --endpoint-url "${R2_ENDPOINT}"
 
       - name: Verify backup
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
-          aws s3 ls \
-            "s3://${{ secrets.R2_BUCKET }}/" \
-            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+          echo "Verifying ${BACKUP_FILE}..."
+
+          aws s3api head-object \
+            --bucket "${R2_BUCKET}" \
+            --key "${BACKUP_FILE}" \
+            --endpoint-url "${R2_ENDPOINT}"
+
+          echo "Backup verified successfully."
