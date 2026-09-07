@@ -4,6 +4,7 @@ export const siteConfig = {
     "SORAXI is a student-centered e-commerce platform designed for Nigerian universities. We connect students with trusted campus vendors, making it easier to buy fashion, gadgets, school supplies, food, and personal care products at affordable prices.",
   keywords: [
     "SORAXI",
+    "SORAXIHUB",
     "Campus marketplace",
     "Student e-commerce platform",
     "University online shopping",
@@ -22,12 +23,6 @@ export const siteConfig = {
   ],
   name: "Soraxi" as const,
   logo: `/svg/soraxi.svg`,
-  /**
-   * The social share card, used wherever a page defines its own `openGraph`.
-   * Next replaces that field rather than merging it, so any page setting
-   * openGraph must repeat the image — hence one constant rather than a literal
-   * copied per route.
-   */
   ogImage: `/og-soraxi.png` as const,
   url: process.env.NEXT_PUBLIC_APP_URL,
   footer: [

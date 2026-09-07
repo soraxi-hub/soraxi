@@ -24,11 +24,6 @@ type UpdateData = Partial<
   >
 >;
 
-/**
- * API Route: Save Onboarding Draft
- * Saves the current onboarding progress to the database
- * Allows users to resume their onboarding later
- */
 export async function POST(request: NextRequest) {
   try {
     const userData = await getUserDataFromToken(request);
@@ -96,84 +91,6 @@ export async function POST(request: NextRequest) {
         await sendTelegramMessage(
           formatErrorReport(error, {
             source: "POST /api/store/onboarding/draft",
-          }),
-        );
-      } catch {
-        // sendTelegramMessage already console.errors internally; never mask the original error
-      }
-    }
-    return handleApiError(error);
-  }
-}
-
-/**
- * API Route: Get Onboarding Draft
- * Retrieves saved onboarding progress from the database
- */
-export async function GET(request: NextRequest) {
-  try {
-    // TODO: Implement proper authentication (currently commented out)
-    // const session = await getServerSession(authOptions)
-    // if (!session?.user?._id) {
-    //   throw new AppError("UNAUTHORIZED", "Unauthorized")
-    // }
-
-    const { searchParams } = new URL(request.url);
-    const storeId = searchParams.get("storeId");
-
-    if (!storeId) {
-      throw new AppError("BAD_REQUEST", "Store ID is required");
-    }
-
-    const Store = await getStoreModel();
-    const store = await Store.findById(storeId);
-
-    if (!store) {
-      throw new AppError(
-        "NOT_FOUND",
-        "We couldn't find your store. Sign out and sign in again, or check your profile for the right store.",
-        { storeId },
-      );
-    }
-
-    // // Verify store ownership
-    // if (store.storeOwner.toString() !== session.user._id) {
-    //   throw new AppError("FORBIDDEN", "Unauthorized - not store owner")
-    // }
-
-    const onboardingData = {
-      profile: {
-        name: store.name || "",
-        description: store.description || "",
-      },
-      businessInfo: store.businessInfo || {
-        type: "individual",
-        businessName: "",
-        registrationNumber: "",
-        taxId: "",
-        documentUrls: [],
-      },
-      shipping: store.shippingMethods || [],
-      payout: store.payoutAccounts?.[0] || null,
-      termsAgreed: !!store.agreedToTermsAt,
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: onboardingData,
-      store: {
-        id: store._id,
-        status: store.status,
-        verification: store.verification,
-      },
-    });
-  } catch (error) {
-    console.error("Error retrieving onboarding draft:", error);
-    if (isReportableError(error)) {
-      try {
-        await sendTelegramMessage(
-          formatErrorReport(error, {
-            source: "GET /api/store/onboarding/draft",
           }),
         );
       } catch {

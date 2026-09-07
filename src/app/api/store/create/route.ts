@@ -21,11 +21,6 @@ import {
 } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import mongoose from "mongoose";
 
-/**
- * API Route: Create New Store
- * Creates a new store with pending status for the authenticated user
- * Generates unique store ID and hashes password for security
- */
 export async function POST(request: NextRequest) {
   const session = await mongoose.startSession();
   session.startTransaction();
