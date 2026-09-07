@@ -37,6 +37,13 @@ export async function expectLedgerHealthy(): Promise<void> {
     structural.malformedEntityLines,
     "no VENDOR_*/CUSTOMER_* lines missing entityId/entityType",
   ).toEqual([]);
+  // Now that a "duplicate" means the same movement written twice — rather than
+  // merely several entries sharing a category — this is safe to assert on
+  // every scenario, and catches a double-write wherever one occurs.
+  expect(
+    structural.duplicateJournalGroups,
+    "no journal entry written twice",
+  ).toEqual([]);
 
   const identity = await checkLedgerAccountingIdentity();
   expect(

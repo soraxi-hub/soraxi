@@ -41,6 +41,16 @@ export enum LedgerEntryCategory {
    * Written by writeGatewayFee, scoped to a payout.
    */
   TRANSFER_FEE_DEDUCTED = "transfer_fee_deducted",
+  /**
+   * The payout processing fee given back when a payout fails.
+   * Mirrors COMMISSION_DEDUCTED.
+   */
+  COMMISSION_REVERSED = "commission_reversed",
+  /**
+   * The gateway's transfer fee given back when a payout fails.
+   * Mirrors TRANSFER_FEE_DEDUCTED.
+   */
+  TRANSFER_FEE_REVERSED = "transfer_fee_reversed",
   DEBT_RECOVERED = "debt_recovered", // Debt repayment from payout
 
   // Refund categories

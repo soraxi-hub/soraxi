@@ -559,8 +559,17 @@ export interface DuplicateJournalGroup {
   referenceId: mongoose.Types.ObjectId;
   referenceType: LedgerReferenceType;
   category: string;
+  /** How many entries share this exact fingerprint. Always ≥ 2. */
   count: number;
   journalIds: mongoose.Types.ObjectId[];
+  /**
+   * The repeated movement, as `type:account:amount` pairs.
+   *
+   * Included so an alert says WHAT was written twice, rather than only that
+   * something was — which is the difference between acting on the alert and
+   * having to go query the ledger by hand.
+   */
+  fingerprint: string;
 }
 
 export interface StructuralIntegrityResult {
@@ -586,6 +595,17 @@ export interface StructuralIntegrityResult {
  * As with `verifyJournalEntryIntegrity`, scope this to a date range in
  * production; each check is a single aggregation/query bounded by that
  * window.
+ *
+ * Three checks run:
+ *   1. Orphaned ledger lines — a `journalId` pointing at no entry.
+ *   2. Malformed entity lines — vendor and customer lines missing entityId
+ *      or entityType.
+ *   3. Duplicated journal entries — the SAME movement written more than once
+ *      against one reference. Note that this means identical accounts,
+ *      directions and amounts, not merely a shared category: several entries
+ *      legitimately share one category (a failed payout reverses the net, the
+ *      processing fee and the transfer fee), and flagging those produced a
+ *      false discrepancy after every valid payout failure.
  *
  * @param dateFrom - Optional start of date range (inclusive)
  * @param dateTo - Optional end of date range (inclusive)
@@ -702,23 +722,77 @@ export async function checkLedgerStructuralIntegrity(
     journalIds: mongoose.Types.ObjectId[];
   }>(duplicatePipeline).option({ allowDiskUse: true });
 
-  const duplicateJournalGroups: DuplicateJournalGroup[] = duplicateRows.map(
-    (row: {
-      _id: {
-        referenceId: mongoose.Types.ObjectId;
-        referenceType: LedgerReferenceType;
-        category: string;
-      };
-      count: number;
-      journalIds: mongoose.Types.ObjectId[];
-    }) => ({
-      referenceId: row._id.referenceId,
-      referenceType: row._id.referenceType,
-      category: row._id.category,
-      count: row.count,
-      journalIds: row.journalIds,
-    }),
-  );
+  /**
+   * The aggregation above finds entries that share a LABEL. That is not the
+   * same as being duplicated, and treating it as such produced false alarms:
+   * a failed payout legitimately writes several entries against one payout,
+   * and until they were given distinct categories the nightly cron reported a
+   * discrepancy after every valid failure.
+   *
+   * A genuine double-write is IDENTICAL — same accounts, same directions,
+   * same amounts. So the shared-label groups are only candidates; each one is
+   * now confirmed by comparing what the entries actually moved, and only a
+   * repeated movement is reported.
+   *
+   * Cost is bounded: the second query touches only the candidate entries,
+   * which in a healthy system is none at all.
+   */
+  const candidateJournalIds = duplicateRows.flatMap((row) => row.journalIds);
+
+  const linesByJournal = new Map<string, string[]>();
+  if (candidateJournalIds.length > 0) {
+    const candidateLines = await LedgerLine.find({
+      journalId: { $in: candidateJournalIds },
+    })
+      .select("journalId type accountType amount")
+      .lean<
+        {
+          journalId: mongoose.Types.ObjectId;
+          type: LedgerEntryType;
+          accountType: LedgerAccountType;
+          amount: number;
+        }[]
+      >();
+
+    for (const line of candidateLines) {
+      const key = line.journalId.toString();
+      const parts = linesByJournal.get(key) ?? [];
+      parts.push(`${line.type}:${line.accountType}:${line.amount}`);
+      linesByJournal.set(key, parts);
+    }
+  }
+
+  /** Order-independent signature of everything one entry moved. */
+  const fingerprintOf = (journalId: mongoose.Types.ObjectId): string =>
+    (linesByJournal.get(journalId.toString()) ?? []).sort().join(" + ");
+
+  const duplicateJournalGroups: DuplicateJournalGroup[] = [];
+
+  for (const row of duplicateRows) {
+    const byFingerprint = new Map<string, mongoose.Types.ObjectId[]>();
+
+    for (const journalId of row.journalIds) {
+      const fingerprint = fingerprintOf(journalId);
+      const ids = byFingerprint.get(fingerprint) ?? [];
+      ids.push(journalId);
+      byFingerprint.set(fingerprint, ids);
+    }
+
+    for (const [fingerprint, journalIds] of byFingerprint) {
+      // Several entries under one label are expected. The same movement
+      // written twice is not.
+      if (journalIds.length < 2) continue;
+
+      duplicateJournalGroups.push({
+        referenceId: row._id.referenceId,
+        referenceType: row._id.referenceType,
+        category: row._id.category,
+        count: journalIds.length,
+        journalIds,
+        fingerprint,
+      });
+    }
+  }
 
   return { orphanedLines, malformedEntityLines, duplicateJournalGroups };
 }
