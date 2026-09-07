@@ -1,0 +1,53 @@
+name: MongoDB Database Backup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install MongoDB Database Tools
+        run: |
+          curl -LO https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.18.0.deb
+          sudo apt-get install -y ./mongodb-database-tools-ubuntu2404-x86_64-100.18.0.deb
+
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Create MongoDB backup
+        run: |
+          mkdir -p backups
+
+          TIMESTAMP=$(date -u +"%Y-%m-%d-%H-%M-%S")
+
+          mongodump \
+            --uri="${{ secrets.MONGODB_URI }}" \
+            --archive="backups/soraxi-${TIMESTAMP}.archive.gz" \
+            --gzip
+
+      - name: Upload backup to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          BACKUP_FILE=$(find backups -type f -name "*.archive.gz")
+
+          aws s3 cp \
+            "$BACKUP_FILE" \
+            "s3://${{ secrets.R2_BUCKET }}/" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+
+      - name: Verify backup
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 ls \
+            "s3://${{ secrets.R2_BUCKET }}/" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
