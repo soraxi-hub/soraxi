@@ -33,22 +33,18 @@ export enum LedgerEntryCategory {
   PAYOUT_FAILED = "payout_failed", // Withdrawal attempt failed
   /**
    * The gateway's cut of a customer payment coming IN.
-   * Written by writeCollectionFee, scoped to an order.
    */
   COLLECTION_FEE_DEDUCTED = "collection_fee_deducted",
   /**
    * The gateway's charge for sending money OUT to a vendor's bank.
-   * Written by writeGatewayFee, scoped to a payout.
    */
   TRANSFER_FEE_DEDUCTED = "transfer_fee_deducted",
   /**
    * The payout processing fee given back when a payout fails.
-   * Mirrors COMMISSION_DEDUCTED.
    */
   COMMISSION_REVERSED = "commission_reversed",
   /**
    * The gateway's transfer fee given back when a payout fails.
-   * Mirrors TRANSFER_FEE_DEDUCTED.
    */
   TRANSFER_FEE_REVERSED = "transfer_fee_reversed",
   DEBT_RECOVERED = "debt_recovered", // Debt repayment from payout
@@ -145,9 +141,8 @@ export enum DebtRecoveryType {
  */
 export enum SuborderFinancialStatus {
   PENDING = "pending", // Payment received, awaiting order confirmation
-  HELD = "held", // Funds frozen due to open dispute
   SETTLED = "settled", // Funds released to vendor's available balance
-  DISPUTED = "disputed", // Active dispute in progress
+  DISPUTED = "disputed", // Active dispute in progress — funds frozen
   REFUNDED = "refunded", // Customer has been refunded
 }
 

@@ -61,10 +61,6 @@ export function SubOrderCard({
   const needsAttention = awaitingCode || proof?.isUnproven;
 
   const [expanded, setExpanded] = useState(Boolean(needsAttention));
-
-  // The store's real name. This used to render as "Store 1" / "Store 2" — a
-  // placeholder that shipped. It matters more now: a customer holding two codes
-  // at once must know which rider gets which.
   const storeName = subOrder.storeSnapshot?.name ?? "Store";
 
   const isDisputed =
@@ -72,11 +68,7 @@ export function SubOrderCard({
   const isRefunded =
     financialStatus?.status === SuborderFinancialStatus.REFUNDED;
 
-  const canDispute =
-    isDelivered &&
-    !isDisputed &&
-    !isRefunded &&
-    financialStatus?.status !== SuborderFinancialStatus.HELD;
+  const canDispute = isDelivered && !isDisputed && !isRefunded;
 
   const subtotal = subOrder.products.reduce(
     (sum, p) =>

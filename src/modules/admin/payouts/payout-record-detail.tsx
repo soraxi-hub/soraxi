@@ -379,6 +379,15 @@ function AdminPayoutDetail({ payoutRecordId }: AdminPayoutDetailProps) {
                 </p>
               </div>
               <div>
+                <Label className="text-muted-foreground">Bank Name</Label>
+                <p className="flex items-center">
+                  {payout.bankDetails.bankName}
+                  {isInitiated && (
+                    <CopyButton value={payout.bankDetails.bankName} />
+                  )}
+                </p>
+              </div>
+              <div>
                 <Label className="text-muted-foreground">Bank Code</Label>
                 <p className="flex items-center">
                   {payout.bankDetails.bankCode}

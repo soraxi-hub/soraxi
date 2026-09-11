@@ -29,8 +29,10 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
-
-const DISPUTE_RESOLUTION_BUSINESS_DAYS = 5;
+import {
+  DISPUTE_RESOLUTION_BUSINESS_DAYS,
+  DISPUTE_WINDOW_HOURS_AFTER_DELIVERY,
+} from "@/constants/financial.constants";
 
 /**
  * POST /api/disputes/open
@@ -151,6 +153,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Guard 3b: Still inside the post-delivery dispute window.
+    if (!subOrder.deliveryDate) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "We can't confirm when this order was delivered, so a dispute can't be opened on it. Contact support.",
+        { subOrderId },
+      );
+    }
+
+    const hoursSinceDelivery =
+      (Date.now() - subOrder.deliveryDate.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceDelivery > DISPUTE_WINDOW_HOURS_AFTER_DELIVERY) {
+      throw new AppError(
+        "BAD_REQUEST",
+        `The window to dispute this order has closed. Disputes must be opened within ${DISPUTE_WINDOW_HOURS_AFTER_DELIVERY / 24} days of delivery.`,
+        {
+          deliveredAt: subOrder.deliveryDate,
+          windowHours: DISPUTE_WINDOW_HOURS_AFTER_DELIVERY,
+        },
+      );
+    }
+
     // Guard 4: Transaction record exists
     const transactionRecord = await getTransactionRecordByOrderId(mainOrderId);
     if (!transactionRecord) {
@@ -173,11 +198,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Guard 6: Financial status must be PENDING
-    if (breakdown.status !== SuborderFinancialStatus.PENDING) {
+    // Guard 6: Financial status must still be disputable.
+    const disputeableFinancialStatuses = [
+      SuborderFinancialStatus.PENDING,
+      SuborderFinancialStatus.SETTLED,
+    ];
+    if (!disputeableFinancialStatuses.includes(breakdown.status)) {
       const statusMessages: Record<string, string> = {
-        [SuborderFinancialStatus.SETTLED]:
-          "This suborder has already been settled and cannot be disputed.",
         [SuborderFinancialStatus.DISPUTED]:
           "A dispute is already open for this suborder.",
         [SuborderFinancialStatus.REFUNDED]:
@@ -269,10 +296,7 @@ export async function POST(req: NextRequest) {
 
       await session.commitTransaction();
 
-      // Announce to the messaging module, after the commit. This route knows
-      // nothing about conversations — a registered handler adds a notice to
-      // the order's thread if one already exists. Never throws, so it cannot
-      // affect the dispute that was just opened.
+      // Announce to the messaging module, after the commit.
       await MessagingEvents.disputeOpened({
         subOrderId,
         disputeId: (disputeRecord._id as mongoose.Types.ObjectId).toString(),

@@ -34,6 +34,7 @@ export class PayoutFactory {
       }),
       bankDetails: new PayoutBankDetails({
         bankCode: doc.bankDetails.bankCode,
+        bankName: doc.bankDetails.bankName ?? "Unknown",
         accountNumber: doc.bankDetails.accountNumber,
         accountName: doc.bankDetails.accountName,
       }),
@@ -72,6 +73,7 @@ export class PayoutFactory {
       },
       bankDetails: {
         bankCode: payout.bankDetails.bankCode,
+        bankName: payout.bankDetails.bankName,
         accountNumber: payout.bankDetails.accountNumber,
         accountName: payout.bankDetails.accountName,
       },

@@ -33,7 +33,6 @@ export const ProductCard = ({ product }: ProductCardProps) => (
         {product.isVerifiedProduct && (
           <Badge className="absolute top-2 left-2 bg-soraxi-green text-white">
             <Shield className="w-3 h-3 mr-1" />
-            Verified
           </Badge>
         )}
       </div>

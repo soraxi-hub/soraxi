@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Star, Shield, RotateCcw } from "lucide-react";
+import { Star, Shield, Lock } from "lucide-react";
 import { useProductInfo } from "@/hooks/use-product-info";
 import { MessageVendorButton } from "@/modules/messaging/components/message-vendor-button";
 import type { inferProcedureOutput } from "@trpc/server";
@@ -135,11 +135,21 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-sm">
           <Shield className="w-4 h-4 text-soraxi-green" />
-          <span>Secure payment & buyer protection</span>
+          <span>Secure Payment & Buyer Protection</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <RotateCcw className="w-4 h-4  text-soraxi-green" />
-          <span>7-day return policy</span>
+          <Lock className="w-4 h-4 text-soraxi-green" />
+          <span>
+            Your money is held safely.{" "}
+            <Link
+              href="/docs/protection/how-escrow-works"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-soraxi-green hover:text-soraxi-green-hover underline underline-offset-2"
+            >
+              Learn how
+            </Link>
+          </span>
         </div>
       </div>
     </div>

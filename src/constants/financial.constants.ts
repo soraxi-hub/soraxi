@@ -62,12 +62,17 @@ export const DEBT_RECOVERY_PERCENTAGE = 15;
 
 /**
  * Number of business days the platform team has to resolve a dispute
- * before the system auto-resolves in the student's favour.
+ * before the system auto-resolves in the customer's favour.
  */
 export const DISPUTE_RESOLUTION_BUSINESS_DAYS = 5;
 
 /**
- * Number of hours the student has to submit additional evidence
+ * How long after delivery a customer can still open a dispute.
+ */
+export const DISPUTE_WINDOW_HOURS_AFTER_DELIVERY = 72;
+
+/**
+ * Number of hours the customer has to submit additional evidence
  * when a dispute is marked as inconclusive.
  */
 export const ADDITIONAL_EVIDENCE_WINDOW_HOURS = 48;

@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface ReviewDialogProps {
   open: boolean;
@@ -98,9 +99,9 @@ export function ReviewDialog({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="review" className="text-sm font-medium">
+            <Label htmlFor="review" className="text-sm font-medium">
               Your Review
-            </label>
+            </Label>
             <Textarea
               id="review"
               value={review}

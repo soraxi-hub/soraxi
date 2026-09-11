@@ -9,6 +9,7 @@ import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { AdminGuard } from "@/domain/admin/admin-guard";
 import { PayoutStatus } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
+import { toPayoutBankDetailsJSON } from "@/domain/payout/value-objects/payout-bank-details";
 import { PayoutProcessingService } from "@/services/payment/payout/payout-processing.service";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -75,11 +76,7 @@ export const adminPayoutRouter = createTRPCRouter({
             netAmount: payout.amountBreakdown.netAmount,
           },
           status: payout.status,
-          bankDetails: {
-            accountNumber: payout.bankDetails.accountNumber,
-            accountName: payout.bankDetails.accountName,
-            bankCode: payout.bankDetails.bankCode,
-          },
+          bankDetails: toPayoutBankDetailsJSON(payout.bankDetails),
           failureReason: payout.failureReason ?? null,
           createdAt: payout.createdAt,
           updatedAt: payout.updatedAt,
@@ -170,11 +167,7 @@ export const adminPayoutRouter = createTRPCRouter({
               netAmount: payout.amountBreakdown.netAmount,
             },
             status: payout.status,
-            bankDetails: {
-              accountNumber: payout.bankDetails.accountNumber,
-              accountName: payout.bankDetails.accountName,
-              bankCode: payout.bankDetails.bankCode,
-            },
+            bankDetails: toPayoutBankDetailsJSON(payout.bankDetails),
             failureReason: payout.failureReason ?? null,
             flutterwaveTransferId: payout.flutterwaveTransferId ?? null,
             createdAt: payout.createdAt,
