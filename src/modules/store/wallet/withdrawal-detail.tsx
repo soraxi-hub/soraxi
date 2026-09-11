@@ -334,10 +334,10 @@ export default function WithdrawalDetail({
                   </p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">
-                    Bank Code
-                  </Label>
-                  <p className="font-medium">{payout.bankDetails.bankCode}</p>
+                  <Label className="text-muted-foreground">Bank Name</Label>
+                  <p className="flex items-center">
+                    {payout.bankDetails.bankName}
+                  </p>
                 </div>
               </div>
             </CardContent>

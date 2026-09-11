@@ -5,7 +5,10 @@ import {
 import { IPayout } from "../interfaces/payout.interface";
 import { koboToNaira, formatNaira } from "@/lib/utils/naira";
 import { IPayoutAmountBreakdown } from "../value-objects/payout-amount-breakdown";
-import { IPayoutBankDetails } from "../value-objects/payout-bank-details";
+import {
+  IPayoutBankDetails,
+  toPayoutBankDetailsJSON,
+} from "../value-objects/payout-bank-details";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 
 export interface PayoutProps {
@@ -303,11 +306,7 @@ export class Payout implements IPayout {
         netAmount: this.netAmountInNaira,
         formattedNetAmount: this.formattedNetAmount,
       },
-      bankDetails: {
-        bankCode: this.bankDetails.bankCode,
-        accountNumber: this.bankDetails.accountNumber,
-        accountName: this.bankDetails.accountName,
-      },
+      bankDetails: toPayoutBankDetailsJSON(this.bankDetails),
       flutterwaveTransferId: this.flutterwaveTransferId,
       flutterwaveStatus: this.flutterwaveStatus,
       status: this.status,

@@ -44,8 +44,7 @@ export function ProductImageGallery({
         <div className="relative z-20 top-2 left-2 text-soraxi-green w-fit">
           {isVerifiedProduct && (
             <span className="flex items-center gap-1">
-              <VerifiedIcon className="text-soraxi-green w-fit" />{" "}
-              <span>Verified</span>
+              <VerifiedIcon className="text-soraxi-green w-fit" />
             </span>
           )}
         </div>
@@ -97,7 +96,7 @@ export function ProductImageGallery({
                 "relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors cursor-pointer",
                 currentImageIndex === index
                   ? "border-soraxi-green"
-                  : "border-gray-200 hover:border-gray-300"
+                  : "border-gray-200 hover:border-gray-300",
               )}
             >
               <Image

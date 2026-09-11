@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
@@ -109,8 +109,7 @@ export function CouponInput({
 
       {/* Status Feedback */}
       {error && (
-        <div className="flex items-center text-soraxi-error text-sm space-x-1">
-          <XCircle className="h-4 w-4" />
+        <div className="text-soraxi-error text-sm">
           <span>{error}</span>
         </div>
       )}

@@ -371,7 +371,6 @@ export class OrderService implements IOrderService {
    *   SETTLED   → THROW: funds already released to the vendor. Refunding here
    *               would corrupt the ledger, so we fail loudly to surface the
    *               upstream bug rather than silently mishandle money.
-   *   HELD /
    *   DISPUTED  → skip: the dispute flow owns this money and issues its own refund
    *   REFUNDED  → skip: already refunded (the partial unique index on RefundRecord
    *               is the hard guard against a second active refund)

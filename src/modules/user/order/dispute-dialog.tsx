@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -39,7 +38,6 @@ export function DisputeDialog({
   setOpenAction,
   orderId,
   subOrderId,
-  storeName,
   onSuccessAction,
   submitting,
   setSubmittingAction,
@@ -122,28 +120,14 @@ export function DisputeDialog({
         {/* Header */}
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div>
-              <DialogTitle className="text-base font-semibold">
-                Raise a Dispute
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                {storeName}
-              </DialogDescription>
-            </div>
+            <DialogTitle className="text-base font-semibold">
+              Raise a Dispute
+            </DialogTitle>
           </div>
         </DialogHeader>
 
         {/* Body */}
         <div className="px-5 py-4 space-y-5 max-h-[60vh] overflow-y-auto">
-          {/* Info banner */}
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
-            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-              Your payment for this order will be frozen while we investigate.
-              Please provide as much detail as possible to help us resolve this
-              quickly.
-            </p>
-          </div>
-
           {/* Reason */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">

@@ -11,11 +11,10 @@ import {
 
 /**
  * Vendor bank account details captured at the time of a payout request.
- * Stored as a snapshot so historical payouts remain accurate even if
- * the vendor later updates their bank details.
  */
 export interface IPayoutBankDetails {
-  bankCode: string; // Flutterwave bank code
+  bankCode: string; // Bank code
+  bankName: string; // Vendor's bank name
   accountNumber: string; // Vendor's bank account number
   accountName: string; // Vendor's bank account name (as verified)
 }
@@ -115,13 +114,6 @@ export interface IPayoutAmountBreakdown {
 
 /**
  * Payout record document interface.
- *
- * A payout record is created every time a vendor initiates a withdrawal.
- * It tracks the full lifecycle of the transfer from initiation through
- * to Flutterwave confirmation — whether successful or failed.
- *
- * Failed payouts are fully reversed — the deducted amount is restored
- * to the vendor's available balance.
  */
 export interface IPayoutRecord {
   _id?: mongoose.Types.ObjectId;
@@ -157,6 +149,10 @@ export type IPayoutRecordDocument = IPayoutRecord & Document;
 const PayoutBankDetailsSchema = new Schema<IPayoutBankDetails>(
   {
     bankCode: {
+      type: String,
+      required: true,
+    },
+    bankName: {
       type: String,
       required: true,
     },

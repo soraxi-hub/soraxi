@@ -42,6 +42,7 @@ export interface IPayout {
     };
     bankDetails: {
       bankCode: string;
+      bankName: string;
       accountNumber: string;
       accountName: string;
     };

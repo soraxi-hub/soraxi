@@ -132,9 +132,8 @@ export class PayoutService implements IPayoutService {
     // STEP 4: Calculate financial breakdown
     // -----------------------------------------------------------------
     const bankDetailsSnapshot = {
-      // Already a string end to end; no coercion, which is what used to
-      // launder a number back into a code and lose its leading zero.
       bankCode: selectedAccount.bankDetails.bankCode,
+      bankName: selectedAccount.bankDetails.bankName,
       accountNumber: selectedAccount.bankDetails.accountNumber,
       accountName: selectedAccount.bankDetails.accountHolderName,
     };
@@ -176,6 +175,7 @@ export class PayoutService implements IPayoutService {
 
     const bankDetails = new PayoutBankDetails({
       bankCode: bankDetailsSnapshot.bankCode,
+      bankName: bankDetailsSnapshot.bankName,
       accountNumber: bankDetailsSnapshot.accountNumber,
       accountName: bankDetailsSnapshot.accountName,
     });
