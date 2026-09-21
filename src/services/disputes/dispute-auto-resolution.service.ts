@@ -1,24 +1,9 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
-import {
-  getOverdueDisputes,
-  IDisputeRecordDocument,
-  resolveDisputeRecord,
-} from "@/lib/db/models/dispute-record.model";
-import {
-  getTransactionRecordByOrderId,
-  updateSuborderFinancialStatus,
-} from "@/lib/db/models/transaction-record.model";
-import { applyDisputeUpheldDeductions } from "@/lib/db/models/vendor-wallet.model";
-import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
-import {
-  SuborderFinancialStatus,
-  DisputeOutcome,
-  DisputeResolvedBy,
-  DebtRecoveryType,
-} from "@/enums/financial.enums";
+import { IDisputeRecordDocument } from "@/lib/db/models/dispute-record.model";
+import { DisputeRepository } from "@/repositories/dispute-record.repository";
+import { DisputeResolvedBy } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
-import { debitPlatformCommission } from "@/lib/db/models/platform-wallet.model";
 import {
   NotificationFactory,
   renderTemplate,
@@ -35,6 +20,7 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
+import { DisputeService } from "@/services/disputes/dispute.service";
 
 /**
  * Result of processing a single auto-resolution.
@@ -85,7 +71,7 @@ export class DisputeAutoResolutionService {
   static async processOverdueDisputes(): Promise<IAutoResolutionSummary> {
     await connectToDatabase();
 
-    const overdueDisputes = await getOverdueDisputes();
+    const overdueDisputes = await DisputeRepository.getOverdue();
 
     const summary: IAutoResolutionSummary = {
       processedAt: new Date(),
@@ -133,154 +119,30 @@ export class DisputeAutoResolutionService {
     dispute: IDisputeRecordDocument,
   ): Promise<IAutoResolutionResult> {
     const disputeId = (dispute._id as mongoose.Types.ObjectId).toString();
-    let session: mongoose.ClientSession | null = null;
 
+    // Keep the cron adapter thin: the same application service used by a
+    // human upheld decision owns all financial writes and creates the manual
+    // refund work item atomically. System resolution simply changes the
+    // penalty and RefundTrigger policy.
     try {
-      // Fetch transaction record to get the suborder breakdown
-      const transactionRecord = await getTransactionRecordByOrderId(
-        dispute.orderId.toString(),
-      );
-
-      if (!transactionRecord) {
-        return {
-          disputeId,
-          success: false,
-          error: `Transaction record not found for order ${dispute.orderId}`,
-        };
-      }
-
-      const breakdown = transactionRecord.suborderBreakdowns.find(
-        (b) => b.suborderId.toString() === dispute.suborderId.toString(),
-      );
-
-      if (!breakdown) {
-        return {
-          disputeId,
-          success: false,
-          error: `No financial breakdown found for suborder ${dispute.suborderId}`,
-        };
-      }
-
-      // Guard: only process disputes that are still in DISPUTED financial status
-      // Protects against processing the same dispute twice in edge cases
-      if (breakdown.status !== SuborderFinancialStatus.DISPUTED) {
-        return {
-          disputeId,
-          success: false,
-          error: `Suborder ${dispute.suborderId} is not in DISPUTED status. Current: ${breakdown.status}`,
-        };
-      }
-
-      // All financial writes, isolated session per dispute
-      session = await mongoose.startSession();
-      session.startTransaction();
-
-      const now = new Date();
-
-      // --- DISPUTE_AUTO_RESOLVED journal entry ---
-      // Refunds the full amountPaid (settle + commission) to the customer with
-      // no penalty to the vendor. The platform team failed to resolve within
-      // the deadline, so the vendor is not penalised for the team's inaction.
-      //
-      //   Pair 1, Refund of frozen settle amount:
-      //     DEBIT   VENDOR_DISPUTED          frozenAmount
-      //     CREDIT  CUSTOMER_REFUND_PAYABLE  frozenAmount
-      //
-      //   Pair 2, Commission reversed (customer receives full amountPaid back):
-      //     DEBIT   PLATFORM_REVENUE_COMMISSION  commission
-      //     CREDIT  CUSTOMER_REFUND_PAYABLE      commission
-      const writer = await JournalEntryWriter.init();
-
-      await writer.writeDisputeAutoResolved({
-        vendorId: dispute.vendorId,
-        customerId: dispute.customerId,
-        settleAmount: dispute.frozenAmount,
-        commission: breakdown.commission,
-        disputeId: dispute._id as mongoose.Types.ObjectId,
-        session,
-      });
-
-      // --- Update Vendor Wallet cache ---
-      // Removes frozen amount from disputed balance. Penalty is 0, so the wallet
-      // method touches neither available nor debt. FULL_BLOCK and 0 satisfy the
-      // signature and have no effect at zero penalty (no policy is set).
-      await applyDisputeUpheldDeductions(
-        dispute.vendorId.toString(),
-        dispute.frozenAmount,
-        0, // No penalty, platform team's failure, not the vendor's
-        DebtRecoveryType.FULL_BLOCK,
-        0,
-        session,
-      );
-
-      // --- Update Platform Wallet cache ---
-      // Mirrors the PLATFORM_REVENUE_COMMISSION DEBIT in writeDisputeAutoResolved.
-      // Commission is reversed since the student receives the full amountPaid back.
-      await debitPlatformCommission(breakdown.commission, session);
-
-      // --- Update Dispute Record ---
-      // AUTO_RESOLVED + SYSTEM distinguishes this from a team-resolved dispute
-      await resolveDisputeRecord(
+      const result = await DisputeService.upholdDispute({
         disputeId,
-        DisputeOutcome.UPHELD,
-        DisputeResolvedBy.SYSTEM,
-        0, // No penalty
-        session,
-        "Auto-resolved by system, resolution deadline exceeded without team action.",
-      );
-
-      // --- Update Transaction Record: suborder status → REFUNDED ---
-      await updateSuborderFinancialStatus(
-        dispute.orderId.toString(),
-        dispute.suborderId.toString(),
-        SuborderFinancialStatus.REFUNDED,
-        session,
-      );
-
-      // --- Flag vendor account for review ---
-      // NOTE: Replace "flaggedForReview" with the actual field name on your
-      // store model. Add this field to your store schema if it doesn't exist.
-      // Suggested field: flaggedForReview: { type: Boolean, default: false }
-      const Store = await getStoreModel();
-      await Store.findByIdAndUpdate(
-        dispute.vendorId,
-        {
-          $set: {
-            flaggedForReview: true, // NOTE: Confirm field name on your store model
-            flaggedAt: now, // NOTE: Add this field to store schema if needed
-          },
-        },
-        { session },
-      );
-
-      await session.commitTransaction();
-
-      // Send notifications outside the session, network calls don't belong in transactions
-      await this.sendAutoResolutionNotifications(
-        dispute,
-        dispute.frozenAmount + breakdown.commission,
-      );
-
+        resolvedBy: DisputeResolvedBy.SYSTEM,
+        resolutionNotes:
+          "Auto-resolved by system, resolution deadline exceeded without team action.",
+      });
+      await this.sendAutoResolutionNotifications(dispute, result.refundAmount);
       return { disputeId, success: true };
     } catch (error: any) {
-      if (session) {
-        await session.abortTransaction();
-      }
-
       console.error(
         `[DisputeAutoResolutionService] Failed to auto-resolve dispute ${disputeId}:`,
         error,
       );
-
       return {
         disputeId,
         success: false,
         error: error.message ?? "Unknown error during auto-resolution",
       };
-    } finally {
-      if (session) {
-        session.endSession();
-      }
     }
   }
 

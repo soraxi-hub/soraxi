@@ -140,6 +140,7 @@ export interface IProcessRefundInput {
   suborderId: string;
   orderId: string;
   vendorId: string;
+  orderIdempotencyKey: string;
   customerId: string;
   /** Vendor's net settle amount for this suborder, in Kobo. */
   settleAmount: number;
@@ -183,8 +184,7 @@ export interface IConfirmManualRefundInput {
  * RefundService
  *
  * Owns all refund logic — both automated (Flutterwave API) and manual
- * (admin-driven). Keeping everything here mirrors the PayoutProcessingService
- * pattern and ensures one place to look when the refund flow changes.
+ * (admin-driven).
  *
  * Automated flow:
  *   Triggered by order status transitions (Canceled, FailedDelivery) or
@@ -218,7 +218,7 @@ export class RefundService {
    *
    * Cancellation is only possible from OrderPlaced or Processing, so funds are
    * guaranteed to be in VENDOR_PENDING. The full amountPaid is refunded to the
-   * student (settle + commission reversed).
+   * customer (settle + commission reversed).
    *
    * @param input - Refund input including suborder financial details
    * @returns The created RefundRecord in INITIATED state
@@ -229,6 +229,7 @@ export class RefundService {
     const {
       suborderId,
       orderId,
+      orderIdempotencyKey,
       vendorId,
       customerId,
       settleAmount,
@@ -271,6 +272,7 @@ export class RefundService {
         _id: refundId,
         suborderId: new mongoose.Types.ObjectId(suborderId),
         orderId: new mongoose.Types.ObjectId(orderId),
+        orderIdempotencyKey,
         vendorId: new mongoose.Types.ObjectId(vendorId),
         customerId: new mongoose.Types.ObjectId(customerId),
         trigger: RefundTrigger.ORDER_CANCELLED,
@@ -342,6 +344,7 @@ export class RefundService {
     const {
       suborderId,
       orderId,
+      orderIdempotencyKey,
       vendorId,
       customerId,
       settleAmount,
@@ -376,6 +379,7 @@ export class RefundService {
         _id: refundId,
         suborderId: new mongoose.Types.ObjectId(suborderId),
         orderId: new mongoose.Types.ObjectId(orderId),
+        orderIdempotencyKey,
         vendorId: new mongoose.Types.ObjectId(vendorId),
         customerId: new mongoose.Types.ObjectId(customerId),
         trigger: RefundTrigger.FAILED_DELIVERY,
@@ -449,6 +453,7 @@ export class RefundService {
     const {
       suborderId,
       orderId,
+      orderIdempotencyKey,
       vendorId,
       customerId,
       settleAmount,
@@ -469,6 +474,7 @@ export class RefundService {
         _id: refundId,
         suborderId: new mongoose.Types.ObjectId(suborderId),
         orderId: new mongoose.Types.ObjectId(orderId),
+        orderIdempotencyKey,
         vendorId: new mongoose.Types.ObjectId(vendorId),
         customerId: new mongoose.Types.ObjectId(customerId),
         trigger,

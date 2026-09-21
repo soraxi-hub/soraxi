@@ -20,7 +20,7 @@ import {
  * status page's fallback fired, and gateway outages during the confirmation
  * window. Nothing about an order's fate depends on a browser staying open.
  *
- * Schedule: every 15 minutes (see vercel.json)
+ * Schedule: (see vercel.json)
  * Security: Vercel CRON_SECRET header verification
  */
 export async function GET(request: NextRequest) {

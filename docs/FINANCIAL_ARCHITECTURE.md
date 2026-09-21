@@ -166,44 +166,35 @@ The canonical definition of which accounts move for each financial event:
 > (`PLATFORM_ESCROW`, `VENDOR_DEBT_RECEIVABLE`, `GATEWAY_FEES_EXPENSE`)
 > increase on **DEBIT**.
 
-| Event                                  | Debit                                                                        | Credit                                                    |
-| -------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
-| **PAYMENT_RECEIVED**                   | `PLATFORM_ESCROW` (gross)                                                    | `CUSTOMER_REFUND_PAYABLE` (gross)                         |
-| **COLLECTION_FEE**                     | `GATEWAY_FEES_EXPENSE` (fee)                                                 | `PLATFORM_ESCROW` (fee)                                   |
-| **SUBORDER_SETTLED** (one per suborder) | `CUSTOMER_REFUND_PAYABLE` (amountPaid)                                       | `VENDOR_PENDING` (settle) + `PLATFORM_REVENUE_COMMISSION` (commission) |
-| **FUNDS_RELEASED**                     | `VENDOR_PENDING` (settle)                                                    | `VENDOR_AVAILABLE` (settle)                               |
-| **DISPUTE_OPENED**                     | `VENDOR_AVAILABLE` (settle)                                                  | `VENDOR_DISPUTED` (settle)                                |
-| **DISPUTE_REJECTED**                   | `VENDOR_DISPUTED` (settle)                                                   | `VENDOR_AVAILABLE` (settle)                               |
-| **DISPUTE_UPHELD** (pair 1)            | `VENDOR_DISPUTED` (settle)                                                   | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
-| **DISPUTE_UPHELD** (pair 2)            | `PLATFORM_REVENUE_COMMISSION` (commission)                                   | `CUSTOMER_REFUND_PAYABLE` (commission)                    |
-| **DISPUTE_UPHELD** (pair 3)            | `VENDOR_AVAILABLE` (covered) + `VENDOR_DEBT_RECEIVABLE` (shortfall)          | `PLATFORM_REVENUE_PENALTIES` (penalty)                    |
-| **DISPUTE_AUTO_RESOLVED** (pair 1)     | `VENDOR_DISPUTED` (settle)                                                   | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
-| **DISPUTE_AUTO_RESOLVED** (pair 2)     | `PLATFORM_REVENUE_COMMISSION` (commission)                                   | `CUSTOMER_REFUND_PAYABLE` (commission)                    |
-| **ORDER_CANCELLATION_REFUND** (pair 1) | `VENDOR_PENDING` (settle)                                                    | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
-| **ORDER_CANCELLATION_REFUND** (pair 2) | `PLATFORM_REVENUE_COMMISSION` (commission)                                   | `CUSTOMER_REFUND_PAYABLE` (commission)                    |
-| **FAILED_DELIVERY_REFUND**             | `VENDOR_PENDING` (settle)                                                    | `CUSTOMER_REFUND_PAYABLE` (settle)                        |
-| **REFUND_CONFIRMED**                   | `CUSTOMER_REFUND_PAYABLE` (amountRefunded)                                   | `PLATFORM_ESCROW` (amountRefunded)                        |
-| **DEBT_RECOVERY**                      | `VENDOR_AVAILABLE` (recovered)                                               | `VENDOR_DEBT_RECEIVABLE` (recovered)                      |
-| **PAYOUT_PROCESSING_FEE**              | `VENDOR_AVAILABLE` (fee)                                                     | `PLATFORM_REVENUE_COMMISSION` (fee)                       |
-| **PAYOUT_INITIATED**                   | `VENDOR_AVAILABLE` (net)                                                     | `PAYOUT_PROCESSING` (net)                                 |
-| **TRANSFER_FEE_DEDUCTED** (at payout initiation) | `GATEWAY_FEES_EXPENSE` (fee)                                       | `PLATFORM_ESCROW` (fee)                                   |
-| **PAYOUT_COMPLETED**                   | `PAYOUT_PROCESSING` (net)                                                    | `PLATFORM_ESCROW` (net)                                   |
-| **PAYOUT_FAILED**                      | `PAYOUT_PROCESSING` (net)                                                    | `VENDOR_AVAILABLE` (net)                                  |
-| **COMMISSION_REVERSED** (payout failed) | `PLATFORM_REVENUE_COMMISSION` (fee)                                         | `VENDOR_AVAILABLE` (fee)                                  |
-| **TRANSFER_FEE_REVERSED** (payout failed) | `PLATFORM_ESCROW` (fee)                                                   | `GATEWAY_FEES_EXPENSE` (fee)                              |
+| Event                                            | Debit                                                               | Credit                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **PAYMENT_RECEIVED**                             | `PLATFORM_ESCROW` (gross)                                           | `CUSTOMER_REFUND_PAYABLE` (gross)                                      |
+| **COLLECTION_FEE**                               | `GATEWAY_FEES_EXPENSE` (fee)                                        | `PLATFORM_ESCROW` (fee)                                                |
+| **SUBORDER_SETTLED** (one per suborder)          | `CUSTOMER_REFUND_PAYABLE` (amountPaid)                              | `VENDOR_PENDING` (settle) + `PLATFORM_REVENUE_COMMISSION` (commission) |
+| **FUNDS_RELEASED**                               | `VENDOR_PENDING` (settle)                                           | `VENDOR_AVAILABLE` (settle)                                            |
+| **DISPUTE_OPENED**                               | `VENDOR_AVAILABLE` (settle)                                         | `VENDOR_DISPUTED` (settle)                                             |
+| **DISPUTE_REJECTED**                             | `VENDOR_DISPUTED` (settle)                                          | `VENDOR_AVAILABLE` (settle)                                            |
+| **DISPUTE_UPHELD** (pair 1)                      | `VENDOR_DISPUTED` (settle)                                          | `CUSTOMER_REFUND_PAYABLE` (settle)                                     |
+| **DISPUTE_UPHELD** (pair 2)                      | `PLATFORM_REVENUE_COMMISSION` (commission)                          | `CUSTOMER_REFUND_PAYABLE` (commission)                                 |
+| **DISPUTE_UPHELD** (pair 3)                      | `VENDOR_AVAILABLE` (covered) + `VENDOR_DEBT_RECEIVABLE` (shortfall) | `PLATFORM_REVENUE_PENALTIES` (penalty)                                 |
+| **DISPUTE_AUTO_RESOLVED** (pair 1)               | `VENDOR_DISPUTED` (settle)                                          | `CUSTOMER_REFUND_PAYABLE` (settle)                                     |
+| **DISPUTE_AUTO_RESOLVED** (pair 2)               | `PLATFORM_REVENUE_COMMISSION` (commission)                          | `CUSTOMER_REFUND_PAYABLE` (commission)                                 |
+| **ORDER_CANCELLATION_REFUND** (pair 1)           | `VENDOR_PENDING` (settle)                                           | `CUSTOMER_REFUND_PAYABLE` (settle)                                     |
+| **ORDER_CANCELLATION_REFUND** (pair 2)           | `PLATFORM_REVENUE_COMMISSION` (commission)                          | `CUSTOMER_REFUND_PAYABLE` (commission)                                 |
+| **FAILED_DELIVERY_REFUND**                       | `VENDOR_PENDING` (settle)                                           | `CUSTOMER_REFUND_PAYABLE` (settle)                                     |
+| **REFUND_CONFIRMED**                             | `CUSTOMER_REFUND_PAYABLE` (amountRefunded)                          | `PLATFORM_ESCROW` (amountRefunded)                                     |
+| **DEBT_RECOVERY**                                | `VENDOR_AVAILABLE` (recovered)                                      | `VENDOR_DEBT_RECEIVABLE` (recovered)                                   |
+| **PAYOUT_PROCESSING_FEE**                        | `VENDOR_AVAILABLE` (fee)                                            | `PLATFORM_REVENUE_COMMISSION` (fee)                                    |
+| **PAYOUT_INITIATED**                             | `VENDOR_AVAILABLE` (net)                                            | `PAYOUT_PROCESSING` (net)                                              |
+| **TRANSFER_FEE_DEDUCTED** (at payout initiation) | `GATEWAY_FEES_EXPENSE` (fee)                                        | `PLATFORM_ESCROW` (fee)                                                |
+| **PAYOUT_COMPLETED**                             | `PAYOUT_PROCESSING` (net)                                           | `PLATFORM_ESCROW` (net)                                                |
+| **PAYOUT_FAILED**                                | `PAYOUT_PROCESSING` (net)                                           | `VENDOR_AVAILABLE` (net)                                               |
+| **COMMISSION_REVERSED** (payout failed)          | `PLATFORM_REVENUE_COMMISSION` (fee)                                 | `VENDOR_AVAILABLE` (fee)                                               |
+| **TRANSFER_FEE_REVERSED** (payout failed)        | `PLATFORM_ESCROW` (fee)                                             | `GATEWAY_FEES_EXPENSE` (fee)                                           |
 
-> **SUBORDER_SETTLED** replaced the deprecated order-level **ORDER_SETTLED**
-> (`writeOrderSettlement`): settlement is now one balanced entry per suborder
-> (`writeSuborderSettlement`) so per-suborder commission stays derivable.
->
 > **DEBT_RECOVERY** no longer uses `DEBT_RECOVERY_CLEARING`. Penalty revenue is
 > recognised in full at uphold time (pair 3 above); recovery only settles the
 > vendor's outstanding `VENDOR_DEBT_RECEIVABLE` from their available funds.
->
-> **PAYOUT_COMPLETED** carries the net amount only — the gateway fee was
-> already expensed at initiation (**TRANSFER_FEE_DEDUCTED**) and is reversed on failure.
-> Recording it again at completion double-counted the fee (bug fixed
-> 2026-08-11).
 
 > **DISPUTE_UPHELD** produces six lines sharing one `journalId` (three balanced pairs): pair 1 moves the frozen settle amount into `CUSTOMER_REFUND_PAYABLE`, pair 2 reverses the commission into `CUSTOMER_REFUND_PAYABLE` so the student receives the full `amountPaid` back, and pair 3 applies the penalty. Total `CUSTOMER_REFUND_PAYABLE` credit = `settleAmount + commission = amountPaid`.
 >
@@ -218,7 +209,7 @@ The canonical definition of which accounts move for each financial event:
 | Method                             | Event                                                                 |
 | ---------------------------------- | --------------------------------------------------------------------- |
 | `writePaymentReceived`             | Student payment enters escrow                                         |
-| `writeOrderSettlement`             | Escrow split to vendors + platform on order confirmation              |
+| `writeSuborderSettlement`          | Escrow split to vendors + platform on order confirmation              |
 | `writeFundsReleased`               | Pending → available on delivery confirmation                          |
 | `writeDisputeOpened`               | Available → disputed on dispute open                                  |
 | `writeDisputeRejected`             | Disputed → available on rejection                                     |
@@ -242,19 +233,19 @@ The canonical definition of which accounts move for each financial event:
 
 These are the logical accounts in Soraxi's double-entry system. Every ledger line references exactly one account type.
 
-| Account                       | Type      | Increases on | Description                                                                                   |
-| ----------------------------- | --------- | ------------ | --------------------------------------------------------------------------------------------- |
-| `PLATFORM_ESCROW`             | Asset     | DEBIT        | Money held on behalf of customers/vendors for in-flight orders                                |
-| `VENDOR_PENDING`              | Liability | CREDIT       | Vendor funds awaiting order confirmation                                                      |
-| `VENDOR_AVAILABLE`            | Liability | CREDIT       | Vendor funds cleared and ready to withdraw                                                    |
-| `VENDOR_DISPUTED`             | Liability | CREDIT       | Vendor funds frozen due to an open dispute                                                    |
-| `VENDOR_DEBT_RECEIVABLE`      | Asset     | DEBIT        | Money a vendor owes the platform after a penalty exceeded their available balance             |
-| `PLATFORM_REVENUE_COMMISSION` | Revenue   | CREDIT       | Commission income earned from sales and payout processing fees                                |
-| `PLATFORM_REVENUE_PENALTIES`  | Revenue   | CREDIT       | Penalty income earned from upheld disputes                                                    |
-| `CUSTOMER_REFUND_PAYABLE`     | Liability | CREDIT       | Amount owed back to a customer — opened on refund trigger, closed on Flutterwave confirmation |
+| Account                       | Type      | Increases on | Description                                                                                             |
+| ----------------------------- | --------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| `PLATFORM_ESCROW`             | Asset     | DEBIT        | Money held on behalf of customers/vendors for in-flight orders                                          |
+| `VENDOR_PENDING`              | Liability | CREDIT       | Vendor funds awaiting order confirmation                                                                |
+| `VENDOR_AVAILABLE`            | Liability | CREDIT       | Vendor funds cleared and ready to withdraw                                                              |
+| `VENDOR_DISPUTED`             | Liability | CREDIT       | Vendor funds frozen due to an open dispute                                                              |
+| `VENDOR_DEBT_RECEIVABLE`      | Asset     | DEBIT        | Money a vendor owes the platform after a penalty exceeded their available balance                       |
+| `PLATFORM_REVENUE_COMMISSION` | Revenue   | CREDIT       | Commission income earned from sales and payout processing fees                                          |
+| `PLATFORM_REVENUE_PENALTIES`  | Revenue   | CREDIT       | Penalty income earned from upheld disputes                                                              |
+| `CUSTOMER_REFUND_PAYABLE`     | Liability | CREDIT       | Amount owed back to a customer — opened on refund trigger, closed on Flutterwave confirmation           |
 | `PAYOUT_PROCESSING`           | Liability | CREDIT       | Owed to a vendor while a payout is in transit; backing cash stays in `PLATFORM_ESCROW` until completion |
-| `GATEWAY_FEES_EXPENSE`        | Expense   | DEBIT        | Flutterwave collection/transfer fees recorded as a platform expense                           |
-| `DEBT_RECOVERY_CLEARING`      | Clearing  | —            | **Retired.** Replaced by `VENDOR_DEBT_RECEIVABLE` under the clamp-and-receivable debt model   |
+| `GATEWAY_FEES_EXPENSE`        | Expense   | DEBIT        | Flutterwave collection/transfer fees recorded as a platform expense                                     |
+| `DEBT_RECOVERY_CLEARING`      | Clearing  | —            | **Retired.** Replaced by `VENDOR_DEBT_RECEIVABLE` under the clamp-and-receivable debt model             |
 
 ---
 
@@ -300,13 +291,13 @@ These are the logical accounts in Soraxi's double-entry system. Every ledger lin
 
 Set **only** on lines representing real gateway cash movement:
 
-| Event                                      | Tagged? |
-| ------------------------------------------ | ------- |
-| `PAYMENT_RECEIVED` (money into escrow)     | Yes     |
-| `COLLECTION_FEE_DEDUCTED` (collection fee) | Yes     |
-| `REFUND_CONFIRMED` (money back out)        | Yes     |
-| `TRANSFER_FEE_DEDUCTED` (payout fee)       | No — disbursement |
-| Everything else — settlement, funds release, dispute freezes, payouts | No |
+| Event                                                                 | Tagged?           |
+| --------------------------------------------------------------------- | ----------------- |
+| `PAYMENT_RECEIVED` (money into escrow)                                | Yes               |
+| `COLLECTION_FEE_DEDUCTED` (collection fee)                            | Yes               |
+| `REFUND_CONFIRMED` (money back out)                                   | Yes               |
+| `TRANSFER_FEE_DEDUCTED` (payout fee)                                  | No — disbursement |
+| Everything else — settlement, funds release, dispute freezes, payouts | No                |
 
 Purely internal movements have no gateway, so tagging them would be a fiction.
 Payout-side movements are also left untagged, and that is a deliberate
@@ -762,7 +753,7 @@ _Triggered when platform team rules in favour of the student_
    - Add `penaltyAmount` to `penalties` balance (`creditPlatformPenalty`) — mirrors pair 3 of the journal entry
 4. Update **Dispute Record** → `status: RESOLVED`, `outcome: UPHELD`
 5. Update **Transaction Record** suborder status → `REFUNDED`
-6. Call **RefundService.processDisputeRefund** — creates `RefundRecord` and calls Flutterwave refund API for `amountPaid` (settle + commission)
+6. Call **RefundService.initiateDisputeRefund** inside the same transaction — creates an `INITIATED` `RefundRecord` for `amountPaid` (settle + commission). An admin executes the provider-dashboard refund and confirms it through the refund workflow after commit.
 
 ---
 
@@ -793,7 +784,7 @@ Same financial flow as Stage 4A **except:**
 - Update **Platform Wallet** — subtract `commission` from `commission` balance (`debitPlatformCommission`), mirroring pair 2 of the journal entry
 - **Dispute Record** → `status: AUTO_RESOLVED`, `resolvedBy: SYSTEM`
 - Vendor account flagged for review
-- Call **RefundService.processDisputeRefund** for `amountPaid`
+- Create an `INITIATED` `RefundRecord` for `amountPaid` in the same resolution transaction; the admin refund workflow performs and confirms the provider refund after commit.
 
 > **Background job:** Sends a 24-hour warning alert to the platform team at day 4 before auto-resolution fires at day 5.
 
@@ -857,9 +848,7 @@ _Triggered by Flutterwave transfer webhook (automated) or admin confirmation (ma
 > All three reversals reference the same payout but carry **distinct**
 > categories, each mirroring the entry it undoes. Filing them all under
 > `PAYOUT_FAILED` made them indistinguishable from a reversal that had run
-> twice — see §15's note on duplicate detection.
-5. Update **Vendor Wallet** — restore full `requestedAmount` to `available`
-6. Notify vendor of failure and reason
+> twice — see §15's note on duplicate detection. 5. Update **Vendor Wallet** — restore full `requestedAmount` to `available` 6. Notify vendor of failure and reason
 
 > **Note on gateway fee reversal at webhook failure:** Whether Flutterwave actually charged the fee on a transfer that reached them but failed in processing varies by their policy. The reversal is recorded conservatively. Adjust if Flutterwave confirms they charge on failed transfers.
 
@@ -935,7 +924,7 @@ writePaymentReceived
   CREDIT CUSTOMER_REFUND_PAYABLE   ← platform liability created
     │
     ▼
-writeOrderSettlement
+writeSuborderSettlement
   DEBIT  CUSTOMER_REFUND_PAYABLE   ← liability settled
   CREDIT VENDOR_PENDING (×n)       ← each vendor's settle amount
   CREDIT PLATFORM_REVENUE_COMMISSION
@@ -1311,7 +1300,7 @@ transactions by a day or more, which is a separate problem (§16).
 **Two things this deliberately does not do:**
 
 - **It excludes payouts and transfer fees**, even though both move escrow. Those
-  belong to the *disbursing* gateway, which need not be the collecting one —
+  belong to the _disbursing_ gateway, which need not be the collecting one —
   Soraxi can take a payment on one provider and pay a vendor out through
   another. Folding them into a collecting-gateway figure would produce a number
   that reconciles against nothing. **Consequence: the per-gateway totals do not
@@ -1332,7 +1321,7 @@ transactions by a day or more, which is a separate problem (§16).
 `reconcileVendorWallet` + `reconcileVendorDebt`, looped across every vendor in bounded concurrent batches (25 at a time). Cost scales with vendor count; the loop-per-vendor approach is fine at current scale but should be replaced with a batched `$in`-aggregation version, or a checkpoint/cursor scheme, once vendor count grows enough that job duration risks the serverless execution window.
 
 **On-demand only — `reconcileTransactionRecord`:**
-Not cron-eligible — needs a specific `orderId`, and there's no batch of "all orders" worth reconciling nightly. Two intended call sites: (1) automatically, right after `writeOrderSettlement` runs, as a same-request sanity check; (2) manually, via a "Reconcile" action on the order's admin detail page when investigating a specific dispute, vendor complaint, or payout mismatch. Does not warrant a dedicated admin page.
+Not cron-eligible — needs a specific `orderId`, and there's no batch of "all orders" worth reconciling nightly. Two intended call sites: (1) automatically, right after `writeSuborderSettlement` runs, as a same-request sanity check; (2) manually, via a "Reconcile" action on the order's admin detail page when investigating a specific dispute, vendor complaint, or payout mismatch. Does not warrant a dedicated admin page.
 
 ---
 
@@ -1343,13 +1332,13 @@ remain Flutterwave-only.
 
 ### The adapter layer
 
-| Piece                     | Location                                        | Responsibility                                            |
-| ------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
-| `IPaymentGateway`         | `domain/payment/gateways/gateway-interface.ts`  | Provider-neutral contract                                 |
-| `FlutterwaveGateway`      | `domain/payment/gateways/flutterwave.gateway.ts`| Flutterwave implementation                                |
-| `PaystackGateway`         | `domain/payment/gateways/paystack.gateway.ts`   | Paystack implementation (fixture-tested, not live)        |
-| `PaymentGatewayFactory`   | `domain/payment/payment.factory.ts`             | Resolves a provider to its adapter                        |
-| `GatewayRouter`           | `domain/payment/gateway-routing.ts`             | Decides which provider a new checkout uses                |
+| Piece                   | Location                                         | Responsibility                                     |
+| ----------------------- | ------------------------------------------------ | -------------------------------------------------- |
+| `IPaymentGateway`       | `domain/payment/gateways/gateway-interface.ts`   | Provider-neutral contract                          |
+| `FlutterwaveGateway`    | `domain/payment/gateways/flutterwave.gateway.ts` | Flutterwave implementation                         |
+| `PaystackGateway`       | `domain/payment/gateways/paystack.gateway.ts`    | Paystack implementation (fixture-tested, not live) |
+| `PaymentGatewayFactory` | `domain/payment/payment.factory.ts`              | Resolves a provider to its adapter                 |
+| `GatewayRouter`         | `domain/payment/gateway-routing.ts`              | Decides which provider a new checkout uses         |
 
 Adapters normalise everything: each maps its provider's response into
 `PaymentVerificationResult` with amounts in **Kobo** and a normalised status, so
@@ -1375,11 +1364,11 @@ initiation errors. There is no user action gating it.
 
 A gateway is a candidate only if all three hold:
 
-| Gate                                | Question                                    |
-| ----------------------------------- | ------------------------------------------- |
-| `PaymentGatewayFactory.isSupported` | Does an adapter exist?                      |
-| `GatewayRouter.isRoutable`          | May live checkouts be sent here?            |
-| `GatewayRouter.isConfigured`        | Are credentials deployed?                   |
+| Gate                                | Question                         |
+| ----------------------------------- | -------------------------------- |
+| `PaymentGatewayFactory.isSupported` | Does an adapter exist?           |
+| `GatewayRouter.isRoutable`          | May live checkouts be sent here? |
+| `GatewayRouter.isConfigured`        | Are credentials deployed?        |
 
 ### Paystack is gated off — deliberately
 
@@ -1426,11 +1415,11 @@ own records. Two obstacles, both real:
 `PaymentConfirmationService.confirmFromGateway` is the **only** code that turns
 a gateway verdict into financial truth. Three callers share it:
 
-| Caller                          | When                                                      |
-| ------------------------------- | --------------------------------------------------------- |
-| Gateway webhooks                | Primary — usually within seconds of payment               |
-| `orderStatus.forceVerify`       | Status-page fallback, ~12s in if no webhook has landed     |
-| `sweep-pending-payments` cron   | Backstop for anything both missed                          |
+| Caller                        | When                                                   |
+| ----------------------------- | ------------------------------------------------------ |
+| Gateway webhooks              | Primary — usually within seconds of payment            |
+| `orderStatus.forceVerify`     | Status-page fallback, ~12s in if no webhook has landed |
+| `sweep-pending-payments` cron | Backstop for anything both missed                      |
 
 All three are safe to run repeatedly and concurrently: an order already in a
 terminal state short-circuits before any gateway call, so a webhook racing the
@@ -1445,11 +1434,11 @@ between the two is rejected outright.
 Adapters return one of three outcomes, and the distinction between the last two
 carries real weight:
 
-| Outcome       | Meaning                                          | Effect                                        |
-| ------------- | ------------------------------------------------ | --------------------------------------------- |
-| `verified`    | Gateway returned a transaction                   | Settle per its status                         |
-| `not_found`   | Gateway is healthy; no such transaction exists   | Definitive — the customer never paid          |
-| `unavailable` | Gateway unreachable or erroring                  | Transient — we know nothing, so change nothing |
+| Outcome       | Meaning                                        | Effect                                         |
+| ------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `verified`    | Gateway returned a transaction                 | Settle per its status                          |
+| `not_found`   | Gateway is healthy; no such transaction exists | Definitive — the customer never paid           |
+| `unavailable` | Gateway unreachable or erroring                | Transient — we know nothing, so change nothing |
 
 Collapsing `not_found` and `unavailable` into a single failure makes abandonment
 indistinguishable from an outage, which makes it unsafe to ever expire an unpaid
@@ -1492,11 +1481,11 @@ never be paid, and leaving it would block the cart permanently.
 Webhook routes map failures to HTTP status deliberately, because the status is
 what decides whether a gateway redelivers:
 
-| Failure                                              | Response | Why                                        |
-| ---------------------------------------------------- | -------- | ------------------------------------------ |
-| Transient (gateway unreachable mid-verification)     | 5xx      | Earn a retry — a 4xx would strand a real payment |
-| Deliberate rejection (underpayment, gateway mismatch) | 4xx     | Stop retrying — an admin is already alerted |
-| Malformed payload (missing reference)                | 4xx      | Redelivery cannot add what was never sent  |
+| Failure                                               | Response | Why                                              |
+| ----------------------------------------------------- | -------- | ------------------------------------------------ |
+| Transient (gateway unreachable mid-verification)      | 5xx      | Earn a retry — a 4xx would strand a real payment |
+| Deliberate rejection (underpayment, gateway mismatch) | 4xx      | Stop retrying — an admin is already alerted      |
+| Malformed payload (missing reference)                 | 4xx      | Redelivery cannot add what was never sent        |
 
 ---
 
@@ -1504,27 +1493,27 @@ what decides whether a gateway redelivers:
 
 ### Defined — Pending Business Decision
 
-| Item                               | Notes                                                                                                     |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Negative wallet recovery threshold | Kobo value that determines PERCENTAGE_DEDUCTION vs FULL_BLOCK                                             |
-| Penalty amount structure           | Fixed fine, percentage of order value, or strike-based system                                             |
-| Payout scheduling                  | Manual on-demand vs automated scheduled disbursements (e.g. weekly NET-7)                                 |
-| Platform revenue withdrawal        | Procedure for withdrawing accumulated platform wallet balance — not yet implemented                       |
-| Vercel IP whitelisting             | Migrate to static IP host or proxy to enable fully automated payout and refund API calls                  |
-| Flutterwave refund webhooks        | Must be requested from Flutterwave support — until enabled, only the manual admin path can close a refund |
-| Paystack go-live                   | Needs a refund client, one verified live payment, and acceptance of silent failover — see §16             |
+| Item                               | Notes                                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Negative wallet recovery threshold | Kobo value that determines PERCENTAGE_DEDUCTION vs FULL_BLOCK                                                                                          |
+| Penalty amount structure           | Fixed fine, percentage of order value, or strike-based system                                                                                          |
+| Payout scheduling                  | Manual on-demand vs automated scheduled disbursements (e.g. weekly NET-7)                                                                              |
+| Platform revenue withdrawal        | Procedure for withdrawing accumulated platform wallet balance — not yet implemented                                                                    |
+| Vercel IP whitelisting             | Migrate to static IP host or proxy to enable fully automated payout and refund API calls                                                               |
+| Flutterwave refund webhooks        | Must be requested from Flutterwave support — until enabled, only the manual admin path can close a refund                                              |
+| Paystack go-live                   | Needs a refund client, one verified live payment, and acceptance of silent failover — see §16                                                          |
 | Gateway settlement reconciliation  | `getSettlementReport()` on the adapters plus the outward comparison; blocked on credentials, settlement-lag handling, and transaction volume — see §16 |
-| Disbursement gateway dimension     | Payout-side escrow movement is untagged, so per-gateway figures cover collections only — see §15          |
+| Disbursement gateway dimension     | Payout-side escrow movement is untagged, so per-gateway figures cover collections only — see §15                                                       |
 
 ### Known Issues — Confirmed or Suspected, Needs Resolution
 
-| Item                                                            | Status                             | Notes                                                                                                                                                                                                                                                                                        |
-| --------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VENDOR_AVAILABLE` debit/credit direction inconsistency         | **Resolved 2026-08-11**            | Conventions normalised across every writer method (CREDIT increases all vendor/revenue/refund-payable accounts). Verified end-to-end by `tests/financial/stage3-disputes.test.ts` (findings-doc Test A, including debt creation).                                                             |
+| Item                                                            | Status                             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VENDOR_AVAILABLE` debit/credit direction inconsistency         | **Resolved 2026-08-11**            | Conventions normalised across every writer method (CREDIT increases all vendor/revenue/refund-payable accounts). Verified end-to-end by `tests/financial/stage3-disputes.test.ts` (findings-doc Test A, including debt creation).                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `writePayoutCompleted` PLATFORM_ESCROW direction                | **Resolved 2026-08-11**            | Completion now CREDITs `PLATFORM_ESCROW` (net only). Also fixed alongside it: gateway-fee double-count at completion, failed-payout wallet-cache over-restore by the debt-recovery amount, missing platform-wallet mirror for payout processing-fee revenue, and `PAYOUT_PROCESSING` double-counted as a platform asset in `checkEscrowSolvency`/`checkLedgerAccountingIdentity`. Verified by `tests/financial/stage4-payouts.test.ts` (findings-doc Test B). **Historical drift from the pre-fix inversion (e.g. the 2026-07-05 delta of 47,960) has NOT been backfilled — audit old `PAYOUT_COMPLETED` entries before trusting long-range historical reconciliations.** |
-| `CUSTOMER_REFUND_PAYABLE` lines missing `entityId`/`entityType` | Confirmed in production 2026-07-05 | `checkLedgerStructuralIntegrity` found 2 ledger lines on `CUSTOMER_REFUND_PAYABLE` missing both fields. Likely a code path (guest checkout, retry, or missing customerId at call time) in whichever writer method credits this account without passing entity info. Still needs investigation. |
-| Payment financials swallowed on failure                        | **Resolved 2026-08-20**            | `processPaymentConfirmedFinancials` logged and continued, committing an order as `Paid` with no transaction record, journal entries or vendor credit — invisible to every reconciliation check, since nothing was written to be out of balance. Now returns `ok: false`, aborting the transaction so the order stays `Pending` for webhook retry and the cron sweep. |
-| Abandoned checkouts never expired                              | **Resolved 2026-08-20**            | No gateway emits a webhook for abandonment, and verification collapsed "no such transaction" into the same result as "gateway unreachable", so abandoned orders sat `Pending` indefinitely holding their cart's idempotency key. Verification now distinguishes the two; see §17. |
+| `CUSTOMER_REFUND_PAYABLE` lines missing `entityId`/`entityType` | Confirmed in production 2026-07-05 | `checkLedgerStructuralIntegrity` found 2 ledger lines on `CUSTOMER_REFUND_PAYABLE` missing both fields. Likely a code path (guest checkout, retry, or missing customerId at call time) in whichever writer method credits this account without passing entity info. Still needs investigation.                                                                                                                                                                                                                                                                                                                                                                            |
+| Payment financials swallowed on failure                         | **Resolved 2026-08-20**            | `processPaymentConfirmedFinancials` logged and continued, committing an order as `Paid` with no transaction record, journal entries or vendor credit — invisible to every reconciliation check, since nothing was written to be out of balance. Now returns `ok: false`, aborting the transaction so the order stays `Pending` for webhook retry and the cron sweep.                                                                                                                                                                                                                                                                                                      |
+| Abandoned checkouts never expired                               | **Resolved 2026-08-20**            | No gateway emits a webhook for abandonment, and verification collapsed "no such transaction" into the same result as "gateway unreachable", so abandoned orders sat `Pending` indefinitely holding their cart's idempotency key. Verification now distinguishes the two; see §17.                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ### Planned Future Features
 
@@ -1538,4 +1527,3 @@ what decides whether a gateway redelivers:
 ---
 
 _This document must be updated whenever a financial policy, data model, journal entry map, or fund flow stage changes. Never let implementation diverge silently from this document._
-

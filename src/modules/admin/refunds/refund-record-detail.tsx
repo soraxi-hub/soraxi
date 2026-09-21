@@ -299,7 +299,7 @@ function AdminRefundDetail({ refundId }: AdminRefundDetailProps) {
               <p className="text-sm text-muted-foreground">
                 {getTriggerDescription(refund.trigger)}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
                 <div>
                   <Label className="text-muted-foreground">Order ID</Label>
                   <p className="font-mono text-sm flex items-center">
@@ -312,6 +312,13 @@ function AdminRefundDetail({ refundId }: AdminRefundDetailProps) {
                   <p className="font-mono text-sm flex items-center">
                     {refund.suborderId.slice(-12)}
                     <CopyButton value={refund.suborderId} />
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Order Idempotency key</Label>
+                  <p className="font-mono text-sm flex items-center">
+                    {refund.orderIdempotencyKey}
+                    <CopyButton value={refund.orderIdempotencyKey} />
                   </p>
                 </div>
               </div>

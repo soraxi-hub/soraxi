@@ -25,29 +25,11 @@ import { MessagingEvents } from "@/services/messaging/messaging-events";
 /**
  * Proof of delivery — issuing codes and links, and confirming against them.
  *
- * ─────────────────────────────────────────────────────────────────────────────
- * THE PROBLEM THIS SOLVES
- * ─────────────────────────────────────────────────────────────────────────────
- * A vendor used to mark a sub-order delivered on nothing but their own say-so,
- * and three days later the money left escrow. A customer disputing non-delivery
- * had no way to prove a negative, and the vendor was never asked to prove the
- * positive.
- *
- * A 6-digit code held by the customer fixes the asymmetry. Entering it is
- * evidence the buyer was present and released it. It defeats fraud in both
- * directions at once: a vendor cannot fabricate delivery, and a customer cannot
- * take the goods and then claim they never arrived.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- * TIMING
- * ─────────────────────────────────────────────────────────────────────────────
  * Both the code and the link are minted on the transition to **Shipped**.
  *
  * That is the earliest point `Delivered` becomes reachable — the state machine
  * allows `Shipped → Delivered` directly, skipping `OutForDelivery` — so minting
  * any later would leave a legal route to delivery with no code in existence.
- * It also matches the customer's Processing card, which reads "your delivery
- * code appears here once it's on the way".
  */
 export class DeliveryProofService {
   // ---------------------------------------------------------------------------

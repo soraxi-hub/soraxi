@@ -5,32 +5,11 @@ import { AdminGuard } from "@/domain/admin/admin-guard";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
+import { getDisputeRecordModel } from "@/lib/db/models/dispute-record.model";
+import { getTransactionRecordByOrderId } from "@/lib/db/models/transaction-record.model";
 import {
-  getDisputeRecordById,
-  getDisputeRecordModel,
-  requestAdditionalEvidence,
-  resolveDisputeRecord,
-} from "@/lib/db/models/dispute-record.model";
-import {
-  getTransactionRecordByOrderId,
-  updateSuborderFinancialStatus,
-} from "@/lib/db/models/transaction-record.model";
-import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
-import {
-  applyDisputeUpheldDeductions,
-  getVendorWalletByVendorId,
-  releaseVendorDisputedToAvailable,
-} from "@/lib/db/models/vendor-wallet.model";
-import {
-  creditPlatformPenalty,
-  debitPlatformCommission,
-} from "@/lib/db/models/platform-wallet.model";
-import { calculatePenalty } from "@/lib/utils/calculate-penalty.util";
-import {
-  SuborderFinancialStatus,
   DisputeStatus,
   DisputeOutcome,
-  DisputeResolvedBy,
   DebtRecoveryType,
 } from "@/enums/financial.enums";
 import { TRPCError } from "@trpc/server";
@@ -44,6 +23,7 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
+import { DisputeService } from "@/services/disputes/dispute.service";
 
 export const adminDisputeRouter = createTRPCRouter({
   /**
@@ -67,194 +47,41 @@ export const adminDisputeRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      // ----------------------------------------------------------------
-      // STEP 1: Authenticate admin and check permission
-      // NOTE: Add RESOLVE_DISPUTES to your PERMISSIONS object if it
-      // doesn't exist yet — follow the same pattern as other permissions
-      // ----------------------------------------------------------------
       const { admin: unAuthenticatedAdmin } = ctx;
+
       AdminGuard.from(unAuthenticatedAdmin).require(
-        PERMISSIONS.RESOLVE_DISPUTES, // NOTE: Add this permission if not yet defined
+        PERMISSIONS.RESOLVE_DISPUTES,
       );
 
-      if (!mongoose.Types.ObjectId.isValid(input.disputeId)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid dispute ID format.",
-        });
-      }
-
-      // ----------------------------------------------------------------
-      // STEP 2: Guards — verify state before any financial writes
-      // ----------------------------------------------------------------
-      await connectToDatabase();
-
-      // Guard 1: Dispute must exist
-      const dispute = await getDisputeRecordById(input.disputeId);
-
-      if (!dispute) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Dispute ${input.disputeId} not found.`,
-        });
-      }
-
-      // Guard 2: Dispute must be in a resolvable state
-      // AUTO_RESOLVED and RESOLVED are terminal — cannot be changed
-      const resolvableStatuses = [
-        DisputeStatus.OPEN,
-        DisputeStatus.AWAITING_EVIDENCE,
-      ];
-
-      if (!resolvableStatuses.includes(dispute.status)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Dispute is already in a terminal state: ${dispute.status}. It cannot be resolved again.`,
-        });
-      }
-
-      // Guard 3: Transaction record must exist
-      const transactionRecord = await getTransactionRecordByOrderId(
-        dispute.orderId.toString(),
-      );
-
-      if (!transactionRecord) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Transaction record not found for order ${dispute.orderId}.`,
-        });
-      }
-
-      // Guard 4: Financial breakdown must exist for the disputed suborder
-      const breakdown = transactionRecord.suborderBreakdowns.find(
-        (b) => b.suborderId.toString() === dispute.suborderId.toString(),
-      );
-
-      if (!breakdown) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `No financial breakdown found for suborder ${dispute.suborderId}.`,
-        });
-      }
-
-      // Guard 5: Suborder must still be in DISPUTED status
-      // Prevents double-processing if this procedure is somehow called twice
-      if (breakdown.status !== SuborderFinancialStatus.DISPUTED) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Suborder is not in DISPUTED status. Current status: ${breakdown.status}.`,
-        });
-      }
-
-      // ----------------------------------------------------------------
-      // STEP 3: Calculate penalty before opening the session
-      // ----------------------------------------------------------------
-      const { penaltyAmount } = calculatePenalty(breakdown.grossAmount);
-
-      const vendorWallet = await getVendorWalletByVendorId(
-        dispute.vendorId.toString(),
-      );
-
-      if (!vendorWallet) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Vendor wallet not found",
-        });
-      }
-
-      // ----------------------------------------------------------------
-      // STEP 4: All financial writes — atomic within a session
-      // ----------------------------------------------------------------
-      const session = await mongoose.startSession();
-      session.startTransaction();
-
+      // Financial dispute resolution belongs to the application service. In
+      // particular it creates the INITIATED RefundRecord in the same MongoDB
+      // transaction as the upheld liability, wallet and status writes.
       try {
-        // Wallet first: it computes and returns the penalty split (clamped so
-        // available never goes below zero) which the writer needs to keep the
-        // ledger's penalty split identical to the wallet's. Recovery policy is
-        // FULL_BLOCK for now, set only if the vendor has no policy yet (sticky).
-        const deduction = await applyDisputeUpheldDeductions(
-          dispute.vendorId.toString(),
-          dispute.frozenAmount,
-          penaltyAmount,
-          DebtRecoveryType.FULL_BLOCK,
-          0,
-          session,
-        );
-
-        if (!deduction) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Vendor wallet not found during deduction.",
-          });
-        }
-
-        const { penaltyFromAvailable } = deduction;
-
-        // --- DISPUTE_UPHELD journal entry ---
-        // Penalty debit splits: penaltyFromAvailable out of VENDOR_AVAILABLE,
-        // remainder into VENDOR_DEBT_RECEIVABLE. Full penalty is still
-        // recognised as PLATFORM_REVENUE_PENALTIES revenue.
-        const writer = await JournalEntryWriter.init();
-
-        await writer.writeDisputeUpheld({
-          vendorId: dispute.vendorId,
-          customerId: dispute.customerId,
-          settleAmount: dispute.frozenAmount,
-          commission: breakdown.commission,
-          penaltyAmount,
-          penaltyFromAvailable,
-          disputeId: new mongoose.Types.ObjectId(input.disputeId),
-          session,
+        const result = await DisputeService.upholdDispute({
+          disputeId: input.disputeId,
+          resolutionNotes: input.resolutionNotes,
         });
-
-        // --- Update Platform Wallet cache ---
-        // Commission reversed (student refunded full amountPaid); full penalty
-        // recognised as revenue regardless of the available/debt split.
-        await debitPlatformCommission(breakdown.commission, session);
-        await creditPlatformPenalty(penaltyAmount, session);
-
-        // --- Update Dispute Record ---
-        await resolveDisputeRecord(
-          input.disputeId,
-          DisputeOutcome.UPHELD,
-          DisputeResolvedBy.PLATFORM_TEAM,
-          penaltyAmount,
-          session,
-          input.resolutionNotes,
-        );
-
-        // --- Update Transaction Record: suborder status → REFUNDED ---
-        await updateSuborderFinancialStatus(
-          dispute.orderId.toString(),
-          dispute.suborderId.toString(),
-          SuborderFinancialStatus.REFUNDED,
-          session,
-        );
-
-        await session.commitTransaction();
-
-        const penaltyToDebt = penaltyAmount - penaltyFromAvailable;
-
         return {
           success: true,
           message: "Dispute resolved. Student will be refunded.",
           data: {
             disputeId: input.disputeId,
             outcome: DisputeOutcome.UPHELD,
-            refundAmount: dispute.frozenAmount + breakdown.commission,
-            penaltyAmount,
+            refundAmount: result.refundAmount,
+            refundRecordId: (
+              result.refundRecord._id as mongoose.Types.ObjectId
+            ).toString(),
+            penaltyAmount: result.penaltyAmount,
             vendorDebt:
-              penaltyToDebt > 0
+              result.penaltyToDebt > 0
                 ? {
-                    amount: penaltyToDebt,
+                    amount: result.penaltyToDebt,
                     recoveryType: DebtRecoveryType.FULL_BLOCK,
                   }
                 : null,
           },
         };
       } catch (error) {
-        await session.abortTransaction();
         if (isReportableError(error)) {
           try {
             await sendTelegramMessage(
@@ -267,8 +94,6 @@ export const adminDisputeRouter = createTRPCRouter({
           }
         }
         throw handleTRPCError(error);
-      } finally {
-        session.endSession();
       }
     }),
 
@@ -291,129 +116,17 @@ export const adminDisputeRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      // ----------------------------------------------------------------
-      // STEP 1: Authenticate admin and check permission
-      // ----------------------------------------------------------------
-      const { admin: unAuthenticatedAdmin } = ctx;
-      AdminGuard.from(unAuthenticatedAdmin).require(
-        PERMISSIONS.RESOLVE_DISPUTES,
-      );
-
-      if (!mongoose.Types.ObjectId.isValid(input.disputeId)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid dispute ID format.",
-        });
-      }
-
-      // ----------------------------------------------------------------
-      // STEP 2: Guards — verify state before any financial writes
-      // ----------------------------------------------------------------
-      await connectToDatabase();
-
-      // Guard 1: Dispute must exist
-      const dispute = await getDisputeRecordById(input.disputeId);
-
-      if (!dispute) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Dispute ${input.disputeId} not found.`,
-        });
-      }
-
-      // Guard 2: Dispute must be in a resolvable state
-      const resolvableStatuses = [
-        DisputeStatus.OPEN,
-        DisputeStatus.AWAITING_EVIDENCE,
-      ];
-
-      if (!resolvableStatuses.includes(dispute.status)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Dispute is already in a terminal state: ${dispute.status}. It cannot be resolved again.`,
-        });
-      }
-
-      // Guard 3: Transaction record must exist
-      const transactionRecord = await getTransactionRecordByOrderId(
-        dispute.orderId.toString(),
-      );
-
-      if (!transactionRecord) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Transaction record not found for order ${dispute.orderId}.`,
-        });
-      }
-
-      // Guard 4: Financial breakdown must exist for the disputed suborder
-      const breakdown = transactionRecord.suborderBreakdowns.find(
-        (b) => b.suborderId.toString() === dispute.suborderId.toString(),
-      );
-
-      if (!breakdown) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `No financial breakdown found for suborder ${dispute.suborderId}.`,
-        });
-      }
-
-      // Guard 5: Suborder must still be in DISPUTED status
-      if (breakdown.status !== SuborderFinancialStatus.DISPUTED) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Suborder is not in DISPUTED status. Current status: ${breakdown.status}.`,
-        });
-      }
-
-      // ----------------------------------------------------------------
-      // STEP 3: All financial writes — atomic within a session
-      // ----------------------------------------------------------------
-      const session = await mongoose.startSession();
-      session.startTransaction();
-
       try {
-        // --- DISPUTE_REJECTED journal entry ---
-        // Returns frozen funds from vendor's disputed balance to available.
-        //
-        //   DEBIT   VENDOR_AVAILABLE   frozenAmount
-        //   CREDIT  VENDOR_DISPUTED    frozenAmount
-        const writer = await JournalEntryWriter.init();
+        const { admin: unAuthenticatedAdmin } = ctx;
 
-        await writer.writeDisputeRejected({
-          vendorId: dispute.vendorId,
-          settleAmount: dispute.frozenAmount,
-          disputeId: new mongoose.Types.ObjectId(input.disputeId),
-          session,
+        AdminGuard.from(unAuthenticatedAdmin).require(
+          PERMISSIONS.RESOLVE_DISPUTES,
+        );
+
+        const result = await DisputeService.rejectDispute({
+          disputeId: input.disputeId,
+          resolutionNotes: input.resolutionNotes,
         });
-
-        // --- Update Vendor Wallet cache: disputed → available ---
-        // Mirrors the VENDOR_DISPUTED → VENDOR_AVAILABLE movement above.
-        await releaseVendorDisputedToAvailable(
-          dispute.vendorId.toString(),
-          dispute.frozenAmount,
-          session,
-        );
-
-        // --- Update Dispute Record ---
-        await resolveDisputeRecord(
-          input.disputeId,
-          DisputeOutcome.REJECTED,
-          DisputeResolvedBy.PLATFORM_TEAM,
-          0, // No penalty on rejection
-          session,
-          input.resolutionNotes,
-        );
-
-        // --- Update Transaction Record: suborder status → SETTLED ---
-        await updateSuborderFinancialStatus(
-          dispute.orderId.toString(),
-          dispute.suborderId.toString(),
-          SuborderFinancialStatus.SETTLED,
-          session,
-        );
-
-        await session.commitTransaction();
 
         return {
           success: true,
@@ -421,11 +134,10 @@ export const adminDisputeRouter = createTRPCRouter({
           data: {
             disputeId: input.disputeId,
             outcome: DisputeOutcome.REJECTED,
-            releasedAmount: dispute.frozenAmount,
+            releasedAmount: result.releasedAmount,
           },
         };
       } catch (error) {
-        await session.abortTransaction();
         if (isReportableError(error)) {
           try {
             await sendTelegramMessage(
@@ -438,8 +150,6 @@ export const adminDisputeRouter = createTRPCRouter({
           }
         }
         throw error;
-      } finally {
-        session.endSession();
       }
     }),
 
@@ -462,73 +172,14 @@ export const adminDisputeRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        // ----------------------------------------------------------------
-        // STEP 1: Authenticate admin and check permission
-        // ----------------------------------------------------------------
         const { admin: unAuthenticatedAdmin } = ctx;
         AdminGuard.from(unAuthenticatedAdmin).require(
           PERMISSIONS.RESOLVE_DISPUTES,
         );
 
-        if (!mongoose.Types.ObjectId.isValid(input.disputeId)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid dispute ID format.",
-          });
-        }
-
-        // ----------------------------------------------------------------
-        // STEP 2: Guards
-        // ----------------------------------------------------------------
-        await connectToDatabase();
-
-        // Guard 1: Dispute must exist
-        const dispute = await getDisputeRecordById(input.disputeId);
-
-        if (!dispute) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Dispute ${input.disputeId} not found.`,
-          });
-        }
-
-        // Guard 2: Dispute must be in OPEN status only
-        // AWAITING_EVIDENCE means additional evidence was already requested —
-        // the team cannot request it a second time
-        if (dispute.status !== DisputeStatus.OPEN) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              dispute.status === DisputeStatus.AWAITING_EVIDENCE
-                ? "Additional evidence has already been requested for this dispute."
-                : `Dispute cannot be marked inconclusive in its current state: ${dispute.status}.`,
-          });
-        }
-
-        // ----------------------------------------------------------------
-        // STEP 3: Update dispute record — no financial writes needed
-        // Funds remain frozen in vendor's disputed balance unchanged
-        // ----------------------------------------------------------------
-
-        // requestAdditionalEvidence sets status → AWAITING_EVIDENCE,
-        // outcome → INCONCLUSIVE, and populates the 48-hour deadline
-        const updatedDispute = await requestAdditionalEvidence(input.disputeId);
-
-        if (!updatedDispute) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "We couldn't update this dispute. Please try again.",
-          });
-        }
-
-        // ----------------------------------------------------------------
-        // STEP 4: Notify student to submit additional evidence
-        // NOTE: Implement student notification email following your
-        // existing NotificationFactory pattern. Include:
-        // - What additional evidence is needed
-        // - The 48-hour deadline (updatedDispute.additionalEvidenceDeadline)
-        // - The route/link to submit evidence
-        // ----------------------------------------------------------------
+        const updatedDispute = await DisputeService.markInconclusive({
+          disputeId: input.disputeId,
+        });
 
         return {
           success: true,

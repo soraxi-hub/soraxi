@@ -17,10 +17,6 @@ import {
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 /** Human-readable label for each refund trigger. */
 function formatTriggerLabel(trigger: RefundTrigger): string {
   switch (trigger) {
@@ -34,10 +30,6 @@ function formatTriggerLabel(trigger: RefundTrigger): string {
       return trigger;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Router
-// ---------------------------------------------------------------------------
 
 export const adminRefundRouter = createTRPCRouter({
   /**
@@ -216,6 +208,7 @@ export const adminRefundRouter = createTRPCRouter({
             refundId: refund._id.toString(),
             suborderId: refund.suborderId.toString(),
             orderId: refund.orderId.toString(),
+            orderIdempotencyKey: refund.orderIdempotencyKey,
             trigger: refund.trigger,
             triggerLabel: formatTriggerLabel(refund.trigger),
             amountBreakdown: {

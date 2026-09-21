@@ -1,22 +1,8 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
-import {
-  getDisputeRecordModel,
-  IDisputeRecordDocument,
-} from "@/lib/db/models/dispute-record.model";
-import {
-  getTransactionRecordByOrderId,
-  updateSuborderFinancialStatus,
-} from "@/lib/db/models/transaction-record.model";
-import { releaseVendorDisputedToAvailable } from "@/lib/db/models/vendor-wallet.model";
-import { resolveDisputeRecord } from "@/lib/db/models/dispute-record.model";
-import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
-import {
-  SuborderFinancialStatus,
-  DisputeStatus,
-  DisputeOutcome,
-  DisputeResolvedBy,
-} from "@/enums/financial.enums";
+import { IDisputeRecordDocument } from "@/lib/db/models/dispute-record.model";
+import { DisputeRepository } from "@/repositories/dispute-record.repository";
+import { DisputeResolvedBy } from "@/enums/financial.enums";
 import {
   NotificationFactory,
   renderTemplate,
@@ -32,6 +18,7 @@ import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
+import { DisputeService } from "@/services/disputes/dispute.service";
 
 /**
  * Result of processing a single expired evidence deadline.
@@ -82,11 +69,7 @@ export class DisputeEvidenceExpiryService {
     // Fetch all disputes that are:
     // - Still in AWAITING_EVIDENCE status (student hasn't responded)
     // - Past their additional evidence deadline
-    const DisputeRecord = await getDisputeRecordModel();
-    const expiredDisputes = await DisputeRecord.find<IDisputeRecordDocument>({
-      status: DisputeStatus.AWAITING_EVIDENCE,
-      additionalEvidenceDeadline: { $lte: new Date() },
-    });
+    const expiredDisputes = await DisputeRepository.getAwaitingEvidenceExpired();
 
     const summary: IEvidenceExpirySummary = {
       processedAt: new Date(),
@@ -135,113 +118,17 @@ export class DisputeEvidenceExpiryService {
     dispute: IDisputeRecordDocument,
   ): Promise<IEvidenceExpiryResult> {
     const disputeId = (dispute._id as mongoose.Types.ObjectId).toString();
-    let session: mongoose.ClientSession | null = null;
-
     try {
-      // Fetch transaction record to get suborder breakdown
-      const transactionRecord = await getTransactionRecordByOrderId(
-        dispute.orderId.toString(),
-      );
-
-      if (!transactionRecord) {
-        return {
-          disputeId,
-          success: false,
-          error: `Transaction record not found for order ${dispute.orderId}`,
-        };
-      }
-
-      const breakdown = transactionRecord.suborderBreakdowns.find(
-        (b) => b.suborderId.toString() === dispute.suborderId.toString(),
-      );
-
-      if (!breakdown) {
-        return {
-          disputeId,
-          success: false,
-          error: `No financial breakdown found for suborder ${dispute.suborderId}`,
-        };
-      }
-
-      // Guard: only process suborders still in DISPUTED financial status
-      if (breakdown.status !== SuborderFinancialStatus.DISPUTED) {
-        return {
-          disputeId,
-          success: false,
-          error: `Suborder ${dispute.suborderId} is not in DISPUTED status. Current: ${breakdown.status}`,
-        };
-      }
-
-      // All financial writes in an isolated session
-      session = await mongoose.startSession();
-      session.startTransaction();
-
-      // --- DISPUTE_REJECTED journal entry ---
-      // Student did not submit additional evidence within the 48-hour window —
-      // frozen funds are returned to the vendor's available balance.
-      //
-      //   DEBIT   VENDOR_AVAILABLE   frozenAmount
-      //   CREDIT  VENDOR_DISPUTED    frozenAmount
-      const writer = await JournalEntryWriter.init();
-
-      await writer.writeDisputeRejected({
-        vendorId: dispute.vendorId,
-        settleAmount: dispute.frozenAmount,
-        disputeId: dispute._id as mongoose.Types.ObjectId,
-        session,
-      });
-
-      // --- Update Vendor Wallet cache: disputed → available ---
-      // Mirrors the VENDOR_DISPUTED → VENDOR_AVAILABLE movement above.
-      await releaseVendorDisputedToAvailable(
-        dispute.vendorId.toString(),
-        dispute.frozenAmount,
-        session,
-      );
-
-      // --- Update Dispute Record: RESOLVED, outcome: REJECTED ---
-      await resolveDisputeRecord(
+      await DisputeService.rejectDispute({
         disputeId,
-        DisputeOutcome.REJECTED,
-        DisputeResolvedBy.SYSTEM,
-        0, // No penalty
-        session,
-        "Auto-rejected by system — student did not submit additional evidence within the 48-hour window.",
-      );
-
-      // --- Update Transaction Record: suborder status → SETTLED ---
-      await updateSuborderFinancialStatus(
-        dispute.orderId.toString(),
-        dispute.suborderId.toString(),
-        SuborderFinancialStatus.SETTLED,
-        session,
-      );
-
-      await session.commitTransaction();
-
-      // Notify both parties outside the session
+        resolvedBy: DisputeResolvedBy.SYSTEM,
+        resolutionNotes:
+          "Auto-rejected by system — student did not submit additional evidence within the 48-hour window.",
+      });
       await this.sendExpiryNotifications(dispute);
-
       return { disputeId, success: true };
     } catch (error: any) {
-      if (session) {
-        await session.abortTransaction();
-      }
-
-      console.error(
-        `[DisputeEvidenceExpiryService] Failed to reject expired dispute ${disputeId}:`,
-        error,
-      );
-
-      return {
-        disputeId,
-        success: false,
-        error: error.message ?? "Unknown error",
-      };
-    } finally {
-      if (session) {
-        session.endSession();
-      }
+      return { disputeId, success: false, error: error.message ?? "Unknown error" };
     }
   }
 
