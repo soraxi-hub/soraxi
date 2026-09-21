@@ -2,6 +2,18 @@ import { existsSync } from "node:fs";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 
+import { getDisputeRecordModel } from "@/lib/db/models/dispute-record.model";
+import { getRefundRecordModel } from "@/lib/db/models/refund-record.model";
+import { getTransactionRecordModel } from "@/lib/db/models/transaction-record.model";
+import { getVendorWalletModel } from "@/lib/db/models/vendor-wallet.model";
+import { getPlatformWalletModel } from "@/lib/db/models/platform-wallet.model";
+import { getOrderModel } from "@/lib/db/models/order.model";
+import { getUserModel } from "@/lib/db/models/user.model";
+// …plus every other model the financial suite touches
+
+mongoose.set("autoCreate", false);
+mongoose.set("autoIndex", false);
+
 /**
  * In-memory MongoDB replica set for the financial test suite.
  *
@@ -38,10 +50,7 @@ export async function startTestDb(): Promise<void> {
         // back — transactions intermittently fail to acquire an IX lock even
         // with no real contention. Production uses a real replica set and is
         // unaffected; this only removes test flakiness.
-        args: [
-          "--setParameter",
-          "maxTransactionLockRequestTimeoutMillis=5000",
-        ],
+        args: ["--setParameter", "maxTransactionLockRequestTimeoutMillis=5000"],
       },
     ],
   });
@@ -63,9 +72,7 @@ export async function stopTestDb(): Promise<void> {
 export async function clearAllCollections(): Promise<void> {
   const collections = mongoose.connection.collections;
   await Promise.all(
-    Object.values(collections).map((collection) =>
-      collection.deleteMany({}),
-    ),
+    Object.values(collections).map((collection) => collection.deleteMany({})),
   );
 }
 
@@ -86,4 +93,18 @@ export async function withTransaction<T>(
   } finally {
     await session.endSession();
   }
+}
+
+export async function ensureCollections(): Promise<void> {
+  const models = await Promise.all([
+    getDisputeRecordModel(),
+    getRefundRecordModel(),
+    getTransactionRecordModel(),
+    getVendorWalletModel(),
+    getPlatformWalletModel(),
+    getOrderModel(),
+    getUserModel(),
+  ]);
+  // Model.init() awaits both createCollection() AND createIndexes().
+  await Promise.all(models.map((m) => m.init()));
 }

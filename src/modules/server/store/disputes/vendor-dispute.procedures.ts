@@ -5,10 +5,7 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { getTransactionRecordByOrderId } from "@/lib/db/models/transaction-record.model";
-import {
-  getActiveDisputeBySuborderId,
-  getDisputeRecordById,
-} from "@/lib/db/models/dispute-record.model";
+import { DisputeRepository } from "@/repositories/dispute-record.repository";
 import { getVendorWalletByVendorId } from "@/lib/db/models/vendor-wallet.model";
 import { SuborderFinancialStatus } from "@/enums/financial.enums";
 import { koboToNaira } from "@/lib/utils/naira";
@@ -87,7 +84,7 @@ export const vendorDisputeRouter = createTRPCRouter({
 
           if (breakdown.status === SuborderFinancialStatus.DISPUTED) {
             const activeDispute =
-              await getActiveDisputeBySuborderId(suborderId);
+              await DisputeRepository.findActiveBySuborderId(suborderId);
             disputeId = activeDispute
               ? (activeDispute._id as mongoose.Types.ObjectId).toString()
               : null;
@@ -167,7 +164,7 @@ export const vendorDisputeRouter = createTRPCRouter({
 
         await connectToDatabase();
 
-        const dispute = await getDisputeRecordById(input.disputeId);
+        const dispute = await DisputeRepository.findById(input.disputeId);
 
         if (!dispute) {
           throw new TRPCError({

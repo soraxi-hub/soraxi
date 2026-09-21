@@ -25,10 +25,6 @@ import {
  * - keeps transaction boundaries explicit
  */
 export class OrderService implements IOrderService {
-  // ---------------------------------------------------------------------
-  // READ OPERATIONS
-  // ---------------------------------------------------------------------
-
   async getOrderUserView(orderId: string) {
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       throw new AppError("BAD_REQUEST", "Invalid order ID format");
@@ -324,8 +320,11 @@ export class OrderService implements IOrderService {
       status === DeliveryStatus.Canceled ||
       status === DeliveryStatus.FailedDelivery
     ) {
+      const orderIdempotencyKey = order.idempotencyKey;
+
       await this.initiateRefundForFailedSuborder(
         orderId,
+        orderIdempotencyKey,
         storeId,
         status,
         session,
@@ -338,8 +337,7 @@ export class OrderService implements IOrderService {
     // have no proof available to it.
     //
     // The plaintext code is returned for one purpose only: emailing it to the
-    // customer. It must never reach a vendor-facing response — a vendor who can
-    // see the code can self-confirm, and the whole mechanism collapses.
+    // customer. It must never reach a vendor-facing response.
     let issuedCode: string | undefined;
 
     if (status === DeliveryStatus.Shipped) {
@@ -384,6 +382,7 @@ export class OrderService implements IOrderService {
    */
   private async initiateRefundForFailedSuborder(
     orderId: string,
+    orderIdempotencyKey: string,
     storeId: string,
     status: DeliveryStatus,
     session: mongoose.ClientSession,
@@ -434,12 +433,11 @@ export class OrderService implements IOrderService {
     const refundInput = {
       suborderId: breakdown.suborderId.toString(),
       orderId,
+      orderIdempotencyKey,
       vendorId: storeId,
       customerId: txn.customerId.toString(),
       settleAmount: breakdown.settleAmount,
       commission: breakdown.commission,
-      // The provider that collected the payment is the only one that can
-      // refund it, so both travel to the refund layer together.
       paymentProvider: txn.paymentProvider,
       gatewayTransactionId: txn.gatewayTransactionId,
       session,

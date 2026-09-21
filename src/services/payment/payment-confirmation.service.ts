@@ -26,8 +26,7 @@ const ABANDONMENT_GRACE_MS = 30 * 60 * 1000; // 30 minutes
  *
  * The grace window above only fires on a definitive `not_found`. If a gateway
  * were persistently unreachable, every sweep would return `unavailable` and
- * orders would accumulate forever — each one holding its cart's idempotency
- * key and locking the customer out of that cart. This is the backstop that
+ * orders would accumulate forever. This is the backstop that
  * makes "no order stays Pending indefinitely" true unconditionally.
  */
 const HARD_EXPIRY_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -151,8 +150,7 @@ export class PaymentConfirmationService {
        * The gateway is healthy and says this transaction does not exist — the
        * customer left the payment page without paying. No gateway emits a
        * webhook for that, so this is the ONLY signal abandonment produces, and
-       * without acting on it the order would sit Pending forever, holding the
-       * cart's idempotency key and locking the customer out of that cart.
+       * without acting on it the order would sit Pending forever.
        *
        * The grace window matters: an in-progress checkout looks identical from
        * here, so only orders old enough to have been genuinely abandoned are

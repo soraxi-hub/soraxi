@@ -1,328 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { getOrderModel } from "@/lib/db/models/order.model";
 import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
-import {
-  getTransactionRecordByOrderId,
-  updateSuborderFinancialStatus,
-} from "@/lib/db/models/transaction-record.model";
-import {
-  createDisputeRecord,
-  getActiveDisputeBySuborderId,
-} from "@/lib/db/models/dispute-record.model";
-import { freezeVendorFunds } from "@/lib/db/models/vendor-wallet.model";
-import { JournalEntryWriter } from "@/services/journal-entry-writer.service";
-import {
-  SuborderFinancialStatus,
-  DisputeStatus,
-} from "@/enums/financial.enums";
-import { DeliveryStatus } from "@/enums";
 import { getUserDataFromToken } from "@/lib/helpers/get-user-data-from-token";
-import { DateFormatter } from "@/lib/utils/date-formatter";
 import { AppError } from "@/lib/errors/app-error";
 import { assertValidImageUpload } from "@/validators/validate-image-files";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { MessagingEvents } from "@/services/messaging/messaging-events";
+import { DisputeService } from "@/services/disputes/dispute.service";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
-import {
-  DISPUTE_RESOLUTION_BUSINESS_DAYS,
-  DISPUTE_WINDOW_HOURS_AFTER_DELIVERY,
-} from "@/constants/financial.constants";
 
-/**
- * POST /api/disputes/open
- *
- * Opens a dispute for a specific suborder.
- *
- * Handles:
- * - Evidence image upload to Cloudinary
- * - All Stage 3 financial writes (dispute record, ledger entry, wallet update)
- *
- * Expected FormData fields:
- * - mainOrderId: string
- * - subOrderId: string
- * - reason: string
- * - evidence: File[] (one or more image files)
- *
- * NOTE: When this route grows, extract the dispute creation logic
- * into a DisputeService class following the same pattern as ProcessOrder.
- */
+/** Multipart transport adapter only. Business and financial orchestration live
+ * in DisputeService so every caller follows the same transaction boundary. */
 export async function POST(req: NextRequest) {
-  let session: mongoose.ClientSession | null = null;
-
   try {
-    // STEP 1: Authenticate the student
-    const authSession = await getUserDataFromToken(req);
-    if (!authSession) {
+    const auth = await getUserDataFromToken(req);
+
+    if (!auth)
       throw new AppError(
         "UNAUTHORIZED",
         "Sign in to raise a dispute on your order.",
       );
-    }
-    const customerId = authSession.id;
 
-    // STEP 2: Parse and validate FormData inputs
     const formData = await req.formData();
-
-    const mainOrderId = formData.get("mainOrderId") as string | null;
-    const subOrderId = formData.get("subOrderId") as string | null;
+    const orderId = formData.get("mainOrderId") as string | null;
+    const suborderId = formData.get("subOrderId") as string | null;
     const reason = formData.get("reason") as string | null;
-    const evidenceFiles = formData.getAll("evidence") as File[];
+    const evidence = formData.getAll("evidence") as File[];
 
-    if (!mainOrderId || !subOrderId || !reason) {
+    if (!orderId || !suborderId || !reason)
       throw new AppError(
         "BAD_REQUEST",
         "mainOrderId, subOrderId, and reason are required.",
-        { mainOrderId, subOrderId, reason },
       );
-    }
 
     if (
-      !mongoose.Types.ObjectId.isValid(mainOrderId) ||
-      !mongoose.Types.ObjectId.isValid(subOrderId)
-    ) {
+      !mongoose.Types.ObjectId.isValid(orderId) ||
+      !mongoose.Types.ObjectId.isValid(suborderId)
+    )
       throw new AppError(
         "BAD_REQUEST",
         "Invalid mainOrderId or subOrderId format.",
-        { mainOrderId, subOrderId },
       );
-    }
 
-    if (reason.trim().length < 20) {
+    if (reason.trim().length < 20)
       throw new AppError(
         "BAD_REQUEST",
         "Please provide a detailed reason (at least 20 characters).",
-        { reasonLength: reason.trim().length },
       );
-    }
 
-    if (!evidenceFiles.length) {
+    if (!evidence.length)
       throw new AppError(
         "BAD_REQUEST",
         "At least one evidence image is required.",
       );
-    }
 
-    // The dialog validates too, but a route that trusts its client for file
-    // size and type has no limit at all — this one previously accepted any
-    // number of files of any size and sent them straight to Cloudinary.
-    assertValidImageUpload(evidenceFiles);
-
-    // STEP 3: Run all guards before touching any financial data
-    await connectToDatabase();
-    const Order = await getOrderModel();
-
-    // Guard 1: Order must exist and belong to this student
-    const order = await Order.findOne({
-      _id: new mongoose.Types.ObjectId(mainOrderId),
-      userId: new mongoose.Types.ObjectId(customerId),
-    });
-
-    if (!order) {
-      throw new AppError(
-        "NOT_FOUND",
-        "We couldn't find that order on your account. Check your Orders page and try again.",
-        { mainOrderId },
-      );
-    }
-
-    // Guard 2: Suborder must exist
-    const subOrder = order.subOrders.find(
-      (sub) => sub._id?.toString() === subOrderId,
-    );
-
-    if (!subOrder) {
-      throw new AppError("NOT_FOUND", "Suborder not found within this order.", {
-        mainOrderId,
-        subOrderId,
-      });
-    }
-
-    // Guard 3: Suborder must be delivered
-    const disputeableDeliveryStatuses = [DeliveryStatus.Delivered];
-    if (!disputeableDeliveryStatuses.includes(subOrder.deliveryStatus)) {
-      throw new AppError(
-        "BAD_REQUEST",
-        "A dispute can only be raised for suborders that are delivered.",
-        { deliveryStatus: subOrder.deliveryStatus },
-      );
-    }
-
-    // Guard 3b: Still inside the post-delivery dispute window.
-    if (!subOrder.deliveryDate) {
-      throw new AppError(
-        "BAD_REQUEST",
-        "We can't confirm when this order was delivered, so a dispute can't be opened on it. Contact support.",
-        { subOrderId },
-      );
-    }
-
-    const hoursSinceDelivery =
-      (Date.now() - subOrder.deliveryDate.getTime()) / (1000 * 60 * 60);
-
-    if (hoursSinceDelivery > DISPUTE_WINDOW_HOURS_AFTER_DELIVERY) {
-      throw new AppError(
-        "BAD_REQUEST",
-        `The window to dispute this order has closed. Disputes must be opened within ${DISPUTE_WINDOW_HOURS_AFTER_DELIVERY / 24} days of delivery.`,
-        {
-          deliveredAt: subOrder.deliveryDate,
-          windowHours: DISPUTE_WINDOW_HOURS_AFTER_DELIVERY,
-        },
-      );
-    }
-
-    // Guard 4: Transaction record exists
-    const transactionRecord = await getTransactionRecordByOrderId(mainOrderId);
-    if (!transactionRecord) {
-      throw new AppError(
-        "NOT_FOUND",
-        "Transaction record not found for this order.",
-        { mainOrderId },
-      );
-    }
-
-    // Guard 5: Financial breakdown exists
-    const breakdown = transactionRecord.suborderBreakdowns.find(
-      (b) => b.suborderId.toString() === subOrderId,
-    );
-    if (!breakdown) {
-      throw new AppError(
-        "NOT_FOUND",
-        "No financial breakdown found for this suborder.",
-        { subOrderId },
-      );
-    }
-
-    // Guard 6: Financial status must still be disputable.
-    const disputeableFinancialStatuses = [
-      SuborderFinancialStatus.PENDING,
-      SuborderFinancialStatus.SETTLED,
-    ];
-    if (!disputeableFinancialStatuses.includes(breakdown.status)) {
-      const statusMessages: Record<string, string> = {
-        [SuborderFinancialStatus.DISPUTED]:
-          "A dispute is already open for this suborder.",
-        [SuborderFinancialStatus.REFUNDED]:
-          "This suborder has already been refunded.",
-      };
-
-      throw new AppError(
-        "BAD_REQUEST",
-        statusMessages[breakdown.status] ??
-          "This suborder cannot be disputed in its current state.",
-        { currentStatus: breakdown.status },
-      );
-    }
-
-    // Guard 7: No existing active dispute
-    const existingDispute = await getActiveDisputeBySuborderId(subOrderId);
-    if (existingDispute) {
-      throw new AppError(
-        "CONFLICT",
-        "A dispute is already open for this suborder.",
-        { subOrderId, existingDisputeId: existingDispute._id },
-      );
-    }
-
-    // STEP 4: Upload evidence images to Cloudinary
+    assertValidImageUpload(evidence);
     const evidenceUrls = await ProductImageUploadService.uploadImages(
-      evidenceFiles,
+      evidence,
       "disputes",
     );
 
-    if (!evidenceUrls.length) {
+    if (!evidenceUrls.length)
       throw new AppError(
         "INTERNAL_SERVER_ERROR",
         "Evidence upload failed. Please try again.",
       );
-    }
 
-    // STEP 5: Run all financial writes atomically within a session
-    await connectToDatabase();
-    session = await mongoose.startSession();
-    session.startTransaction();
+    const dispute = await DisputeService.openDispute({
+      orderId,
+      suborderId,
+      customerId: auth.id,
+      reason,
+      evidence: evidenceUrls,
+    });
 
-    try {
-      const now = new Date();
-      const deadline = DateFormatter.addBusinessDays(
-        now,
-        DISPUTE_RESOLUTION_BUSINESS_DAYS,
-        [0, 6],
-      );
+    await MessagingEvents.disputeOpened({
+      subOrderId: suborderId,
+      disputeId: (dispute._id as mongoose.Types.ObjectId).toString(),
+    }).catch((error) =>
+      console.error(
+        "[POST /api/disputes/open] post-commit event failed:",
+        error,
+      ),
+    );
 
-      const disputeRecord = await createDisputeRecord(
-        {
-          suborderId: new mongoose.Types.ObjectId(subOrderId),
-          orderId: new mongoose.Types.ObjectId(mainOrderId),
-          customerId: new mongoose.Types.ObjectId(customerId),
-          vendorId: breakdown.vendorId,
-          reason: reason.trim(),
-          evidence: evidenceUrls,
-          status: DisputeStatus.OPEN,
-          frozenAmount: breakdown.settleAmount,
-          penaltyAmount: 0,
-          openedAt: now,
-          deadline,
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Dispute opened successfully.",
+        data: {
+          disputeId: (dispute._id as mongoose.Types.ObjectId).toString(),
+          frozenAmount: dispute.frozenAmount,
+          deadline: dispute.deadline.toISOString(),
+          evidenceUrls,
         },
-        session,
-      );
-
-      const writer = await JournalEntryWriter.init();
-
-      await writer.writeDisputeOpened({
-        vendorId: breakdown.vendorId,
-        settleAmount: breakdown.settleAmount,
-        disputeId: disputeRecord._id as mongoose.Types.ObjectId,
-        session,
-      });
-
-      await updateSuborderFinancialStatus(
-        mainOrderId,
-        subOrderId,
-        SuborderFinancialStatus.DISPUTED,
-        session,
-      );
-
-      await freezeVendorFunds(
-        breakdown.vendorId.toString(),
-        breakdown.settleAmount,
-        session,
-      );
-
-      await session.commitTransaction();
-
-      // Announce to the messaging module, after the commit.
-      await MessagingEvents.disputeOpened({
-        subOrderId,
-        disputeId: (disputeRecord._id as mongoose.Types.ObjectId).toString(),
-      });
-
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Dispute opened successfully.",
-          data: {
-            disputeId: (
-              disputeRecord._id as mongoose.Types.ObjectId
-            ).toString(),
-            frozenAmount: breakdown.settleAmount,
-            deadline: deadline.toISOString(),
-            evidenceUrls,
-          },
-        },
-        { status: 201 },
-      );
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("[POST /api/disputes/open] Error:", error);
     if (isReportableError(error)) {
@@ -330,9 +108,7 @@ export async function POST(req: NextRequest) {
         await sendTelegramMessage(
           formatErrorReport(error, { source: "POST /api/disputes/open" }),
         );
-      } catch {
-        // sendTelegramMessage already console.errors internally; never mask the original error
-      }
+      } catch {}
     }
     return handleApiError(error);
   }

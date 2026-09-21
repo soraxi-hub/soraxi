@@ -5,7 +5,7 @@
 > in-memory MongoDB replica set; run with `npm test`). Outcomes:
 >
 > - **§2.1 (VENDOR_AVAILABLE direction)** — resolved in **Group B's favour**:
->   the refactor that followed this doc normalised *every* account to proper
+>   the refactor that followed this doc normalised _every_ account to proper
 >   accounting conventions. All vendor/revenue/refund-payable
 >   accounts (and PAYOUT_PROCESSING) are **CREDIT-increases**; PLATFORM_ESCROW
 >   and the new VENDOR_DEBT_RECEIVABLE are **DEBIT-increases**. Verified
@@ -81,11 +81,6 @@ Two separate problems:
   the funds."_ Debit increases, credit decreases. The original function used
   the same `credit − debit` formula as the liability-style `VENDOR_*`
   accounts, which is backwards for these two.
-- **Account set.** `writeOrderSettlement` never touches `PLATFORM_ESCROW` —
-  settlement is a pure internal reclassification (the `CUSTOMER_REFUND_PAYABLE`
-  liability closes, `VENDOR_PENDING` + commission open), not a cash movement.
-  Escrow only moves on payment received, fees, confirmed refunds, and
-  completed payouts.
 
 **Fix:** `deriveLedgerAccountBalance` now takes an `increasesOn: "debit" |
 "credit"` option. `checkEscrowSolvency` sums `PLATFORM_ESCROW +
@@ -101,13 +96,6 @@ _also_ uses `referenceType: SUBORDER` with the same `suborderId` when
 delivery is later confirmed — so a suborder that had progressed past
 settlement would have its release entry's lines pulled in alongside the
 settlement entry's, double-counting.
-
-**Fix:** scoped the query to `category: VENDOR_SETTLEMENT` specifically —
-the entry `writeOrderSettlement` writes, which is what
-`TransactionRecord.suborderBreakdowns` actually reflects. This also let the
-function drop `VENDOR_AVAILABLE` from its query entirely (settlement only
-ever credits `VENDOR_PENDING`), sidestepping the unresolved question in
-§2.1.
 
 ---
 
@@ -163,7 +151,7 @@ every check except `reconcileVendorWallet`, which cross-references the
 ledger against the independently-computed `VendorWallet` document.
 
 **For context, VENDOR_PENDING does not have this problem** — three
-independent methods (`writeOrderSettlement`, `writeOrderCancellationRefund`,
+independent methods (`writeOrderCancellationRefund`,
 `writeFailedDeliveryRefund`) all agree with each other and with
 `reconciliation.util.ts`'s documented convention (CREDIT increases). No
 action needed there.

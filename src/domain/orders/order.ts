@@ -50,6 +50,10 @@ export class Order implements IOrderInfo {
     return this.props.stores.map((s) => s.toString());
   }
 
+  get idempotencyKey(): string {
+    return this.props.idempotencyKey;
+  }
+
   /**
    * Customer-facing sub-orders.
    *

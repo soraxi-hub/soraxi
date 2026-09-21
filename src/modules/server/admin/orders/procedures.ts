@@ -138,8 +138,8 @@ export const adminOrdersRouter = createTRPCRouter({
         > = {};
 
         if (transactionRecord) {
-          const { getActiveDisputeBySuborderId } = await import(
-            "@/lib/db/models/dispute-record.model"
+          const { DisputeRepository } = await import(
+            "@/repositories/dispute-record.repository"
           );
 
           for (const breakdown of transactionRecord.suborderBreakdowns) {
@@ -148,7 +148,7 @@ export const adminOrdersRouter = createTRPCRouter({
 
             if (breakdown.status === SuborderFinancialStatus.DISPUTED) {
               const activeDispute =
-                await getActiveDisputeBySuborderId(suborderId);
+                await DisputeRepository.findActiveBySuborderId(suborderId);
               disputeId = activeDispute
                 ? (activeDispute._id as mongoose.Types.ObjectId).toString()
                 : null;

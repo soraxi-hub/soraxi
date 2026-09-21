@@ -77,29 +77,6 @@ export interface WritePaymentReceivedParams {
   session: mongoose.ClientSession;
 }
 
-export interface WriteOrderSettlementParams {
-  /**
-   * One entry per vendor suborder.
-   * The sum of all settleAmounts + the commission must equal the totalAmount.
-   */
-  vendorSettlements: {
-    vendorId: mongoose.Types.ObjectId;
-    settleAmount: number;
-    suborderId: mongoose.Types.ObjectId;
-  }[];
-  /** Total commission earned by the platform across all suborders, in Kobo. */
-  totalCommission: number;
-  /** Total gross order amount — must equal sum(settleAmounts) + totalCommission. */
-  totalAmount: number;
-  /** _id of the order. */
-  orderId: mongoose.Types.ObjectId;
-  /** The id of the entityType that made the payment */
-  entityId: mongoose.Types.ObjectId;
-  /** Is it a customer or vendor */
-  entityType: LedgerEntityType;
-  session: mongoose.ClientSession;
-}
-
 export interface WriteSuborderSettlementParams {
   /** The vendor (store) this suborder belongs to. */
   vendorId: mongoose.Types.ObjectId;
@@ -251,10 +228,7 @@ export interface WriteFundsReleasedParams {
    * rather than *which device* was used. The precise method is recorded on the
    * sub-order's `deliveryProof`.
    */
-  triggeredBy:
-    | "CUSTOMER_CONFIRMATION"
-    | "AUTO_CONFIRMATION"
-    | "DELIVERY_CODE";
+  triggeredBy: "CUSTOMER_CONFIRMATION" | "AUTO_CONFIRMATION" | "DELIVERY_CODE";
   session: mongoose.ClientSession;
 }
 
@@ -476,7 +450,12 @@ export class JournalEntryWriter {
         referenceType: LedgerReferenceType.SUBORDER,
         referenceId: orderId,
         description: `${gatewayProvider} collection fee of ${feeAmount} Kobo deducted from escrow for order ${orderId}`,
-        metadata: { orderId, feeAmount, feeType: "COLLECTION", gatewayProvider },
+        metadata: {
+          orderId,
+          feeAmount,
+          feeType: "COLLECTION",
+          gatewayProvider,
+        },
       },
       lines,
       session,
@@ -535,103 +514,6 @@ export class JournalEntryWriter {
         referenceId: orderId,
         description: `Customer payment received for order ${orderId}`,
         metadata: { gatewayReference, orderId },
-      },
-      lines,
-      session,
-    );
-  }
-
-  /**
-   * Record the settlement of a confirmed order — escrow is split between
-   * each vendor's pending balance and the platform's commission revenue.
-   *
-   * Journal entry (multi-vendor example):
-   *   DEBIT   CUSTOMER_REFUND_PAYABLE        totalAmount
-   *   CREDIT  VENDOR_PENDING (per vendor)    settleAmount  [one line per vendor]
-   *   CREDIT  PLATFORM_REVENUE_COMMISSION    totalCommission
-   *
-   * The DEBIT closes the CUSTOMER_REFUND_PAYABLE liability created in
-   * writePaymentReceived. The sum of all vendor CREDIT lines plus the
-   * commission CREDIT must equal the DEBIT amount.
-   *
-   * @param params - Order settlement parameters
-   * @throws {Error} If settlement amounts do not sum to totalAmount
-   * @deprecated
-   */
-  async writeOrderSettlement(
-    params: WriteOrderSettlementParams,
-  ): Promise<void> {
-    const {
-      vendorSettlements,
-      totalCommission,
-      totalAmount,
-      orderId,
-      session,
-      entityId,
-      entityType,
-    } = params;
-
-    assertValidKoboAmount(totalAmount, "totalAmount");
-    assertValidKoboAmount(totalCommission, "totalCommission");
-    vendorSettlements.forEach(({ settleAmount, vendorId }, i) => {
-      assertValidKoboAmount(
-        settleAmount,
-        `vendorSettlements[${i}].settleAmount`,
-      );
-      if (!vendorId) {
-        throw new Error(`vendorSettlements[${i}].vendorId is required.`);
-      }
-    });
-
-    // Verify that the amounts reconcile before constructing lines
-    const totalSettleAmount = vendorSettlements.reduce(
-      (sum, v) => sum + v.settleAmount,
-      0,
-    );
-    if (totalSettleAmount + totalCommission !== totalAmount) {
-      throw new Error(
-        `ORDER_SETTLED amounts do not reconcile: ` +
-          `sum(settleAmounts)=${totalSettleAmount} + commission=${totalCommission} ` +
-          `!== totalAmount=${totalAmount}.`,
-      );
-    }
-
-    const lines: PendingLedgerLine[] = [
-      // Close the escrow liability
-      {
-        type: LedgerEntryType.DEBIT,
-        accountType: LedgerAccountType.CUSTOMER_REFUND_PAYABLE,
-        entityId,
-        entityType,
-        amount: totalAmount,
-      },
-      // One CREDIT line per vendor — each with their own entityId
-      ...vendorSettlements.map(({ vendorId, settleAmount }) => ({
-        type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.VENDOR_PENDING,
-        entityId: vendorId,
-        entityType: LedgerEntityType.VENDOR,
-        amount: settleAmount,
-      })),
-      // Platform earns the commission
-      {
-        type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.PLATFORM_REVENUE_COMMISSION,
-        amount: totalCommission,
-      },
-    ];
-
-    await this.commitEntry(
-      {
-        category: LedgerEntryCategory.VENDOR_SETTLEMENT,
-        referenceType: LedgerReferenceType.SUBORDER,
-        referenceId: orderId,
-        description: `Order ${orderId} confirmed — escrow released to vendors and platform`,
-        metadata: {
-          orderId,
-          totalCommission,
-          vendorCount: vendorSettlements.length,
-        },
       },
       lines,
       session,
@@ -1219,13 +1101,8 @@ export class JournalEntryWriter {
   async writeRefundConfirmed(
     params: WriteRefundConfirmedParams,
   ): Promise<void> {
-    const {
-      customerId,
-      amountRefunded,
-      refundId,
-      gatewayProvider,
-      session,
-    } = params;
+    const { customerId, amountRefunded, refundId, gatewayProvider, session } =
+      params;
 
     assertValidKoboAmount(amountRefunded, "amountRefunded");
 

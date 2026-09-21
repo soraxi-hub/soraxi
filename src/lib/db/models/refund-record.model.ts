@@ -55,6 +55,11 @@ export interface IRefundRecord {
   /** The parent order. */
   orderId: mongoose.Types.ObjectId;
 
+  /** The order idempotency key. Used by the admin to query flutterwave transaction record
+   * for a record that matches this order and the proceeds to initiate a refund.
+   */
+  orderIdempotencyKey: string;
+
   /** The vendor whose funds are being reversed. */
   vendorId: mongoose.Types.ObjectId;
 
@@ -162,6 +167,10 @@ const RefundRecordSchema = new Schema<IRefundRecordDocument>(
       ref: "Order",
       required: true,
       index: true,
+    },
+    orderIdempotencyKey: {
+      type: String,
+      required: true,
     },
     vendorId: {
       type: Schema.Types.ObjectId,
