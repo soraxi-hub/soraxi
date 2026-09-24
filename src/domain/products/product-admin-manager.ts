@@ -23,7 +23,6 @@ export class ProductAdminManager {
   getProductAnalytics() {
     return {
       status: this.productData.status,
-      isVerified: this.productData.isVerifiedProduct || false,
       category: this.productData.category,
       price: this.productData.price,
       imageCount: this.productData.images?.length || 0,
@@ -42,36 +41,12 @@ export class ProductAdminManager {
     const status = this.productData.status;
 
     switch (status) {
-      case ProductStatusEnum.Pending:
-        actions.push(
-          {
-            type: "approve",
-            label: "Approve Product",
-            variant: "success",
-            icon: "CheckCircle",
-          },
-          {
-            type: "reject",
-            label: "Reject Product",
-            variant: "destructive",
-            icon: "XCircle",
-          },
-        );
-        break;
       case ProductStatusEnum.Approved:
         actions.push({
           type: "reject",
           label: "Reject Product",
           variant: "destructive",
           icon: "XCircle",
-        });
-        break;
-      case ProductStatusEnum.Rejected:
-        actions.push({
-          type: "approve",
-          label: "Approve Product",
-          variant: "success",
-          icon: "CheckCircle",
         });
         break;
     }
@@ -107,12 +82,6 @@ export class ProductAdminManager {
     ) {
       riskScore += 25;
       factors.push("Insufficient product description");
-    }
-
-    // Check if product is verified
-    if (!this.productData.isVerifiedProduct) {
-      riskScore += 20;
-      factors.push("Unverified product");
     }
 
     // Check price validity
@@ -221,13 +190,7 @@ export class ProductAdminManager {
       return "Requires immediate review - High risk factors detected";
     }
     if (compliance.level === "low") {
-      return "Request compliance improvements before approval";
-    }
-    if (
-      this.productData.status === ProductStatusEnum.Pending &&
-      compliance.level === "high"
-    ) {
-      return "Ready for approval - All compliance checks passed";
+      return "Request compliance improvements";
     }
     return "Monitor product - No immediate action required";
   }

@@ -1,10 +1,4 @@
-import {
-  Button,
-  Heading,
-  Hr,
-  Section,
-  Text,
-} from "@react-email/components";
+import { Button, Heading, Section, Text } from "@react-email/components";
 
 import { siteConfig } from "@/config/site";
 import { formatNaira } from "@/lib/utils/naira";
@@ -16,28 +10,12 @@ export interface OutForDeliveryItem {
   price: number;
 }
 
-/**
- * Sent when a sub-order ships, carrying the customer's delivery code.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- * WHY THE CODE IS EMAILED AT ALL
- * ─────────────────────────────────────────────────────────────────────────────
- * The code lives on the order page, but a student at a hostel gate with a rider
- * waiting is not reliably going to navigate there. Email is the one channel
- * that reaches them without the app — there is no SMS provider on the platform.
- *
- * ⚠️ This is the **only** template that may contain a delivery code, and it goes
- * to the customer alone. It must never be CC'd, forwarded to a vendor, or
- * reused for a vendor-facing notification: a vendor who can read the code can
- * confirm their own delivery and be paid for goods never handed over.
- */
 export function OutForDeliveryEmail({
   customerName,
   storeName,
   orderReference,
   deliveryCode,
   items,
-  total,
   orderId,
 }: {
   customerName: string;
@@ -45,16 +23,13 @@ export function OutForDeliveryEmail({
   orderReference: string;
   deliveryCode: string;
   items: OutForDeliveryItem[];
-  total: number;
   orderId: string;
 }) {
   const grouped = `${deliveryCode.slice(0, 3)} ${deliveryCode.slice(3)}`;
 
   return (
     <EmailContainer title="Your order is out for delivery">
-      <Heading
-        style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}
-      >
+      <Heading style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>
         Your order is out for delivery
       </Heading>
 
@@ -128,12 +103,6 @@ export function OutForDeliveryEmail({
           {item.name} × {item.quantity} — {formatNaira(item.price)}
         </Text>
       ))}
-
-      <Hr style={{ borderColor: "#eee", margin: "12px 0" }} />
-
-      <Text style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 20px" }}>
-        Total — {formatNaira(total)}
-      </Text>
 
       <Button
         href={`${siteConfig.url}/orders/${orderId}`}

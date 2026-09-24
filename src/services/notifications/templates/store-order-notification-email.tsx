@@ -27,6 +27,7 @@ export function StoreOrderNotificationEmail({
   orderId,
   storeId,
   items,
+  shippingFee,
   totalAmount,
   customerName,
   customerEmail,
@@ -36,6 +37,7 @@ export function StoreOrderNotificationEmail({
   orderId: string;
   storeId: string;
   items: StoreOrderItem[];
+  shippingFee?: number;
   totalAmount: number;
   customerName: string;
   customerEmail: string;
@@ -147,12 +149,24 @@ export function StoreOrderNotificationEmail({
               </Column>
               <Column style={{ width: "20%", textAlign: "right" }}>
                 {formatNaira(
-                  currencyOperations.multiply(item.price ?? 0, item.quantity)
+                  currencyOperations.multiply(item.price ?? 0, item.quantity),
                 )}
               </Column>
             </Row>
           </Section>
         ))}
+
+        {!!shippingFee && (
+          <Section
+            style={{
+              marginTop: "10px",
+              textAlign: "right",
+              fontSize: "14px",
+            }}
+          >
+            Shipping: {formatNaira(shippingFee)}
+          </Section>
+        )}
 
         <Section
           style={{

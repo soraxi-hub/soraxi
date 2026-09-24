@@ -53,7 +53,6 @@ export function ProductEditWizard({
     productQuantity: initialProductData.productQuantity || 0,
     category: initialProductData.category || [],
     subCategory: initialProductData.subCategory || [],
-    targetAudience: initialProductData.targetAudience || [],
     images: initialProductData.images || [],
     status: initialProductData.status,
     storePassword: "",
@@ -180,10 +179,6 @@ export function ProductEditWizard({
 
     (formData.subCategory || []).forEach((sub) =>
       payload.append("subCategory", slugify(sub)),
-    );
-
-    (formData.targetAudience || []).forEach((aud) =>
-      payload.append("targetAudience", slugify(aud)),
     );
 
     // Append new files

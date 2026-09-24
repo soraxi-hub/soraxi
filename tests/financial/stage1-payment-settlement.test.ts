@@ -89,6 +89,55 @@ describe("Stage 1 — payment received + suborder settlement", () => {
     expect(txRecon.isBalanced).toBe(true);
   });
 
+  it("shipping fee is settled to the vendor in full and never commissioned", async () => {
+    const vendorId = new mongoose.Types.ObjectId();
+    await seedVendorWallet(vendorId);
+
+    const productAmount = 500_000; // ₦5,000 → 5% + ₦200 flat fee tier
+    const shippingAmount = 150_000; // ₦1,500 shipping fee for this store
+    const { commission, settleAmount: productSettleAmount } =
+      calculateCommission(productAmount);
+    const grossAmount = productAmount + shippingAmount;
+    const settleAmount = productSettleAmount + shippingAmount;
+
+    const order = await seedPaidOrder({
+      suborderGrossAmounts: [productAmount],
+      vendorIds: [vendorId],
+      suborderShippingAmounts: [shippingAmount],
+    });
+
+    // Vendor wallet: settlement includes the full shipping fee on top of the
+    // product settlement.
+    const wallet = await getVendorWalletByVendorId(vendorId.toString());
+    expect(wallet!.balances).toMatchObject({
+      pending: settleAmount,
+      available: 0,
+      disputed: 0,
+      total: settleAmount,
+    });
+
+    // Platform wallet: commission is computed off the product amount only —
+    // shipping never contributes to platform revenue.
+    const platform = await getPlatformWallet();
+    expect(platform!.balances).toMatchObject({
+      commission,
+      penalties: 0,
+      total: commission,
+    });
+
+    // Escrow holds the full gross (product + shipping) — matches what the
+    // customer was actually charged for this suborder.
+    const solvency = await expectSystemConsistent([vendorId.toString()]);
+    expect(solvency.escrowBalance).toBe(grossAmount);
+    expect(solvency.liabilities.vendorPending).toBe(settleAmount);
+    expect(solvency.liabilities.customerRefundPayable).toBe(0);
+    expect(solvency.delta).toBe(commission);
+
+    const txRecon = await reconcileTransactionRecord(order.orderId.toString());
+    expect(txRecon.suborderDiscrepancies).toEqual([]);
+    expect(txRecon.isBalanced).toBe(true);
+  });
+
   it("multi-vendor order: per-vendor pending balances and one commission total", async () => {
     const vendorIds = [
       new mongoose.Types.ObjectId(),

@@ -38,7 +38,6 @@ export async function PUT(
 
     const category = body.getAll("category") as string[];
     const subCategory = body.getAll("subCategory") as string[];
-    const targetAudience = body.getAll("targetAudience") as string[];
     const imageFiles = body.getAll("images") as File[];
 
     if (storeId !== storeSession.id) {
@@ -137,7 +136,6 @@ export async function PUT(
       productQuantity: productQuantity ?? undefined,
       category,
       subCategory,
-      targetAudience,
       productType: ProductTypeEnum.Product,
     };
 

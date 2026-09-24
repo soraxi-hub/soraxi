@@ -26,8 +26,6 @@ export interface IProduct {
   specifications?: string;
   category?: string[];
   subCategory?: string[];
-  targetAudience?: string[];
-  isVerifiedProduct: boolean;
   status: ProductStatusEnum;
   isVisible: boolean;
   slug: string;
@@ -111,14 +109,6 @@ const ProductSchema = new Schema<IProductDocument>(
         return this.status !== ProductStatusEnum.Draft;
       },
       index: true,
-    },
-    targetAudience: {
-      type: [String],
-      default: [],
-    },
-    isVerifiedProduct: {
-      type: Boolean,
-      default: false,
     },
     status: {
       type: String,
@@ -211,13 +201,10 @@ export type ProductQueryOptions = {
    */
   categories?: string[];
   subCategory?: string;
-  targetAudience?: string;
   limit?: number;
   skip?: number;
   minRating?: number;
   search?: string | null;
-  verified?: boolean;
-  /** Excludes products with no units left. */
   inStock?: boolean;
   sort?: "newest" | "price-asc" | "price-desc" | "rating-desc";
   priceMin?: number;
@@ -250,14 +237,8 @@ export function buildProductQuery(
       $elemMatch: { $regex: `^${options.subCategory}$`, $options: "i" },
     };
   }
-  if (options.targetAudience) {
-    query.targetAudience = {
-      $elemMatch: { $regex: `^${options.targetAudience}$`, $options: "i" },
-    };
-  }
   if (options.minRating !== undefined)
     query.rating = { $gte: options.minRating };
-  if (options.verified === true) query.isVerifiedProduct = true;
   if (options.search) query.$text = { $search: options.search };
   if (options.priceMin !== undefined || options.priceMax !== undefined) {
     query.price = {};

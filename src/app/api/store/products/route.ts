@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
     // Extract array fields
     const category = body.getAll("category") as string[];
     const subCategory = body.getAll("subCategory") as string[];
-    const targetAudience = body.getAll("targetAudience") as string[];
 
     // Extract image files
     const imageFiles = body.getAll("images") as File[];
@@ -138,7 +137,6 @@ export async function POST(request: NextRequest) {
       productQuantity: productQuantity ?? undefined,
       category,
       subCategory,
-      targetAudience,
       productType: ProductTypeEnum.Product,
     };
 

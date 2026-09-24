@@ -7,7 +7,6 @@ export type RecentlyViewedProduct = {
   name: string;
   image: string;
   formattedPrice: string;
-  isVerifiedProduct?: boolean;
 };
 
 type StoredProduct = RecentlyViewedProduct & { viewedAt: number };

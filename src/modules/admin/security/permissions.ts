@@ -5,8 +5,6 @@ export const PERMISSIONS = {
   // CREATE_PRODUCT: "create_product",
   // EDIT_PRODUCT: "edit_product",  admins should not perform any of this actions for now
   // DELETE_PRODUCT: "delete_product",
-  VERIFY_PRODUCT: "verify_product",
-  UNVERIFY_PRODUCT: "unverify_product",
   REJECT_PRODUCT: "reject_product",
   UNPUBLISH_PRODUCT: "unpublish_product",
 

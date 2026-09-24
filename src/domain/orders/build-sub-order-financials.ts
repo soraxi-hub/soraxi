@@ -45,10 +45,14 @@ export interface SubOrderItem {
  * @param discount    - The portion of the order-level discount already
  *                      allocated to this sub-order (in kobo). Pass undefined
  *                      or omit when there is no discount.
+ * @param shippingFee - The shipping fee quoted for this sub-order (in kobo).
+ *                      Never commissioned — passed through to the vendor in
+ *                      full on top of their product settlement.
  */
 export interface BuildSubOrderFinancialsInput {
   readonly items: readonly SubOrderItem[];
   readonly discount?: DiscountInfo;
+  readonly shippingFee: number;
 }
 
 /**
@@ -61,7 +65,10 @@ export interface BuildSubOrderFinancialsInput {
  *   amountPaid     = subtotal - discountAmount
  *   commission     = calculateCommission(amountPaid)   [Soraxi fee structure]
  *   platformFee    = { percentage: 5, amount: commission.commission }
- *   vendorSettlementAmount = commission.settleAmount
+ *   vendorSettlementAmount = commission.settleAmount + shippingFee
+ *
+ * Shipping is never commissioned — it is added to vendorSettlementAmount
+ * after commission has already been computed against the product amount.
  *
  * @throws {InvalidSubOrderError} when items array is empty.
  * @throws {InvalidSubOrderError} when discount amount exceeds subtotal.
@@ -69,7 +76,7 @@ export interface BuildSubOrderFinancialsInput {
 export function buildSubOrderFinancials(
   input: BuildSubOrderFinancialsInput,
 ): Readonly<ISubOrderFinancials> {
-  const { items, discount } = input;
+  const { items, discount, shippingFee } = input;
 
   // ── 1. Guard ──────────────────────────────────────────────────────────────
   if (!items || items.length === 0) {
@@ -116,7 +123,13 @@ export function buildSubOrderFinancials(
       percentage: 5,
       amount: commissionResult.commission,
     }),
-    vendorSettlementAmount: commissionResult.settleAmount,
+    commissionDetails: Object.freeze({
+      percentageFee: commissionResult.details.percentageFee,
+      flatFeeApplied: commissionResult.details.flatFeeApplied,
+    }),
+    shippingFee,
+    // Shipping is added after commission — it is never commissioned.
+    vendorSettlementAmount: commissionResult.settleAmount + shippingFee,
   });
 
   return financials;

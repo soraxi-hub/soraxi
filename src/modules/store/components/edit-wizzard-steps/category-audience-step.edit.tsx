@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { categories, getSubcategoryNames } from "@/constants/constant";
-import { targetAudience as targetAudienceConstant } from "@/constants/fields-constants";
 import type {
   EditProductFormData,
   ProductChanges,
@@ -54,15 +53,6 @@ export function CategoryAudienceStep({
     return getSubcategoryNames(formData.category[0]) || [];
   }, [formData.category]);
 
-  // const selectedAudienceDescription = useMemo(() => {
-  //   if (!formData.targetAudience || formData.targetAudience.length === 0) {
-  //     return null;
-  //   }
-  //   return targetAudienceConstant.find(
-  //     (aud) => aud.name === (formData.targetAudience ?? [])[0],
-  //   )?.description;
-  // }, [formData.targetAudience]);
-
   const getValidationIcon = (fieldName: keyof EditProductFormData) => {
     if (errors[fieldName]) {
       return <AlertCircle className="h-4 w-4 text-red-500" />;
@@ -90,29 +80,25 @@ export function CategoryAudienceStep({
     onFieldChange("subCategory", [value]);
   };
 
-  const handleTargetAudienceChange = (value: string) => {
-    onFieldChange("targetAudience", [value]);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header – matches upload step wording */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Category & Audience
+          Category
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Categorize your product and identify your target market
+          Categorize your product
         </p>
       </div>
 
       <SoraxiCard>
         <SoraxiCardHeader className="pb-4">
           <SoraxiCardTitle className="text-xl">
-            Step {currentStep + 1} of 5: Category & Audience
+            Step {currentStep + 1} of 5: Category
           </SoraxiCardTitle>
           <SoraxiCardDescription>
-            Select category, subcategory, and target audience
+            Select category and subcategory
           </SoraxiCardDescription>
         </SoraxiCardHeader>
 
@@ -217,67 +203,11 @@ export function CategoryAudienceStep({
             </p>
           </div>
 
-          {/* Target Audience Field */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="audience" className="text-sm font-medium">
-                  Target Audience <span className="text-red-500">*</span>
-                </Label>
-                {getValidationIcon("targetAudience")}
-              </div>
-              {isChanged("targetAudience") && (
-                <Badge variant="secondary" className="text-xs">
-                  Modified
-                </Badge>
-              )}
-            </div>
-            <Select
-              value={formData.targetAudience?.[0] || ""}
-              onValueChange={handleTargetAudienceChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger
-                id="audience"
-                className="h-11 border-gray-200 focus:border-[#14a800] focus:ring-[#14a800] w-full"
-              >
-                <SelectValue placeholder="Select target audience" />
-              </SelectTrigger>
-              <SelectContent>
-                {targetAudienceConstant.map((audience) => (
-                  <SelectItem key={audience.name} value={audience.name}>
-                    {audience.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.targetAudience && (
-              <p className="text-sm text-red-500 flex items-center">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {errors.targetAudience}
-              </p>
-            )}
-            <p className="text-xs text-gray-500">
-              Who is this product designed for?
-            </p>
-
-            {/* Audience description – kept as in original edit step */}
-            {/* {selectedAudienceDescription && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 mt-3">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  {selectedAudienceDescription}
-                </p>
-              </div>
-            )} */}
-          </div>
-
           {/* Summary – added dark:bg-transparent to match upload step */}
           {formData.category &&
             formData.category.length > 0 &&
             formData.subCategory &&
-            formData.subCategory.length > 0 &&
-            formData.targetAudience &&
-            formData.targetAudience.length > 0 && (
+            formData.subCategory.length > 0 && (
               <>
                 <div className="bg-[#14a800]/5 border border-[#14a800]/20 rounded-lg p-4 dark:bg-transparent">
                   <h4 className="font-medium text-sm text-gray-900 dark:text-white mb-3">
@@ -296,14 +226,6 @@ export function CategoryAudienceStep({
                       </span>
                       <Badge variant="secondary">
                         {formData.subCategory[0]}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Audience:
-                      </span>
-                      <Badge variant="secondary">
-                        {formData.targetAudience[0]}
                       </Badge>
                     </div>
                   </div>

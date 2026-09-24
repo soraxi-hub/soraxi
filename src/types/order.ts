@@ -113,8 +113,23 @@ export interface ISubOrderFinancials {
   };
 
   /**
-   * The amount that is owed to the vendor after deducting
-   * the platform commission.
+   * Breakdown of how platformFee.amount was derived — the raw percentage
+   * portion vs. the tiered flat fee.
+   */
+  commissionDetails: {
+    percentageFee: number;
+    flatFeeApplied: number;
+  };
+
+  /**
+   * The shipping fee quoted for this sub-order at checkout. Never
+   * commissioned — passed through to the vendor in full.
+   */
+  shippingFee: number;
+
+  /**
+   * The amount owed to the vendor: product amount after commission,
+   * plus the full shipping fee.
    */
   vendorSettlementAmount: number;
 }

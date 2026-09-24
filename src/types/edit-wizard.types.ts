@@ -10,14 +10,12 @@ export type ProductData = {
   images: string[] | undefined;
   category: string[] | undefined;
   subCategory: string[] | undefined;
-  targetAudience: string[] | undefined;
   description: string | undefined;
   specifications: string | undefined;
   status: ProductStatusEnum;
   productType: ProductTypeEnum;
   createdAt: Date;
   slug: string;
-  isVerifiedProduct: boolean;
   isVisible: boolean;
   rating: number | undefined;
   firstApprovedAt: Date | undefined;
@@ -36,7 +34,6 @@ export type EditProductFormData = Pick<
   | "price"
   | "productQuantity"
   | "subCategory"
-  | "targetAudience"
   | "images"
   | "status"
   | "id"
@@ -87,7 +84,7 @@ export const EDIT_WIZARD_STEPS = [
   },
   {
     id: EditWizardStep.CategoryAudience,
-    label: "Category & Audience",
+    label: "Category",
     icon: "Tag",
   },
   { id: EditWizardStep.ProductImages, label: "Images", icon: "Image" },
@@ -124,7 +121,7 @@ export interface EditProductPayload extends FormData {
   // FormData can't have strong typing, but includes:
   // - name?, description?, specifications?
   // - price?, productQuantity?
-  // - category[], subCategory[], targetAudience[]
+  // - category[], subCategory[]
   // - images[] (new files)
   // - oldImageURLs[] (existing URLs to keep)
   // - storePassword

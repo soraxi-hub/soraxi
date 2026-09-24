@@ -41,24 +41,6 @@ export interface IOrderProduct {
 
 /**
  * Proof-of-delivery state carried by every sub-order.
- *
- * Three concerns live here and are deliberately kept separate:
- *
- *  1. The **code** — the 6-digit secret only the customer ever sees.
- *  2. The **token** — the unguessable segment of the rider's confirmation link.
- *     NOT a secret: holding it lets you *attempt* a confirmation, never
- *     complete one, because the code is still required.
- *  3. The **outcome** — how delivery was ultimately proven, which is what an
- *     admin reads when resolving a dispute.
- *
- * Both secrets are stored in plaintext because both must be **retrievable**,
- * not merely verifiable — the customer's order page renders the code on every
- * visit and the vendor re-copies the link for each rider. See
- * `lib/utils/delivery-proof.ts` for why hashing would buy almost nothing here,
- * and why the attempt counter is the control that actually holds.
- *
- * ⚠️ Never project `code` or `token` into a vendor-facing response. A vendor
- * who can see the code can self-confirm, and the entire mechanism collapses.
  */
 export interface IDeliveryProof {
   /** The 6-digit code. Customer-visible only. Minted when the sub-order ships. */
@@ -97,13 +79,6 @@ export interface ISubOrder {
   deliveryDate?: Date; // The date the product was delivered
   deliveryStatus: DeliveryStatus;
   customerConfirmedDelivery: CustomerConfirmedDelivery;
-  /**
-   * Proof-of-delivery state for this sub-order.
-   *
-   * The code is the customer's; the token is a keyboard for whoever delivers.
-   * Both are stored hashed — a database leak must not yield a working code or
-   * a usable link.
-   */
   deliveryProof: IDeliveryProof;
   statusHistory: Array<{
     status: StatusHistory;
@@ -235,6 +210,23 @@ const SubOrderFinancialsSchema = new Schema<ISubOrderFinancials>(
         type: Number,
         required: [true, "Platform fee amount is required"],
       },
+    },
+
+    commissionDetails: {
+      percentageFee: {
+        type: Number,
+        required: [true, "Commission percentage fee is required"],
+      },
+      flatFeeApplied: {
+        type: Number,
+        required: [true, "Commission flat fee is required"],
+      },
+    },
+
+    shippingFee: {
+      type: Number,
+      required: [true, "Shipping fee is required"],
+      min: 0,
     },
 
     vendorSettlementAmount: {

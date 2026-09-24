@@ -23,11 +23,6 @@ const FEED_SIZE = 8;
  * seconds as everything else on this page — so it changes roughly once a
  * minute, the same for everyone, rather than per request. Reshuffling per
  * visitor would mean an uncached aggregation on every home page view.
- *
- * Reuses `ProductCard` unchanged: it already renders the verified badge,
- * rating, price and category chip exactly as designed, and it is the same card
- * used on category and search results, so a product looks identical wherever a
- * shopper meets it.
  */
 export function TrendingOnCampus() {
   const trpc = useTRPC();
@@ -47,12 +42,6 @@ export function TrendingOnCampus() {
       <div className={cn("mx-auto max-w-7xl px-6")}>
         <SectionHeading
           title="Trending on campus"
-          /*
-           * Not "what students bought this week" — this is a random sample of
-           * verified stock, with no purchase or recency signal behind it.
-           * Claiming sales data we do not compute would be inventing analytics
-           * for shoppers.
-           */
           subtitle="A fresh pick from verified vendors, updated through the day"
           action={
             <Button asChild variant="outline" size="sm">

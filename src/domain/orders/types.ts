@@ -66,7 +66,23 @@ export interface ISubOrderFinancials {
   };
 
   /**
-   * amountPaid − platformFee.amount.
+   * Breakdown of how platformFee.amount was derived — the raw percentage
+   * portion vs. the tiered flat fee. Mirrors calculateCommission()'s
+   * `details` return value.
+   */
+  readonly commissionDetails: {
+    readonly percentageFee: number;
+    readonly flatFeeApplied: number;
+  };
+
+  /**
+   * The shipping fee quoted for this sub-order at checkout. Never
+   * commissioned — passed through to the vendor in full.
+   */
+  readonly shippingFee: number;
+
+  /**
+   * (amountPaid − platformFee.amount) + shippingFee.
    * The kobo amount the vendor will receive at settlement.
    */
   readonly vendorSettlementAmount: number;

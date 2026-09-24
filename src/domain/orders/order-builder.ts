@@ -254,6 +254,7 @@ export class OrderBuilder {
         const financials = buildSubOrderFinancials({
           items: subOrder.products,
           discount: subOrderDiscount,
+          shippingFee: subOrder.shippingMethod.price,
         });
 
         return Object.freeze({

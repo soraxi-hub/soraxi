@@ -146,7 +146,6 @@ function AuditTrailPage() {
         "CREATE_PRODUCT",
         "UPDATE_PRODUCT",
         "DELETE_PRODUCT",
-        "VERIFY_PRODUCT",
         "UPDATE_ORDER",
         "CANCEL_ORDER",
         "VERIFY_STORE",

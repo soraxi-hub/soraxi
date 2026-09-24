@@ -57,7 +57,6 @@ export function useGenerateDescription({
           name: formData.name,
           category: formData.category,
           subCategory: formData.subCategory,
-          targetAudience: formData.targetAudience,
           price: formData.price,
           specifications: formData.specifications,
           productType: formData.productType,

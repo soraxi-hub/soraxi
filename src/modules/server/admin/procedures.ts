@@ -123,10 +123,8 @@ export const adminProductRouter = createTRPCRouter({
           specifications: product.specifications,
           price: product.price,
           category: product.category,
-          targetAudience: product.targetAudience,
           status: product.status,
           images: product.images,
-          isVerifiedProduct: product.isVerifiedProduct,
           // moderationNotes: product.moderationNotes,
           firstApprovedAt: product.firstApprovedAt,
           store: {
@@ -161,19 +159,18 @@ export const adminProductRouter = createTRPCRouter({
     .input(
       z.object({
         productId: z.string(),
-        action: z.enum(["approve", "reject"]),
+        action: z.literal("reject"),
         reason: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { productId, action } = input;
+        const { productId } = input;
         const { admin: unAuthenticatedAdmin } = ctx;
 
-        const admin = AdminGuard.from(unAuthenticatedAdmin).requireAny([
-          PERMISSIONS.VERIFY_PRODUCT,
+        const admin = AdminGuard.from(unAuthenticatedAdmin).require(
           PERMISSIONS.REJECT_PRODUCT,
-        ]);
+        );
 
         const Product = await getProductModel();
         const product = await Product.findById(productId);
@@ -186,56 +183,24 @@ export const adminProductRouter = createTRPCRouter({
           });
         }
 
-        let updateData: {
+        if (product.status === ProductStatusEnum.Rejected) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Product is already rejected",
+          });
+        }
+
+        const updateData: {
           status: IProduct["status"];
-          isVerifiedProduct: boolean;
           isVisible: boolean;
           // moderationNotes: string;
-          firstApprovedAt?: Date;
         } = {
-          status: ProductStatusWithAll.Pending as IProduct["status"],
-          isVerifiedProduct: false,
+          status: ProductStatusWithAll.Rejected as IProduct["status"],
           isVisible: false,
-          // moderationNotes: "",
+          // moderationNotes: reason || "Rejected by admin",
         };
-        let message = "";
-        let auditAction = "";
-
-        switch (action) {
-          case "approve":
-            if (product.status !== "pending") {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Product is not pending approval",
-              });
-            }
-            updateData = {
-              status: ProductStatusWithAll.Approved as IProduct["status"],
-              isVerifiedProduct: true,
-              isVisible: true,
-              firstApprovedAt: new Date(),
-              // moderationNotes: reason || "Approved by admin",
-            };
-            message = "Product approved successfully";
-            auditAction = AUDIT_ACTIONS.PRODUCT_APPROVED;
-            break;
-          case "reject":
-            if (product.status) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Product is not pending approval",
-              });
-            }
-            updateData = {
-              status: ProductStatusWithAll.Rejected as IProduct["status"],
-              isVerifiedProduct: false,
-              isVisible: false,
-              // moderationNotes: reason || "Rejected by admin",
-            };
-            message = "Product rejected";
-            auditAction = AUDIT_ACTIONS.PRODUCT_REJECTED;
-            break;
-        }
+        const message = "Product rejected";
+        const auditAction = AUDIT_ACTIONS.PRODUCT_REJECTED;
 
         await Product.findByIdAndUpdate(productId, updateData);
 
@@ -250,7 +215,7 @@ export const adminProductRouter = createTRPCRouter({
             module: AUDIT_MODULES.PRODUCTS,
             resourceId: (product._id as { toString: () => string }).toString(),
             resourceType: "product",
-            details: { action, previousStatus: product.status },
+            details: { action: "reject", previousStatus: product.status },
           };
 
           await logAdminAction(data);

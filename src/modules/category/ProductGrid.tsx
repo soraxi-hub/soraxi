@@ -6,17 +6,6 @@ import { ProductCard } from "../products/product-detail/product-card";
 import { ShoppingCartIcon } from "lucide-react";
 import { PublicToJSON } from "@/domain/products/product-interface";
 
-// interface Product {
-//   id: string;
-//   name: string;
-//   price?: number;
-//   images?: string[];
-//   category?: string[];
-//   rating?: number;
-//   slug: string;
-//   isVerifiedProduct?: boolean;
-// }
-
 interface ProductGridProps {
   products: PublicToJSON[];
   loading?: boolean;

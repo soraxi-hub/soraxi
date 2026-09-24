@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PublicToJSON } from "@/domain/products/product-interface";
-import { Shield, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import Image from "next/image";
 
 interface ProductCardProps {
@@ -30,11 +30,6 @@ export const ProductCard = ({ product }: ProductCardProps) => (
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        {product.isVerifiedProduct && (
-          <Badge className="absolute top-2 left-2 bg-soraxi-green text-white">
-            <Shield className="w-3 h-3 mr-1" />
-          </Badge>
-        )}
       </div>
     </CardHeader>
     <CardContent className="p-4 pt-0">

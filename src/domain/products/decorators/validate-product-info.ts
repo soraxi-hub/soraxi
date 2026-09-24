@@ -9,7 +9,6 @@ import {
   productSpecifications,
   productStorePassword,
   productSubCategory,
-  productTargetAudience,
 } from "@/validators/product-validators";
 
 export type ProductValidationErrors = Partial<
@@ -21,7 +20,6 @@ export type ProductValidationErrors = Partial<
     | "productQuantity"
     | "category"
     | "subCategory"
-    | "targetAudience"
     | "images"
     | "storePassword",
     string
@@ -154,15 +152,6 @@ export class ProductValidation extends ProductDecorator {
       !!this.subCategory?.length,
     );
 
-    // target audience
-    this.validateOptionalField(
-      this.targetAudience,
-      productTargetAudience,
-      "targetAudience",
-      errors,
-      !!this.targetAudience?.length,
-    );
-
     // store password
     if (!storePassword) {
       // errors.storePassword =
@@ -237,14 +226,6 @@ export class ProductValidation extends ProductDecorator {
       "subCategory",
       errors,
       "Subcategory is required",
-    );
-
-    this.validateRequiredField(
-      this.targetAudience,
-      productTargetAudience,
-      "targetAudience",
-      errors,
-      "Target audience is required",
     );
 
     this.validateRequiredField(

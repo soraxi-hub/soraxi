@@ -1,6 +1,5 @@
 import { Product } from "@/domain/products/product";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
-import { ProductStatusEnum } from "@/enums";
 import {
   getProductBySlug,
   getProductModel,
@@ -36,8 +35,6 @@ export class ProductRepository {
       specifications: product.specifications,
       category: product.category,
       subCategory: product.subCategory,
-      targetAudience: product.targetAudience,
-      isVerifiedProduct: product.isVerifiedProduct,
       isVisible: product.isVisible, // Draft should not be visible in search/home
     });
 
@@ -84,14 +81,14 @@ export class ProductRepository {
     if (updates.category !== undefined) product.category = updates.category;
     if (updates.subCategory !== undefined)
       product.subCategory = updates.subCategory;
-    if (updates.targetAudience !== undefined)
-      product.targetAudience = updates.targetAudience;
     if (updates.images !== undefined) product.images = updates.images;
 
-    // Keep as draft
-    product.status = updates.status ?? ProductStatusEnum.Draft;
-    product.isVerifiedProduct = false;
-    product.isVisible = false;
+    // Trust the caller's computed publish state exactly as determinePublishState()
+    // produced it — an edit only changes visibility when the vendor explicitly
+    // chose a different action (e.g. "Save Draft"). A live product stays live
+    // through ordinary edits.
+    if (updates.status !== undefined) product.status = updates.status;
+    if (updates.isVisible !== undefined) product.isVisible = updates.isVisible;
 
     const updatedDraft = await product.save({ session });
 
@@ -133,7 +130,7 @@ export class ProductRepository {
     // date field for the client to sort on.
     const products = await ProductModel.find({
       _id: { $in: objectIds },
-      isVerifiedProduct: true,
+      isVisible: true,
     })
       .sort({ createdAt: -1 })
       .lean<IProduct[]>();
@@ -169,27 +166,25 @@ export class ProductRepository {
     return getProducts({
       ...filters,
       visibleOnly: true,
-      verified: true,
     });
   }
 
   /**
    * Total matches for the same filters, for pagination.
    *
-   * Takes the identical `visibleOnly`/`verified` overrides as the fetch above,
-   * so the count can never describe a wider set than the rows it is paging.
+   * Takes the identical `visibleOnly` override as the fetch above, so the
+   * count can never describe a wider set than the rows it is paging.
    */
   static async countPublicProducts(filters: GetPublicProductsInput) {
     return countProducts({
       ...filters,
       visibleOnly: true,
-      verified: true,
     });
   }
 
   /** Random selection for fixed-size feeds. See `sampleProducts`. */
   static async samplePublicProducts(size: number) {
-    return sampleProducts({ size, visibleOnly: true, verified: true });
+    return sampleProducts({ size, visibleOnly: true });
   }
 
   static async getPublicProductBySlug(slug: string): Promise<IProduct | null> {

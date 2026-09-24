@@ -22,8 +22,8 @@ const STEP_CONFIG = [
     icon: DollarSign,
   },
   {
-    title: "Category & Audience",
-    description: "Category & audience",
+    title: "Category",
+    description: "Category & subcategory",
     icon: Grid3X3,
   },
   {

@@ -47,6 +47,11 @@ export type ISubOrderFinancialsFormatted = {
     formattedAmount: string;
   };
 
+  // ----- shippingFee -----
+  shippingFee: number;
+  shippingFeeInNaira: number;
+  formattedShippingFee: string;
+
   // ----- vendorSettlementAmount -----
   vendorSettlementAmount: number;
   vendorSettlementAmountInNaira: number;

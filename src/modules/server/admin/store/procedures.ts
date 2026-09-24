@@ -165,7 +165,7 @@ export const adminStoreRouter = createTRPCRouter({
           .populate({
             path: "physicalProducts",
             select:
-              "_id name images price sizes slug isVerifiedProduct category productType",
+              "_id name images price sizes slug category productType",
           })
           .lean();
 
@@ -195,7 +195,6 @@ export const adminStoreRouter = createTRPCRouter({
             sizes: product.sizes,
             slug: product.slug,
             category: product.category,
-            isVerifiedProduct: product.isVerifiedProduct,
             productType: product.productType,
           })),
           description: storeData.description,

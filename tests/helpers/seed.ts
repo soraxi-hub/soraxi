@@ -25,8 +25,13 @@ import { settleSuborder } from "@/services/orders/suborder-settlement.service";
 export interface SeededSuborder {
   suborderId: mongoose.Types.ObjectId;
   vendorId: mongoose.Types.ObjectId;
+  /** Product amount + shippingAmount — what the customer paid for this suborder. */
   grossAmount: number;
+  /** Shipping portion of grossAmount — never commissioned. */
+  shippingAmount: number;
+  /** Computed off the product amount only. */
   commission: number;
+  /** Product settlement (net of commission) + shippingAmount. */
   settleAmount: number;
 }
 
@@ -119,13 +124,19 @@ export async function seedPlatformWallet(): Promise<void> {
  * point of the suite is to validate exactly what production writes.
  */
 export async function seedPaidOrder(params: {
-  /** Gross amount (Kobo) each vendor's suborder was sold for. */
+  /** Product amount (Kobo) each vendor's suborder was sold for, pre-shipping. */
   suborderGrossAmounts: number[];
   vendorIds: mongoose.Types.ObjectId[];
   customerId?: mongoose.Types.ObjectId;
   collectionFeeKobo?: number;
   /** Which gateway collected this payment. Defaults to Flutterwave. */
   gateway?: PaymentGateway;
+  /**
+   * Shipping fee (Kobo) quoted for each suborder — never commissioned, added
+   * on top of the product settlement. Defaults to zero for every suborder,
+   * so existing callers are unaffected.
+   */
+  suborderShippingAmounts?: number[];
 }): Promise<SeededPaidOrder> {
   const {
     suborderGrossAmounts,
@@ -133,6 +144,7 @@ export async function seedPaidOrder(params: {
     customerId = new mongoose.Types.ObjectId(),
     collectionFeeKobo = 0,
     gateway = PaymentGateway.Flutterwave,
+    suborderShippingAmounts,
   } = params;
 
   if (suborderGrossAmounts.length !== vendorIds.length) {
@@ -142,14 +154,16 @@ export async function seedPaidOrder(params: {
   const orderId = new mongoose.Types.ObjectId();
 
   const suborders: SeededSuborder[] = suborderGrossAmounts.map(
-    (grossAmount, i) => {
-      const { commission, settleAmount } = calculateCommission(grossAmount);
+    (productAmount, i) => {
+      const { commission, settleAmount } = calculateCommission(productAmount);
+      const shippingAmount = suborderShippingAmounts?.[i] ?? 0;
       return {
         suborderId: new mongoose.Types.ObjectId(),
         vendorId: vendorIds[i]!,
-        grossAmount,
+        grossAmount: productAmount + shippingAmount,
+        shippingAmount,
         commission,
-        settleAmount,
+        settleAmount: settleAmount + shippingAmount,
       };
     },
   );
@@ -170,11 +184,16 @@ export async function seedPaidOrder(params: {
         gatewayStatus: GatewayPaymentStatus.SUCCESSFUL,
         totalAmount,
         suborderBreakdowns: suborders.map((s) => {
-          const { details } = calculateCommission(s.grossAmount);
+          // Commission details are derived off the product-only amount
+          // (grossAmount minus the shipping component), matching production.
+          const { details } = calculateCommission(
+            s.grossAmount - s.shippingAmount,
+          );
           return {
             suborderId: s.suborderId,
             vendorId: s.vendorId,
             grossAmount: s.grossAmount,
+            shippingFee: s.shippingAmount,
             commission: s.commission,
             settleAmount: s.settleAmount,
             commissionDetails: {

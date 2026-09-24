@@ -9,7 +9,6 @@ import {
   productSpecifications,
   productStorePassword,
   productSubCategory,
-  productTargetAudience,
 } from "@/validators/product-validators";
 import { toast } from "sonner";
 
@@ -118,18 +117,6 @@ export class UploadProduct {
       }
     }
 
-    if (
-      this.productToUpload?.targetAudience &&
-      this.productToUpload?.targetAudience.length > 0
-    ) {
-      const targetAudienceResult = productTargetAudience.safeParse(
-        this.productToUpload?.targetAudience,
-      );
-      if (!targetAudienceResult.success) {
-        newErrors.targetAudience = getFirstError(targetAudienceResult);
-      }
-    }
-
     // Publish-specific validations - all fields are required and must pass validation
     if (action === "publish") {
       // Required fields validation (all fields must be present and valid)
@@ -148,9 +135,6 @@ export class UploadProduct {
         category: productCategory.safeParse(this.productToUpload?.category),
         subCategory: productSubCategory.safeParse(
           this.productToUpload?.subCategory,
-        ),
-        targetAudience: productCategory.safeParse(
-          this.productToUpload?.targetAudience,
         ),
         storePassword: productStorePassword.safeParse(
           this.productToUpload?.storePassword,
@@ -177,11 +161,6 @@ export class UploadProduct {
         this.productToUpload.subCategory.length === 0
       )
         newErrors.subCategory = "Subcategory is required";
-      if (
-        this.productToUpload?.targetAudience &&
-        this.productToUpload?.targetAudience.length === 0
-      )
-        newErrors.targetAudience = "Target audience is required";
       if (!this.productToUpload?.storePassword)
         newErrors.storePassword = "Store password is required";
 

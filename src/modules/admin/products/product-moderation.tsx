@@ -34,9 +34,7 @@ import {
   Package,
   MoreHorizontal,
   Eye,
-  CheckCircle,
   XCircle,
-  EyeOff,
   Search,
   Filter,
 } from "lucide-react";
@@ -98,7 +96,7 @@ export function ProductModeration() {
 
   const handleProductAction = (
     productId: string,
-    action: "approve" | "reject",
+    action: "reject",
     reason?: string
   ) => {
     mutation.mutate({ productId, action, reason });
@@ -311,18 +309,9 @@ export function ProductModeration() {
                             </Link>
                           </DropdownMenuItem>
 
-                          {product.status === "pending" && (
+                          {product.status === "approved" && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleProductAction(product.id, "approve")
-                                }
-                                className="text-green-600"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Approve
-                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
                                   handleProductAction(product.id, "reject")
@@ -333,17 +322,6 @@ export function ProductModeration() {
                                 Reject
                               </DropdownMenuItem>
                             </>
-                          )}
-                          {product.status === "approved" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleProductAction(product.id, "reject")
-                              }
-                              className="text-orange-600"
-                            >
-                              <EyeOff className="w-4 h-4 mr-2" />
-                              Reject
-                            </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>

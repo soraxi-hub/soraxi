@@ -28,9 +28,10 @@ export interface ISuborderBreakdown {
    */
   vendorId: mongoose.Types.ObjectId;
 
-  grossAmount: number; // What the customer paid for this suborder
-  commission: number; // Platform's total cut
-  settleAmount: number; // Vendor's net amount after commission
+  grossAmount: number; // What the customer paid for this suborder (product amount after discount + shipping)
+  shippingFee: number; // Shipping portion of grossAmount — passed through to the vendor, never commissioned
+  commission: number; // Platform's total cut (computed on the product amount only)
+  settleAmount: number; // Vendor's net amount after commission, plus shippingFee
   commissionDetails: ICommissionDetails; // Breakdown of how commission was calculated
   status: SuborderFinancialStatus; // Current financial state of this suborder
 }
@@ -100,6 +101,11 @@ const SuborderBreakdownSchema = new Schema<ISuborderBreakdown>(
       index: true,
     },
     grossAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    shippingFee: {
       type: Number,
       required: true,
       min: 0,

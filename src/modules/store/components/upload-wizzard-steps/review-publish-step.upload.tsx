@@ -145,10 +145,10 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
 
             <Separator />
 
-            {/* Category & Audience Section */}
+            {/* Category Section */}
             <div>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                Category & Audience
+                Category
               </h4>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -158,12 +158,6 @@ export const ReviewPublishStep: React.FC<ReviewPublishStepProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Subcategory:</span>
                   {formData.subCategory?.[0]}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">
-                    Target Audience:
-                  </span>
-                  {formData.targetAudience?.[0]}
                 </div>
               </div>
             </div>
