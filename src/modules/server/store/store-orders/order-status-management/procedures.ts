@@ -208,7 +208,6 @@ export const orderStatusRouter = createTRPCRouter({
                     quantity: p.productSnapshot.quantity,
                     price: p.productSnapshot.price,
                   })) ?? [],
-                total: subOrderDoc?.financials.vendorSettlementAmount ?? 0,
               }),
             );
 

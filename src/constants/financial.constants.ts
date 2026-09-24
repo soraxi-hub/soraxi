@@ -19,9 +19,10 @@
  * The percentage of a suborder's gross amount used as the base
  * for penalty calculation before the cap is applied.
  *
- * Current: 10% of gross amount
+ * Previous: 10% of gross amount
+ * Current: 0% of gross amount (Testing things out)
  */
-export const PENALTY_BASE_PERCENTAGE = 10;
+export const PENALTY_BASE_PERCENTAGE = 0;
 
 /**
  * Maximum penalty that can be applied to a vendor for a single upheld dispute.
