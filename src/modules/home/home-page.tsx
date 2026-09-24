@@ -31,7 +31,6 @@ export function HomePage() {
   // Data fetching with tRPC and React Query
   const { data: publicProductsData, isLoading: productsLoading } = useQuery(
     trpc.home.getPublicProducts.queryOptions({
-      verified: true,
       search: search || undefined,
       page: 1,
       limit: 50,
@@ -39,30 +38,16 @@ export function HomePage() {
   );
 
   const allProducts = publicProductsData?.products || [];
-  const groupedProducts = publicProductsData?.groupedProducts || {};
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      {!search && <HomeHero products={groupedProducts["general"] || []} />}
+      {!search && <HomeHero products={allProducts} />}
 
-      {/*
-        Landing sections. All of them hide while a search is active so the
-        results grid below is the only thing on screen — a shopper who has
-        typed a query is not browsing any more.
-      */}
       {!search && (
         <>
           <ShopByCategory />
-
-          {/*
-            Fetches its own randomised feed rather than being handed the page
-            query's results — see the note in the component. The old section
-            read from the "general" field bucket, so a band titled "Trending on
-            campus" rendered empty whenever stock sat under any other field.
-          */}
           <TrendingOnCampus />
-
           <WhySoraxi />
           <HowBuyingWorks />
           <VendorCta />

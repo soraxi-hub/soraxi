@@ -21,11 +21,9 @@ import {
   XCircle,
   Store,
   AlertTriangle,
-  ShieldCheck,
   Calendar,
   Tag,
   ImageIcon,
-  User,
 } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
@@ -54,9 +52,9 @@ export function ProductDetailManagement({
   const trpc = useTRPC();
   const router = useRouter();
   const [showActionDialog, setShowActionDialog] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<
-    "approve" | "reject" | null
-  >(null);
+  const [selectedAction, setSelectedAction] = useState<"reject" | null>(
+    null,
+  );
   const [actionReason, setActionReason] = useState("");
 
   const productManager = new ProductAdminManager(product);
@@ -76,7 +74,7 @@ export function ProductDetailManagement({
     }),
   );
 
-  const handleAction = (action: "approve" | "reject") => {
+  const handleAction = (action: "reject") => {
     setSelectedAction(action);
     setShowActionDialog(true);
   };
@@ -138,12 +136,6 @@ export function ProductDetailManagement({
         </div>
         <div className="flex items-center gap-2">
           {getStatusBadge(product.status)}
-          {product.isVerifiedProduct && (
-            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              <ShieldCheck className="w-3 h-3 mr-1" />
-              Verified
-            </Badge>
-          )}
         </div>
       </div>
 
@@ -256,15 +248,6 @@ export function ProductDetailManagement({
                   </Badge>
                 </div>
 
-                <div>
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Target Audience
-                  </Label>
-                  <Badge variant="outline" className="mt-1">
-                    {product.targetAudience}
-                  </Badge>
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -446,28 +429,6 @@ export function ProductDetailManagement({
                 </AlertDescription>
               </Alert>
 
-              {product.status === "pending" && (
-                <>
-                  <Button
-                    onClick={() => handleAction("approve")}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    disabled={mutation.isPending}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Approve Product
-                  </Button>
-                  <Button
-                    onClick={() => handleAction("reject")}
-                    variant="destructive"
-                    className="w-full"
-                    disabled={mutation.isPending}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Reject Product
-                  </Button>
-                </>
-              )}
-
               {product.status === "approved" && (
                 <Button
                   onClick={() => handleAction("reject")}
@@ -477,17 +438,6 @@ export function ProductDetailManagement({
                 >
                   <XCircle className="w-4 h-4 mr-2" />
                   Reject Product
-                </Button>
-              )}
-
-              {product.status === "rejected" && (
-                <Button
-                  onClick={() => handleAction("approve")}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  disabled={mutation.isPending}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Approve Product
                 </Button>
               )}
             </CardContent>

@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield } from "lucide-react";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import Autoplay from "embla-carousel-autoplay";
 import {
@@ -56,12 +54,6 @@ export function RecentlyViewed({ excludeProductId }: RecentlyViewedProps) {
                         sizes="(min-width: 1280px) 16vw, (min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      {product.isVerifiedProduct && (
-                        <Badge className="absolute top-2 left-2 bg-soraxi-green text-white px-1.5 py-0.5 text-xs">
-                          <Shield className="w-3 h-3 mr-1" />
-                          Verified
-                        </Badge>
-                      )}
                     </div>
                     <div className="p-3 space-y-1">
                       <h3 className="font-medium text-sm line-clamp-2 min-h-[2.5rem] group-hover:text-soraxi-green transition-colors">

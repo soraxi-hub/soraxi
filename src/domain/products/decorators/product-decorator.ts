@@ -78,11 +78,4 @@ export abstract class ProductDecorator implements DecoratableProductInfo {
   get subCategory(): string[] | undefined {
     return this.decorator.subCategory;
   }
-
-  /**
-   * Intended audience for the product
-   */
-  get targetAudience(): string[] | undefined {
-    return this.decorator.targetAudience;
-  }
 }

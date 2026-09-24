@@ -4,7 +4,6 @@ import { ProductStatusEnum, ProductTypeEnum } from "@/enums";
 import { formatNaira, koboToNaira } from "@/lib/utils/naira";
 import { siteConfig } from "@/config/site";
 import { getCategoryName, getSubCategoryName } from "@/constants/constant";
-import { getFieldName } from "@/constants/fields-constants";
 
 export type BaseProductProps = Omit<IProduct, "_id" | "storeId"> & {
   _id?: string;
@@ -132,24 +131,6 @@ export class Product implements IProductInfo {
   }
 
   /**
-   * Intended audience for the product
-   */
-  get targetAudience(): string[] | undefined {
-    return this.props.targetAudience;
-  }
-
-  get formatteTargetAudience(): string | undefined {
-    return getFieldName((this.targetAudience ?? [])[0]);
-  }
-
-  /**
-   * Whether the product has been verified
-   */
-  get isVerifiedProduct(): boolean {
-    return this.props.isVerifiedProduct;
-  }
-
-  /**
    * Product moderation/publication status
    */
   get status(): ProductStatusEnum {
@@ -221,8 +202,6 @@ export class Product implements IProductInfo {
       formattedCategory: this.formattedCategory,
       subCategory: this.subCategory ?? [],
       formattedSubCategory: this.formattedSubCategory,
-      targetAudience: this.targetAudience,
-      isVerifiedProduct: this.isVerifiedProduct,
       status: this.status,
       isVisible: this.isVisible,
       slug: this.slug,
@@ -253,11 +232,6 @@ export class Product implements IProductInfo {
         this.formattedSubCategory !== undefined
           ? [this.formattedSubCategory]
           : undefined,
-      targetAudience:
-        this.formatteTargetAudience !== undefined
-          ? [this.formatteTargetAudience]
-          : undefined,
-      isVerifiedProduct: this.isVerifiedProduct,
       status: this.status,
       isVisible: this.isVisible,
       createdAt: this.createdAt,

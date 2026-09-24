@@ -53,7 +53,6 @@ export const AUDIT_ACTIONS = {
 
   // Product Management
   PRODUCT_VIEWED: "product_viewed",
-  PRODUCT_APPROVED: "product_approved",
   PRODUCT_REJECTED: "product_rejected",
   PRODUCT_REMOVED: "product_removed",
   PRODUCT_DELETED: "product_deleted",

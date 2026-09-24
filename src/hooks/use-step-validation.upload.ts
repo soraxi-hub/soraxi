@@ -106,8 +106,8 @@ export function useStepValidation(
   );
 
   /**
-   * Validates Step 3: Category & Audience
-   * Validates: category, subCategory, targetAudience
+   * Validates Step 3: Category
+   * Validates: category, subCategory
    */
   const validateCategoryAudience = useCallback(
     (formData: ProductFormData): StepValidationResult => {
@@ -121,11 +121,6 @@ export function useStepValidation(
       // Subcategory is required
       if (!formData.subCategory || formData.subCategory.length === 0) {
         stepErrors.subCategory = "Subcategory is required";
-      }
-
-      // Target audience is required
-      if (!formData.targetAudience || formData.targetAudience.length === 0) {
-        stepErrors.targetAudience = "Target audience is required";
       }
 
       return {

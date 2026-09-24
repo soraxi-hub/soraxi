@@ -74,11 +74,6 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        {product.isVerifiedProduct && (
-                          <Badge className="absolute top-2 left-2 bg-green-100 text-green-800">
-                            Verified
-                          </Badge>
-                        )}
                       </div>
 
                       <div className="p-4 space-y-2">

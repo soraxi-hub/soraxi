@@ -88,7 +88,7 @@ export function useStepValidation(): UseStepValidationReturn {
   );
 
   /**
-   * Validate step 2: Category & Audience
+   * Validate step 2: Category
    */
   const validateCategoryAudienceStep = useCallback(
     (formData: EditProductFormData): StepValidationResult => {
@@ -102,11 +102,6 @@ export function useStepValidation(): UseStepValidationReturn {
       // Subcategory validation
       if (!formData.subCategory || formData.subCategory.length === 0) {
         stepErrors.subCategory = "Please select a subcategory";
-      }
-
-      // Target audience validation
-      if (!formData.targetAudience || formData.targetAudience.length === 0) {
-        stepErrors.targetAudience = "Please select a target audience";
       }
 
       return {

@@ -35,7 +35,6 @@ export function useWizardNavigation({
 
       case "category":
       case "subCategory":
-      case "targetAudience":
         return 1;
 
       case "images":

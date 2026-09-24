@@ -59,7 +59,6 @@ export function AllProductsPage() {
     trpc.home.getPublicProducts.queryOptions({
       page,
       limit: PAGE_SIZE,
-      verified: true,
       search: search || undefined,
       sort,
       categories:

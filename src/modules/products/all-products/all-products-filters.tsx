@@ -138,12 +138,6 @@ export function AllProductsFiltersPanel({
         <div className={cn("space-y-3")}>
           <p className={cn("text-sm font-medium")}>Availability</p>
 
-          {/*
-            The design also showed a "Verified stores only" checkbox. It is not
-            rendered: every product this page can return is already verified —
-            `ProductRepository.getPublicProducts` hardcodes `verified: true` —
-            so the control could only ever be a no-op switch.
-          */}
           <div className={cn("flex items-center gap-2")}>
             <Checkbox
               id="filter-in-stock"

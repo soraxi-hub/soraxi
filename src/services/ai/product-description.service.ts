@@ -10,7 +10,6 @@ export interface ProductDescriptionContext {
   name: string;
   category?: string[];
   subCategory?: string[];
-  targetAudience?: string[];
   price?: number; // in Kobo — we convert to Naira for the prompt
   specifications?: string; // may contain HTML from ReactQuill
   productType?: string;
@@ -164,9 +163,6 @@ function buildUserPrompt(ctx: ProductDescriptionContext): string {
   }
   if (ctx.subCategory?.length) {
     parts.push(`Sub-category: ${ctx.subCategory.join(", ")}`);
-  }
-  if (ctx.targetAudience?.length) {
-    parts.push(`Target audience: ${ctx.targetAudience.join(", ")}`);
   }
   if (ctx.price && ctx.price > 0) {
     parts.push(`Price: ${koboToNaira(ctx.price)}`);

@@ -20,7 +20,6 @@ export class ProductFactory {
 
       // placeholders
       status: ProductStatusEnum.Pending,
-      isVerifiedProduct: false,
       isVisible: false,
 
       // generated later

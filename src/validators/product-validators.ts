@@ -29,7 +29,7 @@ export const productType = z
 export const productPrice: z.ZodOptional<z.ZodNumber> = z
   .number()
   .min(500, "Price must be greater than 499")
-  .max(100000, `Price must be less than ${formatNaira(10000000)}.`)
+  .max(500000, `Price must be less than ${formatNaira(50000000)}.`)
   .optional();
 
 export const productQuantity = z
@@ -61,11 +61,6 @@ export const productSubCategory = z
   .min(1, "Subcategory is required")
   .optional();
 
-export const productTargetAudience = z
-  .array(z.string())
-  .min(1, "Target audience is required")
-  .optional();
-
 export const productStorePassword = storePassword; // Reusing the existing storePassword validator
 
 // You can also recreate the complete schema by combining all the individual validators:
@@ -77,7 +72,6 @@ export const ProductFormDataSchema = z.object({
   productQuantity: productQuantity,
   category: productCategory,
   subCategory: productSubCategory,
-  targetAudience: productTargetAudience,
   storePassword: productStorePassword,
   productType: productType,
 });

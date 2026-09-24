@@ -52,7 +52,6 @@ const getCachedRelatedProducts = unstable_cache(
 
     const currentProduct = await Product.findOne({
       slug,
-      isVerifiedProduct: true,
       isVisible: true,
     }).lean();
 
@@ -62,7 +61,6 @@ const getCachedRelatedProducts = unstable_cache(
 
     const related = await Product.find({
       slug: { $ne: currentProduct.slug },
-      isVerifiedProduct: true,
       isVisible: true,
       category: { $in: currentProduct.category },
     })
@@ -80,7 +78,6 @@ const getCachedRelatedProducts = unstable_cache(
       rating: product.rating || 0,
       storeId: product.storeId.toString(),
       slug: product.slug,
-      isVerifiedProduct: product.isVerifiedProduct,
       price: product.price,
     }));
 
@@ -98,19 +95,16 @@ const getCachedFeaturedProducts = unstable_cache(
       limit: 12,
     });
 
-    const formattedProducts = products
-      .map((product) => ({
-        id: product._id!.toString(),
-        name: product.name,
-        price: product.price,
-        images: product.images,
-        category: product.category,
-        subCategory: product.subCategory,
-        rating: product.rating || 0,
-        slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
-      }))
-      .filter((p) => p.isVerifiedProduct);
+    const formattedProducts = products.map((product) => ({
+      id: product._id!.toString(),
+      name: product.name,
+      price: product.price,
+      images: product.images,
+      category: product.category,
+      subCategory: product.subCategory,
+      rating: product.rating || 0,
+      slug: product.slug,
+    }));
 
     return JSON.parse(
       JSON.stringify(formattedProducts),
@@ -138,8 +132,6 @@ export const homeRouter = createTRPCRouter({
         categories: z.array(z.string()).optional(),
         inStock: z.boolean().optional(),
         subCategory: z.string().optional(),
-        targetAudience: z.string().optional(),
-        verified: z.boolean().optional(),
         search: z.string().optional().nullable(),
         sort: z
           .enum(["newest", "price-asc", "price-desc", "rating-desc"])
@@ -307,8 +299,8 @@ export const homeRouter = createTRPCRouter({
 
   /**
    * Query: Get Featured Products
-   * Returns a list of verified, high-rated, and visible products
-   * for use on the homepage carousel or promotion section.
+   * Returns a list of high-rated, visible products for use on the homepage
+   * carousel or promotion section.
    */
   getFeaturedProducts: baseProcedure.query(async () => {
     try {

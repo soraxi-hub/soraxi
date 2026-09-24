@@ -14,8 +14,6 @@ export interface IProductInfo {
   specifications?: string;
   category?: string[];
   subCategory?: string[];
-  targetAudience?: string[];
-  isVerifiedProduct: boolean;
   status: ProductStatusEnum;
   isVisible: boolean;
   slug: string;
@@ -38,7 +36,6 @@ export type DecoratableProductInfo = Pick<
   | "specifications"
   | "category"
   | "subCategory"
-  | "targetAudience"
 >;
 
 export type PublicToJSON = Omit<
@@ -76,15 +73,12 @@ export type GetPublicProductsInput = {
   category?: string;
   /** Several top-level categories at once, as the all-products filter rail allows. */
   categories?: string[];
-  /** Hide products with nothing left in stock. */
   inStock?: boolean;
   subCategory?: string;
-  targetAudience?: string;
   limit?: number;
   skip?: number;
   minRating?: number;
   search?: string | null;
-  verified?: boolean;
   sort?: "newest" | "price-asc" | "price-desc" | "rating-desc";
   priceMin?: number;
   priceMax?: number;

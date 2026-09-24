@@ -50,7 +50,6 @@ export class PopulatedWishlist
 
         const productData = ProductFactory.create({
           ...item,
-          isVerifiedProduct: true,
           status: ProductStatusEnum.Approved,
           isVisible: true,
           createdAt: new Date(),

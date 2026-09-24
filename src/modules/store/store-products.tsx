@@ -238,7 +238,11 @@ export function StoreProductsManagement({
               <Eye className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {products.filter((p) => p.isVerifiedProduct).length}
+                  {
+                    products.filter(
+                      (p) => p.status === ProductStatusEnum.Approved,
+                    ).length
+                  }
                 </p>
                 <p className="text-sm text-muted-foreground">Approved</p>
               </div>
@@ -251,9 +255,13 @@ export function StoreProductsManagement({
               <Calendar className="w-8 h-8 text-yellow-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {products.filter((p) => !p.isVerifiedProduct).length}
+                  {
+                    products.filter(
+                      (p) => p.status === ProductStatusEnum.Rejected,
+                    ).length
+                  }
                 </p>
-                <p className="text-sm text-muted-foreground">Pending Review</p>
+                <p className="text-sm text-muted-foreground">Rejected</p>
               </div>
             </div>
           </CardContent>

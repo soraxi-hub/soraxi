@@ -128,11 +128,9 @@ export const storeProductRouter = createTRPCRouter({
       const query: Record<string, any> = { storeId: store.id };
 
       if (status === "pending") {
-        // query.isVerifiedProduct = false;
         query.status = "pending";
       } else if (status === "approved") {
         query.status = "approved";
-        // query.isVerifiedProduct = true;
       } else if (status === "rejected") {
         query.status = "rejected";
       }
@@ -145,7 +143,7 @@ export const storeProductRouter = createTRPCRouter({
 
       const products = await Product.find(query)
         .select(
-          "name price sizes productQuantity images category subCategory isVerifiedProduct isVisible status createdAt slug rating",
+          "name price sizes productQuantity images category subCategory isVisible status createdAt slug rating",
         )
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -166,7 +164,6 @@ export const storeProductRouter = createTRPCRouter({
         status: product.status,
         createdAt: product.createdAt,
         slug: product.slug,
-        isVerifiedProduct: product.isVerifiedProduct,
         isVisible: product.isVisible,
         rating: product.rating,
       }));
@@ -247,7 +244,7 @@ export const storeProductRouter = createTRPCRouter({
 
         const Product = await getProductModel();
         const product = await Product.findById(input.productId).select(
-          "storeId status isVisible isVerifiedProduct slug",
+          "storeId status isVisible slug",
         );
 
         if (!product) {
@@ -266,14 +263,6 @@ export const storeProductRouter = createTRPCRouter({
           });
         }
 
-        // If the product is not verified, prevent making it visible
-        if (!product.isVerifiedProduct && input.isVisible) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message:
-              "This product cannot be made visible because it has not been verified yet.",
-          });
-        }
         // Only approved products may be visible
         if (input.isVisible && product.status !== ProductStatusEnum.Approved) {
           throw new TRPCError({

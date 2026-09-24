@@ -44,7 +44,6 @@ const initialFormData: ProductFormData = {
   productQuantity: 0,
   category: [],
   subCategory: [],
-  targetAudience: [],
   storePassword: "",
   productType: ProductTypeEnum.Product,
 };
@@ -187,10 +186,6 @@ export function ProductUploadWizard({ storeId }: ProductUploadWizardProps) {
 
     (formData.subCategory || []).forEach((sub) =>
       payload.append("subCategory", slugify(sub)),
-    );
-
-    (formData.targetAudience || []).forEach((aud) =>
-      payload.append("targetAudience", slugify(aud)),
     );
 
     imageFiles.forEach((file) => {

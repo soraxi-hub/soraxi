@@ -78,7 +78,6 @@ export function buildCategoryProductsInput({
     limit: PRODUCTS_PER_PAGE,
     category: categorySlug !== "all" ? categorySlug : undefined,
     subCategory: subcategorySlug || undefined,
-    verified: true,
     search: params.search,
     sort: params.sort,
     priceMin: params.minPrice,

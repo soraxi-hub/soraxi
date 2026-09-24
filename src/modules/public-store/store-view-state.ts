@@ -10,7 +10,7 @@ import { StoreStatusEnum } from "@/enums";
  *
  * - `active`    — live store with at least one publicly visible product
  * - `empty`     — live store that has not published any products yet
- * - `pending`   — awaiting approval; catalogue is withheld until verified
+ * - `pending`   — store awaiting approval; catalogue is withheld until then
  * - `suspended` — suspended or rejected; catalogue is withheld
  */
 export type StoreViewState = "active" | "empty" | "pending" | "suspended";
@@ -20,9 +20,8 @@ export type StoreViewState = "active" | "empty" | "pending" | "suspended";
  * many publicly visible products it has.
  *
  * `productCount` must be the count of products that actually reach the page
- * (verified only — see `ProductRepository.findByIds`), not `physicalProducts`
- * on the store document. An active store whose products are all still awaiting
- * verification is legitimately `empty` to a visitor.
+ * (visible only — see `ProductRepository.findByIds`), not `physicalProducts`
+ * on the store document.
  *
  * `rejected` collapses into `suspended`: both mean "this store is not trading",
  * and a visitor has no business learning which of the two applies.

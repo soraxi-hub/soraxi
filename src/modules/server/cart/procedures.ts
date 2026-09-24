@@ -164,7 +164,7 @@ export const cartRouter = createTRPCRouter({
         const product = await Product.findById(
           new mongoose.Types.ObjectId(input.productId),
         )
-          .select("isVisible isVerifiedProduct")
+          .select("isVisible")
           .lean<IProduct>();
 
         if (!product) {
@@ -172,14 +172,6 @@ export const cartRouter = createTRPCRouter({
             code: "BAD_REQUEST",
             message:
               "That product is no longer available. It may have sold out or been removed by the vendor.",
-          });
-        }
-
-        if (!product.isVerifiedProduct) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "This product isn’t available for sale at the moment. Please check back later.",
           });
         }
 

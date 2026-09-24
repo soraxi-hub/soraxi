@@ -63,7 +63,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const products = await getProducts({
       visibleOnly: true,
-      verified: true,
       limit: MAX_PRODUCT_URLS,
     });
 

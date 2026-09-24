@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, VerifiedIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
@@ -10,13 +10,11 @@ import { siteConfig } from "@/config/site";
 interface ProductImageGalleryProps {
   images: string[];
   productName: string;
-  isVerifiedProduct?: boolean;
 }
 
 export function ProductImageGallery({
   images,
   productName,
-  isVerifiedProduct,
 }: ProductImageGalleryProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -40,14 +38,6 @@ export function ProductImageGallery({
     <div className="space-y-4">
       {/* Main Image */}
       <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group">
-        {/* Status Badges */}
-        <div className="relative z-20 top-2 left-2 text-soraxi-green w-fit">
-          {isVerifiedProduct && (
-            <span className="flex items-center gap-1">
-              <VerifiedIcon className="text-soraxi-green w-fit" />
-            </span>
-          )}
-        </div>
         <Image
           src={images[currentImageIndex] || siteConfig.placeHolderImg}
           alt={`${productName} - Image ${currentImageIndex + 1}`}

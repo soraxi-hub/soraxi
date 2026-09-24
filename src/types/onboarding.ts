@@ -88,7 +88,6 @@ export interface StoreProduct {
   images: string[];
   category: string[];
   subCategory: string[];
-  isVerifiedProduct: boolean;
   isVisible: boolean;
   slug: string;
   createdAt: Date;

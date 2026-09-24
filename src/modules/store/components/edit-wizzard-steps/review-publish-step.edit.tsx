@@ -132,10 +132,10 @@ export function ReviewPublishStep({
 
             <Separator />
 
-            {/* Category & Audience Section */}
+            {/* Category Section */}
             <div>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                Category & Audience
+                Category
               </h4>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -145,14 +145,6 @@ export function ReviewPublishStep({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Subcategory:</span>
                   <Badge variant="secondary">{formData.subCategory?.[0]}</Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">
-                    Target Audience:
-                  </span>
-                  <Badge variant="secondary">
-                    {formData.targetAudience?.[0]}
-                  </Badge>
                 </div>
               </div>
             </div>

@@ -6,10 +6,9 @@ import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-ser
 import { ProductRepository } from "@/repositories/product-repo";
 import { ProductFormData } from "@/validators/product-validators";
 import { AppError } from "@/lib/errors/app-error";
-import {
-  PublicToJSON,
-  type GetPublicProductsInput,
-  type UploadProductAction,
+import type {
+  GetPublicProductsInput,
+  UploadProductAction,
 } from "@/domain/products/product-interface";
 import { IProduct } from "@/lib/db/models/product.model";
 
@@ -39,26 +38,21 @@ export class ProductService {
   }
 
   /**
-   * Determines publish state.
-   *
-   * Handles:
-   * - draft
-   * - pending review
-   * - verified product edits
+   * Determines publish state. Publishing has no admin approval gate — it
+   * goes live (Approved + visible) immediately.
    */
   private static determinePublishState(action: UploadProductAction) {
     if (action === "draft") {
       return {
         status: ProductStatusEnum.Draft,
         isVisible: false,
-        isVerifiedProduct: false,
       };
     }
 
+    // Publishing goes live immediately — there is no admin approval gate.
     return {
-      status: ProductStatusEnum.Pending,
-      isVisible: false,
-      isVerifiedProduct: false,
+      status: ProductStatusEnum.Approved,
+      isVisible: true,
     };
   }
 
@@ -273,7 +267,6 @@ export class ProductService {
       categories,
       inStock,
       subCategory,
-      targetAudience,
       search,
       sort,
       priceMin,
@@ -289,7 +282,6 @@ export class ProductService {
       categories,
       inStock,
       subCategory,
-      targetAudience,
       search,
       sort,
       priceMin,
@@ -311,14 +303,8 @@ export class ProductService {
       ProductFactory.fromPersistence(product.toJSON<IProduct>()).toJSON(),
     );
 
-    /**
-     * Group products by target audience
-     */
-    const groupedProducts = this.groupProductsByAudience(publicProducts);
-
     return {
       products: publicProducts,
-      groupedProducts,
       pagination: {
         page,
         limit,
@@ -355,26 +341,5 @@ export class ProductService {
      * Persistence -> Domain -> Public JSON
      */
     return ProductFactory.fromPersistence(productDoc).toJSON();
-  }
-
-  /**
-   * Groups products by audience
-   */
-  private static groupProductsByAudience(products: PublicToJSON[]) {
-    const groupedProducts: Record<string, PublicToJSON[]> = {};
-
-    for (const product of products) {
-      if (!product.targetAudience) continue;
-
-      for (const audience of product.targetAudience) {
-        if (!groupedProducts[audience]) {
-          groupedProducts[audience] = [];
-        }
-
-        groupedProducts[audience].push(product);
-      }
-    } // Big O(n*m) but we expect small arrays here
-
-    return groupedProducts;
   }
 }

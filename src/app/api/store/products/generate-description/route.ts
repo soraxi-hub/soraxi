@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
       name: (body.name ?? "").trim(),
       category: body.category,
       subCategory: body.subCategory,
-      targetAudience: body.targetAudience,
       price: body.price,
       specifications: body.specifications,
       productType: body.productType,

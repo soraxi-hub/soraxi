@@ -47,7 +47,6 @@ export function ProductDetailPage({
           name: product.name,
           image: product.images[0],
           formattedPrice: product.formattedPrice,
-          isVerifiedProduct: product.isVerifiedProduct,
         }
       : null
   );
@@ -111,7 +110,6 @@ export function ProductDetailPage({
               <ProductImageGallery
                 images={product.images}
                 productName={product.name}
-                isVerifiedProduct={product.isVerifiedProduct}
               />
             </div>
             <div>
