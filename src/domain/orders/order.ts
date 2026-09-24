@@ -255,6 +255,11 @@ export class Order implements IOrderInfo {
         formattedAmount: formatNaira(fin.platformFee.amount),
       },
 
+      // shippingFee
+      shippingFee: fin.shippingFee,
+      shippingFeeInNaira: koboToNaira(fin.shippingFee),
+      formattedShippingFee: formatNaira(fin.shippingFee),
+
       // vendorSettlementAmount
       vendorSettlementAmount: fin.vendorSettlementAmount,
       vendorSettlementAmountInNaira: koboToNaira(fin.vendorSettlementAmount),

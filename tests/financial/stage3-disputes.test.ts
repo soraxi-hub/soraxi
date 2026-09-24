@@ -28,10 +28,13 @@ import {
   PaymentStatus,
 } from "@/enums";
 import { DisputeService } from "@/services/disputes/dispute.service";
+import { calculateCommission } from "@/lib/utils/calculate-commission";
 
 async function createDeliveredOrderDocument(order: SeededPaidOrder) {
   const Order = await getOrderModel();
   const s = order.suborders[0]!;
+  const shippingFee = s.shippingAmount;
+  const { details } = calculateCommission(s.grossAmount - shippingFee);
 
   await Order.create({
     _id: order.orderId,
@@ -55,6 +58,11 @@ async function createDeliveredOrderDocument(order: SeededPaidOrder) {
             percentage: 5,
             amount: s.commission,
           },
+          commissionDetails: {
+            percentageFee: details.percentageFee,
+            flatFeeApplied: details.flatFeeApplied,
+          },
+          shippingFee,
           vendorSettlementAmount: s.settleAmount,
         },
         deliveryDate: new Date(Date.now() - 60 * 60 * 1000),

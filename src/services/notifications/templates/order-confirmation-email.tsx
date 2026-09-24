@@ -24,12 +24,14 @@ export function OrderConfirmationEmail({
   customerName,
   orderId,
   items,
+  shippingFee,
   totalAmount,
   deliveryDate,
 }: {
   customerName: string;
   orderId: string;
   items: OrderItem[];
+  shippingFee?: number;
   totalAmount: number;
   deliveryDate?: string;
 }) {
@@ -112,9 +114,21 @@ export function OrderConfirmationEmail({
           </Section>
         ))}
 
+        {!!shippingFee && (
+          <Section
+            style={{
+              marginTop: "10px",
+              textAlign: "right",
+              fontSize: "14px",
+            }}
+          >
+            Shipping: {formatNaira(shippingFee)}
+          </Section>
+        )}
+
         <Section
           style={{
-            marginTop: "20px",
+            marginTop: "10px",
             textAlign: "right",
             fontSize: "18px",
             fontWeight: "bold",

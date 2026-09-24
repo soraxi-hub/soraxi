@@ -11,7 +11,6 @@ import { CouponService } from "@/services/coupon.service";
 import { NotificationFactory, renderTemplate } from "../../domain/notification";
 import React from "react";
 import { CouponRedemptionFailureEmail } from "@/services/notifications/templates/coupon-redemption-failure-email-admin";
-import { calculateCommission } from "@/lib/utils/calculate-commission";
 import { createTransactionRecord } from "@/lib/db/models/transaction-record.model";
 import { creditVendorPendingBalance } from "@/lib/db/models/vendor-wallet.model";
 import { creditPlatformCommission } from "@/lib/db/models/platform-wallet.model";
@@ -343,12 +342,17 @@ export class ProcessOrder {
     }
 
     // ----------------------------------------------------------------
-    // STEP 1: Build the suborder breakdowns using calculateCommission
+    // STEP 1: Build the suborder breakdowns from the financial snapshot
+    // buildSubOrderFinancials() already computed at checkout.
     // ----------------------------------------------------------------
     const suborderBreakdowns = order.subOrders.map((subOrder) => {
-      const { commission, settleAmount, details } = calculateCommission(
-        subOrder.financials.subtotal,
-      );
+      const {
+        amountPaid,
+        platformFee,
+        commissionDetails,
+        shippingFee,
+        vendorSettlementAmount,
+      } = subOrder.financials;
 
       /**
        * `subOrder.storeId` is populated earlier via:
@@ -376,12 +380,17 @@ export class ProcessOrder {
       return {
         suborderId: subOrder._id,
         vendorId,
-        grossAmount: subOrder.financials.subtotal,
-        commission,
-        settleAmount,
+        // What the customer paid for this suborder: product amount after
+        // discount, plus the full shipping fee.
+        grossAmount: amountPaid + shippingFee,
+        shippingFee,
+        commission: platformFee.amount,
+        // Product settlement (already net of commission) plus shipping,
+        // passed through to the vendor untouched.
+        settleAmount: vendorSettlementAmount,
         commissionDetails: {
-          percentageFee: details.percentageFee,
-          flatFeeApplied: details.flatFeeApplied,
+          percentageFee: commissionDetails.percentageFee,
+          flatFeeApplied: commissionDetails.flatFeeApplied,
         },
         status: SuborderFinancialStatus.PENDING,
       };

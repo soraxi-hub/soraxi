@@ -36,8 +36,11 @@ export class OrderNotificationService {
         }))
       );
 
-      const totalAmount = allOrderItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
+      // order.totalAmount already reflects product amounts after discount,
+      // plus shipping across every store — do not recompute it from items.
+      const totalAmount = order.totalAmount;
+      const shippingFee = order.subOrders.reduce(
+        (sum, subOrder) => sum + (subOrder.shippingMethod?.price || 0),
         0
       );
 
@@ -46,6 +49,7 @@ export class OrderNotificationService {
           customerName: customerInfo.fullName || "Customer",
           orderId: (order._id as { toString: () => string }).toString(),
           items: allOrderItems,
+          shippingFee,
           totalAmount,
           deliveryDate: undefined,
         })
@@ -108,10 +112,11 @@ export class OrderNotificationService {
           productId: p.productId.toString(),
         }));
 
-        const totalAmount = items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
+        const shippingFee = subOrder.shippingMethod?.price || 0;
+
+        // What the customer paid for this suborder: product amount after
+        // discount, plus shipping — matches ISuborderBreakdown.grossAmount.
+        const totalAmount = subOrder.financials.amountPaid + shippingFee;
 
         const deliveryAddress = order.shippingAddress
           ? {
@@ -127,6 +132,7 @@ export class OrderNotificationService {
             storeId: store._id.toString(),
             orderId: (order._id as { toString: () => string }).toString(),
             items,
+            shippingFee,
             totalAmount,
             customerName: customerInfo.fullName,
             customerEmail: customerInfo.email,
