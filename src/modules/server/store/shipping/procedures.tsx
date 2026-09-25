@@ -28,7 +28,6 @@ export const storeShippingRouter = createTRPCRouter({
         message: "We couldn't find your store. Sign out and sign in again.",
       });
     }
-    // console.log("Store Shipping Methods:", store.shippingMethods);
 
     const formattedShippingMethods = Array.isArray(store.shippingMethods)
       ? store.shippingMethods.map((method) => {
@@ -53,8 +52,6 @@ export const storeShippingRouter = createTRPCRouter({
         })
       : [];
 
-    // console.log("Formatted Shipping Methods:", formattedShippingMethods);
-
     return formattedShippingMethods;
   }),
 
@@ -71,7 +68,9 @@ export const storeShippingRouter = createTRPCRouter({
       }
 
       const Store = await getStoreModel();
-      const store = await Store.findById(StoreTokenData.id);
+      const store = await Store.findById(StoreTokenData.id).select(
+        "shippingMethods",
+      );
 
       if (!store) {
         throw new TRPCError({
@@ -101,9 +100,6 @@ export const storeShippingRouter = createTRPCRouter({
           _id: new mongoose.Types.ObjectId(input.id),
         };
       } else {
-        // Adding a new method — this is the only path the store-count limit
-        // applies to. Checked here rather than up front, or an update to the
-        // store's one existing method would trip it on every single save.
         if (store.shippingMethods.length >= MAX_SHIPPING_METHODS_PER_STORE) {
           throw new TRPCError({
             code: "BAD_REQUEST",

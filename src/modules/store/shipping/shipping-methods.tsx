@@ -29,7 +29,7 @@ import {
   SoraxiCardTitle,
 } from "@/components/ui/soraxi-card";
 import { cn } from "@/lib/utils";
-import { addNairaSign, koboToNaira, nairaToKobo } from "@/lib/utils/naira";
+import { addNairaSign, koboToNaira } from "@/lib/utils/naira";
 import { useTRPC } from "@/trpc/client";
 import { shippingMethodSchema } from "@/validators/store-validators";
 import {
@@ -120,7 +120,9 @@ export default function ShippingMethodForm() {
     setIsSubmitting(true);
     update.mutate({
       ...values,
-      price: nairaToKobo(values.price),
+      // No need of applying the nairaToKobo(values.price) function.
+      // The shipping model does this automatically
+      price: values.price,
       applicableRegions: [],
     });
   };
@@ -282,7 +284,8 @@ export default function ShippingMethodForm() {
                             : "text-muted-foreground",
                         )}
                       >
-                        {description.length}/{MIN_SHIPPING_DESCRIPTION_LENGTH} min
+                        {description.length}/{MIN_SHIPPING_DESCRIPTION_LENGTH}{" "}
+                        min
                       </span>
                     </div>
                     <FormControl>
