@@ -3,7 +3,6 @@ import { z } from "zod";
 import { DeliveryProofMethodEnum, DeliveryStatus } from "@/enums";
 import { AppError } from "@/lib/errors/app-error";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import {
   DELIVERY_CODE_LENGTH,
@@ -75,10 +74,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
       const proof = subOrder.deliveryProof;
 
       const base = {
-        orderNumber: formatOrderNumber(
-          subOrder._id.toString(),
-          order.createdAt,
-        ),
+        orderNumber: subOrder.reference,
         itemCount: subOrder.products.length,
         storeName: subOrder.storeSnapshot?.name ?? "",
         // First name only. A rider needs enough to know they are at the right
@@ -156,10 +152,7 @@ export const deliveryConfirmationRouter = createTRPCRouter({
 
       return {
         success: true as const,
-        orderNumber: formatOrderNumber(
-          subOrder._id.toString(),
-          order.createdAt,
-        ),
+        orderNumber: subOrder.reference,
         confirmedAt: result.confirmedAt.toISOString(),
         riderName: result.riderName,
       };

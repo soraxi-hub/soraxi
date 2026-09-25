@@ -4,7 +4,6 @@ import { AdminGuard } from "@/domain/admin/admin-guard";
 import { ConversationProjector } from "@/domain/messaging/conversation-projector";
 import { ConversationStatusEnum, ModerationReviewStatusEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 import {
   AUDIT_ACTIONS,
   AUDIT_MODULES,
@@ -83,12 +82,7 @@ export const adminModerationRouter = createTRPCRouter({
               scopeKind: conversation?.scope.kind ?? null,
               contextLabel: conversation?.scope.product
                 ? conversation.scope.product.name
-                : conversation?.scope.order
-                  ? formatOrderNumber(
-                      conversation.scope.order.subOrderId.toString(),
-                      conversation.scope.order.placedAt,
-                    )
-                  : null,
+                : (conversation?.scope.order?.reference ?? null),
               conversationStatus: conversation?.status ?? null,
             };
           }),

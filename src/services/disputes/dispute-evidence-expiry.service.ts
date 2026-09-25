@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { IDisputeRecordDocument } from "@/lib/db/models/dispute-record.model";
 import { DisputeRepository } from "@/repositories/dispute-record.repository";
+import { OrderRepository } from "@/repositories/order.repository";
 import { DisputeResolvedBy } from "@/enums/financial.enums";
 import {
   NotificationFactory,
@@ -144,9 +145,18 @@ export class DisputeEvidenceExpiryService {
     dispute: IDisputeRecordDocument,
   ): Promise<void> {
     try {
+      const order = await OrderRepository.getOrderById(
+        dispute.orderId.toString(),
+      );
+      const subOrder = order?.subOrders.find(
+        (s) => s._id.toString() === dispute.suborderId.toString(),
+      );
+      const orderReference = order?.reference ?? "";
+      const subOrderReference = subOrder?.reference ?? "";
+
       await Promise.allSettled([
-        this.notifyCustomer(dispute),
-        this.notifyVendor(dispute),
+        this.notifyCustomer(dispute, orderReference, subOrderReference),
+        this.notifyVendor(dispute, orderReference, subOrderReference),
       ]);
     } catch (error) {
       console.error(
@@ -164,6 +174,8 @@ export class DisputeEvidenceExpiryService {
    */
   private static async notifyCustomer(
     dispute: IDisputeRecordDocument,
+    orderReference: string,
+    subOrderReference: string,
   ): Promise<void> {
     try {
       const User = await getUserModel();
@@ -176,8 +188,8 @@ export class DisputeEvidenceExpiryService {
       const html = await renderTemplate(
         React.createElement(DisputeEvidenceExpiredCustomerEmail, {
           customerName: customer.firstName,
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
+          orderReference,
+          subOrderReference,
         }),
       );
 
@@ -209,6 +221,8 @@ export class DisputeEvidenceExpiryService {
    */
   private static async notifyVendor(
     dispute: IDisputeRecordDocument,
+    orderReference: string,
+    subOrderReference: string,
   ): Promise<void> {
     try {
       const Store = await getStoreModel();
@@ -221,8 +235,8 @@ export class DisputeEvidenceExpiryService {
       const html = await renderTemplate(
         React.createElement(DisputeEvidenceExpiredVendorEmail, {
           storeName: store.name,
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
+          orderReference,
+          subOrderReference,
           amountReleased: formatNaira(dispute.frozenAmount),
         }),
       );

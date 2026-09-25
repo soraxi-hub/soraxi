@@ -152,7 +152,7 @@ export default function OrderDetailsPage({ slug }: { slug: string }) {
   return (
     <main className="space-y-">
       <OrderHeader
-        orderId={orderDetails.orderId}
+        reference={orderDetails.reference}
         createdAt={orderDetails.createdAt}
         storesCount={orderDetails.stores.length}
         formattedTotalAmount={orderDetails.formattedTotalAmount}

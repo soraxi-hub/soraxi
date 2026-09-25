@@ -16,7 +16,6 @@ import { TRPCError } from "@trpc/server";
 import { koboToNaira } from "@/lib/utils/naira";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { DateFormatter } from "@/lib/utils/date-formatter";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 import { toAdminProofView } from "@/domain/orders/delivery-proof-projection";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -424,12 +423,7 @@ export const adminDisputeRouter = createTRPCRouter({
           deliveryRecord: subOrder
             ? toAdminProofView(subOrder.deliveryProof)
             : null,
-          subOrderReference: subOrder
-            ? formatOrderNumber(
-                subOrder._id.toString(),
-                order?.createdAt ?? dispute.openedAt,
-              )
-            : null,
+          subOrderReference: subOrder?.reference ?? null,
         };
       } catch (error) {
         if (isReportableError(error)) {

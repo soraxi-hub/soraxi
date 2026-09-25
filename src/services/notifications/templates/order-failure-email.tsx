@@ -9,14 +9,16 @@ import { Text, Section, Row, Column, Link } from "@react-email/components";
 export function OrderFailureEmail({
   deliveryStatus,
   orderId,
-  subOrderId,
+  orderReference,
+  subOrderReference,
   storeName,
   customerEmail,
   reason,
 }: {
   deliveryStatus: string;
   orderId: string;
-  subOrderId: string;
+  orderReference: string;
+  subOrderReference: string;
   storeName: string;
   customerEmail: string;
   reason?: string;
@@ -25,7 +27,7 @@ export function OrderFailureEmail({
     <EmailContainer title={`Order Alert: ${deliveryStatus}`}>
       <Section>
         <Text>
-          <strong>⚠️ An order requires attention:</strong>
+          <strong>An order requires attention:</strong>
         </Text>
 
         <Section
@@ -40,16 +42,16 @@ export function OrderFailureEmail({
         >
           <Row style={{ marginBottom: "5px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
+              Order Reference:
             </Column>
-            <Column>{orderId}</Column>
+            <Column>{orderReference}</Column>
           </Row>
 
           <Row style={{ marginBottom: "5px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
+              Sub-Order Reference:
             </Column>
-            <Column>{subOrderId}</Column>
+            <Column>{subOrderReference}</Column>
           </Row>
 
           <Row style={{ marginBottom: "5px" }}>

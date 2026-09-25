@@ -10,6 +10,7 @@ import type {
 import type { OrderBuildConfig } from "../domain/orders/types";
 import { DeliveryStatus, StatusHistory } from "@/enums";
 import { QueryBuilderFactory } from "@/domain/queries/query-builder-factory";
+import { generateOrderReference } from "@/lib/utils/order-number";
 
 /**
  * OrderRepository handles the persistence layer for orders.
@@ -247,6 +248,10 @@ export class OrderRepository {
   private static async configToDocument(config: OrderBuildConfig) {
     const OrderModel = await getOrderModel();
 
+    // Shared "placed at" instant for every reference minted below, so the
+    // order and every one of its sub-orders carry the same year segment.
+    const placedAt = new Date();
+
     // ── Root-level totals ─────────────────────────────────────────────────
     // Read amountPaid from each sub-order's pre-computed financials.
     // Do NOT recalculate subtotals or discounts — they are already locked in.
@@ -294,6 +299,7 @@ export class OrderRepository {
       });
 
       return {
+        reference: generateOrderReference(placedAt),
         storeId: new mongoose.Types.ObjectId(subOrder.storeId),
         products,
 
@@ -333,6 +339,7 @@ export class OrderRepository {
 
     // ── Order document ────────────────────────────────────────────────────
     return new OrderModel({
+      reference: generateOrderReference(placedAt),
       userId: new mongoose.Types.ObjectId(config.customer.userId),
       userSnapshot: {
         name: config.customer.name,

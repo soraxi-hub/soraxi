@@ -6,7 +6,6 @@ import type {
 import type { IMessage } from "@/lib/db/models/message.model";
 import { ConversationStatusEnum } from "@/enums";
 import { formatNaira } from "@/lib/utils/naira";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 import { ConversationRepository } from "@/repositories/conversation.repository";
 
 import type {
@@ -46,8 +45,7 @@ export class ConversationProjector {
   static orderRef(ref: IOrderRef): OrderRefView {
     return {
       subOrderId: ref.subOrderId.toString(),
-      // Derived, never stored — nothing to drift out of sync with the order.
-      orderNumber: formatOrderNumber(ref.subOrderId.toString(), ref.placedAt),
+      orderNumber: ref.reference,
       status: ref.status,
       formattedTotal: formatNaira(ref.total),
       itemCount: ref.itemCount,
@@ -93,8 +91,7 @@ export class ConversationProjector {
     if (product) return product.name;
 
     if (order) {
-      const ref = formatOrderNumber(order.subOrderId.toString(), order.placedAt);
-      return `${ref} · ${formatNaira(order.total)}`;
+      return `${order.reference} · ${formatNaira(order.total)}`;
     }
 
     return "";

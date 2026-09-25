@@ -276,8 +276,8 @@ The ${siteConfig.name} Team`;
    */
   generateEscrowReleaseText: (details: {
     storeName: string;
-    orderId: string;
-    subOrderId: string;
+    orderReference: string;
+    subOrderReference: string;
     amountReleased: number;
     newBalance: number;
     transactionId: string;
@@ -288,8 +288,8 @@ The ${siteConfig.name} Team`;
 Great news! Your escrow funds have been released and are now available in your wallet.
 
 Transaction Details:
-- Order ID: ORD-${details.orderId.substring(0, 8).toUpperCase()}
-- Sub-Order ID: SUB-${details.subOrderId.substring(0, 8).toUpperCase()}
+- Order Reference: ${details.orderReference}
+- Sub-Order Reference: ${details.subOrderReference}
 - Amount Released: ${formatNaira(details.amountReleased)}
 - New Wallet Balance: ${formatNaira(details.newBalance)}
 - Transaction ID: ${details.transactionId.substring(0, 8).toUpperCase()}

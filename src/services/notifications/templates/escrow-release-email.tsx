@@ -9,18 +9,18 @@ import { siteConfig } from "@/config/site";
  */
 export function EscrowReleaseEmail({
   storeName,
-  orderId,
+  orderReference,
   // storeId,
-  subOrderId,
+  subOrderReference,
   amountReleased,
   newBalance,
   transactionId,
   releaseDate = new Date(),
 }: {
   storeName: string;
-  orderId: string;
+  orderReference: string;
   storeId: string;
-  subOrderId: string;
+  subOrderReference: string;
   amountReleased: number;
   newBalance: number;
   transactionId: string;
@@ -58,13 +58,11 @@ export function EscrowReleaseEmail({
           </Heading>
 
           <Text>
-            <strong>Order ID:</strong> ORD-
-            {orderId.substring(0, 8).toUpperCase()}
+            <strong>Order Reference:</strong> {orderReference}
           </Text>
 
           <Text>
-            <strong>Sub-Order ID:</strong> SUB-
-            {subOrderId.substring(0, 8).toUpperCase()}
+            <strong>Sub-Order Reference:</strong> {subOrderReference}
           </Text>
 
           <Text>

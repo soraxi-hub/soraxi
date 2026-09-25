@@ -168,7 +168,7 @@ export const adminOrdersRouter = createTRPCRouter({
 
         return {
           orderId: (order._id as mongoose.Types.ObjectId).toString(),
-          orderNumber: `ORD-${(order._id as mongoose.Types.ObjectId).toString().slice(-8).toUpperCase()}`,
+          orderNumber: order.reference,
           paymentStatus: order.paymentStatus,
           totalAmount: order.totalAmount,
           createdAt: order.createdAt,

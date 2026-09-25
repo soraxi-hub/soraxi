@@ -214,6 +214,7 @@ export class ProcessOrder {
           const html = await renderTemplate(
             React.createElement(CouponRedemptionFailureEmail, {
               orderId: order._id.toString(),
+              orderReference: order.reference,
               customerEmail: customerInfo.email,
               couponCode,
               reason: error.message,

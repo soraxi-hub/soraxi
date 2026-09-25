@@ -4,7 +4,7 @@ import { ICartItem } from "@/lib/db/models/cart.model";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { getProductModel, IProduct } from "@/lib/db/models/product.model";
-import { generateUniqueId } from "@/lib/utils";
+import { generateUniqueId } from "@/lib/utils/order-number";
 import { siteConfig } from "@/config/site";
 import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";

@@ -7,8 +7,8 @@ import { siteConfig } from "@/config/site";
  */
 interface DisputeEvidenceExpiredCustomerEmailProps {
   customerName: string;
-  orderId: string;
-  suborderId: string;
+  orderReference: string;
+  subOrderReference: string;
 }
 
 /**
@@ -20,8 +20,7 @@ interface DisputeEvidenceExpiredCustomerEmailProps {
  */
 export function DisputeEvidenceExpiredCustomerEmail({
   customerName,
-  orderId,
-  suborderId,
+  orderReference,
 }: DisputeEvidenceExpiredCustomerEmailProps) {
   return (
     <EmailContainer title="Dispute Closed — No Additional Evidence Received">
@@ -29,11 +28,11 @@ export function DisputeEvidenceExpiredCustomerEmail({
         <Text>Hi {customerName},</Text>
 
         <Text>
-          Our review of your dispute found the evidence provided
-          inconclusive, and we requested additional evidence from you to
-          continue the review. Since no additional evidence was received
-          within the 48-hour window, your dispute has been closed in favour
-          of the vendor and the frozen funds have been released to them.
+          Our review of your dispute found the evidence provided inconclusive,
+          and we requested additional evidence from you to continue the review.
+          Since no additional evidence was received within the 48-hour window,
+          your dispute has been closed in favour of the vendor and the frozen
+          funds have been released to them.
         </Text>
 
         <Section
@@ -47,16 +46,9 @@ export function DisputeEvidenceExpiredCustomerEmail({
         >
           <Row style={{ marginBottom: "10px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
+              Order Reference:
             </Column>
-            <Column>{orderId}</Column>
-          </Row>
-
-          <Row>
-            <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
-            </Column>
-            <Column>{suborderId}</Column>
+            <Column>{orderReference}</Column>
           </Row>
         </Section>
 

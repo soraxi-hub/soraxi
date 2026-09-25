@@ -25,7 +25,7 @@ export interface ProductRefView {
 /** Client-facing order reference card. */
 export interface OrderRefView {
   subOrderId: string;
-  /** Derived display reference, e.g. `ORD-2026-68A76`. */
+  /** Persisted sub-order reference, e.g. `ORD-2026-4F9A1B7C3D08`. */
   orderNumber: string;
   status: string;
   formattedTotal: string;
