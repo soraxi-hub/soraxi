@@ -52,12 +52,21 @@ export class ProductRepository {
     updates: Partial<Product>,
     session: mongoose.ClientSession | null,
   ) {
+    if (!updates.storeId) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "Cannot update a product without an owning store.",
+        { productId },
+      );
+    }
+
     const ProductModel = await getProductModel();
     const product = await QueryBuilderFactory.queryBuilder<
       IProduct,
       IProductDocument
     >(ProductModel)
       .where("_id", new mongoose.Types.ObjectId(productId))
+      .where("storeId", new mongoose.Types.ObjectId(updates.storeId))
       .withLean(false)
       .executeOne();
 
