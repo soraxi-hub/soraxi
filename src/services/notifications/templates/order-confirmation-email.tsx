@@ -23,6 +23,7 @@ export interface OrderItem {
 export function OrderConfirmationEmail({
   customerName,
   orderId,
+  orderReference,
   items,
   shippingFee,
   totalAmount,
@@ -30,6 +31,7 @@ export function OrderConfirmationEmail({
 }: {
   customerName: string;
   orderId: string;
+  orderReference: string;
   items: OrderItem[];
   shippingFee?: number;
   totalAmount: number;
@@ -47,7 +49,7 @@ export function OrderConfirmationEmail({
 
         <Section style={{ marginTop: "20px", marginBottom: "20px" }}>
           <Text>
-            <strong>Order ID:</strong> {orderId}
+            <strong>Order Reference:</strong> {orderReference}
           </Text>
           <Text>
             <strong>Order Date:</strong> {new Date().toLocaleDateString()}

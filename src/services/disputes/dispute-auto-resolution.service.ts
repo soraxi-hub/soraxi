@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { IDisputeRecordDocument } from "@/lib/db/models/dispute-record.model";
 import { DisputeRepository } from "@/repositories/dispute-record.repository";
+import { OrderRepository } from "@/repositories/order.repository";
 import { DisputeResolvedBy } from "@/enums/financial.enums";
 import { getStoreModel } from "@/lib/db/models/store.model";
 import {
@@ -163,10 +164,34 @@ export class DisputeAutoResolutionService {
     totalRefunded: number,
   ): Promise<void> {
     try {
+      const order = await OrderRepository.getOrderById(
+        dispute.orderId.toString(),
+      );
+      const subOrder = order?.subOrders.find(
+        (s) => s._id.toString() === dispute.suborderId.toString(),
+      );
+      const orderReference = order?.reference ?? "";
+      const subOrderReference = subOrder?.reference ?? "";
+
       await Promise.allSettled([
-        this.notifyCustomer(dispute, totalRefunded),
-        this.notifyVendor(dispute, totalRefunded),
-        this.notifyAdminTeam(dispute, totalRefunded),
+        this.notifyCustomer(
+          dispute,
+          totalRefunded,
+          orderReference,
+          subOrderReference,
+        ),
+        this.notifyVendor(
+          dispute,
+          totalRefunded,
+          orderReference,
+          subOrderReference,
+        ),
+        this.notifyAdminTeam(
+          dispute,
+          totalRefunded,
+          orderReference,
+          subOrderReference,
+        ),
       ]);
     } catch (error) {
       // Swallow notification errors — financial writes already committed
@@ -187,6 +212,8 @@ export class DisputeAutoResolutionService {
   private static async notifyCustomer(
     dispute: IDisputeRecordDocument,
     totalRefunded: number,
+    orderReference: string,
+    subOrderReference: string,
   ): Promise<void> {
     try {
       const User = await getUserModel();
@@ -199,8 +226,8 @@ export class DisputeAutoResolutionService {
       const html = await renderTemplate(
         React.createElement(DisputeAutoResolvedCustomerEmail, {
           customerName: customer.firstName,
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
+          orderReference,
+          subOrderReference,
           refundAmount: formatNaira(totalRefunded),
         }),
       );
@@ -234,6 +261,8 @@ export class DisputeAutoResolutionService {
   private static async notifyVendor(
     dispute: IDisputeRecordDocument,
     totalRefunded: number,
+    orderReference: string,
+    subOrderReference: string,
   ): Promise<void> {
     try {
       const Store = await getStoreModel();
@@ -246,8 +275,8 @@ export class DisputeAutoResolutionService {
       const html = await renderTemplate(
         React.createElement(DisputeAutoResolvedVendorEmail, {
           storeName: store.name,
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
+          orderReference,
+          subOrderReference,
           amountReleased: formatNaira(totalRefunded),
         }),
       );
@@ -282,6 +311,8 @@ export class DisputeAutoResolutionService {
   private static async notifyAdminTeam(
     dispute: IDisputeRecordDocument,
     totalRefunded: number,
+    orderReference: string,
+    subOrderReference: string,
   ): Promise<void> {
     try {
       const Store = await getStoreModel();
@@ -290,8 +321,8 @@ export class DisputeAutoResolutionService {
       const html = await renderTemplate(
         React.createElement(DisputeAutoResolvedAdminEmail, {
           disputeId: (dispute._id as mongoose.Types.ObjectId).toString(),
-          orderId: dispute.orderId.toString(),
-          suborderId: dispute.suborderId.toString(),
+          orderReference,
+          subOrderReference,
           storeName: store?.name ?? "Unknown store",
           refundAmount: formatNaira(totalRefunded),
         }),

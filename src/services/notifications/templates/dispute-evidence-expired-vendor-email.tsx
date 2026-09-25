@@ -7,8 +7,8 @@ import { siteConfig } from "@/config/site";
  */
 interface DisputeEvidenceExpiredVendorEmailProps {
   storeName: string;
-  orderId: string;
-  suborderId: string;
+  orderReference: string;
+  subOrderReference: string;
   amountReleased: string; // Already formatted (e.g., "₦5,000.00")
 }
 
@@ -22,8 +22,7 @@ interface DisputeEvidenceExpiredVendorEmailProps {
  */
 export function DisputeEvidenceExpiredVendorEmail({
   storeName,
-  orderId,
-  suborderId,
+  subOrderReference,
   amountReleased,
 }: DisputeEvidenceExpiredVendorEmailProps) {
   return (
@@ -32,11 +31,10 @@ export function DisputeEvidenceExpiredVendorEmail({
         <Text>Hi {storeName},</Text>
 
         <Text>
-          A dispute involving one of your orders has been closed in your
-          favour. The customer did not submit the additional evidence we
-          requested within the 48-hour window, and the funds that were
-          frozen during the dispute have now been released to your
-          available balance.
+          A dispute involving one of your orders has been closed in your favour.
+          The customer did not submit the additional evidence we requested
+          within the 48-hour window, and the funds that were frozen during the
+          dispute have now been released to your available balance.
         </Text>
 
         <Section
@@ -59,24 +57,16 @@ export function DisputeEvidenceExpiredVendorEmail({
             </Column>
           </Row>
 
-          <Row style={{ marginBottom: "10px" }}>
-            <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
-            </Column>
-            <Column>{orderId}</Column>
-          </Row>
-
           <Row>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
+              Order Reference:
             </Column>
-            <Column>{suborderId}</Column>
+            <Column>{subOrderReference}</Column>
           </Row>
         </Section>
 
         <Text>
-          You can withdraw this balance at any time from your store
-          dashboard.
+          You can withdraw this balance at any time from your store dashboard.
         </Text>
 
         <Text>

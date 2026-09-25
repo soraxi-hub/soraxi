@@ -44,6 +44,8 @@ export interface IProductRef {
 /** Frozen sub-order details, captured when the reference is attached. */
 export interface IOrderRef {
   subOrderId: mongoose.Types.ObjectId;
+  /** The sub-order's persisted, human-readable reference, e.g. `ORD-2026-4F9A1B7C3D08`. */
+  reference: string;
   /**
    * Delivery status *at the time of attachment*. The pinned header re-renders
    * live status; this preserves what was true when the message was sent.
@@ -114,6 +116,7 @@ const ProductRefSchema = new Schema<IProductRef>(
 const OrderRefSchema = new Schema<IOrderRef>(
   {
     subOrderId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    reference: { type: String, required: true },
     status: { type: String, required: true },
     total: { type: Number, required: true },
     itemCount: { type: Number, required: true },

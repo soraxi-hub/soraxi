@@ -72,6 +72,7 @@ export interface IDeliveryProof {
  */
 export interface ISubOrder {
   _id: mongoose.Types.ObjectId;
+  reference: string;
   storeId: mongoose.Types.ObjectId;
   products: IOrderProduct[];
   financials: ISubOrderFinancials;
@@ -96,6 +97,7 @@ export interface ISubOrder {
  */
 export interface IOrder {
   _id: mongoose.Types.ObjectId;
+  reference: string;
   userId: mongoose.Types.ObjectId;
   userSnapshot: {
     name: string;
@@ -243,6 +245,10 @@ const SubOrderFinancialsSchema = new Schema<ISubOrderFinancials>(
  * Schema for sub-orders linked to stores.
  */
 const SubOrderSchema = new Schema<ISubOrder>({
+  reference: {
+    type: String,
+    required: [true, "Sub-order reference is required"],
+  },
   storeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Store",
@@ -313,6 +319,13 @@ const SubOrderSchema = new Schema<ISubOrder>({
  */
 const OrderSchema = new Schema<IOrderDocument>(
   {
+    reference: {
+      type: String,
+      required: true,
+      unique: true,
+      sparse: true,
+      immutable: true,
+    }, // Only set at creation, cannot be changed even if the order is updated.
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -408,6 +421,8 @@ OrderSchema.index({
   "subOrders.deliveryStatus": 1,
   "subOrders.customerConfirmedDelivery.confirmed": 1,
 });
+
+OrderSchema.index({ "subOrders.reference": 1 });
 
 /**
  * Get the Order model

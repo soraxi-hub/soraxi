@@ -25,6 +25,7 @@ export interface StoreOrderItem {
 export function StoreOrderNotificationEmail({
   storeName,
   orderId,
+  subOrderReference,
   storeId,
   items,
   shippingFee,
@@ -35,6 +36,7 @@ export function StoreOrderNotificationEmail({
 }: {
   storeName: string;
   orderId: string;
+  subOrderReference: string;
   storeId: string;
   items: StoreOrderItem[];
   shippingFee?: number;
@@ -57,7 +59,7 @@ export function StoreOrderNotificationEmail({
 
         <Section style={{ marginTop: "10px", marginBottom: "10px" }}>
           <Text>
-            <strong>Order ID:</strong> {orderId}
+            <strong>Order Reference:</strong> {subOrderReference}
           </Text>
           <Text>
             <strong>Order Date:</strong> {new Date().toLocaleDateString()}

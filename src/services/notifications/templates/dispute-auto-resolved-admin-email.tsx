@@ -7,8 +7,8 @@ import { siteConfig } from "@/config/site";
  */
 interface DisputeAutoResolvedAdminEmailProps {
   disputeId: string;
-  orderId: string;
-  suborderId: string;
+  orderReference: string;
+  subOrderReference: string;
   storeName: string;
   refundAmount: string; // Already formatted (e.g., "₦5,000.00")
 }
@@ -23,8 +23,8 @@ interface DisputeAutoResolvedAdminEmailProps {
  */
 export function DisputeAutoResolvedAdminEmail({
   disputeId,
-  orderId,
-  suborderId,
+  orderReference,
+  subOrderReference,
   storeName,
   refundAmount,
 }: DisputeAutoResolvedAdminEmailProps) {
@@ -57,16 +57,16 @@ export function DisputeAutoResolvedAdminEmail({
 
           <Row style={{ marginBottom: "10px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
+              Order Reference:
             </Column>
-            <Column>{orderId}</Column>
+            <Column>{orderReference}</Column>
           </Row>
 
           <Row style={{ marginBottom: "10px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
+              Sub-Order Reference:
             </Column>
-            <Column>{suborderId}</Column>
+            <Column>{subOrderReference}</Column>
           </Row>
 
           <Row style={{ marginBottom: "10px" }}>

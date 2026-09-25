@@ -39,7 +39,6 @@ import { StatusStepper } from "./delivery/status-stepper";
 import { CustomerInformationCard } from "./delivery/customer-information-card";
 import { FinancialsCard } from "./delivery/financials-card";
 import { MessageAboutOrderButton } from "@/modules/messaging/components/message-about-order-button";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 
 /**
  * Order Detail View Component Props
@@ -254,12 +253,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
         <div className="min-w-0">
           <h1 className="text-xl font-bold sm:text-2xl">
             Sub-order{" "}
-            <span className="font-mono">
-              {formatOrderNumber(
-                order.subOrder._id.toString(),
-                order.createdAt,
-              )}
-            </span>
+            <span className="font-mono">{order.subOrder.reference}</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {order.customerInfo.name} · {order.totalItems}{" "}

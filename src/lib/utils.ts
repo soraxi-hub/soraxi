@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Package, Truck, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
 import { DeliveryStatus } from "@/enums";
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
@@ -123,30 +122,6 @@ export const getStatusBadge = (status: DeliveryStatus) => {
     statusConfig[DeliveryStatus.OrderPlaced]
   );
 };
-
-/**
- * Generates a unique alphanumeric ID of a specified length.
- * This function creates a UUID (Universally Unique Identifier), removes hyphens,
- * and returns the first `length` characters.
- *
- * @param {number} length - The desired length of the unique ID (must be ≤ 32, since UUIDs without hyphens are 32 chars long).
- * @returns {string} A truncated uppercase alphanumeric string from the UUID.
- *
- * @example
- * // Returns something like "3F7A9B2E" (first 8 chars of a UUID without hyphens)
- * const id = generateUniqueId(8);
- *
- * @example
- * // Can be used to generate request numbers like "WDR-3F7A9B2E"
- * const requestNumber = `WDR-${generateUniqueId(8).toUpperCase()}`;
- */
-export function generateUniqueId(length: number): string {
-  // Generate a UUID and remove all hyphens
-  const uuid = uuidv4().replace(/-/g, "");
-
-  // Return the first 'length' characters
-  return uuid.substring(0, length);
-}
 
 export class PasswordService {
   static async hashPassword(password: string): Promise<string> {

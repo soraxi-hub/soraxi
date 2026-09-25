@@ -42,6 +42,10 @@ export class Order implements IOrderInfo {
     return this.props._id.toString();
   }
 
+  get reference(): string {
+    return this.props.reference;
+  }
+
   get userId(): string {
     return this.props.userId.toString();
   }
@@ -490,6 +494,7 @@ export class Order implements IOrderInfo {
   toJSON(): OrderPublicJSON {
     return {
       orderId: this.orderId,
+      reference: this.reference,
       userId: this.userId,
       stores: this.storeIds,
       subOrders: this.subOrders,
@@ -553,6 +558,7 @@ export class Order implements IOrderInfo {
 
     return {
       orderId: this.orderId,
+      reference: this.reference,
       storeId,
       customerInfo: this.userSnapshot,
       subOrder: {

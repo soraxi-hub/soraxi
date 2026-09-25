@@ -7,11 +7,13 @@ import { siteConfig } from "@/config/site";
  */
 export function CouponRedemptionFailureEmail({
   orderId,
+  orderReference,
   customerEmail,
   couponCode,
   reason,
 }: {
   orderId: string;
+  orderReference: string;
   customerEmail: string;
   couponCode: string;
   reason?: string;
@@ -34,9 +36,9 @@ export function CouponRedemptionFailureEmail({
         >
           <Row>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
+              Order Reference:
             </Column>
-            <Column>{orderId}</Column>
+            <Column>{orderReference}</Column>
           </Row>
 
           <Row>

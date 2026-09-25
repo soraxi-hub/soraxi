@@ -10,7 +10,6 @@ import {
   OrderFailureEmail,
   OutForDeliveryEmail,
 } from "@/domain/notification";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 import React from "react";
 import { OrderFactory } from "@/domain/orders/order-factory";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
@@ -176,6 +175,10 @@ export const orderStatusRouter = createTRPCRouter({
         try {
           const customerEmail = orderDoc.userSnapshot.email;
 
+          const subOrderDoc = orderDoc.subOrders.find(
+            (s) => s._id.toString() === input.subOrderId,
+          );
+
           const isOrderFailedOrCanceled =
             input.deliveryStatus === DeliveryStatus.Canceled ||
             input.deliveryStatus === DeliveryStatus.FailedDelivery;
@@ -188,18 +191,11 @@ export const orderStatusRouter = createTRPCRouter({
           // than arriving alongside it: two emails about the same event, one of
           // which buries the code, is how the code gets missed at the gate.
           if (issuedCode) {
-            const subOrderDoc = orderDoc.subOrders.find(
-              (s) => s._id.toString() === input.subOrderId,
-            );
-
             const codeHtml = await renderTemplate(
               React.createElement(OutForDeliveryEmail, {
                 customerName: orderDoc.userSnapshot.name,
                 storeName: storeSession.name,
-                orderReference: formatOrderNumber(
-                  input.subOrderId,
-                  orderDoc.createdAt,
-                ),
+                orderReference: subOrderDoc?.reference ?? "",
                 deliveryCode: issuedCode,
                 orderId: input.orderId,
                 items:
@@ -235,7 +231,8 @@ export const orderStatusRouter = createTRPCRouter({
               React.createElement(OrderStatusEmail, {
                 customerName: orderDoc.userSnapshot.name,
                 orderId: input.orderId,
-                subOrderId: input.subOrderId,
+                orderReference: orderDoc.reference,
+                subOrderReference: subOrderDoc?.reference ?? "",
                 status: deliveryStatusLabel(input.deliveryStatus),
                 storeName: storeSession.name.toUpperCase(),
                 trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${input.orderId}`,
@@ -261,7 +258,8 @@ export const orderStatusRouter = createTRPCRouter({
               React.createElement(OrderFailureEmail, {
                 deliveryStatus: deliveryStatusLabel(input.deliveryStatus),
                 orderId: input.orderId,
-                subOrderId: input.subOrderId,
+                orderReference: orderDoc.reference,
+                subOrderReference: subOrderDoc?.reference ?? "",
                 storeName: storeSession.name.toUpperCase(),
                 customerEmail: customerEmail || "Unknown",
                 reason: input.notes,

@@ -48,6 +48,7 @@ export class OrderNotificationService {
         React.createElement(OrderConfirmationEmail, {
           customerName: customerInfo.fullName || "Customer",
           orderId: (order._id as { toString: () => string }).toString(),
+          orderReference: order.reference,
           items: allOrderItems,
           shippingFee,
           totalAmount,
@@ -131,6 +132,7 @@ export class OrderNotificationService {
             storeName: store.name,
             storeId: store._id.toString(),
             orderId: (order._id as { toString: () => string }).toString(),
+            subOrderReference: subOrder.reference,
             items,
             shippingFee,
             totalAmount,

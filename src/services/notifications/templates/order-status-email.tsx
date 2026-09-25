@@ -16,14 +16,15 @@ import {
 export function OrderStatusEmail({
   customerName,
   orderId,
-  subOrderId,
+  orderReference,
   status,
   storeName,
   trackingUrl,
 }: {
   customerName?: string;
   orderId: string;
-  subOrderId: string;
+  orderReference: string;
+  subOrderReference: string;
   status: string;
   storeName: string;
   trackingUrl: string;
@@ -46,16 +47,9 @@ export function OrderStatusEmail({
         >
           <Row style={{ marginBottom: "5px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
+              Order Reference:
             </Column>
-            <Column>{orderId}</Column>
-          </Row>
-
-          <Row style={{ marginBottom: "5px" }}>
-            <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
-            </Column>
-            <Column>{subOrderId}</Column>
+            <Column>{orderReference}</Column>
           </Row>
 
           <Row style={{ marginBottom: "5px" }}>

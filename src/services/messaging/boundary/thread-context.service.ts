@@ -133,6 +133,7 @@ export class ThreadContextService {
       participants: [customer, store],
       orderRef: {
         subOrderId: new mongoose.Types.ObjectId(subOrderId),
+        reference: subOrder.reference,
         status: subOrder.deliveryStatus,
         total: subOrder.financials?.amountPaid ?? 0,
         itemCount: subOrder.products.length,

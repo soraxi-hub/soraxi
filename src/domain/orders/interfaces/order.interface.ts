@@ -91,6 +91,7 @@ export type ISubOrderInfo = Omit<
  */
 export interface IOrderInfo {
   orderId: string;
+  reference: string;
   userId: string;
   storeIds: string[];
 
@@ -162,6 +163,7 @@ export interface IOrderInfo {
 
 export type OrderPublicJSON = {
   orderId: string;
+  reference: string;
   userId: string;
   stores: string[];
   subOrders: ISubOrderInfo[];
@@ -193,6 +195,7 @@ export type OrderPublicJSON = {
 
 export type OrderStoreJSON = {
   orderId: string;
+  reference: string;
   storeId: string;
   customerInfo: Omit<CustomerInfo, "userId">;
   /**

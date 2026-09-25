@@ -8,22 +8,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { formatOrderNumber } from "@/lib/utils/order-number";
 
 interface OrderHeaderProps {
-  orderId: string;
+  reference: string;
   createdAt: Date | string;
   storesCount: number;
   formattedTotalAmount: string;
 }
 
 export function OrderHeader({
-  orderId,
+  reference,
   createdAt,
   formattedTotalAmount,
 }: OrderHeaderProps) {
-  const reference = formatOrderNumber(orderId, createdAt);
-
   return (
     <div className="flex items-center justify-between py-4">
       <div>

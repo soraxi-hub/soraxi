@@ -8,7 +8,7 @@ import {
 } from "@/domain/notification";
 import React from "react";
 import { EmailTextTemplates } from "@/lib/utils/email-text-templates";
-import { generateUniqueId } from "@/lib/utils";
+import { generateUniqueId } from "@/lib/utils/order-number";
 import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";

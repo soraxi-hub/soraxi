@@ -7,8 +7,8 @@ import { siteConfig } from "@/config/site";
  */
 interface DisputeAutoResolvedCustomerEmailProps {
   customerName: string;
-  orderId: string;
-  suborderId: string;
+  orderReference: string;
+  subOrderReference: string;
   refundAmount: string; // Already formatted (e.g., "₦5,000.00")
 }
 
@@ -20,8 +20,7 @@ interface DisputeAutoResolvedCustomerEmailProps {
  */
 export function DisputeAutoResolvedCustomerEmail({
   customerName,
-  orderId,
-  suborderId,
+  orderReference,
   refundAmount,
 }: DisputeAutoResolvedCustomerEmailProps) {
   return (
@@ -30,9 +29,9 @@ export function DisputeAutoResolvedCustomerEmail({
         <Text>Hi {customerName},</Text>
 
         <Text>
-          Your dispute was not resolved by our team within the review
-          deadline, so it has been automatically resolved in your favour and
-          a full refund has been issued.
+          Your dispute was not resolved by our team within the review deadline,
+          so it has been automatically resolved in your favour and a full refund
+          has been issued.
         </Text>
 
         <Section
@@ -57,28 +56,21 @@ export function DisputeAutoResolvedCustomerEmail({
 
           <Row style={{ marginBottom: "10px" }}>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
+              Order Reference:
             </Column>
-            <Column>{orderId}</Column>
-          </Row>
-
-          <Row>
-            <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
-            </Column>
-            <Column>{suborderId}</Column>
+            <Column>{orderReference}</Column>
           </Row>
         </Section>
 
         <Text>
-          The refunded amount will be returned to your original payment
-          method within <strong>3–15 business days</strong>, depending on
-          your bank or card issuer.
+          The refunded amount will be returned to your original payment method
+          within <strong>3–15 business days</strong>, depending on your bank or
+          card issuer.
         </Text>
 
         <Text>
-          We apologize for the delay in reviewing your dispute. If you have
-          any questions, please contact our support team at{" "}
+          We apologize for the delay in reviewing your dispute. If you have any
+          questions, please contact our support team at{" "}
           <a
             href={`mailto:${process.env.SORAXI_SUPPORT_EMAIL}`}
             style={{ color: "#14a800" }}

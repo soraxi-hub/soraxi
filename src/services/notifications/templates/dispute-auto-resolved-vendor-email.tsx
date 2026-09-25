@@ -7,8 +7,8 @@ import { siteConfig } from "@/config/site";
  */
 interface DisputeAutoResolvedVendorEmailProps {
   storeName: string;
-  orderId: string;
-  suborderId: string;
+  orderReference: string;
+  subOrderReference: string;
   amountReleased: string; // Already formatted (e.g., "₦5,000.00")
 }
 
@@ -22,8 +22,7 @@ interface DisputeAutoResolvedVendorEmailProps {
  */
 export function DisputeAutoResolvedVendorEmail({
   storeName,
-  orderId,
-  suborderId,
+  subOrderReference,
   amountReleased,
 }: DisputeAutoResolvedVendorEmailProps) {
   return (
@@ -32,10 +31,10 @@ export function DisputeAutoResolvedVendorEmail({
         <Text>Hi {storeName},</Text>
 
         <Text>
-          A dispute involving one of your orders was not reviewed by our
-          team within the resolution deadline. As a result, it has been
-          automatically resolved in the customer&apos;s favour and the
-          frozen funds have been released to them as a refund.
+          A dispute involving one of your orders was not reviewed by our team
+          within the resolution deadline. As a result, it has been automatically
+          resolved in the customer&apos;s favour and the frozen funds have been
+          released to them as a refund.
         </Text>
 
         <Section
@@ -54,31 +53,17 @@ export function DisputeAutoResolvedVendorEmail({
             <Column style={{ fontWeight: "bold" }}>{amountReleased}</Column>
           </Row>
 
-          <Row style={{ marginBottom: "10px" }}>
-            <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Order ID:
-            </Column>
-            <Column>{orderId}</Column>
-          </Row>
-
           <Row>
             <Column style={{ width: "40%", fontWeight: "bold" }}>
-              Sub-Order ID:
+              Order Reference:
             </Column>
-            <Column>{suborderId}</Column>
+            <Column>{subOrderReference}</Column>
           </Row>
         </Section>
 
         <Text>
-          <strong>No penalty has been applied to your account</strong> for
-          this dispute — the deadline was missed by our review team, not by
-          you. Your account has been flagged for a routine review as part of
-          our standard process; this is not a punitive action.
-        </Text>
-
-        <Text>
-          If you believe this dispute was resolved in error, please contact
-          our support team at{" "}
+          If you believe this dispute was resolved in error, please contact our
+          support team at{" "}
           <a
             href={`mailto:${process.env.SORAXI_SUPPORT_EMAIL}`}
             style={{ color: "#14a800" }}

@@ -10,6 +10,7 @@
     "start:create:superAdmin": "tsx scripts/create-super-admin.ts",
     "start:drop-user-postal-code": "tsx scripts/drop-user-postal-code.ts",
     "start:publish-pending-products": "tsx scripts/publish-pending-products.ts",
+    "start:backfill-order-reference": "tsx scripts/backfill-order-reference.ts",
     "lint": "next lint",
     "email:dev": "email dev --dir src/services/notifications/templates --port 4000",
     "test": "vitest run",
