@@ -31,7 +31,6 @@ import {
 import { format } from "date-fns";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { formatNaira } from "@/lib/utils/naira";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { DisputeStatus, DisputeOutcome } from "@/enums/financial.enums";
@@ -187,7 +186,7 @@ function DisputeMonitoring() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             Dispute Management
@@ -217,7 +216,7 @@ function DisputeMonitoring() {
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-4 flex-wrap">
-            <div className="space-y-2">
+            <div className="space-x-2">
               <label className="text-sm font-medium">Status</label>
               <select
                 value={statusFilter}
@@ -301,7 +300,7 @@ function DisputeMonitoring() {
                       <OutcomeBadge outcome={dispute.outcome} />
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatNaira(dispute.frozenAmount)}
+                      {dispute.formattedFrozenAmount}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(dispute.openedAt), "MMM dd, yyyy")}

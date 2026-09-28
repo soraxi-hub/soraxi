@@ -716,7 +716,13 @@ export class JournalEntryWriter {
 
     assertValidKoboAmount(settleAmount, "settleAmount");
     assertValidKoboAmount(commission, "commission");
-    assertValidKoboAmount(penaltyAmount, "penaltyAmount");
+
+    // Unlike settleAmount/commission, a zero penalty is a legitimate outcome.
+    if (!Number.isInteger(penaltyAmount) || penaltyAmount < 0) {
+      throw new Error(
+        `Invalid Kobo amount for "penaltyAmount": expected a non-negative integer, got ${penaltyAmount}.`,
+      );
+    }
 
     if (
       !Number.isInteger(penaltyFromAvailable) ||
@@ -783,11 +789,15 @@ export class JournalEntryWriter {
             } as PendingLedgerLine,
           ]
         : []),
-      {
-        type: LedgerEntryType.CREDIT,
-        accountType: LedgerAccountType.PLATFORM_REVENUE_PENALTIES,
-        amount: penaltyAmount,
-      },
+      ...(penaltyAmount > 0
+        ? [
+            {
+              type: LedgerEntryType.CREDIT,
+              accountType: LedgerAccountType.PLATFORM_REVENUE_PENALTIES,
+              amount: penaltyAmount,
+            } as PendingLedgerLine,
+          ]
+        : []),
     ];
 
     await this.commitEntry(

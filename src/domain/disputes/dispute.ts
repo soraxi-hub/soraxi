@@ -5,9 +5,10 @@ import {
   DisputeResolvedBy,
   DisputeStatus,
 } from "@/enums/financial.enums";
+import { DateFormatter } from "@/lib/utils/date-formatter";
+import { formatNaira, koboToNaira } from "@/lib/utils/naira";
 
-/** Pure dispute lifecycle rules. Persistence and financial effects belong to
- * the application service that coordinates this aggregate. */
+/** Pure dispute lifecycle rules. */
 export class Dispute {
   constructor(private readonly props: IDisputeRecord) {}
 
@@ -96,7 +97,7 @@ export class Dispute {
   }
 
   // -------------------------------------------------------------------------
-  // FINANCIALS — all values in kobo
+  // FINANCIALS — value pairs (kobo / naira / formatted), matching Order
   // -------------------------------------------------------------------------
 
   /** Raw kobo amount frozen from the vendor's balance when the dispute opened. */
@@ -104,9 +105,29 @@ export class Dispute {
     return this.props.frozenAmount;
   }
 
+  /** Naira equivalent of frozenAmount. */
+  get frozenAmountInNaira(): number {
+    return koboToNaira(this.props.frozenAmount);
+  }
+
+  /** Display-ready frozen amount. Example: ₦5,000 */
+  get formattedFrozenAmount(): string {
+    return formatNaira(this.props.frozenAmount);
+  }
+
   /** Raw kobo penalty applied to the vendor — 0 unless the dispute is upheld. */
   get penaltyAmount(): number {
     return this.props.penaltyAmount;
+  }
+
+  /** Naira equivalent of penaltyAmount. */
+  get penaltyAmountInNaira(): number {
+    return koboToNaira(this.props.penaltyAmount);
+  }
+
+  /** Display-ready penalty amount. Example: ₦500 */
+  get formattedPenaltyAmount(): string {
+    return formatNaira(this.props.penaltyAmount);
   }
 
   get hasPenalty(): boolean {
@@ -165,6 +186,14 @@ export class Dispute {
   /** True when a day-4 warning has already been sent. */
   get hasWarningBeenIssued(): boolean {
     return !!this.props.warningIssuedAt;
+  }
+
+  /**
+   * Business days left to resolve.
+   */
+  get businessDaysRemaining(): number | null {
+    if (!this.isOpen && !this.isAwaitingEvidence) return null;
+    return DateFormatter.businessDaysUntil(this.props.deadline, [0, 6]);
   }
 
   // -------------------------------------------------------------------------
@@ -272,13 +301,60 @@ export class Dispute {
   /**
    * Returns the aggregate's underlying record for persistence.
    *
-   * Callers are expected to hand this to a repository that writes only the
-   * fields the aggregate mutates. Do not spread this into a full document
-   * replace — it includes identity fields (`_id`, `suborderId`, `orderId`,
-   * `customerId`, `vendorId`, `reason`, `evidence`, `frozenAmount`, `openedAt`,
-   * `deadline`) that are immutable after open.
+   * Do not spread this into a full document  replace — it includes identity fields that are immutable after open.
    */
   toPersistence(): IDisputeRecord {
     return this.props;
+  }
+
+  // -------------------------------------------------------------------------
+  // DTOs
+  // -------------------------------------------------------------------------
+  toAdminListJSON() {
+    return {
+      disputeId: this.disputeId,
+      status: this.status,
+      outcome: this.outcome ?? null,
+      frozenAmount: this.frozenAmount,
+      frozenAmountInNaira: this.frozenAmountInNaira,
+      formattedFrozenAmount: this.formattedFrozenAmount,
+      openedAt: this.openedAt,
+      deadline: this.deadline,
+      resolvedAt: this.resolvedAt ?? null,
+      businessDaysRemaining: this.businessDaysRemaining,
+      orderId: this.orderId,
+      suborderId: this.suborderId,
+      studentId: this.customerId,
+      vendorId: this.vendorId,
+    };
+  }
+
+  toAdminDetailJSON() {
+    return {
+      disputeId: this.disputeId,
+      status: this.status,
+      outcome: this.outcome ?? null,
+      reason: this.reason,
+      evidence: this.evidence,
+      additionalEvidence: this.additionalEvidence,
+      frozenAmount: this.frozenAmount,
+      frozenAmountInNaira: this.frozenAmountInNaira,
+      formattedFrozenAmount: this.formattedFrozenAmount,
+      penaltyAmount: this.penaltyAmount,
+      penaltyAmountInNaira: this.penaltyAmountInNaira,
+      formattedPenaltyAmount: this.formattedPenaltyAmount,
+      openedAt: this.openedAt,
+      deadline: this.deadline,
+      businessDaysRemaining: this.businessDaysRemaining,
+      warningIssuedAt: this.warningIssuedAt ?? null,
+      resolvedAt: this.resolvedAt ?? null,
+      resolvedBy: this.resolvedBy ?? null,
+      resolutionNotes: this.resolutionNotes ?? null,
+      additionalEvidenceDeadline: this.additionalEvidenceDeadline ?? null,
+      orderId: this.orderId,
+      suborderId: this.suborderId,
+      studentId: this.customerId,
+      vendorId: this.vendorId,
+    };
   }
 }

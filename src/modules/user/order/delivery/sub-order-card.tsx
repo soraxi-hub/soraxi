@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ type SubOrder = OrderOutput["subOrders"][number];
 
 interface SubOrderCardProps {
   isPaid: boolean;
+  orderId: string;
   subOrder: SubOrder;
   financialStatus?: {
     status: SuborderFinancialStatus;
@@ -46,6 +48,7 @@ interface SubOrderCardProps {
  */
 export function SubOrderCard({
   subOrder,
+  orderId,
   financialStatus,
   onConfirmReceipt,
   onReviewInit,
@@ -107,14 +110,26 @@ export function SubOrderCard({
                 </Badge>
               )}
 
-              {isDisputed && (
-                <Badge
-                  variant="outline"
-                  className="border-soraxi-error/40 text-[10px] text-soraxi-error"
-                >
-                  Dispute open
-                </Badge>
-              )}
+              {isDisputed &&
+                (financialStatus?.disputeId ? (
+                  <Link
+                    href={`/orders/${orderId}/dispute/${financialStatus.disputeId}`}
+                  >
+                    <Badge
+                      variant="outline"
+                      className="border-soraxi-error/40 text-[10px] text-soraxi-error hover:bg-soraxi-error/10"
+                    >
+                      Dispute open — view status
+                    </Badge>
+                  </Link>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="border-soraxi-error/40 text-[10px] text-soraxi-error"
+                  >
+                    Dispute open
+                  </Badge>
+                ))}
 
               {isRefunded && (
                 <Badge

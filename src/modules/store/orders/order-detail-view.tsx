@@ -257,10 +257,8 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {order.customerInfo.name} · {order.totalItems}{" "}
-            {order.totalItems === 1 ? "item" : "items"} ·{" "}
-            {order.subOrder.financials?.formattedAmountPaid ??
-              order.formattedTotalAmount}{" "}
-            · placed {format(new Date(order.createdAt), "d MMMM yyyy")}
+            {order.totalItems === 1 ? "item" : "items"} · placed{" "}
+            {format(new Date(order.createdAt), "d MMMM yyyy")}
           </p>
         </div>
 
@@ -454,7 +452,7 @@ export default function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
           <FinancialsCard
             financials={order.subOrder.financials}
-            shippingPrice={order.subOrder.shippingMethod?.price}
+            shippingPrice={order.subOrder.financials.formattedShippingFee}
             paymentStatus={order.paymentStatus}
             financialStatus={financialStatus?.status}
             hasDeliveryProof={Boolean(

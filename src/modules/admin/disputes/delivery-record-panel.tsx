@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Info, ShieldCheck, TriangleAlert } from "lucide-react";
+import { CheckCircle2, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -184,23 +184,6 @@ export function DeliveryRecordPanel({
           )}
           <Row label="Method" value={methodDetail} />
         </div>
-
-        {/*
-          The permanent scope note. Without it, a moderator reading a
-          damaged-goods or wrong-item case could take a green panel as grounds
-          to rule for the vendor — on a record that answers a different
-          question entirely.
-        */}
-        <p className="flex gap-2 rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
-          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>
-            This record answers <strong>whether the parcel arrived</strong>. It
-            does not show what was inside it, whether it matched the listing, or
-            what condition it was in. Weigh it only against claims about
-            non-delivery — for anything else, read the customer&apos;s account
-            and the evidence below.
-          </span>
-        </p>
       </CardContent>
     </Card>
   );

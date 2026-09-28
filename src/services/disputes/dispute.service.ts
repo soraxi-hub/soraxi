@@ -21,6 +21,8 @@ import {
   debitPlatformCommission,
 } from "@/lib/db/models/platform-wallet.model";
 import { calculatePenalty } from "@/lib/utils/calculate-penalty.util";
+import { formatNaira, koboToNaira } from "@/lib/utils/naira";
+import { toAdminProofView } from "@/domain/orders/delivery-proof-projection";
 import {
   DebtRecoveryType,
   DisputeStatus,
@@ -551,6 +553,95 @@ export class DisputeService {
     >(Model)
       .where("orderId", new mongoose.Types.ObjectId(orderId))
       .executeOne();
+  }
+
+  /**
+   * Paginated dispute list for the admin dashboard.
+   */
+  static async getDisputesAdminView(input: {
+    page: number;
+    limit: number;
+    status: DisputeStatus | "all";
+  }) {
+    const { page, limit, status } = input;
+
+    const { data, total } = await DisputeRepository.findPaginated(
+      status === "all" ? {} : { status },
+      page,
+      limit,
+    );
+
+    return {
+      disputes: data.map((raw) => DisputeFactory.create(raw).toAdminListJSON()),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Full dispute detail for the admin resolution page.
+   */
+  static async getDisputeAdminView(disputeId: string) {
+    if (!mongoose.Types.ObjectId.isValid(disputeId)) {
+      throw new AppError("BAD_REQUEST", "Invalid dispute ID format.");
+    }
+
+    const rawDispute = await DisputeRepository.findById(disputeId);
+
+    if (!rawDispute) {
+      throw new AppError(
+        "NOT_FOUND",
+        "No dispute exists with that ID. It may have been resolved and archived.",
+      );
+    }
+
+    const dispute = DisputeFactory.create(rawDispute);
+
+    const [transaction, orderContext] = await Promise.all([
+      this.getTransaction(dispute.orderId),
+      OrderRepository.findSubOrderById(dispute.suborderId),
+    ]);
+
+    const breakdown = transaction?.suborderBreakdowns.find(
+      (b) => b.suborderId.toString() === dispute.suborderId,
+    );
+    const subOrder = orderContext?.subOrder;
+
+    return {
+      ...dispute.toAdminDetailJSON(),
+      // Financial breakdown for this specific suborder
+      financialBreakdown: breakdown
+        ? {
+            grossAmount: breakdown.grossAmount,
+            grossAmountInNaira: koboToNaira(breakdown.grossAmount),
+            formattedGrossAmount: formatNaira(breakdown.grossAmount),
+            commission: breakdown.commission,
+            commissionInNaira: koboToNaira(breakdown.commission),
+            formattedCommission: formatNaira(breakdown.commission),
+            settleAmount: breakdown.settleAmount,
+            settleAmountInNaira: koboToNaira(breakdown.settleAmount),
+            formattedSettleAmount: formatNaira(breakdown.settleAmount),
+          }
+        : null,
+      // Suborder products for context
+      products:
+        subOrder?.products.map((p) => ({
+          name: p.productSnapshot.name,
+          quantity: p.productSnapshot.quantity,
+          price: p.productSnapshot.price,
+          priceInNaira: koboToNaira(p.productSnapshot.price),
+          formattedPrice: formatNaira(p.productSnapshot.price),
+          image: p.productSnapshot.images?.[0] ?? null,
+        })) ?? [],
+      deliveryRecord: subOrder
+        ? toAdminProofView(subOrder.deliveryProof)
+        : null,
+      subOrderReference: subOrder?.reference ?? null,
+    };
   }
 
   private static async setSuborderStatus(

@@ -174,6 +174,7 @@ export default function OrderDetailsPage({ slug }: { slug: string }) {
         {orderDetails.subOrders.map((subOrder) => (
           <SubOrderCard
             key={subOrder._id.toString()}
+            orderId={slug}
             subOrder={subOrder}
             financialStatus={financialStatuses[subOrder._id.toString()]}
             onConfirmReceipt={updateDeliveryStatus}

@@ -121,9 +121,9 @@ function DisputeStatusContent({
 export default async function DisputeStatusPage({
   params,
 }: {
-  params: Promise<{ orderId: string; disputeId: string }>;
+  params: Promise<{ slug: string; disputeId: string }>;
 }) {
-  const { orderId, disputeId } = await params;
+  const { slug: orderId, disputeId } = await params;
   return (
     <QueryBoundary>
       <Suspense

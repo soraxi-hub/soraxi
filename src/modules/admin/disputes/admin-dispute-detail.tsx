@@ -5,7 +5,6 @@ import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   Clock,
   ImageIcon,
@@ -26,7 +25,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { formatNaira } from "@/lib/utils/naira";
 import { withAdminAuth } from "@/modules/auth/with-admin-auth";
 import { PERMISSIONS } from "@/modules/admin/security/permissions";
 import { DisputeStatus, DisputeOutcome } from "@/enums/financial.enums";
@@ -183,22 +181,14 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/disputes">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Disputes
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Dispute #{disputeId.slice(-8).toUpperCase()}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Opened{" "}
-              {format(new Date(dispute.openedAt), "MMMM dd, yyyy 'at' h:mm a")}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Dispute #{disputeId.slice(-8).toUpperCase()}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Opened{" "}
+            {format(new Date(dispute.openedAt), "MMMM dd, yyyy 'at' h:mm a")}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Status badge */}
@@ -263,7 +253,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
                 <div className="text-center p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20">
                   <p className="text-xs text-muted-foreground">Frozen</p>
                   <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
-                    {formatNaira(dispute.frozenAmountNaira)}
+                    {dispute.formattedFrozenAmount}
                   </p>
                 </div>
                 {dispute.financialBreakdown && (
@@ -271,7 +261,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
                     <div className="text-center p-3 rounded-lg bg-muted/40">
                       <p className="text-xs text-muted-foreground">Gross</p>
                       <p className="text-sm font-semibold">
-                        {formatNaira(dispute.financialBreakdown.grossAmount)}
+                        {dispute.financialBreakdown.formattedGrossAmount}
                       </p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-muted/40">
@@ -279,7 +269,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
                         Commission
                       </p>
                       <p className="text-sm font-semibold text-soraxi-green">
-                        {formatNaira(dispute.financialBreakdown.commission)}
+                        {dispute.financialBreakdown.formattedCommission}
                       </p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-muted/40">
@@ -287,7 +277,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
                         Vendor Net
                       </p>
                       <p className="text-sm font-semibold">
-                        {formatNaira(dispute.financialBreakdown.settleAmount)}
+                        {dispute.financialBreakdown.formattedSettleAmount}
                       </p>
                     </div>
                   </>
@@ -330,7 +320,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
                         {product.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Qty: {product.quantity} × {formatNaira(product.price)}
+                        Qty: {product.quantity} × {product.formattedPrice}
                       </p>
                     </div>
                   </div>
@@ -621,7 +611,7 @@ function AdminDisputeDetailContent({ disputeId }: { disputeId: string }) {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Frozen amount</span>
               <span className="font-semibold">
-                {formatNaira(dispute.frozenAmountNaira)}
+                {dispute.formattedFrozenAmount}
               </span>
             </div>
           </div>
