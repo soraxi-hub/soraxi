@@ -142,6 +142,34 @@ export class DisputeRepository {
   }
 
   /**
+   * Paginated, optionally status-filtered dispute list for the admin
+   * dashboard. Sorted by deadline ascending — most urgent first; resolved
+   * disputes' deadlines are in the past, so they naturally sort last.
+   *
+   * @returns `{data, total}` — total is unsliced, for pagination metadata
+   */
+  static async findPaginated(
+    filter: { status?: DisputeStatus },
+    page: number,
+    limit: number,
+  ): Promise<{ data: IDisputeRecord[]; total: number }> {
+    const Model = await getDisputeRecordModel();
+    const builder = QueryBuilderFactory.queryBuilder<
+      IDisputeRecord,
+      IDisputeRecordDocument
+    >(Model)
+      .sortBy("deadline", "asc")
+      .paginate(page, limit)
+      .withLean(true);
+
+    if (filter.status) {
+      builder.where("status", filter.status);
+    }
+
+    return builder.paginatedExecute();
+  }
+
+  /**
    * Mark a dispute's day-4 warning as sent.
    *
    * @param id - The _id of the dispute record

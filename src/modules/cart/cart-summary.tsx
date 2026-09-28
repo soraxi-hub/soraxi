@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 // import { Badge } from "@/components/ui/badge";
-import { Truck, Shield, RotateCcw } from "lucide-react";
+import { Truck, Shield } from "lucide-react";
 import { formatNaira } from "@/lib/utils/naira";
 
 interface CartSummaryProps {
@@ -96,10 +96,10 @@ export function CartSummary({
               <Truck className="h-4 w-4 text-blue-600" />
               <p className="text-xs text-muted-foreground">Fast Delivery</p>
             </div>
-            <div className="flex flex-col items-center gap-1">
+            {/* <div className="flex flex-col items-center gap-1">
               <RotateCcw className="h-4 w-4 text-orange-600" />
               <p className="text-xs text-muted-foreground">Easy Returns</p>
-            </div>
+            </div> */}
           </div>
         </CardContent>
       </Card>

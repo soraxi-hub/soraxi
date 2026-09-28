@@ -469,10 +469,26 @@ export class Order implements IOrderInfo {
       );
 
     if (sub.deliveryStatus !== DeliveryStatus.Delivered) {
-      throw new AppError(
-        "PRECONDITION_FAILED",
-        `This order is still marked ${deliveryStatusLabel(sub.deliveryStatus)}. You can confirm it once it has been delivered to you.`,
-      );
+      // A customer confirming receipt *is* the delivery event — vendors ship
+      // and hand off; whether it actually arrived is the buyer's to attest.
+      // So confirmation is allowed as soon as the status machine would allow
+      // a move straight to Delivered (Shipped/OutForDelivery today), and the
+      // transition itself happens here rather than waiting on the vendor.
+      if (!this.canTransition(sub.deliveryStatus, DeliveryStatus.Delivered)) {
+        throw new AppError(
+          "PRECONDITION_FAILED",
+          `This order is still marked ${deliveryStatusLabel(sub.deliveryStatus)}. You can confirm it once it has shipped.`,
+        );
+      }
+
+      const now = new Date();
+      sub.deliveryStatus = DeliveryStatus.Delivered;
+      sub.deliveryDate = now;
+      sub.statusHistory.push({
+        status: StatusHistory.Delivered,
+        timestamp: now,
+        notes: "Delivery confirmed by the customer.",
+      });
     }
 
     sub.customerConfirmedDelivery = {

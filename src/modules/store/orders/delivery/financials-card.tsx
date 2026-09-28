@@ -12,7 +12,7 @@ import type { ISubOrderFinancialsFormatted } from "@/domain/orders/interfaces/or
 
 interface FinancialsCardProps {
   financials?: ISubOrderFinancialsFormatted;
-  shippingPrice?: number;
+  shippingPrice?: string;
   paymentStatus?: string;
   /** Undefined until the financial statuses query resolves. */
   financialStatus?: SuborderFinancialStatus;
@@ -75,10 +75,7 @@ export function FinancialsCard({
                 value={financials.formattedSubtotal}
               />
 
-              <Line
-                label="Shipping"
-                value={formatNaira(shippingPrice ?? 0)}
-              />
+              <Line label="Shipping" value={shippingPrice ?? ""} />
 
               {financials.discount && (
                 <Line
@@ -145,7 +142,12 @@ function Line({
 }) {
   return (
     <div className="flex justify-between gap-2">
-      <span className={cn(muted ? "text-muted-foreground" : "", bold && "font-semibold")}>
+      <span
+        className={cn(
+          muted ? "text-muted-foreground" : "",
+          bold && "font-semibold",
+        )}
+      >
         {label}
       </span>
       <span

@@ -25,7 +25,7 @@ export class OrderNotificationService {
    */
   async sendCustomerNotification(
     order: IOrder,
-    customerInfo: CustomerInfo
+    customerInfo: CustomerInfo,
   ): Promise<boolean> {
     try {
       const allOrderItems = order.subOrders.flatMap((subOrder) =>
@@ -33,7 +33,7 @@ export class OrderNotificationService {
           name: p.productSnapshot.name,
           quantity: p.productSnapshot.quantity,
           price: p.productSnapshot.price || 0,
-        }))
+        })),
       );
 
       // order.totalAmount already reflects product amounts after discount,
@@ -41,7 +41,7 @@ export class OrderNotificationService {
       const totalAmount = order.totalAmount;
       const shippingFee = order.subOrders.reduce(
         (sum, subOrder) => sum + (subOrder.shippingMethod?.price || 0),
-        0
+        0,
       );
 
       const html = await renderTemplate(
@@ -53,16 +53,16 @@ export class OrderNotificationService {
           shippingFee,
           totalAmount,
           deliveryDate: undefined,
-        })
+        }),
       );
 
       const notification = NotificationFactory.create("email", {
         recipient: customerInfo.email,
-        subject: `Order Confirmation - ${(order._id as { toString: () => string }).toString()}`,
+        subject: `Order Confirmation - ${order.reference}`,
         emailType: "orderConfirmation",
         fromAddress: "orders@soraxihub.com",
         html,
-        text: `Thank you for your order! Your order ID is ${(order._id as { toString: () => string }).toString()}.`,
+        text: `Thank you for your order! Your order ID is ${order.reference}.`,
       });
 
       await notification.send();
@@ -89,7 +89,7 @@ export class OrderNotificationService {
    */
   async sendStoreNotifications(
     order: IOrder,
-    customerInfo: CustomerInfo
+    customerInfo: CustomerInfo,
   ): Promise<number> {
     const Store = await getStoreModel();
     let sent = 0;
@@ -139,16 +139,16 @@ export class OrderNotificationService {
             customerName: customerInfo.fullName,
             customerEmail: customerInfo.email,
             deliveryAddress,
-          })
+          }),
         );
 
         const notification = NotificationFactory.create("email", {
           recipient: store.storeEmail,
-          subject: `New Order Received - ${(order._id as { toString: () => string }).toString()}`,
+          subject: `New Order Received - ${subOrder.reference}`,
           emailType: "storeOrderNotification",
           fromAddress: "orders@soraxihub.com",
           html,
-          text: `You have received a new order with ID: ${(order._id as { toString: () => string }).toString()}.`,
+          text: `You have received a new order with ID: ${subOrder.reference}.`,
         });
 
         await notification.send();

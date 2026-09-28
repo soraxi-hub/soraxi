@@ -19,6 +19,7 @@ import {
 import { withTransaction } from "./test-db";
 import { getOrderModel } from "@/lib/db/models/order.model";
 import { DeliveryType, PaymentGateway, PaymentStatus } from "@/enums";
+import { generateOrderReference } from "@/lib/utils/order-number";
 
 import { settleSuborder } from "@/services/orders/suborder-settlement.service";
 
@@ -63,6 +64,7 @@ export async function seedPendingOrder(params: {
   const userId = params.userId ?? new mongoose.Types.ObjectId();
 
   const order = await Order.create({
+    reference: generateOrderReference(params.createdAt ?? new Date()),
     userId,
     userSnapshot: {
       name: "Ada Obi",
