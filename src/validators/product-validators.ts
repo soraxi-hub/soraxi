@@ -1,13 +1,16 @@
 import { z } from "zod";
 import { storePassword } from "./store-validators";
-import { formatNaira } from "@/lib/utils/naira";
 import { ProductTypeEnum } from "@/enums";
+import {
+  PRODUCT_PRICE_MIN_NAIRA,
+  PRODUCT_PRICE_MAX_NAIRA,
+} from "@/constants/product.constants";
 
 export const ProductSizesSchema = z
   .array(
     z.object({
       size: z.string().min(1, "Size is required"),
-      price: z.number().min(500, "Price must be greater than 499"),
+      price: z.number().min(PRODUCT_PRICE_MIN_NAIRA, "Price must be greater than 499"),
       quantity: z.number().min(0, "Quantity cannot be negative"),
     }),
   )
@@ -28,8 +31,11 @@ export const productType = z
 
 export const productPrice: z.ZodOptional<z.ZodNumber> = z
   .number()
-  .min(500, "Price must be greater than 499")
-  .max(500000, `Price must be less than ${formatNaira(50000000)}.`)
+  .min(PRODUCT_PRICE_MIN_NAIRA, "Price must be greater than 499")
+  .max(
+    PRODUCT_PRICE_MAX_NAIRA,
+    `Price must be less than ₦${PRODUCT_PRICE_MAX_NAIRA.toLocaleString()}.`,
+  )
   .optional();
 
 export const productQuantity = z
