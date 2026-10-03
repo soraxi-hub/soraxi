@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,21 +32,67 @@ export function CreateStorePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingInvite, setIsCheckingInvite] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resError, setResError] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const token = searchParams.get("token");
+  const applicationId = searchParams.get("applicationId");
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isValid },
     setError,
   } = useForm<CreateStoreFormData>({
     resolver: zodResolver(createStoreSchema),
     mode: "onChange",
   });
+
+  // Prefill the form from the waitlist invite, if this page was reached via
+  // an invite link rather than typed in directly.
+  useEffect(() => {
+    if (!token || !applicationId) {
+      setIsCheckingInvite(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const response = await fetch(
+          `/api/store/create?token=${encodeURIComponent(token)}&applicationId=${encodeURIComponent(applicationId)}`,
+          { signal: controller.signal },
+        );
+        const result = await response.json();
+
+        if (!response.ok) {
+          setInviteError(
+            result?.error?.message ||
+              "This invite link is invalid or has expired.",
+          );
+          return;
+        }
+
+        reset({
+          storeName: result.businessName,
+          storeEmail: result.email,
+        });
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setInviteError("This invite link is invalid or has expired.");
+        }
+      } finally {
+        setIsCheckingInvite(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [token, applicationId, reset]);
 
   /**
    * Handle store creation form submission
@@ -66,6 +112,7 @@ export function CreateStorePage() {
           storeEmail: data.storeEmail,
           password: data.password,
           token,
+          applicationId,
         }),
       });
 
@@ -129,6 +176,10 @@ export function CreateStorePage() {
         </div>
 
         {resError && <AlertUI message={resError} variant={"destructive"} />}
+
+        {inviteError && (
+          <AlertUI message={inviteError} variant={"destructive"} />
+        )}
 
         {/* Store Creation Form */}
         <Card className="dark:bg-muted/50">
@@ -271,13 +322,20 @@ export function CreateStorePage() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={!isValid || isLoading}
+                disabled={
+                  !isValid || isLoading || isCheckingInvite || !!inviteError
+                }
                 className="w-full bg-soraxi-green hover:bg-soraxi-green/90 text-white"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Creating Store...
+                  </>
+                ) : isCheckingInvite ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Checking invite link...
                   </>
                 ) : (
                   "Create Store"

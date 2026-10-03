@@ -133,13 +133,15 @@ export class VendorApplication {
     return this.props.status === "pending";
   }
 
+  canIssueInvite(): boolean {
+    return this.props.status === "approved" || this.props.status === "invited";
+  }
+
   // ─── State transitions ────────────────────────────────────────────────────
 
   /**
-   * Approval creates the vendor's store outright and emails them a temporary
-   * password, so there is no invite for them to redeem and no token to issue.
-   * `inviteToken` / `inviteExpiresAt` survive on the props only to keep older
-   * records readable.
+   * Marks the application approved. The vendor still has to redeem an invite
+   * link (see `issueInvite`) to actually set up their store.
    */
   approve(adminId: string): void {
     if (!this.canBeApproved()) {
@@ -150,6 +152,24 @@ export class VendorApplication {
 
     this.props.status = "approved";
     this.props.reviewedBy = adminId;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Issues a signup invite: stores a hash of the token (never the raw value)
+   * and moves the application to "invited". The caller emails the raw token
+   * to the vendor as a link; it's redeemed by the store-creation flow.
+   */
+  issueInvite(tokenHash: string, expiresAt: Date): void {
+    if (!this.canIssueInvite()) {
+      throw new Error(
+        `Application ${this.props.referenceId} cannot be invited from status: ${this.props.status}`,
+      );
+    }
+
+    this.props.status = "invited";
+    this.props.inviteToken = tokenHash;
+    this.props.inviteExpiresAt = expiresAt;
     this.props.updatedAt = new Date();
   }
 
