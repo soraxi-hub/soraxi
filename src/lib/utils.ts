@@ -231,6 +231,10 @@ export function scrollToTop() {
  * Generates a temporary password from a given value (e.g. business or store name).
  * The generated password always includes uppercase and lowercase letters,
  * numbers, and a special character to satisfy the application's password policy.
+ *
+ * @deprecated No longer used for vendor approval — vendors now set their own
+ * password via a signup invite link (see `WaitlistService.approveApplication`
+ * and `VendorApplication.issueInvite`). Kept for backward compatibility only.
  */
 export function generateDefaultPassword(value: string): string {
   const cleaned = value.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "");

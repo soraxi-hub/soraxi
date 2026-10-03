@@ -360,7 +360,7 @@ changes, these articles are part of the change.
 | Commission: 5% + ₦100/₦200 tiers              | `lib/utils/calculate-commission.ts`                                  | fees-and-commission                                                                                       |
 | Withdrawal min ₦1,000 / max ₦100,000          | `WITHDRAWAL_LIMITS`, `MINIMUM_PAYOUT_AMOUNT_KOBO`                    | fees-and-commission, withdrawals, payout-settings                                                         |
 | Withdrawal fee 1% + ₦50                       | `WITHDRAWAL_FEES`                                                    | fees-and-commission, withdrawals, payout-settings                                                         |
-| Product limits (₦500–₦100,000, 3 images, 4MB) | `validators/product-validators.ts`, `constants/image.constants.ts`   | manage-products                                                                                           |
+| Product limits (₦500–₦500,000, 3 images, 4MB) | `validators/product-validators.ts`, `constants/image.constants.ts`   | manage-products                                                                                           |
 | Order status transitions                      | `domain/orders/order.ts` — `canTransition`                           | order-statuses, order-fulfilment                                                                          |
 
 > **Note.** `grep -rn "3 days\|5 business days\|48 hours" src/app/docs/articles`

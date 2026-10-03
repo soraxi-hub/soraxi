@@ -9,7 +9,7 @@ import { siteConfig } from "@/config/site";
 import {
   NotificationFactory,
   renderTemplate,
-  VendorApplicationApprovedEmail,
+  VendorInviteEmail,
   WaitlistConfirmationEmail,
   WaitlistRejectionEmail,
 } from "@/domain/notification";
@@ -18,9 +18,9 @@ import React from "react";
 import mongoose from "mongoose";
 import { AppError } from "@/lib/errors/app-error";
 import { StoreRepository } from "@/repositories/store-repo";
-import { StoreService } from "./store/store.service";
-import { generateDefaultPassword } from "@/lib/utils";
 import { UserRepository } from "@/repositories/user-repo";
+import { OTP } from "@/lib/utils/otp";
+import { PasswordService } from "@/lib/utils";
 import { ProductImageUploadService } from "@/lib/utils/cloudinary/cloudinary-server-side-upload";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
@@ -274,36 +274,25 @@ export class WaitlistService {
 
       application.approve(adminId);
 
+      const rawToken = new OTP().generateResetToken();
+      const hashedToken = await PasswordService.hashPassword(rawToken);
+      const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
+
+      application.issueInvite(hashedToken, expiresAt);
+
       await this.vendorApplicationRepository.save(application, session);
-      const password = generateDefaultPassword(application.businessName);
 
-      // Approval creates the store outright — the vendor signs in with the
-      // temporary password below, so there is no invite to issue or redeem.
-      const savedStore = await StoreService.createStore(
-        {
-          storeName: application.businessName,
-          storeEmail: application.email,
-          password,
-          ownerId: application.submittedBy,
-        },
-        session,
-      );
-
-      const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/store/${savedStore._id.toString()}/dashboard`;
+      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/store/create?token=${rawToken}&applicationId=${application.id}`;
       const subject = `You're invited to join ${siteConfig.name} as a vendor`;
       const html = await renderTemplate(
-        React.createElement(VendorApplicationApprovedEmail, {
+        React.createElement(VendorInviteEmail, {
           businessName: application.businessName,
-          loginUrl,
-          email: application.email,
-          temporaryPassword: password,
+          inviteUrl,
         }),
       );
-      const text = EmailTextTemplates.generateVendorApplicationApprovedText(
+      const text = EmailTextTemplates.generateVendorInviteText(
         application.businessName,
-        application.email,
-        password,
-        loginUrl,
+        inviteUrl,
       );
 
       const notification = NotificationFactory.create("email", {

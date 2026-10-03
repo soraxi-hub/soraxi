@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       React.createElement(OTPVerificationEmail, {
         userName: userName,
         otpCode: otpCode,
-        expiryMinutes: 15,
+        expiryMinutes: otp.OTP_CONFIG.EXPIRY_MINUTES,
       }),
     );
 

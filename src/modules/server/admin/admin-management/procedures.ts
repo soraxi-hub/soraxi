@@ -13,6 +13,7 @@ import {
   logAdminAction,
 } from "@/modules/admin/security/audit-logger";
 import { AdminGuard } from "@/domain/admin/admin-guard";
+import { ADMIN_PASSWORD_MIN_LENGTH } from "@/constants/auth.constants";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -110,7 +111,9 @@ export const adminManagementRouter = createTRPCRouter({
       z.object({
         name: z.string().min(1, "Name is required"),
         email: z.string().email("Invalid email format"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        password: z
+          .string()
+          .min(ADMIN_PASSWORD_MIN_LENGTH, "Password must be at least 8 characters"),
         roles: z.array(z.string()).min(1, "At least one role is required"),
       }),
     )
@@ -227,7 +230,7 @@ export const adminManagementRouter = createTRPCRouter({
         isActive: z.boolean().optional(),
         password: z
           .string()
-          .min(8, "Password must be at least 8 characters")
+          .min(ADMIN_PASSWORD_MIN_LENGTH, "Password must be at least 8 characters")
           .optional(),
       }),
     )

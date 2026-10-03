@@ -1,4 +1,8 @@
-import { WITHDRAWAL_FEES } from "@/constants/financial.constants";
+import {
+  WITHDRAWAL_FEES,
+  FLUTTERWAVE_TRANSFER_FEE_TIERS,
+  FLUTTERWAVE_VAT_RATE,
+} from "@/constants/financial.constants";
 import { DebtRecoveryType } from "@/enums/financial.enums";
 
 /**
@@ -93,19 +97,12 @@ export const calculateDebtRecoveryDeduction = ({
  * All amounts are in Kobo.
  */
 export const calculateGatewayFee = (amount: number) => {
-  let transferFee = 0;
+  const tier = FLUTTERWAVE_TRANSFER_FEE_TIERS.find(
+    (t) => amount <= t.maxAmountKobo,
+  )!;
+  const transferFee = tier.feeKobo;
 
-  if (amount <= 500_000) {
-    // ₦5,000
-    transferFee = 1_000;
-  } else if (amount <= 5_000_000) {
-    // ₦50,000
-    transferFee = 2_500;
-  } else {
-    transferFee = 5_000;
-  }
-
-  const vat = Math.round(transferFee * 0.075);
+  const vat = Math.round(transferFee * FLUTTERWAVE_VAT_RATE);
 
   return {
     transferFee,

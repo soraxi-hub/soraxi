@@ -20,6 +20,65 @@ import {
   UserTokenPayload,
 } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import mongoose from "mongoose";
+import { VendorApplicationRepository } from "@/repositories/vendor-application-repository";
+import { PasswordService } from "@/lib/utils";
+
+const vendorApplicationRepository = new VendorApplicationRepository();
+
+/**
+ * Validates a waitlist invite token against the application it was issued
+ * for. Shared by GET (prefill) and POST (actual store creation).
+ */
+async function resolveInvite(applicationId: string, token: string) {
+  const application = await vendorApplicationRepository.findById(applicationId);
+
+  if (
+    !application ||
+    !application.isInvited() ||
+    !application.inviteToken ||
+    !application.inviteExpiresAt ||
+    application.inviteExpiresAt.getTime() < Date.now()
+  ) {
+    return null;
+  }
+
+  const isMatch = await PasswordService.validatePassword(
+    token,
+    application.inviteToken,
+  );
+
+  return isMatch ? application : null;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    await connectToDatabase();
+
+    const { searchParams } = request.nextUrl;
+    const token = searchParams.get("token");
+    const applicationId = searchParams.get("applicationId");
+
+    if (!token || !applicationId) {
+      throw new AppError("BAD_REQUEST", "Invite token and applicationId are required");
+    }
+
+    const application = await resolveInvite(applicationId, token);
+
+    if (!application) {
+      throw new AppError(
+        "UNAUTHORIZED",
+        "This invite link is invalid or has expired",
+      );
+    }
+
+    return NextResponse.json({
+      businessName: application.businessName,
+      email: application.email,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
 
 export async function POST(request: NextRequest) {
   const session = await mongoose.startSession();
@@ -42,10 +101,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { storeName, storeEmail, password, token } = body;
+    const { storeName, storeEmail, password, token, applicationId } = body;
 
     // Validate required fields
-    if (!token) {
+    if (!token || !applicationId) {
       throw new AppError("BAD_REQUEST", "Invitation token is required");
     }
 
@@ -54,6 +113,22 @@ export async function POST(request: NextRequest) {
       throw new AppError(
         "BAD_REQUEST",
         "Store name, email, and password are required",
+      );
+    }
+
+    const application = await resolveInvite(applicationId, token);
+
+    if (!application) {
+      throw new AppError(
+        "UNAUTHORIZED",
+        "This invite link is invalid or has expired",
+      );
+    }
+
+    if (application.submittedBy !== userData.id) {
+      throw new AppError(
+        "UNAUTHORIZED",
+        "This invite link does not belong to the signed-in account",
       );
     }
 

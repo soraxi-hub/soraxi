@@ -7,6 +7,7 @@ import {
 } from "@/enums/financial.enums";
 import { DateFormatter } from "@/lib/utils/date-formatter";
 import { formatNaira, koboToNaira } from "@/lib/utils/naira";
+import { ADDITIONAL_EVIDENCE_WINDOW_HOURS } from "@/constants/financial.constants";
 
 /** Pure dispute lifecycle rules. */
 export class Dispute {
@@ -253,7 +254,9 @@ export class Dispute {
   requestAdditionalEvidence(now: Date = new Date()) {
     this.assertCanRequestEvidence();
 
-    const deadline48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const deadline48h = new Date(
+      now.getTime() + ADDITIONAL_EVIDENCE_WINDOW_HOURS * 60 * 60 * 1000,
+    );
 
     this.props.status = DisputeStatus.AWAITING_EVIDENCE;
     this.props.outcome = DisputeOutcome.INCONCLUSIVE;

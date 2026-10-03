@@ -87,7 +87,7 @@ export function CartSummary({
           </Button>
 
           {/* Trust Badges */}
-          <div className="grid grid-cols-3 gap-2 pt-4 text-center">
+          <div className="grid grid-cols-2 gap-2 pt-4 text-center">
             <div className="flex flex-col items-center gap-1">
               <Shield className="h-4 w-4 text-green-600" />
               <p className="text-xs text-muted-foreground">Secure Payment</p>

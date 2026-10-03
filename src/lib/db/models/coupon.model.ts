@@ -3,6 +3,10 @@ import { Document, type Model, Schema, model, models } from "mongoose";
 import { connectToDatabase } from "../mongoose";
 import { nairaToKobo } from "@/lib/utils/naira";
 import { CouponTypeEnum } from "@/enums";
+import {
+  COUPON_CODE_MIN_LENGTH,
+  COUPON_CODE_MAX_LENGTH,
+} from "@/constants/coupon.constants";
 
 export type ICouponDocument = ICoupon & Document;
 
@@ -20,8 +24,8 @@ const couponSchema = new Schema<ICouponDocument>(
       unique: true,
       trim: true,
       set: (v: string) => v.trim().toUpperCase(),
-      minlength: 3,
-      maxlength: 20,
+      minlength: COUPON_CODE_MIN_LENGTH,
+      maxlength: COUPON_CODE_MAX_LENGTH,
     },
     type: {
       type: String,

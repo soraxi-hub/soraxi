@@ -1,5 +1,6 @@
 ﻿import crypto from "node:crypto";
 import { PaymentGateway } from "@/enums";
+import { PAYMENT_GATEWAY_RETRY } from "@/constants/payment-gateway.constants";
 import {
   IPaymentGateway,
   GatewayInitiationPayload,
@@ -298,8 +299,8 @@ export class PaystackGateway implements IPaymentGateway {
 
   private readonly apiUrl: string;
   private readonly secretKey: string;
-  private readonly maxRetries = 3;
-  private readonly baseDelay = 500; // ms
+  private readonly maxRetries = PAYMENT_GATEWAY_RETRY.MAX_RETRIES;
+  private readonly baseDelay = PAYMENT_GATEWAY_RETRY.BASE_DELAY_MS;
 
   constructor() {
     this.apiUrl = process.env.PAYSTACK_API_URL || "https://api.paystack.co";

@@ -497,7 +497,7 @@ Great news! Your application to become a vendor on ${siteConfig.name} has been a
 Click the link below to complete your onboarding and start selling:
 ${inviteUrl}
 
-This link will expire in 7 days. If you need a new one, please contact support.
+This link will expire in 14 days. If you need a new one, please contact support.
 
 Best regards,
 The ${siteConfig.name} Team`;
