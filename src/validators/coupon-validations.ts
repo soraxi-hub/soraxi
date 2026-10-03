@@ -1,6 +1,10 @@
 import { z } from "zod";
 import mongoose from "mongoose";
 import { CouponTypeEnum } from "@/enums";
+import {
+  COUPON_CODE_MIN_LENGTH,
+  COUPON_CODE_MAX_LENGTH,
+} from "@/constants/coupon.constants";
 
 /**
  * Zod schema for Coupon
@@ -13,7 +17,7 @@ import { CouponTypeEnum } from "@/enums";
  */
 export const CouponSchema = z.object({
   /** Unique code customers will enter to redeem */
-  code: z.string().min(3).max(20),
+  code: z.string().min(COUPON_CODE_MIN_LENGTH).max(COUPON_CODE_MAX_LENGTH),
 
   /** Whether the coupon provides a percentage or fixed amount discount */
   type: z.nativeEnum(CouponTypeEnum),

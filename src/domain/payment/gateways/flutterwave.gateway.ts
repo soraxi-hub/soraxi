@@ -1,5 +1,7 @@
 ﻿import { koboToNaira, nairaToKobo } from "@/lib/utils/naira";
 import { PaymentGateway } from "@/enums";
+import { FLUTTERWAVE_VAT_RATE } from "@/constants/financial.constants";
+import { PAYMENT_GATEWAY_RETRY } from "@/constants/payment-gateway.constants";
 import {
   IPaymentGateway,
   GatewayInitiationPayload,
@@ -217,7 +219,7 @@ export function normalizeFlutterwaveVerifyResponse(
   // Flutterwave reports amounts and fees in Naira; the platform works in
   // Kobo. app_fee excludes VAT, which Flutterwave charges at 7.5% on the fee.
   const appFeeKobo = nairaToKobo(data.app_fee ?? 0);
-  const vatKobo = Math.round(appFeeKobo * 0.075);
+  const vatKobo = Math.round(appFeeKobo * FLUTTERWAVE_VAT_RATE);
 
   return {
     provider: PaymentGateway.Flutterwave,
@@ -245,8 +247,8 @@ export class FlutterwaveGateway implements IPaymentGateway {
 
   private readonly apiUrl: string;
   private readonly secretKey: string;
-  private readonly maxRetries = 3;
-  private readonly baseDelay = 500; // ms
+  private readonly maxRetries = PAYMENT_GATEWAY_RETRY.MAX_RETRIES;
+  private readonly baseDelay = PAYMENT_GATEWAY_RETRY.BASE_DELAY_MS;
 
   constructor() {
     this.apiUrl =

@@ -18,6 +18,8 @@ export class OTP {
     MAX_REQUEST_ATTEMPTS: 3, // Prevent a user from requesting many OTPs within a short period of time
     ATTEMPT_RESET_MINUTES: 720, // 12 hours in minutes, i.e, 60 minutes * 12 hours = 720 minutes
     MIN_REQUEST_INTERVAL_SECONDS: 60, // Prevent spam
+    // How far back we look when counting recent requests for rate limiting.
+    REQUEST_WINDOW_MINUTES: 15,
   };
 
   /**
@@ -146,7 +148,9 @@ export class OTP {
       };
     }
 
-    const windowStart = new Date(Date.now() - 15 * 60 * 1000); // 15 mins
+    const windowStart = new Date(
+      Date.now() - this.OTP_CONFIG.REQUEST_WINDOW_MINUTES * 60 * 1000,
+    );
 
     const requestCount = await OTPModel.countDocuments({
       entityId: user._id,
@@ -156,7 +160,9 @@ export class OTP {
     });
 
     if (requestCount >= this.OTP_CONFIG.MAX_REQUEST_ATTEMPTS) {
-      user.otpRequestBlockedUntil = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 hrs
+      user.otpRequestBlockedUntil = new Date(
+        Date.now() + this.OTP_CONFIG.ATTEMPT_RESET_MINUTES * 60 * 1000,
+      );
       await user.save();
 
       return {
@@ -281,7 +287,9 @@ export class OTP {
     /**
      * Limit number of requests within a short window (e.g. 15 mins)
      */
-    const windowStart = new Date(Date.now() - 15 * 60 * 1000);
+    const windowStart = new Date(
+      Date.now() - this.OTP_CONFIG.REQUEST_WINDOW_MINUTES * 60 * 1000,
+    );
 
     const requestCount = await OTPModel.countDocuments({
       entityId: user._id,
@@ -424,7 +432,9 @@ export class OTP {
     /**
      * Limit number of requests within a short window (e.g. 15 mins)
      */
-    const windowStart = new Date(Date.now() - 15 * 60 * 1000);
+    const windowStart = new Date(
+      Date.now() - this.OTP_CONFIG.REQUEST_WINDOW_MINUTES * 60 * 1000,
+    );
 
     const requestCount = await OTPModel.countDocuments({
       entityId: store._id,

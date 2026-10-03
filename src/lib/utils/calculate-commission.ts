@@ -1,4 +1,11 @@
 import { currencyOperations } from "./naira";
+import {
+  COMMISSION_LOWER_THRESHOLD_KOBO,
+  COMMISSION_UPPER_THRESHOLD_KOBO,
+  COMMISSION_FLAT_FEE_LOW_KOBO,
+  COMMISSION_FLAT_FEE_HIGH_KOBO,
+  COMMISSION_FEE_PERCENTAGE,
+} from "@/constants/financial.constants";
 
 /**
  * Calculates transaction commission and settlement amount based on Soraxi's fee structure.
@@ -16,19 +23,10 @@ import { currencyOperations } from "./naira";
  * @returns An object containing the commission amount and settlement amount in Kobo
  */
 export const calculateCommission = (amountInKobo: number) => {
-  // Convert Naira thresholds and flat fees into Kobo for accuracy
-  const LOWER_THRESHOLD_KOBO = 250000; // ₦2,500 in Kobo
-  const UPPER_THRESHOLD_KOBO = 500000; // ₦5,000 in Kobo
-  const FLAT_FEE_LOW_KOBO = 10000; // ₦100 in Kobo
-  const FLAT_FEE_HIGH_KOBO = 20000; // ₦200 in Kobo
-
-  // Commission percentage (5%)
-  const FEE_PERCENTAGE = 5;
-
   // Calculate the percentage-based fee
   const percentageFee = currencyOperations.percentage(
     amountInKobo,
-    FEE_PERCENTAGE
+    COMMISSION_FEE_PERCENTAGE
   );
 
   // Initialize commission with percentage fee
@@ -36,14 +34,14 @@ export const calculateCommission = (amountInKobo: number) => {
   let flatFeeApplied = 0;
 
   // Apply Soraxi’s tiered flat fee rules based on thresholds
-  if (amountInKobo < LOWER_THRESHOLD_KOBO) {
+  if (amountInKobo < COMMISSION_LOWER_THRESHOLD_KOBO) {
     // Case 1: Transactions below ₦2,500 → 5% + ₦100 flat fee
-    commission = currencyOperations.add(percentageFee, FLAT_FEE_LOW_KOBO);
-    flatFeeApplied = FLAT_FEE_LOW_KOBO;
-  } else if (amountInKobo >= UPPER_THRESHOLD_KOBO) {
+    commission = currencyOperations.add(percentageFee, COMMISSION_FLAT_FEE_LOW_KOBO);
+    flatFeeApplied = COMMISSION_FLAT_FEE_LOW_KOBO;
+  } else if (amountInKobo >= COMMISSION_UPPER_THRESHOLD_KOBO) {
     // Case 3: Transactions ₦5,000 and above → 5% + ₦200 flat fee
-    commission = currencyOperations.add(percentageFee, FLAT_FEE_HIGH_KOBO);
-    flatFeeApplied = FLAT_FEE_HIGH_KOBO;
+    commission = currencyOperations.add(percentageFee, COMMISSION_FLAT_FEE_HIGH_KOBO);
+    flatFeeApplied = COMMISSION_FLAT_FEE_HIGH_KOBO;
   }
   // Case 2: Between ₦2,500 and ₦4,999 → 5% only (no flat fee)
 
