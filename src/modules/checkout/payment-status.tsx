@@ -65,7 +65,7 @@ export function SlowConfirmationStatus({
           Your payment is still being confirmed.
         </h3>
 
-        <p className="mt-6 max-w-xl text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-6 max-w-lg text-sm text-gray-600 dark:text-gray-400">
           You don&apos;t need to wait here — we&apos;ll email you as soon as
           it&apos;s confirmed, and your order will appear under My Orders. If
           you were charged, your money is safe.
