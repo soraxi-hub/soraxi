@@ -8,7 +8,7 @@ import { Search } from "lucide-react";
 
 import { ProductCard } from "../products/product-detail/product-card";
 import { useQueryState } from "nuqs";
-import { HomeHero } from "./home-page-banner";
+import { CategoryHeroCarousel } from "./category-hero-carousel";
 import ProductLoadingSkeleton from "../skeletons/product-loading-skeleton";
 
 import { HowBuyingWorks } from "./sections/how-buying-works";
@@ -42,7 +42,7 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      {!search && <HomeHero products={allProducts} />}
+      {!search && <CategoryHeroCarousel />}
 
       {!search && (
         <>

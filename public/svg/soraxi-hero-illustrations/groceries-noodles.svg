@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 300">
+  <ellipse cx="130" cy="288" rx="108" ry="8" fill="#000000" opacity="0.15"/>
+  <rect x="30" y="26" width="200" height="250" rx="10" fill="#f2c230"/>
+  <path d="M30 26 h200 v18 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 Z" fill="#e0ad1a"/>
+  <path d="M30 276 h200 v-18 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 l-10 -6 l-10 6 Z" fill="#e0ad1a"/>
+  <rect x="30" y="84" width="200" height="58" fill="#d64534"/>
+  <text x="130" y="124" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="30" fill="#ffffff">NOODLES</text>
+  <path d="M74 196 Q130 262 186 196 Z" fill="#ffffff"/>
+  <ellipse cx="130" cy="196" rx="56" ry="13" fill="#f7e2a0"/>
+  <path d="M96 192 q8 -10 16 0 t16 0 t16 0 t16 0" fill="none" stroke="#e0b84f" stroke-width="4" stroke-linecap="round"/>
+  <rect x="150" y="160" width="6" height="40" rx="3" fill="#1e1e1e" transform="rotate(20 153 180)"/>
+  <rect x="162" y="160" width="6" height="40" rx="3" fill="#1e1e1e" transform="rotate(20 165 180)"/>
+</svg>
