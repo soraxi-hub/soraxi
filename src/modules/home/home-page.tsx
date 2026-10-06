@@ -30,11 +30,14 @@ export function HomePage() {
 
   // Data fetching with tRPC and React Query
   const { data: publicProductsData, isLoading: productsLoading } = useQuery(
-    trpc.home.getPublicProducts.queryOptions({
-      search: search || undefined,
-      page: 1,
-      limit: 50,
-    }),
+    trpc.home.getPublicProducts.queryOptions(
+      {
+        search: search || undefined,
+        page: 1,
+        limit: 50,
+      },
+      { enabled: !!search },
+    ),
   );
 
   const allProducts = publicProductsData?.products || [];
