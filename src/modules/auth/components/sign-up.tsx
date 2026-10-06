@@ -126,8 +126,9 @@ function SignUp() {
         (response.status >= 200 && response.status < 300) ||
         response.data?.success === true
       ) {
-        toast.success("Sign Up Successful");
-        router.push("/sign-in");
+        toast.success("Welcome to Soraxi!");
+        router.push("/");
+        router.refresh();
         return;
       }
       toast.error("An error occurred");

@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { handleApiError } from "@/lib/utils/handle-api-error";
 import { UserFactory } from "@/domain/users/user-factory";
 import { UserRepository } from "@/repositories/user-repo";
+import { CookieService } from "@/services/cookies-&-auth-tokens/cookies-auth-tokens.service";
 import {
   NotificationFactory,
   renderTemplate,
@@ -59,12 +60,6 @@ export async function POST(request: NextRequest) {
     };
     await connectToDatabase();
 
-    /*
-     * Re-checked here rather than trusted from the form. The client validates
-     * with the same schema, but this endpoint is reachable directly, and an
-     * account created without agreement is exactly the record the whole
-     * feature exists to keep.
-     */
     if (agreedToTerms !== true) {
       throw new AppError(
         "BAD_REQUEST",
@@ -86,6 +81,7 @@ export async function POST(request: NextRequest) {
     const user = UserFactory.createSignupUser(props);
     await user.hashPassword();
     await UserRepository.saveUser(user);
+    const savedUser = await UserRepository.findUserByEmail(email);
 
     try {
       const subject = `Welcome to ${siteConfig.name} — Let’s Get You Started`;
@@ -110,13 +106,21 @@ export async function POST(request: NextRequest) {
       await notification.send();
     } catch (error) {
       console.error(`Error sending welcome message: ${error}`);
-      // TODO: report?
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       { message: `User created successfully`, success: true },
       { status: 201 },
     );
+
+    if (savedUser) {
+      const authUser = UserFactory.createAuthUser(savedUser);
+      const tokenPayload = CookieService.generateUserToken(authUser);
+      const hostname = request.nextUrl.hostname;
+      await CookieService.setUserAuth(response, tokenPayload, hostname);
+    }
+
+    return response;
   } catch (error) {
     console.log("Erorr signing up:", error);
     if (isReportableError(error)) {

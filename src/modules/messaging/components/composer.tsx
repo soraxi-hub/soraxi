@@ -1,13 +1,23 @@
 "use client";
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Send, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import type { ProductRefView } from "@/domain/messaging/messaging-types";
 import { ProductRefCard } from "./reference-cards";
+
+/** Textarea stops growing here and scrolls internally instead — about 4-5 lines. */
+const MAX_COMPOSER_HEIGHT_PX = 128;
 
 interface ComposerProps {
   placeholder: string;
@@ -35,6 +45,8 @@ export function Composer({
   onSend,
 }: ComposerProps) {
   const [value, setValue] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
 
   const submit = (body: string) => {
     const trimmed = body.trim();
@@ -49,15 +61,32 @@ export function Composer({
     submit(value);
   };
 
-  // Enter sends, Shift+Enter would newline — but this is a single-line input,
-  // so Enter submitting via the form is already the behaviour. Handled
-  // explicitly so the intent survives a future switch to a textarea.
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  // Desktop: Enter sends, Shift+Enter inserts a newline. Mobile: Enter always
+  // inserts a newline (that's the textarea's default — nothing to do here),
+  // and only the send button submits.
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isMobile) return;
+
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       submit(value);
     }
   };
+
+  // Auto-grow with the content, up to the cap, then scroll internally.
+  // useLayoutEffect so the resize happens before paint — no flash at the old
+  // height. Also what resets the box back to one row once `value` clears
+  // after a send.
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    const nextHeight = Math.min(textarea.scrollHeight, MAX_COMPOSER_HEIGHT_PX);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY =
+      textarea.scrollHeight > MAX_COMPOSER_HEIGHT_PX ? "auto" : "hidden";
+  }, [value]);
 
   return (
     <div className="border-t border-border bg-background">
@@ -100,23 +129,32 @@ export function Composer({
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 py-2 sm:p-4"
+        className="flex items-end gap-2 py-2 sm:p-4"
       >
-        <Input
+        <textarea
+          ref={textareaRef}
+          rows={1}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           aria-label="Message"
           disabled={isSending}
-          className="flex-1 rounded-full"
+          className={cn(
+            "flex-1 resize-none rounded-md border border-gray-300 px-3 py-1.5",
+            "text-base text-foreground placeholder:text-muted-foreground",
+            "shadow-xs outline-none transition-[color,box-shadow,border-color]",
+            "hover:border-soraxi-green focus:border-soraxi-green",
+            "focus-visible:ring-[1px] focus-visible:ring-soraxi-green/20",
+            "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+          )}
         />
         <Button
           type="submit"
           size="icon"
           disabled={isSending || !value.trim()}
           aria-label="Send message"
-          className="size-10 shrink-0 rounded-lg bg-soraxi-green text-white hover:bg-soraxi-green-hover"
+          className="size-9 shrink-0 rounded-lg bg-soraxi-green text-white hover:bg-soraxi-green-hover"
         >
           {isSending ? (
             <Spinner className="size-4" />
