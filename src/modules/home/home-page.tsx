@@ -19,10 +19,6 @@ import { WhySoraxi } from "./sections/why-soraxi";
 
 /**
  * HomePage Component
- *
- * Two mutually exclusive views behind one route: the landing page when there is
- * no `search`, and the results grid when there is. `useQueryState` keeps that in
- * the URL, so a search stays shareable and survives a refresh.
  */
 export function HomePage() {
   const trpc = useTRPC();

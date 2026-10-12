@@ -31,10 +31,12 @@ export const wishlistRouter = createTRPCRouter({
       const { user } = ctx;
 
       if (!user || !user.id) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You must be logged in to access your wishlist.",
-        });
+        return {
+          userId: "",
+          products: [],
+          createdAt: null,
+          updatedAt: null,
+        };
       }
 
       const Wishlist = await getWishlistModel();
