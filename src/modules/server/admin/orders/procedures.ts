@@ -16,6 +16,7 @@ import {
   isReportableError,
 } from "@/lib/utils/telegram/format-error-report";
 import { getUserModel } from "@/lib/db/models/user.model";
+import { getStoreModel } from "@/lib/db/models/store.model";
 
 const orderService = OrderFactory.getOrderServiceInstance();
 /**
@@ -104,6 +105,7 @@ export const adminOrdersRouter = createTRPCRouter({
         await connectToDatabase();
         const Order = await getOrderModel();
         await getUserModel();
+        await getStoreModel();
 
         const order = await Order.findById(input.orderId)
           .populate({

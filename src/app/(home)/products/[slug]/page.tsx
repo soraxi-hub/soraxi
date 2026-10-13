@@ -45,7 +45,7 @@ export async function generateMetadata({
     description: plainDescription,
     openGraph: {
       type: "website",
-      url: `${siteConfig.url}/product/${slug}`,
+      url: `${siteConfig.url}/products/${slug}`,
       title: product.name,
       description: plainDescription,
       images: productImages,
@@ -55,6 +55,9 @@ export async function generateMetadata({
       title: product.name,
       description: plainDescription,
       images: product.images,
+    },
+    alternates: {
+      canonical: `${siteConfig.url}/products/${slug}`,
     },
   };
 }

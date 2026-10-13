@@ -26,61 +26,67 @@ export const wishlistRouter = createTRPCRouter({
    * Primarily used to check if a product already exists in a user's wishlist
    * (for example, inside a product info component).
    */
-  getUnPopulatedWishlistByUserId: baseProcedure.query(async ({ ctx }) => {
-    try {
-      const { user } = ctx;
+  getUnPopulatedWishlistByUserId: baseProcedure
+    .input(
+      z.object({
+        userId: z.string().nullable(),
+      }),
+    )
+    .query(async ({ input }) => {
+      try {
+        const { userId } = input;
 
-      if (!user || !user.id) {
-        return {
-          userId: "",
-          products: [],
-          createdAt: null,
-          updatedAt: null,
-        };
-      }
-
-      const Wishlist = await getWishlistModel();
-      const wishlist = await Wishlist.findOne({ user: user.id }).lean();
-
-      if (!wishlist) {
-        return {
-          userId: user.id,
-          products: [],
-          createdAt: null,
-          updatedAt: null,
-        };
-      }
-
-      const formattedWishlist = {
-        userId: wishlist.userId.toString(),
-        products: wishlist.products.map((p) => ({
-          productId: p.productId.toString(),
-          productType: p.productType,
-        })),
-        createdAt: wishlist.createdAt,
-        updatedAt: wishlist.updatedAt,
-      };
-
-      return formattedWishlist;
-    } catch (err) {
-      console.error("Error in getUnPopulatedWishlistByUserId:", err);
-      if (isReportableError(err)) {
-        try {
-          await sendTelegramMessage(
-            formatErrorReport(err, {
-              source: "trpc:wishlist.getUnPopulatedWishlistByUserId",
-            }),
-          );
-        } catch {
-          // sendTelegramMessage already console.errors; never mask the original error
+        if (userId === null) {
+          return {
+            userId: "",
+            products: [],
+            createdAt: null,
+            updatedAt: null,
+          };
         }
+
+        const Wishlist = await getWishlistModel();
+        const wishlist = await Wishlist.findOne({ userId }).lean();
+
+        if (!wishlist) {
+          return {
+            userId: userId,
+            products: [],
+            createdAt: null,
+            updatedAt: null,
+          };
+        }
+
+        const formattedWishlist = {
+          userId: wishlist.userId.toString(),
+          products: wishlist.products.map((p) => ({
+            productId: p.productId.toString(),
+            productType: p.productType,
+          })),
+          createdAt: wishlist.createdAt,
+          updatedAt: wishlist.updatedAt,
+        };
+
+        return formattedWishlist;
+      } catch (err) {
+        console.error("Error in getUnPopulatedWishlistByUserId:", err);
+        if (isReportableError(err)) {
+          try {
+            await sendTelegramMessage(
+              formatErrorReport(err, {
+                source: "trpc:wishlist.getUnPopulatedWishlistByUserId",
+              }),
+            );
+          } catch {
+            // sendTelegramMessage already console.errors; never mask the original error
+          }
+        }
+        throw handleTRPCError(
+          err,
+          "We couldn't load your wishlist. Please try again.",
+        );
       }
-      throw handleTRPCError(
-        err,
-        "We couldn't load your wishlist. Please try again.",
-      );
-    }
-  }),
+    }),
 
   /**
    * @procedure getByUserId

@@ -38,7 +38,12 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
 
   // Fetch user's wishlist
   const { data: wishlist, refetch: refetchWishlist } = useQuery(
-    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions(),
+    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions(
+      { userId },
+      {
+        enabled: !!userId,
+      },
+    ),
   );
 
   // Check if product is in wishlist
@@ -53,15 +58,11 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   const addToWishlist = useMutation(
     trpc.wishlist.addItem.mutationOptions({
       onSuccess: () => {
-        toast.success(
-          `${product?.name ?? "Unknown Product"} added to wishlist`,
-        );
+        toast.success(`${product?.name ?? "Product"} added to wishlist`);
         refetchWishlist();
       },
       onError: () => {
-        toast.error(
-          `Error adding ${product?.name ?? "Unknown Product"} to wishlist`,
-        );
+        toast.error(`Error adding ${product?.name ?? "Product"} to wishlist`);
       },
     }),
   );
@@ -69,15 +70,13 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   const removeFromWishlist = useMutation(
     trpc.wishlist.removeItem.mutationOptions({
       onSuccess: () => {
-        toast.success(
-          `${product?.name ?? "Unknown Product"} removed from wishlist`,
-        );
+        toast.success(`${product?.name ?? "Product"} removed from wishlist`);
         refetchWishlist();
       },
       onError: (error) => {
         toast.error(
           error.message ||
-            `Error removing ${product?.name ?? "Unknown Product"} from wishlist`,
+            `Error removing ${product?.name ?? "Product"} from wishlist`,
         );
       },
     }),
