@@ -12,6 +12,15 @@ const nextConfig = {
       new URL("https://example.com/**"), // test purpose only
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/product/:slug",
+        destination: "/products/:slug",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 const withMDX = createMDX({
