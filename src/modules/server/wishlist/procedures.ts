@@ -46,7 +46,7 @@ export const wishlistRouter = createTRPCRouter({
         }
 
         const Wishlist = await getWishlistModel();
-        const wishlist = await Wishlist.findOne({ user: userId }).lean();
+        const wishlist = await Wishlist.findOne({ userId }).lean();
 
         if (!wishlist) {
           return {
