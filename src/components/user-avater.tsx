@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { User2Icon } from "lucide-react";
+import { ChevronDown, User2Icon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,14 +39,22 @@ function UserAvatar({ userName }: { userName?: string }) {
   return (
     <Suspense fallback={<User2Icon />}>
       <DropdownMenu>
-        <DropdownMenuTrigger className="">
-          {userName ? (
-            <span className="hover:bg-transparent hover:text-soraxi-green delay-75 transition-all ease-in-out">
-              {truncateText(userName)}
-            </span>
-          ) : (
-            <User2Icon className="hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out!" />
-          )}
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="group inline-flex flex-row items-center gap-1 whitespace-nowrap outline-none"
+          >
+            {userName ? (
+              <>
+                <span className="delay-75 transition-all ease-in-out group-hover:text-soraxi-green group-data-[state=open]:text-soraxi-green">
+                  {truncateText(userName)}
+                </span>
+                <ChevronDown className="size-4 shrink-0 transition-all duration-200 group-hover:text-soraxi-green group-data-[state=open]:rotate-180 group-data-[state=open]:text-soraxi-green" />
+              </>
+            ) : (
+              <User2Icon className="hover:bg-transparent! hover:text-soraxi-green! delay-75! transition-all! ease-in-out! group-data-[state=open]:text-soraxi-green!" />
+            )}
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="dark:bg-muted/90">
           {userName ? (
