@@ -13,6 +13,7 @@ import { getStoreModel } from "@/lib/db/models/store.model";
 import { AppError } from "@/lib/errors/app-error";
 import { CartRepository } from "@/repositories/cart-repo";
 import { ProductRepository } from "@/repositories/product-repo";
+import { GuestCartRepository } from "@/repositories/guest-cart-repo";
 import mongoose from "mongoose";
 
 export class CartService {
@@ -169,6 +170,34 @@ export class CartService {
    *
    * @param userId - Authenticated user's ID
    */
+  /**
+   * Populated cart for a logged-out visitor, read from GuestCart instead of
+   * Cart. `userId` on the shimmed object is cosmetic only (PopulatedCart
+   * never persists through this path) — it just satisfies the shape
+   * CartFactory.buildPopulatedCart expects.
+   */
+  static async getPopulatedGuestCart(guestId: string): Promise<IPopulatedCartInfo> {
+    const ProductModel = await getProductModel();
+    const guestCart = await GuestCartRepository.findByGuestId(guestId);
+
+    if (!guestCart) {
+      return CartFactory.buildPopulatedCart(
+        { userId: guestId, items: [] } as unknown as ICart,
+        [],
+      );
+    }
+
+    const productIds = guestCart.items.map((i) => i.productId);
+    const products = await ProductModel.find({ _id: { $in: productIds } })
+      .select("_id storeId price productType name productQuantity images sizes category status slug")
+      .lean<IProduct[]>();
+
+    return CartFactory.buildPopulatedCart(
+      { ...guestCart.toObject(), userId: guestId } as unknown as ICart,
+      products,
+    );
+  }
+
   static async getGroupedCart(userId: string) {
     const CartModel = await getCartModel();
     const StoreModel = await getStoreModel();

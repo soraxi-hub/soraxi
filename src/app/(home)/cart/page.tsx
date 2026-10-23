@@ -1,4 +1,5 @@
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
+import { getGuestIdFromCookie } from "@/lib/helpers/get-guest-id-from-cookie";
 import { CartPageClient } from "@/modules/cart/cart-page-client";
 import { EmptyCart } from "@/modules/cart/empty-cart";
 import type { Metadata } from "next";
@@ -71,18 +72,47 @@ export default async function CartPage() {
   try {
     const user = await getUserFromCookie();
 
-    // Handle unauthenticated users
+    // A logged-out visitor still gets their own guest cart, resolved from
+    // the guest-id cookie rather than a userId.
     if (!user) {
+      const guestId = await getGuestIdFromCookie();
+
+      if (!guestId) {
+        return (
+          <>
+            <div className="container mx-auto px-4 py-8">
+              <EmptyCart />
+            </div>
+            <FeedbackButton page={FeedbackPageEnum.General} />
+          </>
+        );
+      }
+
+      const guestCartData = await CartService.getPopulatedGuestCart(guestId);
+
+      if (!guestCartData || guestCartData.itemCount === 0) {
+        return (
+          <>
+            <div className="container mx-auto px-4 py-8">
+              <EmptyCart />
+            </div>
+            <FeedbackButton page={FeedbackPageEnum.General} />
+          </>
+        );
+      }
+
+      const guestOrderSummary = {
+        subtotal: guestCartData.subtotal,
+        total: guestCartData.subtotal,
+        itemCount: guestCartData.itemCount,
+      };
+
       return (
         <>
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                Please log in to view your cart
-              </p>
-              <EmptyCart showLogInBtn />
-            </div>
-          </div>
+          <CartPageClient
+            initialCartItems={guestCartData.items}
+            initialOrderSummary={guestOrderSummary}
+          />
           <FeedbackButton page={FeedbackPageEnum.General} />
         </>
       );

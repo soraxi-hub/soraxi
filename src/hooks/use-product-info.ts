@@ -26,7 +26,7 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   const { userId } = useAuth();
   const trpc = useTRPC();
   const [isCopied, setIsCopied] = useState(false);
-  const { addItem } = useCart(userId);
+  const { addItem } = useCart();
   const router = useRouter();
 
   function redirectToLogin(
@@ -36,14 +36,10 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
     router.push(`/sign-in?redirect=${encodeURIComponent(redirect)}`);
   }
 
-  // Fetch user's wishlist
+  // Fetch wishlist — enabled unconditionally; a logged-out visitor's guest
+  // wishlist (if any) is resolved server-side via the guest-id cookie.
   const { data: wishlist, refetch: refetchWishlist } = useQuery(
-    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions(
-      { userId },
-      {
-        enabled: !!userId,
-      },
-    ),
+    trpc.wishlist.getUnPopulatedWishlistByUserId.queryOptions({ userId }),
   );
 
   // Check if product is in wishlist
@@ -61,7 +57,10 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
         toast.success(`${product?.name ?? "Product"} added to wishlist`);
         refetchWishlist();
       },
-      onError: () => {
+      onError: (err) => {
+        if (err.data?.code === "UNAUTHORIZED") {
+          return redirectToLogin(router, `/products/${product?.slug ?? ""}`);
+        }
         toast.error(`Error adding ${product?.name ?? "Product"} to wishlist`);
       },
     }),
@@ -86,20 +85,6 @@ export function useProductInfo(product: Product): UseProductInfoReturn {
   const handleWishlistToggle = async (product: Product) => {
     if (!product) {
       toast.info("Product data is unavailable.");
-      return;
-    }
-
-    if (!userId) {
-      toast.error("Please login to continue.", {
-        action: {
-          label: "Login",
-          onClick: () => redirectToLogin(router, `/products/${product.slug}`),
-        },
-        actionButtonStyle: {
-          backgroundColor: "#14a800",
-          color: "white",
-        },
-      });
       return;
     }
 

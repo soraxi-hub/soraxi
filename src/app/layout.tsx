@@ -9,6 +9,7 @@ import { siteConfig } from "@/config/site";
 import { Montserrat } from "next/font/google";
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { GuestSessionBootstrap } from "@/components/guest/guest-session-bootstrap";
 
 const montserrat = Montserrat({
   weight: ["400", "600", "700"],
@@ -175,6 +176,7 @@ export default function RootLayout({
             <NuqsAdapter>{children}</NuqsAdapter>
             <Toaster />
             <SpeedInsights />
+            <GuestSessionBootstrap />
           </ThemeProvider>
         </TRPCReactProvider>
       </body>

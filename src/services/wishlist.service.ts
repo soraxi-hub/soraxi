@@ -5,6 +5,8 @@ import { WishlistRepository } from "@/repositories/wishlist.repository";
 import { Wishlist } from "@/domain/wishlist/wishlist";
 import { getProductModel } from "@/lib/db/models/product.model";
 import { PopulatedWishlist } from "@/domain/wishlist/decorators/populated-wishlist.decorator";
+import { GuestWishlistRepository } from "@/repositories/guest-wishlist-repo";
+import { IWishlistInfo } from "@/domain/wishlist/wishlist.interface";
 
 /**
  * Service layer responsible for wishlist business logic.
@@ -51,6 +53,30 @@ export class WishlistService {
   /**
    * Creates a wishlist if none exists.
    */
+  /**
+   * Populated wishlist for a logged-out visitor, read from GuestWishlist.
+   * `userId` on the shimmed object is cosmetic only — it just satisfies the
+   * shape `WishlistFactory.buildWishlistWithPolulatedProduct` expects.
+   */
+  static async getGuestWishlistWithPopulatedProducts(
+    guestId: string,
+  ): Promise<PopulatedWishlist | null> {
+    const ProductModel = await getProductModel();
+    const guestWishlist = await GuestWishlistRepository.findByGuestId(guestId);
+    if (!guestWishlist) return null;
+
+    const productIds = guestWishlist.products.map((p) => p.productId);
+    const products = await ProductModel.find({ _id: { $in: productIds } })
+      .select("price productType name images status slug category rating");
+
+    const data: IWishlistInfo = {
+      ...guestWishlist.toObject(),
+      userId: guestId,
+    };
+
+    return WishlistFactory.buildWishlistWithPolulatedProduct(data, products);
+  }
+
   static async createWishlist(userId: string): Promise<Wishlist> {
     const existingWishlist = await WishlistRepository.findByUserId(userId);
 

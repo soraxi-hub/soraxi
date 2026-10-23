@@ -28,6 +28,7 @@ export enum TokenType {
   User = "userToken",
   Store = "storeToken",
   Admin = "adminToken",
+  Guest = "guestId",
 }
 
 /**

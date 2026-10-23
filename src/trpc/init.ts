@@ -1,6 +1,7 @@
 import { getAdminFromCookie } from "@/lib/helpers/get-admin-from-cookie";
 import { getStoreFromCookie } from "@/lib/helpers/get-store-from-cookie";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
+import { getGuestIdFromCookie } from "@/lib/helpers/get-guest-id-from-cookie";
 import { initTRPC, TRPCError } from "@trpc/server";
 import SuperJSON from "superjson";
 import { AppError } from "@/lib/errors/app-error";
@@ -13,7 +14,8 @@ export const createTRPCContext = async () => {
   const user = await getUserFromCookie();
   const store = await getStoreFromCookie();
   const admin = await getAdminFromCookie();
-  return { user, store, admin };
+  const guestId = await getGuestIdFromCookie();
+  return { user, store, admin, guestId };
 };
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
@@ -176,6 +178,7 @@ const middleware = t.middleware(({ ctx, next }) => {
       user: ctx.user,
       store: ctx.store,
       admin: ctx.admin,
+      guestId: ctx.guestId,
     },
   });
 });

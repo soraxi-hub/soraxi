@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { WishlistService } from "@/services/wishlist.service";
+import { GuestWishlistRepository } from "@/repositories/guest-wishlist-repo";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -32,16 +33,41 @@ export const wishlistRouter = createTRPCRouter({
         userId: z.string().nullable(),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
         const { userId } = input;
 
         if (userId === null) {
+          if (!ctx.guestId) {
+            return {
+              userId: "",
+              products: [],
+              createdAt: null,
+              updatedAt: null,
+            };
+          }
+
+          const guestWishlist = await GuestWishlistRepository.findByGuestId(
+            ctx.guestId,
+          );
+
+          if (!guestWishlist) {
+            return {
+              userId: "",
+              products: [],
+              createdAt: null,
+              updatedAt: null,
+            };
+          }
+
           return {
             userId: "",
-            products: [],
-            createdAt: null,
-            updatedAt: null,
+            products: guestWishlist.products.map((p) => ({
+              productId: p.productId.toString(),
+              productType: p.productType,
+            })),
+            createdAt: guestWishlist.createdAt,
+            updatedAt: guestWishlist.updatedAt,
           };
         }
 
@@ -96,12 +122,31 @@ export const wishlistRouter = createTRPCRouter({
    */
   getByUserId: baseProcedure.query(async ({ ctx }) => {
     try {
-      const { user } = ctx;
+      const { user, guestId } = ctx;
 
       if (!user || !user.id) {
+        if (!guestId) {
+          return {
+            userId: "",
+            products: [],
+          };
+        }
+
+        const guestWishlist =
+          await WishlistService.getGuestWishlistWithPopulatedProducts(
+            guestId,
+          );
+
+        if (!guestWishlist) {
+          return {
+            userId: "",
+            products: [],
+          };
+        }
+
         return {
           userId: "",
-          products: [],
+          products: guestWishlist.products.map((p) => p.productData),
         };
       }
 
@@ -155,13 +200,24 @@ export const wishlistRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { user } = ctx;
+        const { user, guestId } = ctx;
 
-        if (!user || !user.id) {
+        if ((!user || !user.id) && !guestId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "You must be logged in to access your wishlist.",
           });
+        }
+
+        if (!user || !user.id) {
+          const updatedGuestWishlist = await GuestWishlistRepository.addItem(
+            guestId!,
+            {
+              productId: input.productId,
+              productType: input.productType,
+            },
+          );
+          return updatedGuestWishlist;
         }
 
         const updated = await WishlistService.addProduct(user.id, {
@@ -202,13 +258,27 @@ export const wishlistRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { user } = ctx;
+        const { user, guestId } = ctx;
 
-        if (!user || !user.id) {
+        if ((!user || !user.id) && !guestId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "You must be logged in to access your wishlist.",
           });
+        }
+
+        if (!user || !user.id) {
+          const updatedGuestWishlist = await GuestWishlistRepository.removeItem(
+            guestId!,
+            input.productId,
+          );
+          if (!updatedGuestWishlist) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Wishlist or item not found.",
+            });
+          }
+          return updatedGuestWishlist;
         }
 
         const updated = await WishlistService.removeProduct(

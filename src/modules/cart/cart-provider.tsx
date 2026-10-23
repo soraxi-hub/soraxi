@@ -1,4 +1,3 @@
-import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { CartHydrationClient } from "./cart-hydration-client";
 import { caller } from "@/trpc/server";
 
@@ -23,21 +22,13 @@ import { caller } from "@/trpc/server";
  */
 export async function CartProvider() {
   try {
-    // Server-side user authentication
-    // This runs during SSR, so cookies are available in the request context
-    const user = await getUserFromCookie();
-
-    // Handle unauthenticated users gracefully
-    if (!user) {
-      return <CartHydrationClient initialCart={null} />;
-    }
-
     /**
      * Server-side cart data fetching
      *
-     * Uses tRPC server client to fetch data during SSR.
-     * This ensures the cart data is available immediately when
-     * the page renders on the client.
+     * Uses tRPC server client to fetch data during SSR. The procedure
+     * itself resolves either the logged-in user's cart or, for a
+     * logged-out visitor, their guest cart via the guest-id cookie — so
+     * this no longer needs to branch on `getUserFromCookie()` first.
      */
     const cartItems = await caller.cart.cartHydration();
 
