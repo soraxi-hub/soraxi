@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { CartProvider } from "@/modules/cart/cart-provider";
 import { CartService } from "@/services/cart/cart.service";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 
 export const metadata: Metadata = {
   title: `Your Shopping Cart`,
@@ -72,14 +74,17 @@ export default async function CartPage() {
     // Handle unauthenticated users
     if (!user) {
       return (
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-muted-foreground mb-4">
-              Please log in to view your cart
-            </p>
-            <EmptyCart showLogInBtn />
+        <>
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <p className="text-muted-foreground mb-4">
+                Please log in to view your cart
+              </p>
+              <EmptyCart showLogInBtn />
+            </div>
           </div>
-        </div>
+          <FeedbackButton page={FeedbackPageEnum.General} />
+        </>
       );
     }
 
@@ -88,9 +93,12 @@ export default async function CartPage() {
     // Handle empty cart case
     if (!cartData || cartData.itemCount === 0) {
       return (
-        <div className="container mx-auto px-4 py-8">
-          <EmptyCart />
-        </div>
+        <>
+          <div className="container mx-auto px-4 py-8">
+            <EmptyCart />
+          </div>
+          <FeedbackButton page={FeedbackPageEnum.General} />
+        </>
       );
     }
 
@@ -109,6 +117,7 @@ export default async function CartPage() {
           initialCartItems={cartData.items}
           initialOrderSummary={orderSummary}
         />
+        <FeedbackButton page={FeedbackPageEnum.General} />
       </>
     );
   } catch (error) {
@@ -117,14 +126,17 @@ export default async function CartPage() {
 
     // Graceful error fallback
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-destructive mb-4">
-            Failed to load cart data. Please try refreshing the page.
-          </p>
-          <EmptyCart />
+      <>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-destructive mb-4">
+              Failed to load cart data. Please try refreshing the page.
+            </p>
+            <EmptyCart />
+          </div>
         </div>
-      </div>
+        <FeedbackButton page={FeedbackPageEnum.General} />
+      </>
     );
   }
 }

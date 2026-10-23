@@ -1,9 +1,10 @@
 import mongoose, { type Document, Model, Schema } from "mongoose";
 import { connectToDatabase } from "../mongoose";
+import { FeedbackPageEnum } from "@/enums";
 
 export interface IFeedback {
   userId?: mongoose.Schema.Types.ObjectId;
-  feedBackPage: "user" | "store-dashboard" | "payment-success";
+  feedBackPage: FeedbackPageEnum;
   answers: {
     question: string;
     answer: string;
@@ -26,7 +27,7 @@ const FeedbackSchema = new Schema<IFeedbackDocument>(
     },
     feedBackPage: {
       type: String,
-      enum: ["user", "store-dashboard", "payment-success"],
+      enum: Object.values(FeedbackPageEnum),
       required: true,
     },
     answers: [

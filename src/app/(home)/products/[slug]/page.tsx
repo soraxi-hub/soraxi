@@ -6,6 +6,8 @@ import { StoreStatusEnum } from "@/enums";
 import { siteConfig } from "@/config/site";
 import { Metadata } from "next";
 import { truncateAtWordBoundary } from "@/constants/constant";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 
 interface ProductPageProps {
   params: Promise<{
@@ -72,15 +74,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (storeStatus !== StoreStatusEnum.Active) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
-        <h2 className="text-xl font-semibold text-red-800 mb-2">
-          Product temporarily unavailable
-        </h2>
-        <p className="text-gray-600 mb-6 dark:text-slate-200">
-          This product is currently unavailable for purchase. Please check back
-          soon — we hope to have it back shortly!
-        </p>
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
+          <h2 className="text-xl font-semibold text-red-800 mb-2">
+            Product temporarily unavailable
+          </h2>
+          <p className="text-gray-600 mb-6 dark:text-slate-200">
+            This product is currently unavailable for purchase. Please check
+            back soon — we hope to have it back shortly!
+          </p>
+        </div>
+        <FeedbackButton page={FeedbackPageEnum.General} />
+      </>
     );
   }
 
@@ -88,6 +93,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const relatedProducts = await caller.home.getRelatedProducts({ slug });
 
   return (
-    <ProductDetailPage product={product} relatedProducts={relatedProducts} />
+    <>
+      <ProductDetailPage product={product} relatedProducts={relatedProducts} />
+      <FeedbackButton page={FeedbackPageEnum.General} />
+    </>
   );
 }

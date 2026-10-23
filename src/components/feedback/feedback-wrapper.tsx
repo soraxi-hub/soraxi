@@ -4,9 +4,10 @@ import type React from "react";
 
 import { FeedbackPopup } from "./feedback-popup";
 import { useFeedbackPopup } from "@/hooks/use-feedback-popup";
+import { FeedbackPageEnum } from "@/enums";
 
 interface FeedbackWrapperProps {
-  page: "user" | "store-dashboard" | "payment-success";
+  page: FeedbackPageEnum;
   delay?: number;
   children?: React.ReactNode;
 }

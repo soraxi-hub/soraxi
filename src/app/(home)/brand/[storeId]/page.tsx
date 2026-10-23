@@ -8,6 +8,8 @@ import { QueryBoundary } from "@/components/errors/query-boundary";
 import { PublicStoreProfile } from "@/modules/public-store/public-store-profile";
 import { PublicStoreProfileSkeleton } from "@/modules/skeletons/public-store-profile-skeleton";
 import { caller, getQueryClient, trpc } from "@/trpc/server";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 
 interface PageProps {
   params: Promise<{
@@ -82,13 +84,16 @@ async function Page({ params }: PageProps) {
   );
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <QueryBoundary>
-        <Suspense fallback={<PublicStoreProfileSkeleton />}>
-          <PublicStoreProfile storeId={storeId} />
-        </Suspense>
-      </QueryBoundary>
-    </HydrationBoundary>
+    <>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <QueryBoundary>
+          <Suspense fallback={<PublicStoreProfileSkeleton />}>
+            <PublicStoreProfile storeId={storeId} />
+          </Suspense>
+        </QueryBoundary>
+      </HydrationBoundary>
+      <FeedbackButton page={FeedbackPageEnum.General} />
+    </>
   );
 }
 

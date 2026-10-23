@@ -1,5 +1,6 @@
 import { FeedBack, FeedBackProps } from "@/domain/feedback/feedback";
 import { getFeedbackModel } from "@/lib/db/models/feedback.model";
+import { FeedbackPageEnum } from "@/enums";
 
 export class FeedBackRepo {
   static async saveFeedBack(feedback: FeedBack) {
@@ -17,9 +18,7 @@ export class FeedBackRepo {
   }
 
   static isValidFeedBackPage(feedBackPage: FeedBackProps[`feedBackPage`]) {
-    return ["user", "store-dashboard", "payment-success"].includes(
-      feedBackPage
-    );
+    return Object.values(FeedbackPageEnum).includes(feedBackPage);
   }
 
   static validateAnswers(answers: FeedBackProps[`answers`]) {

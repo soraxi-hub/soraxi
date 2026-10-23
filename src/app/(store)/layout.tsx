@@ -1,4 +1,6 @@
 import { StoreHeader } from "@/components/layout/store/nav";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 import "../globals.css";
 import type { Metadata } from "next";
 import { Fragment } from "react";
@@ -24,6 +26,7 @@ export default function RootLayout({
     <Fragment>
       <StoreHeader />
       {children}
+      <FeedbackButton page={FeedbackPageEnum.StoreDashboard} />
     </Fragment>
   );
 }

@@ -25,7 +25,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import AlertUI from "@/modules/shared/alert";
 import { StoreDashboardSkeleton } from "@/modules/skeletons/store-dashboard-skeleton";
-import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import Link from "next/link";
 import { StoreStatusEnum } from "@/enums";
 import { cn } from "@/lib/utils";
@@ -80,7 +79,7 @@ export default function StoreDashboardPage({
 
   // Store exists - show dashboard
   return (
-    <FeedbackWrapper page={`store-dashboard`} delay={120000}>
+    <>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Header */}
@@ -280,6 +279,6 @@ export default function StoreDashboardPage({
           </div>
         </div>
       </div>
-    </FeedbackWrapper>
+    </>
   );
 }

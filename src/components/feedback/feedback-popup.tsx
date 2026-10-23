@@ -13,17 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   feedbackQuestions,
   type FeedbackQuestion,
 } from "@/lib/feedback/questions";
+import { FeedbackPageEnum } from "@/enums";
 import { toast } from "sonner";
 
 interface FeedbackPopupProps {
   isOpen: boolean;
   onCloseAction: () => void;
-  page: "user" | "store-dashboard" | "payment-success";
+  page: FeedbackPageEnum;
 }
 
 interface FeedbackAnswer {
@@ -200,12 +200,14 @@ export function FeedbackPopup({
 
   const getPageTitle = () => {
     switch (page) {
-      case "user":
+      case FeedbackPageEnum.User:
         return "Help Us Improve Your Shopping Experience";
-      case "store-dashboard":
+      case FeedbackPageEnum.StoreDashboard:
         return "Help Us Improve Your Store Management Experience";
-      case "payment-success":
+      case FeedbackPageEnum.PaymentSuccess:
         return "How Was Your Checkout Experience?";
+      case FeedbackPageEnum.General:
+        return "Got Feedback for Us?";
       default:
         return "Share Your Feedback";
     }
@@ -213,12 +215,14 @@ export function FeedbackPopup({
 
   const getPageDescription = () => {
     switch (page) {
-      case "user":
+      case FeedbackPageEnum.User:
         return "Your feedback helps us create a better shopping experience for everyone.";
-      case "store-dashboard":
+      case FeedbackPageEnum.StoreDashboard:
         return "Help us build better tools for your business success.";
-      case "payment-success":
+      case FeedbackPageEnum.PaymentSuccess:
         return "Your input helps us improve our checkout and payment process.";
+      case FeedbackPageEnum.General:
+        return "Tell us what's working, what's not, or what you'd like to see.";
       default:
         return "We value your opinion and use it to improve our platform.";
     }
@@ -243,18 +247,16 @@ export function FeedbackPopup({
           </DialogDescription>
         </DialogHeader>
 
-        <Card>
-          <CardContent className="p-6 space-y-6">
-            {questions.map((question, index) => (
-              <div key={question.id}>
-                {renderQuestion(question)}
-                {index < questions.length - 1 && (
-                  <div className="border-b border-gray-100 mt-6" />
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {questions.map((question, index) => (
+            <div key={question.id}>
+              {renderQuestion(question)}
+              {index < questions.length - 1 && (
+                <div className="border-b border-gray-100 mt-6" />
+              )}
+            </div>
+          ))}
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between pt-4">
           <Button
