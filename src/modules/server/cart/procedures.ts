@@ -10,6 +10,7 @@ import { ProductTypeEnum } from "@/enums";
 import { handleTRPCError } from "@/lib/utils/handle-trpc-error";
 import { CartRepository } from "@/repositories/cart-repo";
 import { CartService } from "@/services/cart/cart.service";
+import { GuestCartRepository } from "@/repositories/guest-cart-repo";
 import { sendTelegramMessage } from "@/lib/utils/telegram/send-message";
 import {
   formatErrorReport,
@@ -80,10 +81,25 @@ export const cartRouter = createTRPCRouter({
    */
   cartHydration: baseProcedure.query(async ({ ctx }) => {
     try {
-      const { user } = ctx;
+      const { user, guestId } = ctx;
       const emptyCartItems: ICartItem[] = [];
 
-      if (!user) return emptyCartItems;
+      if (!user) {
+        if (!guestId) return emptyCartItems;
+
+        const guestCart = await GuestCartRepository.findByGuestId(guestId);
+        if (!guestCart) return emptyCartItems;
+
+        return (
+          guestCart.items.map((item) => ({
+            productId: item.productId.toString(),
+            storeId: item.storeId.toString(),
+            quantity: item.quantity,
+            productType: item.productType,
+            selectedSize: item.selectedSize,
+          })) || emptyCartItems
+        );
+      }
 
       const cart = await CartRepository.getCartByUserId(user.id);
       if (!cart) return emptyCartItems;
@@ -139,9 +155,9 @@ export const cartRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { user } = ctx;
+        const { user, guestId } = ctx;
 
-        if (!user || !user.id) {
+        if ((!user || !user.id) && !guestId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Please Login to perform this action.",
@@ -180,6 +196,20 @@ export const cartRouter = createTRPCRouter({
             code: "BAD_REQUEST",
             message: "This product is currently unavailable.",
           });
+        }
+
+        if (!user || !user.id) {
+          const updatedGuestCart = await GuestCartRepository.addItem(
+            guestId!,
+            {
+              productId: input.productId,
+              storeId: input.storeId,
+              quantity: input.quantity,
+              productType: input.productType,
+              selectedSize: input.selectedSize,
+            },
+          );
+          return updatedGuestCart;
         }
 
         const updatedCart = await CartService.addToCart(user.id, {
@@ -223,9 +253,9 @@ export const cartRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { user } = ctx;
+        const { user, guestId } = ctx;
 
-        if (!user) {
+        if (!user && !guestId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Please Login to perform this action.",
@@ -237,6 +267,20 @@ export const cartRouter = createTRPCRouter({
             code: "BAD_REQUEST",
             message: "Invalid product ID",
           });
+        }
+
+        if (!user) {
+          const updatedGuestCart = await GuestCartRepository.removeItem(
+            guestId!,
+            input.productId,
+          );
+          if (!updatedGuestCart) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "That item is no longer in your cart. Refresh the page.",
+            });
+          }
+          return updatedGuestCart;
         }
 
         const updatedCart = await CartService.removeFromCart(
@@ -286,13 +330,38 @@ export const cartRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { user } = ctx;
+        const { user, guestId } = ctx;
 
-        if (!user) {
+        if (!user && !guestId) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Please Login to perform this action.",
           });
+        }
+
+        if (!user) {
+          if (input.quantity === 0) {
+            const removed = await GuestCartRepository.removeItem(
+              guestId!,
+              input.productId,
+            );
+            return removed;
+          }
+
+          const updatedGuestCart = await GuestCartRepository.updateQuantity(
+            guestId!,
+            input.productId,
+            input.quantity,
+          );
+
+          if (!updatedGuestCart) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Item to update not found in cart",
+            });
+          }
+
+          return updatedGuestCart;
         }
 
         if (input.quantity === 0) {

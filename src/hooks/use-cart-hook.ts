@@ -8,7 +8,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { ProductTypeEnum } from "@/enums";
 import { IPopulatedCartInfo } from "@/domain/cart/cart-interface";
 
-export function useCart(userId: string | null) {
+// `userId` is no longer a parameter — the server resolves the logged-in
+// user's cart or, for a logged-out visitor, their guest cart via the
+// guest-id cookie, so every mutation works the same way regardless of
+// auth state.
+export function useCart() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -51,7 +55,10 @@ export function useCart(userId: string | null) {
       toast.success("Added to cart");
       invalidateCart();
     },
-    onError: (err) => toast.error(err.message || "Failed to add item"),
+    onError: (err) => {
+      if (err.data?.code === "UNAUTHORIZED") return redirectToLogin();
+      toast.error(err.message || "Failed to add item");
+    },
   });
 
   const updateQuantityMutation = useMutation({
@@ -60,27 +67,30 @@ export function useCart(userId: string | null) {
       toast.success("Cart updated");
       invalidateCart();
     },
-    onError: () => {
+    onError: (err) => {
+      if (err.data?.code === "UNAUTHORIZED") return redirectToLogin();
       toast.error("Update failed. Reverting...");
       router.refresh(); // Simple way to rollback to server state
     },
   });
 
   // Facade Methods
+  // Guests are handled server-side via the guest-id cookie, so these no
+  // longer gate on `userId` — only genuinely logged-out-and-no-guest-cookie
+  // requests fall back to the login prompt, which the mutation's own
+  // UNAUTHORIZED error surfaces through onError.
   const addItem = async (params: {
     productId: string;
     storeId: string;
     productType: ProductTypeEnum;
     quantity: number;
   }) => {
-    if (!userId) return redirectToLogin();
     return addItemMutation.mutateAsync({
       ...params,
     });
   };
 
   const updateQuantity = async (productId: string, quantity: number) => {
-    if (!userId) return redirectToLogin();
     if (quantity <= 0) return removeItem(productId);
 
     // Optimistic Update for Zustand
@@ -89,7 +99,6 @@ export function useCart(userId: string | null) {
   };
 
   const removeItem = async (productId: string) => {
-    if (!userId) return redirectToLogin();
     syncZustandRemove(productId);
     return updateQuantityMutation.mutateAsync({ productId, quantity: 0 });
   };

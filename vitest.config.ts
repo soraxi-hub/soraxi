@@ -7,6 +7,10 @@ export default defineConfig({
       // Next.js's "server-only" guard throws outside a Next server context.
       // Tests run in Node via vitest, so alias it to an empty module.
       "server-only": path.resolve(__dirname, "tests/stubs/server-only.ts"),
+      "next/font/google": path.resolve(
+        __dirname,
+        "tests/stubs/next-font-google.ts",
+      ),
       "@": path.resolve(__dirname, "src"),
     },
   },

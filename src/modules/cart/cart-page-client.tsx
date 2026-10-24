@@ -50,15 +50,13 @@ interface CartPageClientProps {
  *
  * @param initialCartItems - Cart items pre-loaded from server
  * @param initialOrderSummary - Order totals pre-calculated on server
- * @param userId - Authenticated user identifier
  */
 export function CartPageClient({
   initialCartItems,
   initialOrderSummary,
 }: CartPageClientProps) {
   const { userId } = useAuth();
-  const { updateQuantity, removeItem, recalculateOrderSummary } =
-    useCart(userId);
+  const { updateQuantity, removeItem, recalculateOrderSummary } = useCart();
   const [cartItems, setCartItems] =
     useState<IPopulatedCartInfo["items"]>(initialCartItems);
   const [orderSummary, setOrderSummary] =
@@ -203,6 +201,14 @@ export function CartPageClient({
    * and error handling.
    */
   const handleCheckout = async () => {
+    // Checkout stays logged-in only — a guest's cart carries over once they
+    // sign in/up (merged server-side), so send them there instead of
+    // letting the idempotency-key mutation fail with a raw 401.
+    if (!userId) {
+      router.push(`/sign-in?redirect=${encodeURIComponent("/cart")}`);
+      return;
+    }
+
     setIsCheckingOut(true);
 
     try {
