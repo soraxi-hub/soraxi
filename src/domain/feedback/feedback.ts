@@ -1,5 +1,7 @@
+import { FeedbackPageEnum } from "@/enums";
+
 export type FeedBackProps = {
-  feedBackPage: "user" | "store-dashboard" | "payment-success";
+  feedBackPage: FeedbackPageEnum;
   answers: {
     question: string;
     answer: string;

@@ -102,6 +102,8 @@ import { ErrorBoundary } from "react-error-boundary";
 import { Suspense } from "react";
 import { HomePageSkeleton } from "@/modules/skeletons/home-page-skeleton";
 import { ErrorFallback } from "@/components/errors/error-fallback";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 
 /**
  * Home Page
@@ -120,13 +122,16 @@ export default async function Home() {
   void queryClient.prefetchQuery(trpc.home.getPublicProducts.queryOptions({}));
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <Suspense fallback={<HomePageSkeleton />}>
-          <CartProvider />
-          <HomePage />
-        </Suspense>
-      </ErrorBoundary>
-    </HydrationBoundary>
+    <>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<HomePageSkeleton />}>
+            <CartProvider />
+            <HomePage />
+          </Suspense>
+        </ErrorBoundary>
+      </HydrationBoundary>
+      <FeedbackButton page={FeedbackPageEnum.General} />
+    </>
   );
 }

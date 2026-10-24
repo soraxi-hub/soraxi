@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import ProductLoadingSkeleton from "@/modules/skeletons/product-loading-skeleton";
 import { AllProductsPage } from "@/modules/products/all-products/all-products-page";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 
 export const metadata: Metadata = {
   title: `All products | ${siteConfig.name}`,
@@ -16,8 +18,11 @@ export default function Page() {
   // reads `useSearchParams`. Without a Suspense boundary that opts the whole
   // route out of prerendering and fails the build.
   return (
-    <Suspense fallback={<ProductLoadingSkeleton />}>
-      <AllProductsPage />
-    </Suspense>
+    <>
+      <Suspense fallback={<ProductLoadingSkeleton />}>
+        <AllProductsPage />
+      </Suspense>
+      <FeedbackButton page={FeedbackPageEnum.General} />
+    </>
   );
 }

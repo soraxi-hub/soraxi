@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import { StoreStatusEnum } from "@/enums";
 import { ProfileSkeleton } from "@/modules/skeletons/profile-skeleton";
 import { cn } from "@/lib/utils";
@@ -36,7 +35,7 @@ const Profile = () => {
   const userStores = data.userStoreSummary;
 
   return (
-    <FeedbackWrapper page={`user`} delay={120000}>
+    <>
       <TermsAgreementDialog
         hasAgreed={user.termsAgreement?.hasAgreed === true}
       />
@@ -102,7 +101,7 @@ const Profile = () => {
           <RecentlyViewed />
         </div> */}
       </div>
-    </FeedbackWrapper>
+    </>
   );
 };
 

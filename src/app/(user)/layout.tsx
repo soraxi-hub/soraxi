@@ -10,6 +10,8 @@ import { AppSidebar } from "@/modules/user/components/app-sidebar";
 import { cookies } from "next/headers";
 import { getUserFromCookie } from "@/lib/helpers/get-user-from-cookie";
 import { HomeHeader } from "@/components/layout/home/home-nav";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { FeedbackPageEnum } from "@/enums";
 import { Fragment } from "react";
 
 export const metadata: Metadata = {
@@ -42,6 +44,7 @@ export default async function RootLayout({
           <main className="px-4 sm:px-6 lg:px-8 max-w-7xl">{children}</main>
         </SidebarInset>
       </SidebarProvider>
+      <FeedbackButton page={FeedbackPageEnum.User} />
     </Fragment>
   );
 }

@@ -9,6 +9,16 @@ export enum PaymentStatus {
   Cancelled = "cancelled",
 }
 
+/**
+ * Enum representing the site areas feedback can be collected from.
+ */
+export enum FeedbackPageEnum {
+  User = "user",
+  StoreDashboard = "store-dashboard",
+  PaymentSuccess = "payment-success",
+  General = "general",
+}
+
 export enum CouponTypeEnum {
   Percentage = "percentage",
   Fixed = "fixed",

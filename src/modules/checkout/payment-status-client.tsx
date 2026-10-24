@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { PaymentStatus } from "@/enums";
+import { FeedbackPageEnum, PaymentStatus } from "@/enums";
 import { FeedbackWrapper } from "@/components/feedback/feedback-wrapper";
 import SoraxiLoadingState from "@/components/soraxi-loading-state";
 import {
@@ -110,7 +110,7 @@ export function PaymentStatusClient({ reference }: PaymentStatusClientProps) {
   switch (statusQuery.data?.paymentStatus) {
     case PaymentStatus.Paid:
       return (
-        <FeedbackWrapper page="payment-success" delay={3000}>
+        <FeedbackWrapper page={FeedbackPageEnum.PaymentSuccess} delay={3000}>
           <SuccessStatus transaction_reference={reference} />
         </FeedbackWrapper>
       );

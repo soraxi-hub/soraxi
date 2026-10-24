@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FeedbackPageEnum } from "@/enums";
 
 interface UseFeedbackPopupProps {
-  page: "user" | "store-dashboard" | "payment-success";
+  page: FeedbackPageEnum;
   delay?: number; // in milliseconds
 }
 
